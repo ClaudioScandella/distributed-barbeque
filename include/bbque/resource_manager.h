@@ -25,6 +25,7 @@
 #include "bbque/config.h"
 #include "bbque/application_manager.h"
 #include "bbque/application_proxy.h"
+#include "bbque/platform_proxy.h"
 #include "bbque/platform_services.h"
 #include "bbque/plugin_manager.h"
 #include "bbque/scheduler_manager.h"
@@ -146,6 +147,11 @@ private:
 	 * @brief The Application Proxy module
 	 */
 	ApplicationProxy & ap;
+
+	/**
+	 * @brief The Platform Proxy module
+	 */
+	PlatformProxy & pp;
 	
 	/**
 	 * Reference to the plugin manager module.

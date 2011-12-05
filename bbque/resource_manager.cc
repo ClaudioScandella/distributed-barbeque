@@ -121,6 +121,7 @@ ResourceManager::ResourceManager() :
 	ym(SynchronizationManager::GetInstance()),
 	am(ApplicationManager::GetInstance()),
 	ap(ApplicationProxy::GetInstance()),
+	pp(PlatformProxy::GetInstance()),
 	pm(bp::PluginManager::GetInstance()),
 	ra(br::ResourceAccounter::GetInstance()),
 	mc(bu::MetricsCollector::GetInstance()) {
@@ -151,7 +152,11 @@ void ResourceManager::Setup() {
 		logger->Info(" * %s", (*i).first.c_str());
 
 	//---------- Start bbque services
+	pp.LoadPlatformData();
+
+	//---------- Start bbque services
 	ap.Start();
+	pp.Start();
 }
 
 void ResourceManager::NotifyEvent(controlEvent_t evt) {
