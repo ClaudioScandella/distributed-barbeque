@@ -57,11 +57,14 @@ using bbque::app::Recipe;
 using bbque::plugins::LoggerIF;
 using bbque::plugins::RecipeLoaderIF;
 
+
 namespace bbque {
+
+// Forward declaration
+class PlatformProxy;
 
 /** Shared pointer to Recipe object */
 typedef std::shared_ptr<Recipe> RecipePtr_t;
-
 
 /**
 * @class ApplicationManager
@@ -319,6 +322,8 @@ private:
 	/** Lowest application priority value (maximum integer) */
 	app::AppPrio_t lowest_prio;
 
+	/** The PlatformProxy, used to setup/release platform specific data */
+	PlatformProxy & pp;
 
 	/**
 	 * MultiMap of all the applications instances which entered the
