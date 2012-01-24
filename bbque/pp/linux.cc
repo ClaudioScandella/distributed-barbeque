@@ -23,10 +23,14 @@
 
 #include <string.h>
 
+#define BBQUE_LINUXPP_RESOURCES 		"bbq_resources"
+#define BBQUE_LINUXPP_SILOS 			"bbq_silos"
+
 #define BBQUE_LINUXPP_CPUS_PARAM 		"cpuset.cpus"
 #define BBQUE_LINUXPP_MEMS_PARAM 		"cpuset.mems"
 #define BBQUE_LINUXPP_CPU_EXCLUSIVE_PARAM 	"cpuset.cpu_exclusive"
 #define BBQUE_LINUXPP_MEM_EXCLUSIVE_PARAM 	"cpuset.mem_exclusive"
+#define BBQUE_LINUXPP_PROCS_PARAM		"cgroup.procs"
 
 namespace bb = bbque;
 namespace br = bbque::res;
@@ -146,7 +150,7 @@ LinuxPP::RegisterCluster(RLinuxBindingsPtr_t prlb) {
 LinuxPP::ExitCode_t
 LinuxPP::ParseNodeAttributes(struct cgroup_file_info &entry,
 		RLinuxBindingsPtr_t prlb) {
-	char group_name[] = "bbq_resources/node123";
+	char group_name[] = BBQUE_LINUXPP_RESOURCES "/node123";
 	struct cgroup_controller *cg_cpuset = NULL;
 	struct cgroup *bbq_node = NULL;
 	ExitCode_t pp_result = OK;
@@ -249,19 +253,19 @@ LinuxPP::_LoadPlatformData() {
 	logger->Info("PLAT LNX: CGROUP based resources enumeration...");
 
 	// Lookup for a "bbq_resources" cgroup
-	bbq_resources = cgroup_new_cgroup("bbq_resources");
+	bbq_resources = cgroup_new_cgroup(BBQUE_LINUXPP_RESOURCES);
 	cg_result = cgroup_get_cgroup(bbq_resources);
 	if (cg_result) {
-		logger->Error("PLAT LNX: [bbq_resources] lookup FAILED! "
+		logger->Error("PLAT LNX: [" BBQUE_LINUXPP_RESOURCES "] lookup FAILED! "
 				"(Error: No resources assignment)");
 		return PLATFORM_ENUMERATION_FAILED;
 	}
 
 	// Scan  subfolders to map "clusters"
-	cg_result = cgroup_walk_tree_begin("cpuset", "bbq_resources", 1,
-			&node_it, &entry, &level);
+	cg_result = cgroup_walk_tree_begin("cpuset", BBQUE_LINUXPP_RESOURCES,
+			1, &node_it, &entry, &level);
 	if ((cg_result != 0) || (node_it == NULL)) {
-		logger->Error("PLAT LNX: [bbq_resources] lookup FAILED! "
+		logger->Error("PLAT LNX: [" BBQUE_LINUXPP_RESOURCES "] lookup FAILED! "
 				"(Error: No resources assignment)");
 		return PLATFORM_ENUMERATION_FAILED;
 	}
@@ -418,7 +422,7 @@ LinuxPP::BuildSilosCG(CGroupDataPtr_t &pcgd) {
 	int error;
 
 	// Build new CGroup data
-	pcgd = CGroupDataPtr_t(new CGroupData_t("bbq_silos"));
+	pcgd = CGroupDataPtr_t(new CGroupData_t(BBQUE_LINUXPP_SILOS));
 	result = BuildCGroup(pcgd);
 	if (result != OK)
 		return result;
@@ -487,7 +491,8 @@ LinuxPP::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 	if (move) {
 		logger->Notice("PLAT LNX: [%s] => {cpus [%s], mems [%s]}",
 				pcgd->papp->StrId(), prlb->cpus, prlb->mems);
-		cgroup_set_value_uint64(pcgd->pc_cpuset, "cgroup.procs",
+		cgroup_set_value_uint64(pcgd->pc_cpuset,
+				BBQUE_LINUXPP_PROCS_PARAM,
 				pcgd->papp->Pid());
 	}
 
@@ -551,7 +556,9 @@ LinuxPP::_ReclaimResources(AppPtr_t papp) {
 	logger->Debug("PLAT LNX: CGroup resource claiming START");
 
 	// Move this app into "silos" CGroup
-	cgroup_set_value_uint64(psilos->pc_cpuset, "cgroup.procs", papp->Pid());
+	cgroup_set_value_uint64(psilos->pc_cpuset,
+			BBQUE_LINUXPP_PROCS_PARAM,
+			papp->Pid());
 
 	// Configure the CGroup based on resource bindings
 	logger->Notice("PLAT LNX: [%s] => SILOS[%s]",
