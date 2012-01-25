@@ -133,7 +133,8 @@ ResourceManager::ResourceManager() :
 ResourceManager::~ResourceManager() {
 }
 
-void ResourceManager::Setup() {
+ResourceManager::ExitCode_t
+ResourceManager::Setup() {
 
 	//---------- Get a logger module
 	std::string logger_name(RESOURCE_MANAGER_NAMESPACE);
@@ -142,6 +143,7 @@ void ResourceManager::Setup() {
 	if (!logger) {
 		fprintf(stderr, "RM: Logger module creation FAILED\n");
 		assert(logger);
+		return SETUP_FAILED;
 	}
 
 	//---------- Dump list of registered plugins
@@ -151,12 +153,18 @@ void ResourceManager::Setup() {
 	for (i = rm.begin(); i != rm.end(); ++i)
 		logger->Info(" * %s", (*i).first.c_str());
 
-	//---------- Start bbque services
-	pp.LoadPlatformData();
+	//---------- Init Platform Integration Layer (PIL)
+	PlatformProxy::ExitCode_t result = pp.LoadPlatformData();
+	if (result != PlatformProxy::OK) {
+		logger->Fatal("Platform Integration Layer initialization FAILED!");
+		return SETUP_FAILED;
+	}
 
 	//---------- Start bbque services
 	ap.Start();
 	pp.Start();
+
+	return OK;
 }
 
 void ResourceManager::NotifyEvent(controlEvent_t evt) {
@@ -450,14 +458,19 @@ void ResourceManager::ControlLoop() {
 
 }
 
-void ResourceManager::Go() {
+ResourceManager::ExitCode_t
+ResourceManager::Go() {
+	ExitCode_t result;
 
-	Setup();
+	result = Setup();
+	if (result != OK)
+		return result;
 
 	while (!done) {
 		ControlLoop();
 	}
 
+	return OK;
 }
 
 } // namespace bbque
