@@ -157,11 +157,6 @@ private:
 	ApplicationProxy & ap;
 
 	/**
-	 * @brief The Platform Proxy module
-	 */
-	PlatformProxy & pp;
-	
-	/**
 	 * Reference to the plugin manager module.
 	 * The plugin manager is the required interface to load other modules. The
 	 * resource manager ensure an initialization of this core module before
@@ -178,6 +173,11 @@ private:
 	 * @brief The collection of Barbeque metrics
 	 */
 	MetricsCollector & mc;
+
+	/**
+	 * @brief The Platform Proxy module
+	 */
+	PlatformProxy & pp;
 
 	std::bitset<EVENTS_COUNT> pendingEvts;
 
