@@ -31,7 +31,6 @@
 #include "bbque/plugins/logger.h"
 #include "bbque/utils/utility.h"
 
-
 namespace ba = bbque::app;
 namespace po = boost::program_options;
 
@@ -50,11 +49,21 @@ po::variables_map xmlrloader_opts_value;
 
 XMLRecipeLoader::XMLRecipeLoader() {
 	// Get a logger
-	plugins::LoggerIF::Configuration conf("rloader.xml");
+	plugins::LoggerIF::Configuration conf(
+			RECIPE_LOADER_NAMESPACE
+			RECIPE_LOADER_NAME);
 	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
+	if (!logger) {
+		if (daemonized)
+			syslog(LOG_INFO, "Build XML RecipeLoader plugin [%p] FAILED "
+					"(Error: missing logger module)", (void*)this);
+		else
+			fprintf(stdout, FMT_INFO("Build XML RecipeLoader plugin [%p] FAILED "
+					"(Error: missing logger module)\n"), (void*)this);
+	}
 
-	if (logger)
-		logger->Info("XMLRecipeLoader: plugin built");
+	assert(logger);
+	logger->Debug("Built XML RecipeLoader object @%p", (void*)this);
 }
 
 
@@ -88,8 +97,12 @@ bool XMLRecipeLoader::Configure(PF_ObjectParams * params) {
 	if (response!=PF_SERVICE_DONE)
 		return false;
 
-	fprintf(stdout, "XMLRecipeLoader: using recipe folder [%s]\n",
-			recipe_dir.c_str());
+	if (daemonized)
+		syslog(LOG_INFO, "Using XMLRecipeLoader recipe folder [%s]",
+				recipe_dir.c_str());
+	else
+		fprintf(stdout, FMT_INFO("Using XMLRecipeLoader recipe folder [%s]\n"),
+				recipe_dir.c_str());
 
 	return true;
 }
