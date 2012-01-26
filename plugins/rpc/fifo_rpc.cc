@@ -44,7 +44,17 @@ FifoRPC::FifoRPC(std::string const & fifo_dir) :
 	// Get a logger
 	plugins::LoggerIF::Configuration conf(MODULE_NAMESPACE);
 	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
-	assert(logger!=NULL);
+	if (!logger) {
+		if (daemonized)
+			syslog(LOG_INFO, "Build FIFO rpc plugin [%p] FAILED "
+					"(Error: missing logger module)", (void*)this);
+		else
+			fprintf(stdout, FMT_INFO("Build FIFO rpc plugin [%p] FAILED "
+					"(Error: missing logger module)\n"), (void*)this);
+	}
+
+	assert(logger);
+	logger->Debug("Built FIFO rpc object @%p", (void*)this);
 
 }
 
@@ -128,7 +138,7 @@ int FifoRPC::Init() {
 	// Marking channel al already initialized
 	initialized = true;
 
-	logger->Info("FIFO RPC: channel initialization DONE\n");
+	logger->Info("FIFO RPC: channel initialization DONE");
 	return 0;
 }
 
@@ -414,8 +424,12 @@ void * FifoRPC::Create(PF_ObjectParams *params) {
 	if (response!=PF_SERVICE_DONE)
 		return NULL;
 
-	DB(fprintf(stderr, "FIFO RPC: using dir [%s]\n",
-			conf_fifo_dir.c_str()));
+	if (daemonized)
+		syslog(LOG_INFO, "Using RPC FIFOs dir [%s]",
+				conf_fifo_dir.c_str());
+	else
+		fprintf(stderr, FMT_INFO("FIFO RPC: using dir [%s]\n"),
+				conf_fifo_dir.c_str());
 
 	return new FifoRPC(conf_fifo_dir);
 
