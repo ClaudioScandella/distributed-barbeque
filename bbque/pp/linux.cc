@@ -25,7 +25,7 @@
 
 #define BBQUE_LINUXPP_PLATFORM_ID		"org.linux.cgroup"
 
-#define BBQUE_LINUXPP_SILOS 			"bbque_silos"
+#define BBQUE_LINUXPP_SILOS 			BBQUE_LINUXPP_CGROUP"/silos"
 
 #define BBQUE_LINUXPP_CPUS_PARAM 		"cpuset.cpus"
 #define BBQUE_LINUXPP_MEMS_PARAM 		"cpuset.mems"
@@ -177,7 +177,7 @@ LinuxPP::ParseNodeAttributes(struct cgroup_file_info &entry,
 	sscanf(entry.path + STRLEN(BBQUE_LINUXPP_CLUSTER), "%hu",
 			&prlb->socket_id);
 	snprintf(group_name +
-			STRLEN(BBQUE_LINUXPP_RESOURCES) +   // e.g. "bbque"
+			STRLEN(BBQUE_LINUXPP_RESOURCES) +   // e.g. "bbque/res"
 			STRLEN(BBQUE_LINUXPP_CLUSTER) + 1,  // e.g. "/" + "node"
 			4, "%d",
 			prlb->socket_id);
@@ -279,7 +279,7 @@ LinuxPP::_LoadPlatformData() {
 
 	logger->Info("PLAT LNX: CGROUP based resources enumeration...");
 
-	// Lookup for a "bbq_resources" cgroup
+	// Lookup for a "bbque/res" cgroup
 	bbq_resources = cgroup_new_cgroup(BBQUE_LINUXPP_RESOURCES);
 	cg_result = cgroup_get_cgroup(bbq_resources);
 	if (cg_result) {
