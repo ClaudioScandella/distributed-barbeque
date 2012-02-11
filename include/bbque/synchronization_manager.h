@@ -41,7 +41,7 @@
 
 # define BBQUE_DEFAULT_SYNCHRONIZATION_MANAGER_POLICY "sasb"
 
-#define SYNCHRONIZATION_MANAGER_NAMESPACE "bq.sp"
+#define SYNCHRONIZATION_MANAGER_NAMESPACE "bq.ym"
 
 using bbque::plugins::LoggerIF;
 using bbque::plugins::SynchronizationPolicyIF;
