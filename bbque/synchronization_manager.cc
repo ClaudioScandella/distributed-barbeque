@@ -412,8 +412,10 @@ SynchronizationManager::Sync_PostChange(ApplicationStatusIF::SyncState_t syncSta
 	papp = am.GetFirst(syncState, apps_it);
 	for ( ; papp; papp = am.GetNext(syncState, apps_it)) {
 
+		// NOTE: in this last step, ALL apps must be committed in
+		// order to remove them from the Synchronization queues.
 		if (!policy->DoSync(papp))
-			continue;
+			goto commit;
 
 		logger->Info("STEP 4: postChange() ===> [%s]", papp->StrId());
 
@@ -445,6 +447,7 @@ SynchronizationManager::Sync_PostChange(ApplicationStatusIF::SyncState_t syncSta
 		// TODO Here we should collect reconfiguration statistics
 		logger->Warn("TODO: Collect reconf statistics");
 
+	commit:
 		// Disregarding commit for EXC disabled meanwhile
 		if (papp->Disabled())
 			continue;
