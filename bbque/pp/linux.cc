@@ -37,6 +37,9 @@
 #define BBQUE_LINUXPP_MEM_EXCLUSIVE_PARAM 	"cpuset.mem_exclusive"
 #define BBQUE_LINUXPP_PROCS_PARAM		"cgroup.procs"
 
+// The default CFS bandwidth period [us]
+#define BBQUE_LINUXPP_CPUP_DEFAULT		100000
+
 // Checking for kernel version requirements
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,0,0)
 # error Linux kernel >= 3.0 required by the Platform Integration Layer
@@ -614,6 +617,19 @@ LinuxPP::BuildCGroup(CGroupDataPtr_t &pcgd) {
 		return MAPPING_FAILED;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0)
+
+	// Add "cpu" controller
+	pcgd->pc_cpu = cgroup_add_controller(pcgd->pcg, "cpu");
+	if (!pcgd->pc_cpu) {
+		logger->Error("PLAT LNX: CGroup resource mapping FAILED "
+				"(Error: libcgroup, [cpu] \"controller\" "
+				"creation failed)");
+		return MAPPING_FAILED;
+	}
+
+#endif
+
 	// Create the kernel-space CGroup
 	// NOTE: the current libcg API is quite confuse and unclear
 	// regarding the "ignore_ownership" second parameter
@@ -705,6 +721,7 @@ LinuxPP::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 		bool excl, bool move) {
 	char quota[] = "9223372036854775807";
 	char mnode[] = "\09"; // Empty memory node (by default)
+	uint64_t cpus_quota;
 	int result;
 
 	/**********************************************************************
@@ -751,6 +768,30 @@ LinuxPP::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 			"{bytes_limit [%lu]}",
 			pcgd->papp->StrId(), prlb->amount_memb);
 
+
+	/**********************************************************************
+	 *    CPU Quota Controller
+	 **********************************************************************/
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0)
+
+	// Set the default CPU bandwidth period
+	cgroup_set_value_string(pcgd->pc_cpu,
+			BBQUE_LINUXPP_CPUP_PARAM,
+			STR(BBQUE_LINUXPP_CPUP_DEFAULT));
+
+	// Set the assigned CPU bandwidth amount, which is defined by:
+	cpus_quota = (BBQUE_LINUXPP_CPUP_DEFAULT / 100) * prlb->amount_cpus;
+	cgroup_set_value_uint64(pcgd->pc_cpu,
+			BBQUE_LINUXPP_CPUQ_PARAM, cpus_quota);
+
+	logger->Debug("PLAT LNX: Setup CPU for [%s]: "
+			"{period [%s], quota [%lu]",
+			pcgd->papp->StrId(),
+			STR(BBQUE_LINUXPP_CPUP_DEFAULT),
+			cpus_quota);
+
+#endif
 
 	/**********************************************************************
 	 *    CGroup Configuraiton and Task Assignement
