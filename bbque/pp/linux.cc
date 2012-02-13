@@ -608,6 +608,7 @@ LinuxPP::BuildCGroup(CGroupDataPtr_t &pcgd) {
 				"creation failed)");
 		return MAPPING_FAILED;
 	}
+
 	// Add "memory" controller
 	pcgd->pc_memory = cgroup_add_controller(pcgd->pcg, "memory");
 	if (!pcgd->pc_memory) {
@@ -643,7 +644,6 @@ LinuxPP::BuildCGroup(CGroupDataPtr_t &pcgd) {
 	}
 
 	return OK;
-
 }
 
 LinuxPP::ExitCode_t
@@ -730,7 +730,8 @@ LinuxPP::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 
 	// Set the assigned CPUs
 	cgroup_set_value_string(pcgd->pc_cpuset,
-			BBQUE_LINUXPP_CPUS_PARAM, prlb->cpus);
+			BBQUE_LINUXPP_CPUS_PARAM,
+			prlb->cpus ? prlb->cpus : "");
 	// Set the assigned memory NODE (only if we have at least one CPUS)
 	if (prlb->cpus[0]) {
 		snprintf(mnode, 3, "%d", prlb->socket_id);
@@ -749,10 +750,11 @@ LinuxPP::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 #endif
 
 	logger->Debug("PLAT LNX: Setup CPUSET for [%s]: "
-			"{cpus [%s: %s], mems[%s]}",
+			"{cpus [%c: %s], mems[%s]}",
 			pcgd->papp->StrId(),
 			excl ? 'E' : 'S',
-			prlb->cpus, mnode);
+			prlb->cpus ? prlb->cpus : "-",
+			mnode);
 
 
 	/**********************************************************************
