@@ -103,6 +103,9 @@
 /** Target platform: ARM Architecture */
 #cmakedefine CONFIG_TARGET_ARM
 
+/** Target platform: P2012 Platform by STMicroelectronics */
+#cmakedefine CONFIG_TARGET_P2012
+
 /** Use FIFO based RPC channel */
 #cmakedefine CONFIG_BBQUE_RPC_FIFO
 
