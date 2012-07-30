@@ -98,8 +98,10 @@ else (CONFIG_BBQUE_TEST_PLATFORM_DATA)
  if (CONFIG_TARGET_LINUX)
 	set (BARBEQUE_SRC pp/linux ${BARBEQUE_SRC})
  endif (CONFIG_TARGET_LINUX)
+ if (CONFIG_TARGET_P2012)
+	set (BARBEQUE_SRC pp/p2012 ${BARBEQUE_SRC})
+ endif (CONFIG_TARGET_P2012)
 endif (CONFIG_BBQUE_TEST_PLATFORM_DATA)
-
 
 add_executable (barbeque ${BARBEQUE_SRC})
 
@@ -139,6 +141,16 @@ target_link_libraries(
 )
 endif (CONFIG_TARGET_ANDROID)
 
+# Linking dependencies for Android-Linux targets
+if (CONFIG_TARGET_P2012)
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CONFIG_EXTERNAL_P2012_SDK}/modules/hal/include")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CONFIG_EXTERNAL_P2012_SDK}/modules/linux/lib/include")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,-L${CONFIG_EXTERNAL_P2012_SDK}/modules/linux/lib/lib")
+	target_link_libraries(
+		barbeque
+		-Wl,-whole-archive p2012 -Wl,-no-whole-archive
+	)
+endif (CONFIG_TARGET_ANDROID)
 
 # Use link path ad RPATH
 set_property(TARGET barbeque PROPERTY INSTALL_RPATH_USE_LINK_PATH TRUE)
