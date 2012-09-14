@@ -163,7 +163,7 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	}
 
 	// Cluster level resources
-	for (int i = 0; i < PLATFORM_CLUSTERS_MAX; ++i) {
+	for (int i = 0; i < pdev->pdesc.clusters_count; ++i) {
 		// L1 memory
 		snprintf(rsrc_path, RSRC_PATH_SIZE_MAX, "tile0.cluster%d.mem0", i);
 		ra_result =	ra.RegisterResource(rsrc_path, "Kb",
