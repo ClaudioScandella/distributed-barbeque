@@ -312,25 +312,6 @@ private:
 	 */
 	ExitCode_t NotifyPlatform(BBQ_p2012_target_t target, BBQ_msg_type_t type,
 			uint32_t data);
-
-#ifdef BBQUE_P2012_TEST_MODE
-	// NOTE: These are defined since in test mode the P2012 PlatformProxy
-	// is not connected to the real device
-#define CLUSTER_L1MEM_SIZE    		256 	// Kb
-#define CLUSTER_DMA_BANDWIDTH 		7.6 	// Gbps
-	/**
-	 * @brief Fill the device descriptor in "test" mode
-	 *
-	 * This mode allows the testing of this module by decoupling it from the
-	 * presence of the platform driver/runtime. The method initialises the
-	 * device descriptor with some static information, emulating a successful
-	 * return from the device initialization call.
-	 *
-	 * @return OK for success
-	 */
-	ExitCode_t LoadTestPlatformData();
-
-#endif
 };
 
 }
