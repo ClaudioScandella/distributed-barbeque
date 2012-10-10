@@ -502,10 +502,16 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 
 	case RESOURCE_TYPE_L1_MEM:
 		pdev->pcons.exc[xcs_id].u.generic.dmem.L1_B = pbind->amount;
+		logger->Info("PLAT P2012: %s X[%d] booked %02d byte from L1 memory",
+				papp->StrId(), xcs_id,
+				pdev->pcons.exc[xcs_id].u.generic.dmem.L1_B);
 		break;
 
 	case RESOURCE_TYPE_L2_MEM:
 		pdev->pcons.exc[xcs_id].u.generic.dmem.L2_KB = pbind->amount / 1024;
+		logger->Info("PLAT P2012: %s X[%d] booked %02d Kb from L2 memory",
+				papp->StrId(), xcs_id,
+				pdev->pcons.exc[xcs_id].u.generic.dmem.L2_KB);
 		break;
 
 	case RESOURCE_TYPE_DMA:
