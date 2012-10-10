@@ -268,6 +268,11 @@ P2012PP::ExitCode_t P2012PP::_ReclaimResources(AppPtr_t papp) {
 
 	ClearExcConstraints(xcs_id);
 
+	// Decrement the count of EXCs constraints
+	pdev->pcons.count--;
+	logger->Debug("PLAT P2012: EXC constraints count = %d",
+			pdev->pcons.count);
+
 	// Send a notify to the device about the resource reclaiming
 	result = NotifyPlatform(P2012_ALL, BBQ_UPDATE, xcs_id);
 	if (result != OK)
@@ -297,6 +302,11 @@ P2012PP::ExitCode_t P2012PP::_MapResources(AppPtr_t papp,
 				"cannot retrieve an EXC constraints descriptor");
 		return MAPPING_FAILED;
 	}
+
+	// Increment the count of EXCs constraints
+	pdev->pcons.count++;
+	logger->Debug("PLAT P2012: EXC constraints count = %02d",
+			pdev->pcons.count);
 
 	// Current AWM resource usages
 	uit = pusgm->begin();
