@@ -156,6 +156,11 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	ResourceAccounter::ExitCode_t ra_result;
 	char rsrc_path[RSRC_PATH_SIZE_MAX];
 
+	// PE fabric quota max (=1 if the maximum number of cluster is available)
+	pe_fabric_quota_max = pdev->pdesc.clusters_count / PLATFORM_CLUSTERS_MAX;
+	logger->Debug("PLAT P2012: Maximum fabric percentage = %d",
+			(uint16_t) (pe_fabric_quota_max * 100.0));
+
 	// L2 memory
 	// FIXME: Static information missing in the descriptor
 	snprintf(rsrc_path, RSRC_PATH_SIZE_MAX, "tile0.mem0");

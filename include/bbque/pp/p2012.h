@@ -124,6 +124,14 @@ private:
 	 */
 	ManagedDevice_t * pdev;
 
+	/**
+	 * @brief Max fabric fraction usage
+	 *
+	 * Ratio between the number of clusters available at runtime and the
+	 * maximum defined into the PIL header file
+	 */
+	float pe_fabric_quota_max;
+
 /*******************************************************************************
  *  Platform Specific (low-level) methods
  ******************************************************************************/
