@@ -301,11 +301,12 @@ P2012PP::ExitCode_t P2012PP::_MapResources(AppPtr_t papp,
 		std::string const & rsrc_path((*uit).first);
 		pusage = (*uit).second;
 
-		// Parse "cluster"
-		pbind->cluster_id = br::ResourcePathUtils::GetID(rsrc_path, "cluster");
-		pbind->amount = pusage->GetAmount();
-		pbind->type = GetPlatformResourceType(rsrc_path);
-		logger->Debug("PLAT P2012: Map resources [%s] @ Cluster [%d]",
+		// Get cluster information
+		(*pbind) = {
+			br::ResourcePathUtils::GetID(rsrc_path, "cluster"),
+			pusage->GetAmount(),
+			GetPlatformResourceType(rsrc_path)
+		};
 				rsrc_path.c_str(), pbind->cluster_id);
 
 		// Update resource constraints into the device descriptor
@@ -513,9 +514,8 @@ P2012PP::ExitCode_t P2012PP::NotifyPlatform(
 
 	// Fill the message
 	msg.header.target = target;
-	msg.body.type     = type;
-	msg.body.data     = data;
 	//memcpy(&buffer, 0, P2012_MSG_SIZE);
+	msg.body          = {type, data};
 	memcpy(&buffer, &msg, sizeof(msg));
 
 	// Send
