@@ -311,6 +311,16 @@ private:
 			int16_t xcs_id, PlatformResourceBindingPtr_t pbind);
 
 	/**
+	 * @brief The processing elements (PE) usage quota of the whole fabric
+	 *
+	 * @param The processing elements usage quota featured into the AWM
+	 *
+	 * @return a value between 0 and 10.000, in order to provide a percentage
+	 * with a resolution of two decimals.
+	 */
+	uint16_t GetPeFabricQuota(float const & pe_cluster_quota);
+
+	/**
 	 * @brief Send a message to the platform
 	 *
 	 * The method sends a message to the platform, exploiting the API provided
