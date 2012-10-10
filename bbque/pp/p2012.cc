@@ -494,10 +494,11 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 	// Set the proper descriptor's fields according to the resource type
 	switch (pbind->type) {
 	case RESOURCE_TYPE_PE:
-		pdev->pcons.exc[xcs_id].u.generic.cluster_map =
-			static_cast<uint32_t>(papp->NextAWM()->ClusterSet().to_ulong());
-		pdev->pcons.exc[xcs_id].u.generic.cluster_quota[pbind->cluster_id] =
-			static_cast<uint8_t>(pbind->amount);
+		// OpenCL constraints
+		pdev->pcons.exc[xcs_id].u.ocl.fabric_quota += GetPeFabricQuota(pbind->amount);
+		logger->Info("PLAT P2012: %s X[%d] allowed to use %3.2f percent of the fabric",
+				papp->StrId(), xcs_id,
+				(float) pdev->pcons.exc[xcs_id].u.ocl.fabric_quota / 100.0);
 		break;
 
 	case RESOURCE_TYPE_L1_MEM:
