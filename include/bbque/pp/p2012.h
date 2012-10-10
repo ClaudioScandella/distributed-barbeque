@@ -282,6 +282,11 @@ private:
 	void ClearExcConstraints(int16_t xcs_id);
 
 	/**
+	 * @brief Clear the whole EXC constraints vector
+	 */
+	void ClearExcConstraints();
+
+	/**
 	 * @brief Update resource assignment data into the device descriptor
 	 *
 	 * The method looks for a free descriptor or one of an application to

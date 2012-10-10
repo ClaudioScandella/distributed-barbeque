@@ -456,6 +456,11 @@ int16_t P2012PP::GetExcConstraintsFree() {
 	return -1;
 }
 
+inline void P2012PP::ClearExcConstraints() {
+	memset(pdev->pcons.exc, 0, sizeof(ExcConstraints_t) * EXCS_MAX);
+	pdev->pcons.count = 0;
+}
+
 inline void P2012PP::ClearExcConstraints(int16_t xcs_id) {
 	if ((xcs_id < 0) || (xcs_id >= EXCS_MAX))
 		return;
