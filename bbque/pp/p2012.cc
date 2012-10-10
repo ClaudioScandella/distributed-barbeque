@@ -138,6 +138,9 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 	}
 	logger->Debug("PLAT P2012: Device descriptor mapped");
 
+	// Clear the EXCs constraints vector
+	ClearExcConstraints();
+
 	return OK;
 }
 
