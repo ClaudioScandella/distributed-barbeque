@@ -257,7 +257,7 @@ P2012PP::ExitCode_t P2012PP::_ReclaimResources(AppPtr_t papp) {
 	logger->Debug("PLAT P2012: Resource reclaiming for [%s]",
 			papp->StrId());
 
-	// Retrieve the EXC constraints descriptor
+	// Retrieve the EXC constraints descriptor and clear
 	xcs_id = GetExcConstraints(papp);
 	if (xcs_id < 0) {
 		logger->Warn("PLAT P2012: "
@@ -265,7 +265,6 @@ P2012PP::ExitCode_t P2012PP::_ReclaimResources(AppPtr_t papp) {
 				papp->StrId());
 		return PLATFORM_DATA_NOT_FOUND;
 	}
-
 	ClearExcConstraints(xcs_id);
 
 	// Decrement the count of EXCs constraints
@@ -320,13 +319,14 @@ P2012PP::ExitCode_t P2012PP::_MapResources(AppPtr_t papp,
 			pusage->GetAmount(),
 			GetPlatformResourceType(rsrc_path)
 		};
+		logger->Debug("PLAT P2012: Resource [%s] mapped into cluster %d",
 				rsrc_path.c_str(), pbind->cluster_id);
 
-		// Update resource constraints into the device descriptor
+		// Update EXC constraint into the device descriptor
 		result = UpdateExcConstraints(papp, xcs_id, pbind);
 		if (result != OK) {
 			logger->Error("PLAT P2012: "
-					"Unable to update assignment '%s' (amount=%llu) for [%d]",
+					"Unable to update assignment [%s] (%llu) to [%s]",
 					rsrc_path.c_str(), pbind->amount, papp->StrId());
 			return MAPPING_FAILED;
 		}
@@ -486,8 +486,6 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 		PlatformResourceBindingPtr_t pbind) {
 	ExitCode_t result = OK;
 
-	logger->Debug("PLAT P2012: Updating a resource assignment");
-
 	// Set the proper descriptor's fields according to the resource type
 	switch (pbind->type) {
 	case RESOURCE_TYPE_PE:
@@ -532,7 +530,6 @@ P2012PP::ExitCode_t P2012PP::NotifyPlatform(
 
 	// Fill the message
 	msg.header.target = target;
-	//memcpy(&buffer, 0, P2012_MSG_SIZE);
 	msg.body          = {type, data};
 	memcpy(&buffer, &msg, sizeof(msg));
 
