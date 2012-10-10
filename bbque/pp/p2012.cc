@@ -525,6 +525,16 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 	return result;
 }
 
+inline uint16_t P2012PP::GetPeFabricQuota(float const & pe_quota) {
+	float pe_cluster_quota;
+
+	// The cluster quota of processing elements usage
+	pe_cluster_quota = static_cast<float>(pe_quota) / CLUSTER_PES_MAX;
+
+	// The percentage of usage of the whole fabric
+	return (pe_cluster_quota / PLATFORM_CLUSTERS_MAX * pe_fabric_quota_max * 100.0);
+}
+
 P2012PP::ExitCode_t P2012PP::NotifyPlatform(
 		BBQ_p2012_target_t target,
 		BBQ_msg_type_t type,
