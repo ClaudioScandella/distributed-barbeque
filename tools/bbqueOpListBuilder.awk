@@ -20,52 +20,64 @@
 # allocates vector of operating points, which type is the OperatingPointsList
 # class as defined by bbque/monitors/operating_point.h
 #
-# Given an input XML file of OPs, this script produce in output a C source file
-# which is suitable to be compiled and linked with the OP consumer code, which
+# Given an input XML file of OPs, this script produce in a C source file which
+# is suitable to be compiled and linked with the OP consumer code, which
 # requires just to define an external reference to this variable, i.e.:
 #    extern OperatingPointsList opList;
 #
 # The name of the generated vector could be customized by passing a proper value
-# with the BBQUE_RTLIB_OPLIST variable.
+# with the BBQUE_RTLIB_OPLIST variable. The name of this variable is also used
+# as filename of the generated output.
 #
 # The generation of this C source file could be automatized via CMake by adding
 # the CMakeList.txt a command like e.g.:
-# add_custom_command (OUTPUT opList.cc
-#      COMMAND ${PROJECT_SOURCE_DIR}/build_ops.awk ${BBQUE_OPS_XML} >
-#              ${PROJECT_BINARY_DIR}/${BBQUE_OPS_C}
-#      DEPENDS opList.xml
-#      COMMENT "Updating [${BBQUE_OPS_C}] OPs list using [${BBQUE_OPS_XML}]...")
+# BBQUE_OPS_C = "opList"
+# add_custom_command (OUTPUT ${BBQUE_OPS_C}.cc
+#      COMMAND ${PROJECT_SOURCE_DIR}/build_ops.awk ${BBQUE_OPS_XML} \
+#              -v BBQUE_RTLIB_OPLIST="${BBQUE_OPS_C}"
+#      DEPENDS ${BBQUE_OPS_C}.xml
+#      COMMENT "Updating [${BBQUE_OPS_C}.cc] OPs list using [${BBQUE_OPS_C}.xml]...")
 # NOTE: the generated output (i.e. opList.cc) should be listed as a source
 # file in the target where this sould is part of.
 ################################################################################
 
 BEGIN {
+
 	# Setup Filter Variables
 	if (!length(BBQUE_RTLIB_OPLIST))  BBQUE_RTLIB_OPLIST="opList"
 
-	# Dump Source header
-	printf "/* This file has been automatically generated using */\n"
-	printf "/* the bbque-opp Operating Points parser script. */\n"
-	printf "#include <bbque/monitors/operating_point.h>\n"
-	printf "using bbque::rtlib::as::OperatingPointsList;\n"
-	printf "OperatingPointsList %s = {\n", BBQUE_RTLIB_OPLIST;
+	# Setup output files
+	ASRTM_FD  = sprintf("%s.cc", BBQUE_RTLIB_OPLIST)
+
+	# Dump AS-RTM OPList Source header
+	printf ("/* This file has been automatically generated using */\n") >ASRTM_FD
+	printf ("/* the bbque-opp Operating Points parser script. */\n") >>ASRTM_FD
+	printf ("#include <bbque/monitors/operating_point.h>\n") >>ASRTM_FD
+	printf ("using bbque::rtlib::as::OperatingPointsList;\n") >>ASRTM_FD
+	printf ("OperatingPointsList %s = {\n", BBQUE_RTLIB_OPLIST) >>ASRTM_FD
+
 }
 
 /<parameters>/ {
-	printf "  { //===== OP %03d =====\n", OP_COUNT++
-	printf "    { //=== Parameters\n"
+	printf ("  { //===== OP #%03d =====\n", OP_COUNT) >>ASRTM_FD
+	printf ("    { //=== Parameters\n") >>ASRTM_FD
+	OP_COUNT++
+	next;
 }
 match($0, /name="([^"]+).+value="([^"]+)/, o) {
-	printf "      {\"%s\", %s},\n", o[1], o[2]
+	printf ("      {\"%s\", %s},\n", o[1], o[2]) >>ASRTM_FD
+	next;
 }
 /<system_metrics>/ {
-	printf "    },\n"
-	printf "    { //=== Metrics\n"
+	printf ("    },\n") >>ASRTM_FD
+	printf ("    { //=== Metrics\n") >>ASRTM_FD
+	next;
 }
 /<\/system_metrics>/ {
-	printf "    },\n"
-	printf "  },\n";
+	printf ("    },\n") >>ASRTM_FD
+	printf ("  },\n") >>ASRTM_FD
+	next;
 }
 END {
-	printf "};\n\n";
+	printf ("};\n\n") >>ASRTM_FD
 }
