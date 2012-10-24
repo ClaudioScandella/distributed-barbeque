@@ -39,15 +39,19 @@
 #      COMMENT "Updating [${BBQUE_OPS_C}.cc] OPs list using [${BBQUE_OPS_C}.xml]...")
 # NOTE: the generated output (i.e. opList.cc) should be listed as a source
 # file in the target where this sould is part of.
+# NOTE: the support for DMML library requires a similar approach but requires
+# the definition of the BBQUE_DMMLIB_KNOBSLIST variable.
 ################################################################################
 
 BEGIN {
 
 	# Setup Filter Variables
 	if (!length(BBQUE_RTLIB_OPLIST))  BBQUE_RTLIB_OPLIST="opList"
+	if (!length(BBQUE_DMMLIB_KNOBSLIST))  BBQUE_DMMLIB_KNOBSLIST="dmm_knobs"
 
 	# Setup output files
 	ASRTM_FD  = sprintf("%s.cc", BBQUE_RTLIB_OPLIST)
+	DMMLIB_FD = sprintf("%s.c",  BBQUE_DMMLIB_KNOBSLIST)
 
 	# Dump AS-RTM OPList Source header
 	printf ("/* This file has been automatically generated using */\n") >ASRTM_FD
@@ -56,12 +60,26 @@ BEGIN {
 	printf ("using bbque::rtlib::as::OperatingPointsList;\n") >>ASRTM_FD
 	printf ("OperatingPointsList %s = {\n", BBQUE_RTLIB_OPLIST) >>ASRTM_FD
 
+	# Dump DMMS Tuning Knobs Source header
+	printf ("/* This file has been automatically generated using */\n") >DMMLIB_FD
+	printf ("/* the bbque-opp Operating Points parser script. */\n") >>DMMLIB_FD
+	printf ("#include <dmmlib/knobs.h>\n") >>DMMLIB_FD
+	printf ("#include <stdint.h>\n") >>DMMLIB_FD
+	printf ("struct rtm_knobs_t %s = {\n", BBQUE_DMMLIB_KNOBSLIST) >>DMMLIB_FD
 }
 
 /<parameters>/ {
+	IS_PARAM = 1
+	printf ("  { //===== DMM Tuning #%03d =====\n", OP_COUNT) >>DMMLIB_FD
+	printf ("    { //=== Parameters\n") >>DMMLIB_FD
 	printf ("  { //===== OP #%03d =====\n", OP_COUNT) >>ASRTM_FD
 	printf ("    { //=== Parameters\n") >>ASRTM_FD
 	OP_COUNT++
+	next;
+}
+match($0, /name="dmm.([^"]+).+value="([^"]+)/, o) {
+	if (IS_PARAM) FIELD="p"; else FIELD="m"
+	printf ("      %10s, // %c.%s\n", o[2], FIELD, o[1]) >>DMMLIB_FD
 	next;
 }
 match($0, /name="([^"]+).+value="([^"]+)/, o) {
@@ -69,15 +87,22 @@ match($0, /name="([^"]+).+value="([^"]+)/, o) {
 	next;
 }
 /<system_metrics>/ {
+	IS_PARAM = 0
+	printf ("    },\n") >>DMMLIB_FD
+	printf ("    { //=== Metrics\n") >>DMMLIB_FD
 	printf ("    },\n") >>ASRTM_FD
 	printf ("    { //=== Metrics\n") >>ASRTM_FD
 	next;
 }
 /<\/system_metrics>/ {
+	printf ("    },\n") >>DMMLIB_FD
+	printf ("  },\n") >>DMMLIB_FD
 	printf ("    },\n") >>ASRTM_FD
 	printf ("  },\n") >>ASRTM_FD
 	next;
 }
 END {
+	printf ("};\n\n") >>DMMLIB_FD
+	printf ("uint32_t %s_count = %d;\n\n", BBQUE_DMMLIB_KNOBSLIST, OP_COUNT) >>DMMLIB_FD
 	printf ("};\n\n") >>ASRTM_FD
 }
