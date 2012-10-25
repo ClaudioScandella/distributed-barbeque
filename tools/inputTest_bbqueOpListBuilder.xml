@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<points xmlns="http://www.multicube.eu/" version="1.3">
+  <point>
+    <parameters>
+      <parameter name="confidence" value="34"/>
+      <parameter name="hypo_step" value="2"/>
+      <parameter name="match_limit" value="60"/>
+      <parameter name="max_arm_length" value="1"/>
+      <parameter name="max_hypo_value" value="200"/>
+      <parameter name="nb_hypo_per_wg" value="2"/>
+      <parameter name="nb_wi_per_wg" value="2"/>
+      <parameter name="nb_wta_workgroups" value="14"/>
+      <parameter name="wg_col_pixel_width" value="12"/>
+      <parameter name="wg_col_pixel_width" value="12"/>
+      <parameter name="dmm.sysallocsize" value="256"/>
+      <parameter name="dmm.fitpercentage" value="80"/>
+    </parameters>
+    <system_metrics>
+      <system_metric name="power" value="8.326735"/>
+      <system_metric name="disper" value="6.908081"/>
+      <system_metric name="throughput_kpix_s" value="706.998356"/>
+      <system_metric name="dmm.avg_req_sz" value="12.345678"/>
+      <system_metric name="dmm.tot_req_sz" value="12345.678"/>
+    </system_metrics>
+  </point>
+  <point>
+    <parameters>
+      <parameter name="confidence" value="64"/>
+      <parameter name="hypo_step" value="2"/>
+      <parameter name="match_limit" value="60"/>
+      <parameter name="max_arm_length" value="18"/>
+      <parameter name="max_hypo_value" value="200"/>
+      <parameter name="nb_hypo_per_wg" value="2"/>
+      <parameter name="nb_wi_per_wg" value="4"/>
+      <parameter name="nb_wta_workgroups" value="16"/>
+      <parameter name="wg_col_pixel_width" value="16"/>
+      <parameter name="dmm.sysallocsize" value="512"/>
+      <parameter name="dmm.fitpercentage" value="70"/>
+    </parameters>
+    <system_metrics>
+      <system_metric name="power" value="4.379432"/>
+      <system_metric name="disper" value="2.094503"/>
+      <system_metric name="throughput_kpix_s" value="262.613649"/>
+      <system_metric name="dmm.avg_req_sz" value="39.69"/>
+      <system_metric name="dmm.tot_req_sz" value="3969.678"/>
+    </system_metrics>
+  </point>
+  <point>
+    <parameters>
+      <parameter name="confidence" value="34"/>
+      <parameter name="hypo_step" value="3"/>
+      <parameter name="match_limit" value="60"/>
+      <parameter name="max_arm_length" value="1"/>
+      <parameter name="max_hypo_value" value="200"/>
+      <parameter name="nb_hypo_per_wg" value="2"/>
+      <parameter name="nb_wi_per_wg" value="2"/>
+      <parameter name="nb_wta_workgroups" value="11"/>
+      <parameter name="wg_col_pixel_width" value="16"/>
+      <parameter name="dmm.sysallocsize" value="1024"/>
+      <parameter name="dmm.fitpercentage" value="60"/>
+    </parameters>
+    <system_metrics>
+      <system_metric name="power" value="6.099738"/>
+      <system_metric name="disper" value="8.653947"/>
+      <system_metric name="throughput_kpix_s" value="857.534565"/>
+      <system_metric name="dmm.avg_req_sz" value="64.21"/>
+      <system_metric name="dmm.tot_req_sz" value="6421.5678"/>
+    </system_metrics>
+  </point>
+</points>
