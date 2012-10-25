@@ -64,6 +64,23 @@ config BBQUE_RTLIB_CGROUPS_SUPPORT
   or using CGroups for run-time resources management, such as some Android
   devices.
 
+config BBQUE_RTLIB_DMM_SUPPORT
+  bool "Enable DMM support on RTLib"
+  default n
+  ---help---
+  Build the Run-Time Library (RTLib) with support for DMM Library.
+
+  The Dynamic Memory Manager (DMM) libray:
+    https://bitbucket.org/joko/dmmlib
+  provides support for run-time tuning of dynamic memory allocation policies.
+  A set of tuning parameters could be used to configure the behavior of the
+  library and the BarbequeRTRM, actually the RTLib, could hooks into a set of
+  DMMLib tuning functions in order to setup the library behavior according to
+  the currently selected AWM.
+
+  This option enable the usage of DMMLib into the RTLib, such that all
+  applications using the RTLib could exploit this run-time configurable
+  memory manager.
 
 menu "Advanced options"
 
