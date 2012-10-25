@@ -16,42 +16,57 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBBQUE_RTLIB")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--gc-sections")
 
+# Build subdirs
+add_subdirectory(monitors)
+
+
+################################################################################
+# Library Sources
+################################################################################
+
 set (RTLIB_SRC bbque_rtlib bbque_rpc ${PROJECT_BINARY_DIR}/bbque/version.cc)
 set (RTLIB_SRC bbque_exc ${RTLIB_SRC})
 
+# Add FIFO RPC Channel (if configured)
 if (CONFIG_BBQUE_RPC_FIFO)
 	set (RTLIB_SRC rpc_fifo_client ${RTLIB_SRC})
 endif (CONFIG_BBQUE_RPC_FIFO)
 
-# Build subdirs
-add_subdirectory(monitors)
 
-set (RTLIB_SRC ${RTLIB_SRC})
+################################################################################
+# Library Dependencies
+################################################################################
+
+# Common linking dependencies
+set (RTLIB_LIBS bbque_utils ${Boost_LIBRARIES})
+
+# Add "Generic-Linux" specific linking dependencies
+if (CONFIG_TARGET_LINUX)
+	set (RTLIB_LIBS ${RTLIB_LIBS}
+		-ldl -lrt
+	)
+endif (CONFIG_TARGET_LINUX)
+
+# Add "Android-Linux" specific linking dependencies
+if (CONFIG_TARGET_ANDROID)
+	set (RTLIB_LIBS ${RTLIB_LIBS}
+		-Wl,-whole-archive bbque_cpp11 -Wl,-no-whole-archive
+	)
+endif (CONFIG_TARGET_ANDROID)
+
+
+################################################################################
+# Target: RTLib Library
+################################################################################
+
 #----- Add "bbque_rtlib" target dinamic binary
 add_library(bbque_rtlib SHARED ${RTLIB_SRC})
 
 # Linking dependencies
 target_link_libraries(
 	bbque_rtlib
-	bbque_utils
-	${Boost_LIBRARIES}
+	${RTLIB_LIBS}
 )
-
-# Add "Generic-Linux" specific flags
-if (CONFIG_TARGET_LINUX)
-target_link_libraries(
-	bbque_rtlib
-	-ldl -lrt
-)
-endif (CONFIG_TARGET_LINUX)
-
-# Linking dependencies for Android-Linux targets
-if (CONFIG_TARGET_ANDROID)
-target_link_libraries(
-	bbque_rtlib
-	-Wl,-whole-archive bbque_cpp11 -Wl,-no-whole-archive
-)
-endif (CONFIG_TARGET_ANDROID)
 
 # Use link path ad RPATH
 set_property (TARGET bbque_rtlib PROPERTY
