@@ -28,6 +28,7 @@ namespace bbque { namespace res {
 
 Resource::Resource(std::string const & res_path, uint64_t tot):
 	total(tot),
+	reserved(0),
 	offline(false) {
 
 	// Extract the name from the path
@@ -41,6 +42,18 @@ Resource::Resource(std::string const & res_path, uint64_t tot):
 	av_profile.online_tmr.start();
 	av_profile.lastOfflineTime = 0;
 	av_profile.lastOnlineTime = 0;
+}
+
+Resource::ExitCode_t Resource::Reserve(uint64_t amount) {
+
+	if (amount > total)
+		return RS_FAILED;
+
+	reserved = amount;
+	DB(fprintf(stderr, FD("Resource {%s}: update reserved to [%"PRIu64"] "
+					"=> available [%"PRIu64"]\n"),
+				name.c_str(), reserved, total-reserved));
+	return RS_SUCCESS;
 }
 
 void Resource::SetOffline() {

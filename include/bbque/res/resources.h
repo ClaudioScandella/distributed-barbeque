@@ -135,6 +135,8 @@ public:
 	enum ExitCode_t {
 		/** Generic success code */
 		RS_SUCCESS = 0,
+		/** Generic failure code */
+		RS_FAILED,
 		/** The resource is not used by any application */
 		RS_NO_APPS
 	};
@@ -167,6 +169,24 @@ public:
 	 */
 	inline uint64_t Total() {
 		return total;
+	}
+
+	/**
+	 * @brief Not reserved resources
+	 *
+	 * The amount of resources not being currently reserved, this value is
+	 * equal to Total just when there are not reserved resources.
+	 *
+	 * @return The amount of resources not being currently reserved
+	 */
+	inline uint64_t Unreserved() {
+		return (total - reserved);
+	}
+
+	ExitCode_t  Reserve(uint64_t amount);
+
+	inline uint64_t Reserved() const {
+		return reserved;
 	}
 
 	inline bool IsOffline() const {
@@ -255,6 +275,9 @@ private:
 
 	/** The total amount of resource  */
 	uint64_t total;
+
+	/** The amount of resource being reserved */
+	uint64_t reserved;
 
 	/** True if this resource is currently offline */
 	bool offline;
