@@ -62,6 +62,24 @@ double Timer::getElapsedTime() {
     return getElapsedTimeUs()/1000000.0;
 }
 
+double Timer::getTimestampUs() {
+	struct timespec timestamp_ts;
+	clock_gettime(CLOCK_MONOTONIC, &timestamp_ts);
+	return ((timestamp_ts.tv_sec * 1e6L) + (timestamp_ts.tv_nsec / 1e3L));
+}
+
+double Timer::getTimestampMs() {
+	struct timespec timestamp_ts;
+	clock_gettime(CLOCK_MONOTONIC, &timestamp_ts);
+	return ((timestamp_ts.tv_sec * 1e3L) + (timestamp_ts.tv_nsec / 1e6L));
+}
+
+double Timer::getTimestamp() {
+	struct timespec timestamp_ts;
+	clock_gettime(CLOCK_MONOTONIC, &timestamp_ts);
+	return (timestamp_ts.tv_sec + (timestamp_ts.tv_nsec / 1e9L));
+}
+
 } // namespace utils
 
 } // namespace bbque

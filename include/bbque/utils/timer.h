@@ -41,6 +41,24 @@ public:
 	Timer(bool running = false);
 
 	/**
+	 * @brief Monothonic timestamp in [s]
+	 * The returned timestamp refers to some unspecified starting point.
+	 */
+	static double getTimestamp();
+
+	/**
+	 * @brief Monothonic timestamp in [ms]
+	 * The returned timestamp refers to some unspecified starting point.
+	 */
+	static double getTimestampMs();
+
+	/**
+	 * @brief Monothonic timestamp in [us]
+	 * The returned timestamp refers to some unspecified starting point.
+	 */
+	static double getTimestampUs();
+
+	/**
 	 * @brief Check if the timer is running
 	 */
 	inline bool Running() const {
