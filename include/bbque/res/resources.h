@@ -28,6 +28,7 @@
 
 #include "bbque/app/application_status.h"
 #include "bbque/utils/utility.h"
+#include "bbque/utils/timer.h"
 
 /** @see WorkingMode BindResource */
 #define RSRC_ID_ANY 	-1
@@ -36,6 +37,7 @@
 using bbque::app::AppSPtr_t;
 using bbque::app::AppUid_t;
 using bbque::utils::AttributesContainer;
+using bbque::utils::Timer;
 
 namespace bbque {
 
@@ -167,6 +169,14 @@ public:
 		return total;
 	}
 
+	inline bool IsOffline() const {
+		return offline;
+	}
+
+	void SetOffline();
+
+	void SetOnline();
+
 	/**
 	 * @brief Amount of resource used
 	 *
@@ -245,6 +255,20 @@ private:
 
 	/** The total amount of resource  */
 	uint64_t total;
+
+	/** True if this resource is currently offline */
+	bool offline;
+
+	/** The metrics to track run-time availability of a resource */
+	typedef struct AvailabilityProfile {
+		Timer online_tmr; ///> Timer to keep track of online time;
+		Timer offline_tmr; ///> Timer to keep track of offline time;
+		uint64_t lastOnlineTime;  ///> Last online timeframe [ms]
+		uint64_t lastOfflineTime; ///> Last offline timeframe [ms]
+	} AvailabilityProfile_t;
+
+	/** The run-time availability profile of this resource */
+	AvailabilityProfile_t av_profile;
 
 	/**
 	 * Hash map with all the views of the resource.

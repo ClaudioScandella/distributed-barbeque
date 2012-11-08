@@ -27,7 +27,8 @@ namespace bbque { namespace res {
  *****************************************************************************/
 
 Resource::Resource(std::string const & res_path, uint64_t tot):
-	total(tot) {
+	total(tot),
+	offline(false) {
 
 	// Extract the name from the path
 	size_t pos = res_path.find_last_of(".");
@@ -35,6 +36,39 @@ Resource::Resource(std::string const & res_path, uint64_t tot):
 		name = res_path.substr(pos + 1);
 	else
 		name = res_path;
+
+	// Initialize availability profile monitors;
+	av_profile.online_tmr.start();
+	av_profile.lastOfflineTime = 0;
+	av_profile.lastOnlineTime = 0;
+}
+
+void Resource::SetOffline() {
+	if (offline)
+		return;
+	offline = true;
+
+	// Keep track of last on-lining time
+	av_profile.offline_tmr.start();
+	av_profile.lastOnlineTime = av_profile.online_tmr.getElapsedTimeMs();
+
+	fprintf(stderr, FI("Resource {%s} OFFLINED, last on-line %.3f[s]\n"),
+			name.c_str(), (av_profile.lastOnlineTime / 1000.0));
+
+}
+
+void Resource::SetOnline() {
+	if (!offline)
+		return;
+	offline = false;
+
+	// Keep track of last on-lining time
+	av_profile.online_tmr.start();
+	av_profile.lastOfflineTime = av_profile.offline_tmr.getElapsedTimeMs();
+
+	fprintf(stderr, FI("Resource {%s} ONLINED, last off-line %.3f[s]\n"),
+			name.c_str(), (av_profile.lastOfflineTime / 1000.0));
+
 }
 
 uint64_t Resource::Used(RViewToken_t vtok) {
