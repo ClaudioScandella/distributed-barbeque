@@ -26,11 +26,6 @@ namespace bbque { namespace res {
  * class Resource
  *****************************************************************************/
 
-Resource::Resource(std::string const & nm):
-	name(nm),
-	total(1) {
-}
-
 Resource::Resource(std::string const & res_path, uint64_t tot):
 	total(tot) {
 

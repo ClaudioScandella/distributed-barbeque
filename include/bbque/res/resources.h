@@ -139,16 +139,10 @@ public:
 
 	/**
 	 * @brief Constructor
-	 * @param nm Resource name
-	 */
-	Resource(std::string const & nm);
-
-	/**
-	 * @brief Constructor
 	 * @param res_path Resource path
 	 * @param tot The total amount of resource
 	 */
-	Resource(std::string const & res_path, uint64_t tot);
+	Resource(std::string const & res_path, uint64_t tot = 1);
 
 	/**
 	 * Destructor
