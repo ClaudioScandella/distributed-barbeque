@@ -95,22 +95,27 @@ uint64_t Resource::Used(RViewToken_t vtok) {
 }
 
 uint64_t Resource::Available(AppSPtr_t papp, RViewToken_t vtok) {
+	uint64_t total_available = Unreserved();
+	ResourceStatePtr_t view;
+
 	// Retrieve the state view
-	ResourceStatePtr_t view = GetStateView(vtok);
-	if (!view) {
-		// If the view is not found, it means that nothing has been allocated.
-		// Thus the availability value to return is the total amount of
-		// resource
-		return total;
-	}
+	view = GetStateView(vtok);
+	// If the view is not found, it means that nothing has been allocated.
+	// Thus the availability value to return is the total amount of
+	// resource
+	if (!view)
+		return total_available;
 
-	// Return the amount of available resource plus the amount currently
-	// used by the given application
-	if (papp)
-		return (total - view->used + ApplicationUsage(papp, view->apps));
-
+	// Remove resources already allocated in this vew
+	total_available -= view->used;
 	// Return the amount of available resource
-	return (total - view->used);
+	if (!papp)
+		return total_available;
+
+	// Add resources allocated by requesting applicatiion
+	total_available += ApplicationUsage(papp, view->apps);
+	return total_available;
+
 }
 
 uint64_t Resource::ApplicationUsage(AppSPtr_t const & papp, RViewToken_t vtok) {
