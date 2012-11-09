@@ -297,6 +297,12 @@ public:
 	ExitCode_t  ReserveResources(std::string const & path,
 			uint64_t amount);
 
+	ExitCode_t  OfflineResources(std::string const & path);
+
+
+	ExitCode_t  OnlineResources(std::string const & path);
+
+
 	/**
 	 * @brief Check if resources are being reshuffled
 	 *

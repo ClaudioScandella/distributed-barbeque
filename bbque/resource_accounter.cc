@@ -415,6 +415,43 @@ ResourceAccounter::ExitCode_t  ResourceAccounter::ReserveResources(
 	return RA_SUCCESS;
 }
 
+ResourceAccounter::ExitCode_t  ResourceAccounter::OfflineResources(
+		std::string const & path) {
+	ResourcePtrList_t rlist = resources.findSet(path);
+	ResourcePtrListIterator_t rit = rlist.begin();
+
+	logger->Info("Offlining resources [%s]...", path.c_str());
+	if (rit == rlist.end()) {
+		logger->Error("Resource offlining FAILED "
+				"(Error: resource [%s] not matching)",
+				path.c_str());
+		return RA_FAILED;
+	}
+	for ( ; rit != rlist.end(); ++rit) {
+		(*rit)->SetOffline();
+	}
+
+	return RA_SUCCESS;
+}
+
+ResourceAccounter::ExitCode_t  ResourceAccounter::OnlineResources(
+		std::string const & path) {
+	ResourcePtrList_t rlist = resources.findSet(path);
+	ResourcePtrListIterator_t rit = rlist.begin();
+
+	logger->Info("Onlining resources [%s]...", path.c_str());
+	if (rit == rlist.end()) {
+		logger->Error("Resource offlining FAILED "
+				"(Error: resource [%s] not matching)");
+		return RA_FAILED;
+	}
+	for ( ; rit != rlist.end(); ++rit) {
+		(*rit)->SetOnline();
+	}
+
+	return RA_SUCCESS;
+}
+
 /************************************************************************
  *                   STATE VIEWS MANAGEMENT                             *
  ************************************************************************/
