@@ -272,6 +272,31 @@ public:
 	 */
 	void ReleaseResources(AppSPtr_t papp, RViewToken_t vtok = 0);
 
+
+	/**
+	 * @brief Define the amount of resource to be reserved
+	 *
+	 * A certain amount of resources could be dynamically reserved at
+	 * run-time in order to avoid their allocation to demanding
+	 * applications.
+	 *
+	 * Resources reservation could be conveniently used to both block
+	 * access to resources temporarely not available as well as implement
+	 * run-time resources management policies which, for examples, target
+	 * thermal leveling issues.
+	 *
+	 * If a resource path template is specified, the specified amout of
+	 * resource is reserved for each resource matching the template.
+	 *
+	 * @param path Resource path
+	 * @param amount The amount of resource to reserve, 0 for note
+	 *
+	 * @return RA_SUCCESS if the reservation has been completed correctly,
+	 * RA_FAILED otherwise.
+	 */
+	ExitCode_t  ReserveResources(std::string const & path,
+			uint64_t amount);
+
 	/**
 	 * @brief Check if resources are being reshuffled
 	 *

@@ -394,6 +394,27 @@ void ResourceAccounter::ReleaseResources(AppSPtr_t papp, RViewToken_t vtok) {
 	logger->Debug("Release: [%s] resource release terminated", papp->StrId());
 }
 
+
+ResourceAccounter::ExitCode_t  ResourceAccounter::ReserveResources(
+		std::string const & path, uint64_t amount) {
+	ResourcePtrList_t rlist = resources.findSet(path);
+	ResourcePtrListIterator_t rit = rlist.begin();
+
+	logger->Info("Reserving [%" PRIu64 "] for [%s] resources...",
+			amount, path.c_str());
+	if (rit == rlist.end()) {
+		logger->Error("Resource reservation FAILED "
+				"(Error: resource [%s] not matching)",
+				path.c_str());
+		return RA_FAILED;
+	}
+	for ( ; rit != rlist.end(); ++rit) {
+		(*rit)->Reserve(amount);
+	}
+
+	return RA_SUCCESS;
+}
+
 /************************************************************************
  *                   STATE VIEWS MANAGEMENT                             *
  ************************************************************************/

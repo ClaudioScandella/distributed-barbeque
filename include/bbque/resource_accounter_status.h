@@ -72,6 +72,8 @@ public:
 	enum ExitCode_t {
 		/** Successful return  */
 		RA_SUCCESS = 0,
+		/** Generic ResourceAccounter errro */
+		RA_FAILED,
 		/** Argument "path" missing */
 		RA_ERR_MISS_PATH,
 		/** Unable to allocate a new resource descriptor */
