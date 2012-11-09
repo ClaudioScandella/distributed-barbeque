@@ -98,6 +98,10 @@ uint64_t Resource::Available(AppSPtr_t papp, RViewToken_t vtok) {
 	uint64_t total_available = Unreserved();
 	ResourceStatePtr_t view;
 
+	// Offlined resources are considered not available
+	if (IsOffline())
+		return 0;
+
 	// Retrieve the state view
 	view = GetStateView(vtok);
 	// If the view is not found, it means that nothing has been allocated.
