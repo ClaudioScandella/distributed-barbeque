@@ -195,12 +195,48 @@ public:
 	RTLIB_ExitCode_t onMonitor();
 	RTLIB_ExitCode_t onRelease();
 
+private:
+	JNIEnv *env;
+	bool attached;
+
+	typedef struct {
+		const char* name;
+		const char* signature;
+		jmethodID method;
+	} callback_t;
+
+	typedef enum {
+		ON_SETUP = 0,
+		ON_CONFIGURE,
+		ON_SUSPEND,
+		ON_RESUME,
+		ON_RUN,
+		ON_MONITOR,
+		ON_RELEASE,
+		CB_COUNT // This must be the last entry
+	} cbid_t;
+
+	static callback_t cb[CB_COUNT];
+
 };
+
+BbqueAndroid::callback_t BbqueAndroid::cb[CB_COUNT] = {
+	{"onSetup", 	"()I", 	0},
+	{"onConfigure",	"(I)I", 0},
+	{"onSuspend", 	"()I", 	0},
+	{"onResume", 	"()I", 	0},
+	{"onRun", 	"()I", 	0},
+	{"onMonitor", 	"()I", 	0},
+	{"onRelease", 	"()I", 	0},
+};
+
 
 BbqueAndroid::BbqueAndroid(std::string const & name,
 	std::string const & recipe,
 	RTLIB_Services_t *rtlib) :
-	BbqueEXC(name, recipe, rtlib) {
+	BbqueEXC(name, recipe, rtlib),
+	env(NULL),
+	attached(false) {
 
 	LOGD("BbqueAndroid()");
 
@@ -209,46 +245,109 @@ BbqueAndroid::BbqueAndroid(std::string const & name,
 
 RTLIB_ExitCode_t
 BbqueAndroid::onSetup() {
+	jclass clazz;
+	int status;
+	uint8_t i;
+
+	LOGI("Attach JVM environment from RTLib thread...");
+	status = jvm->GetEnv((void **) &env, JNI_VERSION_1_4);
+	if (status < 0) {
+		LOGE("Failed to get JNI environment, assuming native thread");
+		status = jvm->AttachCurrentThread(&env, NULL);
+		if (status < 0) {
+			LOGE("Failed to attach current thread");
+			return RTLIB_ERROR;
+		}
+		attached = true;
+	}
+
+	if (env == NULL) {
+		LOGE("Failed to get JNI environment");
+		return RTLIB_ERROR;
+	}
+
+	LOGI("Keep track of callbacks signatures...");
+	clazz = env->GetObjectClass(obj);
+	for (i = 0; i < CB_COUNT; ++i) {
+		cb[i].method = env->GetMethodID(clazz, cb[i].name, cb[i].signature);
+		if (cb[i].method == NULL)
+			break;
+	}
+	if (i < CB_COUNT) {
+		LOGE("Failed to get all callbacks method IDs");
+		return RTLIB_ERROR;
+	}
+
+	// Forward callback to application specific setup
 	LOGD("Callback onSetup()");
+	if (env->CallIntMethod(obj, cb[ON_SETUP].method))
+		return RTLIB_ERROR;
+
 	return RTLIB_OK;
 }
 
 RTLIB_ExitCode_t
 BbqueAndroid::onConfigure(uint8_t awm_id) {
 	LOGD("Callback onConfigure(%d)", awm_id);
+	if (env->CallIntMethod(obj, cb[ON_CONFIGURE].method, (int)awm_id))
+		return RTLIB_ERROR;
+
 	return RTLIB_OK;
 }
 
 RTLIB_ExitCode_t
 BbqueAndroid::onSuspend() {
 	LOGD("Callback onSuspsend");
+	if (env->CallIntMethod(obj, cb[ON_SUSPEND].method))
+		return RTLIB_ERROR;
+
 	return RTLIB_OK;
 }
 
 RTLIB_ExitCode_t
 BbqueAndroid::onResume() {
 	LOGD("Callback onResume()");
+	if (env->CallIntMethod(obj, cb[ON_RESUME].method))
+		return RTLIB_ERROR;
+
 	return RTLIB_OK;
 }
 
 RTLIB_ExitCode_t
 BbqueAndroid::onRun() {
-	LOGD("Callback onRun()");
+	LOGD("Callback onRun(), %d", Cycles());
+//#define TEST_JNI
+#ifndef TEST_JNI
+	if (env->CallIntMethod(obj, cb[ON_RUN].method))
+		return RTLIB_EXC_WORKLOAD_NONE;
+
+	return RTLIB_OK;
+#else
 	::usleep(1000000);
 	if (Cycles() > 5)
-		RTLIB_EXC_WORKLOAD_NONE;
+		return RTLIB_EXC_WORKLOAD_NONE;
 	return RTLIB_OK;
+#endif
 }
 
 RTLIB_ExitCode_t
 BbqueAndroid::onMonitor() {
 	LOGD("Callback onMonitor()");
+	if (env->CallIntMethod(obj, cb[ON_MONITOR].method))
+		return RTLIB_ERROR;
+
 	return RTLIB_OK;
 }
 
 RTLIB_ExitCode_t
 BbqueAndroid::onRelease() {
 	LOGD("Callback onRelease()");
+	if (env->CallIntMethod(obj, cb[ON_RELEASE].method))
+		return RTLIB_ERROR;
+
+	// Detaching JVM thread
+	if (attached)
+		jvm->DetachCurrentThread();
 	return RTLIB_OK;
 }
 
