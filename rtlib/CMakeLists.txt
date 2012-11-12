@@ -23,6 +23,11 @@ if (CONFIG_BBQUE_RPC_FIFO)
 	set (RTLIB_SRC rpc_fifo_client ${RTLIB_SRC})
 endif (CONFIG_BBQUE_RPC_FIFO)
 
+
+if (CONFIG_TARGET_ANDROID)
+	set (RTLIB_SRC bbque_android ${RTLIB_SRC})
+endif (CONFIG_TARGET_ANDROID)
+
 # Build subdirs
 add_subdirectory(monitors)
 
