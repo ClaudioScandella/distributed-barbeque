@@ -203,6 +203,10 @@ uint64_t ResourceAccounter::QueryStatus(
 		case RA_USED:
 			val += rsrc->Used(vtok);
 			break;
+		// Resource not reserved quantity
+		case RA_UNRESERVED:
+			val += rsrc->Unreserved();
+			break;
 		// Resource total
 		case RA_TOTAL:
 			val += rsrc->Total();

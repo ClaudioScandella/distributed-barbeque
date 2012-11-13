@@ -114,6 +114,19 @@ public:
 	virtual uint64_t Total(std::string const & path) const = 0;
 
 	/**
+	 * @brief Total amount of not reserved resources
+	 *
+	 * This is used when the only available information is the resource path
+	 * (wheter template or specific). Just the amout of resources not
+	 * reserved is returned.
+	 *
+	 * @param path Resource path
+	 *
+	 * @return The total amount of not reserved resource
+	 */
+	virtual uint64_t Unreserved(std::string const & path) const = 0;
+
+	/**
 	 * @brief Total amount of resource
 	 *
 	 * This is a slighty more efficient version of method Total(), to invoke
@@ -130,6 +143,19 @@ public:
 	 * @return The total amount of resource
 	 */
 	virtual uint64_t Total(ResourcePtrList_t & rsrc_list) const = 0;
+
+	/**
+	 * @brief Total amount of not reserved resource
+	 *
+	 * This is a slighty more efficient version of method Unreserved(), to invoke
+	 * whenever we have a list of Resource descriptors yet.
+	 *
+	 * @param rsrc_list A list of shared pointer to Resource descriptors (of
+	 * the same type).
+	 *
+	 * @return The total amount of not reserved resource
+	 */
+	virtual uint64_t Unreserved(ResourcePtrList_t & rsrc_list) const = 0;
 
 	/**
 	 * @brief Amount of resource available

@@ -86,10 +86,27 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
+	inline uint64_t Unreserved(std::string const & path) const {
+		ResourcePtrList_t matchings = GetResources(path);
+		return QueryStatus(matchings, RA_UNRESERVED, 0);
+	}
+
+	/**
+	 * @see ResourceAccounterStatusIF
+	 */
 	inline uint64_t Total(ResourcePtrList_t & rsrc_list) const {
 		if (rsrc_list.empty())
 			return 0;
 		return QueryStatus(rsrc_list, RA_TOTAL);
+	}
+
+	/**
+	 * @see ResourceAccounterStatusIF
+	 */
+	inline uint64_t Unreserved(ResourcePtrList_t & rsrc_list) const {
+		if (rsrc_list.empty())
+			return 0;
+		return QueryStatus(rsrc_list, RA_UNRESERVED);
 	}
 
 	/**
@@ -425,6 +442,8 @@ private:
 		RA_AVAIL = 0,
 		/** Amount of resource used */
 		RA_USED,
+		/** Total amount of not reserved resource */
+		RA_UNRESERVED,
 		/** Total amount of resource */
 		RA_TOTAL
 	};
