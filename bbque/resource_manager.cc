@@ -191,7 +191,8 @@ ResourceManager::Setup() {
 	//---------- Start bbque services
 	ap.Start();
 	pp.Start();
-	optimize_dfr.SetPeriodic(milliseconds(opt_interval));
+	if (opt_interval)
+		optimize_dfr.SetPeriodic(milliseconds(opt_interval));
 
 	return OK;
 }

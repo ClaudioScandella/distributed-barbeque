@@ -103,7 +103,9 @@ void Deferrable::SetPeriodic(milliseconds period) {
 	std::unique_lock<std::mutex> ul(trdStatus_mtx);
 
 	if (period == SCHEDULE_NONE) {
-		// Use the SetOnDemand call for this purpose
+		logger->Info("DF[%s] unexpected SetPeriodic() 0[ms], "
+				"must use the SetOnDemand() instead.",
+				Name());
 		assert(period != SCHEDULE_NONE);
 		return;
 	}
