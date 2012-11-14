@@ -478,6 +478,7 @@ protected:
 	static bool envGlobal;
 	static bool envOverheads;
 	static int  envDetailedRun;
+	static int  envRawPerfCount;
 	static bool envNoKernel;
 	static bool envCsvOutput;
 	static bool envMOSTOutput;
@@ -493,6 +494,16 @@ protected:
 	 * @brief Look-up configuration from environment variable BBQUE_RTLIB_OPTS
 	 */
 	static RTLIB_ExitCode_t ParseOptions();
+
+	/**
+	 * @brief Insert a raw performance counter into the events array
+	 *
+	 * @param perf_str The string containing label and event code of the
+	 * performance counter
+	 *
+	 * @return The index of the performance counter in the events array
+	 */
+	static uint8_t InsertRAWPerfCounter(const char *perf_str);
 
 /******************************************************************************
  * Channel Dependant interface
@@ -805,6 +816,9 @@ private:
 #ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 
 # define BBQUE_RTLIB_PERF_ENABLE true
+
+	/** Default performance attributes to collect for each task */
+	static PerfEventAttr_t *raw_events;
 
 	/** Default performance attributes to collect for each task */
 	static PerfEventAttr_t default_events[];
