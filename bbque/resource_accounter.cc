@@ -34,10 +34,10 @@
 #include "bbque/platform_services.h"
 #include "bbque/app/working_mode.h"
 
-#define RP_DIV1 "============================================================="
-#define RP_DIV2 "|-------------------------------+-------------+-------------|"
-#define RP_DIV3 "|                               :             |             |"
-#define RP_HEAD "|             RESOURCES         |        USED |       TOTAL |"
+#define RP_DIV1 " ========================================================================="
+#define RP_DIV2 "|-------------------------------+-------------+---------------------------|"
+#define RP_DIV3 "|                               :             |             |             |"
+#define RP_HEAD "|   RESOURCES                   |     USED    |  UNRESERVED |     TOTAL   |"
 
 
 #define PRINT_NOTICE_IF_VERBOSE(verbose, text)\
@@ -85,12 +85,27 @@ ResourceAccounter::~ResourceAccounter() {
  *                   LOGGER REPORTS                                     *
  ************************************************************************/
 
+// This is just a local utility function to format in a human readable
+// format resources amounts.
+static char *PrettyFormat(float value) {
+	char radix[] = {'0', '3', '6', '9'};
+	static char str[] = "1024.000e+0";
+	uint8_t i = 0;
+	while (value > 1023 && i < 3) {
+		value /= 1024;
+		++i;
+	}
+	snprintf(str, sizeof(str), "%8.3fe+%c", value, radix[i]);
+	return str;
+}
+
 void ResourceAccounter::PrintStatusReport(RViewToken_t vtok, bool verbose) const {
 	std::set<std::string>::const_iterator path_it(paths.begin());
 	std::set<std::string>::const_iterator end_path(paths.end());
-	char rsrc_path_padded[30];
-	char rsrc_text_row[66];
+	//                        +--------- 27 ------------+     +-- 11 ---+   +-- 11 ---+   +-- 11 ---+
+	char rsrc_text_row[] = "| tile0.cluster0.mem0         I : 1234.123e+1 | 1234.123e+1 | 1234.123e+1 |";
 	uint64_t rsrc_used;
+
 
 	// Print the head of the report table
 	if (verbose) {
@@ -113,9 +128,18 @@ void ResourceAccounter::PrintStatusReport(RViewToken_t vtok, bool verbose) const
 		rsrc_used = Used(*path_it, vtok);
 
 		// Build the resource text row
-		snprintf(rsrc_path_padded, 30, "%-30s", (*path_it).c_str());
-		snprintf(rsrc_text_row, 66, "| %s : %11" PRIu64 " | %11" PRIu64 " |",
-				rsrc_path_padded, rsrc_used, Total(*path_it));
+		uint8_t len = 0;
+		char online = 'I';
+		if (IsOfflineResource(*path_it))
+			online = 'O';
+
+		len += sprintf(rsrc_text_row + len, "| %-27s %c : %11s | ",
+				(*path_it).c_str(), online,
+				PrettyFormat(rsrc_used));
+		len += sprintf(rsrc_text_row + len, "%11s | ",
+				PrettyFormat(Unreserved(*path_it)));
+		len += sprintf(rsrc_text_row + len, "%11s |",
+				PrettyFormat(Total(*path_it)));
 
 		PRINT_NOTICE_IF_VERBOSE(verbose, rsrc_text_row);
 
@@ -139,8 +163,8 @@ void ResourceAccounter::PrintAppDetails(
 	AppUid_t app_uid;
 	uint64_t rsrc_amount;
 	uint8_t app_index = 0;
-	char app_info[30];
-	char app_text_row[66];
+	//                           +----- 15 ----+             +-- 11 ---+  +--- 13 ----+ +--- 13 ----+
+	char app_text_row[] = "|     12345:exc_01:01,P01,AWM01 : 1234.123e+1 |             |             |";
 
 	// Get the resource descriptor
 	ResourcePtr_t rsrc(GetResource(path));
@@ -159,10 +183,12 @@ void ResourceAccounter::PrintAppDetails(
 			break;
 
 		// Build the row to print
-		snprintf(app_info, 30, "%s,P%02d,AWM%02d", papp->StrId(),
-				papp->Priority(), papp->CurrentAWM()->Id());
-		snprintf(app_text_row, 66, "| %29s : %11" PRIu64 " |             |",
-				app_info, rsrc_amount);
+		sprintf(app_text_row, "| %19s,P%02d,AWM%02d : %11s |%13s|%13s|",
+				papp->StrId(),
+				papp->Priority(),
+				papp->CurrentAWM()->Id(),
+				PrettyFormat(rsrc_amount),
+				"", "");
 
 		PRINT_NOTICE_IF_VERBOSE(verbose, app_text_row);
 
@@ -417,6 +443,25 @@ ResourceAccounter::ExitCode_t  ResourceAccounter::ReserveResources(
 	}
 
 	return RA_SUCCESS;
+}
+
+bool  ResourceAccounter::IsOfflineResource(std::string const & path) const {
+	ResourcePtrList_t rlist = resources.findSet(path);
+	ResourcePtrListIterator_t rit = rlist.begin();
+
+	logger->Debug("Check offline status for resources [%s]...", path.c_str());
+	if (rit == rlist.end()) {
+		logger->Error("Check offline FAILED "
+				"(Error: resource [%s] not matching)",
+				path.c_str());
+		return true;
+	}
+	for ( ; rit != rlist.end(); ++rit) {
+		if (!(*rit)->IsOffline())
+			return false;
+	}
+
+	return true;
 }
 
 ResourceAccounter::ExitCode_t  ResourceAccounter::OfflineResources(

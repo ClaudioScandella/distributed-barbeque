@@ -314,6 +314,8 @@ public:
 	ExitCode_t  ReserveResources(std::string const & path,
 			uint64_t amount);
 
+	bool  IsOfflineResource(std::string const & path) const;
+
 	ExitCode_t  OfflineResources(std::string const & path);
 
 
