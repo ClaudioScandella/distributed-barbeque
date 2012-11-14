@@ -97,6 +97,7 @@ bool BbqueRPC::envPerfCount = false;
 bool BbqueRPC::envGlobal = false;
 bool BbqueRPC::envOverheads = false;
 int  BbqueRPC::envDetailedRun = 0;
+int  BbqueRPC::envRawPerfCount = 0;
 bool BbqueRPC::envNoKernel = false;
 bool BbqueRPC::envCsvOutput = false;
 bool BbqueRPC::envMOSTOutput = false;
@@ -108,8 +109,13 @@ const char *BbqueRPC::envCsvSep = " ";
 
 RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 	const char *env;
-	char buff[32];
+	char buff[100];
 	char *opt;
+#ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
+	char * raw_buff;
+	int8_t idx  = 0;
+	size_t nchr = 0;
+#endif
 
 	DB(fprintf(stderr, FD("Parsing environment options...\n")));
 
@@ -121,7 +127,7 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 	DB(fprintf(stderr, FD("BBQUE_RTLIB_OPTS: [%s]\n"), env));
 
 	// Tokenize configuration options
-	strncpy(buff, env, 32);
+	strncpy(buff, env, sizeof(buff));
 	opt = strtok(buff, ":");
 
 	// Parsing all options (only single char opts are supported)
@@ -180,6 +186,39 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 				fprintf(stderr, FE("WARN: Perf Counters NOT available\n"));
 			}
 			break;
+#ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
+		case 'r':
+			// Enabling perf...
+			envPerfCount = BBQUE_RTLIB_PERF_ENABLE;
+
+			// # of RAW perf counters
+			sscanf(opt+1, "%d", &envRawPerfCount);
+			if (envRawPerfCount > 0) {
+				fprintf(stderr, FI("Enabling %d RAW Perf Counters\n"), envRawPerfCount);
+			} else {
+				fprintf(stderr, FW("Expected RAW Perf Counters\n"));
+				break;
+			}
+
+			// Get the first raw performance counter
+			raw_buff = opt+3;
+			nchr = strcspn(raw_buff, ",");
+			raw_buff[nchr] = '\0';
+
+			// Insert the events into the array
+			while (raw_buff[0] != '\0') {
+				idx = InsertRAWPerfCounter(raw_buff);
+				if (idx == envRawPerfCount)
+					break;
+
+				// Get the next raw performance counter
+				raw_buff += nchr+1;
+				nchr = strcspn(raw_buff, ",");
+				raw_buff[nchr] = '\0';
+			}
+			envRawPerfCount = idx;
+			break;
+#endif //CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 		case 's':
 			// Setting CSV separator
 			if (opt[1])
@@ -1448,6 +1487,8 @@ RTLIB_ExitCode_t BbqueRPC::StopExecution(
  ******************************************************************************/
 #ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 
+BbqueRPC::PerfEventAttr_t * BbqueRPC::raw_events = nullptr;
+
 BbqueRPC::PerfEventAttr_t BbqueRPC::default_events[] = {
 
   {PERF_TYPE_SOFTWARE, PERF_COUNT_SW_TASK_CLOCK },
@@ -1497,6 +1538,43 @@ BbqueRPC::PerfEventAttr_t BbqueRPC::very_very_detailed_events[] = {
 
 static const char *_perfCounterName = 0;
 
+uint8_t BbqueRPC::InsertRAWPerfCounter(const char *perf_str) {
+	static uint8_t idx = 0;
+	uint64_t event_code_ul;
+	char event_code_str[4];
+	char label[10];
+	char buff[15];
+
+	// Overflow check
+	if (idx == envRawPerfCount)
+		return idx;
+
+	// Extract label and event select code + unit mask
+	strncpy(buff, perf_str, sizeof(buff));
+	strncpy(strpbrk(buff,"-"), " ", 1);
+	sscanf(buff, "%s %s", label, event_code_str);
+	DB(fprintf(stderr, FD("RawPerfCounter: [%d] LB=%-5s EVT=%-4s\n"),
+			idx, label, event_code_str);
+	);
+
+	// Nullptr check
+	if ((label == nullptr) || (event_code_str == nullptr))
+		return 0;
+
+	// Convert the event code from string to unsigned long
+	event_code_ul = strtoul(event_code_str, NULL, 16);
+
+	// Allocate the raw events array
+	if (!raw_events)
+		raw_events = (PerfEventAttr_t *)
+			malloc(sizeof(PerfEventAttr_t) * envRawPerfCount);
+
+	// Set the event attributes
+	raw_events[idx++] = {PERF_TYPE_RAW, event_code_ul};
+
+	return idx;
+}
+
 BbqueRPC::pPerfEventStats_t BbqueRPC::PerfGetEventStats(pAwmStats_t pstats,
 		perf_type_id type, uint64_t config) {
 	PerfEventStatsMapByConf_t::iterator it;
@@ -1531,6 +1609,17 @@ void BbqueRPC::PerfSetupEvents(pregExCtx_t prec) {
 	// TODO get required Perf configuration from environment
 	// to add eventually more detailed counters or to completely disable perf
 	// support
+
+	// Adding raw events
+	for (uint8_t e = 0; e < envRawPerfCount; e++) {
+		fd = prec->perf.AddCounter(
+				PERF_TYPE_RAW, raw_events[e].config, envNoKernel);
+		prec->events_map[fd] = &(raw_events[e]);
+    }
+
+	// RAW events mode skip the preset counters
+	if (envRawPerfCount > 0)
+		return;
 
 	// Adding default events
 	for (uint8_t e = 0; e < tot_counters; e++) {
