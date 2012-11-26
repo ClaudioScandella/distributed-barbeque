@@ -22,7 +22,7 @@
 #include "bbque/config.h"
 #include "bbque/utils/utility.h"
 
-struct rtm_knobs_t;
+#include <dmmlib/knobs.h>
 
 namespace bbque { namespace rtlib {
 
@@ -53,7 +53,7 @@ public:
 	 *
 	 * @return RTLIB_OK on success, RTLIB_ERROR otherwise
 	 */
-	static RTLIB_ExitCode_t Init(const struct rtm_knobs_t *conf, const uint32_t count);
+	static RTLIB_ExitCode_t Init(const dmm_knobs_t *conf, const uint32_t count);
 
 	/**
 	 * @brief Set the DMM Library with the specified knob parameters
