@@ -54,12 +54,24 @@ if (CONFIG_TARGET_ANDROID)
 	)
 endif (CONFIG_TARGET_ANDROID)
 
+################################################################################
+# Target: RTLib+DMM Library (RTLib with DMM support)
+################################################################################
+
+if (CONFIG_BBQUE_RTLIB_DMM_SUPPORT)
+
+#----- Add "bbque_rtlib_dmm" target dinamic binary
+set (RTLIB_SRC ${RTLIB_SRC} bbque_dmm)
+set (RTLIB_LIBS
+	-Wl,-whole-archive libdmm_static.a -Wl,-no-whole-archive
+	${RTLIB_LIBS}
+)
+
+endif (CONFIG_BBQUE_RTLIB_DMM_SUPPORT)
 
 ################################################################################
 # Target: RTLib Library
 ################################################################################
-
-if (!CONFIG_BBQUE_RTLIB_DMM_SUPPORT)
 
 #----- Add "bbque_rtlib" target dinamic binary
 add_library(bbque_rtlib SHARED ${RTLIB_SRC})
@@ -93,35 +105,3 @@ install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/bbque/cpp11"
 		DESTINATION "${BBQUE_PATH_HEADERS}"
 		FILES_MATCHING PATTERN "*.h")
 
-endif (!CONFIG_BBQUE_RTLIB_DMM_SUPPORT)
-
-################################################################################
-# Target: RTLib+DMM Library (RTLib with DMM support)
-################################################################################
-
-if (CONFIG_BBQUE_RTLIB_DMM_SUPPORT)
-
-#----- Add "bbque_rtlib_dmm" target dinamic binary
-add_library(bbque_rtlib_dmm SHARED ${RTLIB_SRC} bbque_dmm)
-
-# Linking dependencies
-target_link_libraries(
-	bbque_rtlib_dmm
-	-Wl,-whole-archive libdmm_static.a -Wl,-no-whole-archive
-	${RTLIB_LIBS}
-)
-
-# Use link path ad RPATH
-set_property (TARGET bbque_rtlib_dmm PROPERTY
-		INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-set_property (TARGET bbque_rtlib_dmm PROPERTY
-		FRAMEWORK ON)
-
-# Install the RTLib+DMM
-install (TARGETS bbque_rtlib_dmm LIBRARY
-		DESTINATION ${BBQUE_PATH_RTLIB}
-		PUBLIC_HEADER DESTINATION ${BBQUE_PATH_HEADERS}
-		COMPONENT BarbequeRTLib)
-
-endif (CONFIG_BBQUE_RTLIB_DMM_SUPPORT)
