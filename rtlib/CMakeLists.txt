@@ -59,6 +59,8 @@ endif (CONFIG_TARGET_ANDROID)
 # Target: RTLib Library
 ################################################################################
 
+if (!CONFIG_BBQUE_RTLIB_DMM_SUPPORT)
+
 #----- Add "bbque_rtlib" target dinamic binary
 add_library(bbque_rtlib SHARED ${RTLIB_SRC})
 
@@ -90,6 +92,8 @@ install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/bbque/utils"
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/bbque/cpp11"
 		DESTINATION "${BBQUE_PATH_HEADERS}"
 		FILES_MATCHING PATTERN "*.h")
+
+endif (!CONFIG_BBQUE_RTLIB_DMM_SUPPORT)
 
 ################################################################################
 # Target: RTLib+DMM Library (RTLib with DMM support)
