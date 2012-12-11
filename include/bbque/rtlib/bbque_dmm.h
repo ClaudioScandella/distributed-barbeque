@@ -25,7 +25,7 @@
 #include <dmmlib/knobs.h>
 
 #ifdef CONFIG_BBQUE_RTLIB_DMM_SUPPORT
-# define DMMLIB(func) DMM_FUNCS
+# define DMMLIB(func) bbque::rtlib::LibDMM::func
 #else
 # define DMMLIB(func)
 #endif
