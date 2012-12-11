@@ -59,7 +59,7 @@ public:
 	 *
 	 * @return RTLIB_OK on success, RTLIB_ERROR otherwise
 	 */
-	static RTLIB_ExitCode_t Init(const dmm_knobs_t *conf, const uint32_t count);
+	static RTLIB_ExitCode_t Init();
 
 	/**
 	 * @brief Set the DMM Library with the specified knob parameters

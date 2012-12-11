@@ -88,7 +88,7 @@ LibDMM::~LibDMM() {
 
 
 RTLIB_ExitCode_t
-LibDMM::Init(const dmm_knobs_t *conf, uint32_t count) {
+LibDMM::Init() {
 
 	if (dmm_knobs == NULL
 			|| dmm_knobs_count == 0

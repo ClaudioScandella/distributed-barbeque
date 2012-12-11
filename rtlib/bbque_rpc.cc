@@ -63,7 +63,7 @@ BbqueRPC * BbqueRPC::GetInstance() {
 channel_done:
 
 	// Init the DMM Library (if enabled)
-	DMMLIB(Init(NULL, 0));
+	DMMLIB(Init());
 
 	return instance;
 }
