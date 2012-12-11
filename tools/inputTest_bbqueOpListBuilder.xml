@@ -12,15 +12,17 @@
       <parameter name="nb_wta_workgroups" value="14"/>
       <parameter name="wg_col_pixel_width" value="12"/>
       <parameter name="wg_col_pixel_width" value="12"/>
-      <parameter name="dmm.sysallocsize" value="256"/>
-      <parameter name="dmm.fitpercentage" value="80"/>
+      <parameter name="dmm.sys_alloc_size" value="256"/>
+      <parameter name="dmm.fit_percentage" value="80"/>
+      <parameter name="dmm.max_coalesce_size" value="128"/>
+      <parameter name="dmm.min_split_size" value="128"/>
     </parameters>
     <system_metrics>
       <system_metric name="power" value="8.326735"/>
       <system_metric name="disper" value="6.908081"/>
       <system_metric name="throughput_kpix_s" value="706.998356"/>
-      <system_metric name="dmm.avg_req_sz" value="12.345678"/>
-      <system_metric name="dmm.tot_req_sz" value="12345.678"/>
+      <system_metric name="dmm.tot_req_size" value="12345.678"/>
+      <system_metric name="dmm.tot_allocated_size" value="12.345678"/>
     </system_metrics>
   </point>
   <point>
@@ -34,8 +36,10 @@
       <parameter name="nb_wi_per_wg" value="4"/>
       <parameter name="nb_wta_workgroups" value="16"/>
       <parameter name="wg_col_pixel_width" value="16"/>
-      <parameter name="dmm.sysallocsize" value="512"/>
-      <parameter name="dmm.fitpercentage" value="70"/>
+      <parameter name="dmm.sys_allocsize" value="512"/>
+      <parameter name="dmm.fit_percentage" value="70"/>
+      <parameter name="dmm.max_coalesce_size" value="256"/>
+      <parameter name="dmm.min_split_size" value="256"/>
     </parameters>
     <system_metrics>
       <system_metric name="power" value="4.379432"/>
@@ -56,8 +60,10 @@
       <parameter name="nb_wi_per_wg" value="2"/>
       <parameter name="nb_wta_workgroups" value="11"/>
       <parameter name="wg_col_pixel_width" value="16"/>
-      <parameter name="dmm.sysallocsize" value="1024"/>
-      <parameter name="dmm.fitpercentage" value="60"/>
+      <parameter name="dmm.sys_alloc_size" value="1024"/>
+      <parameter name="dmm.fit_percentage" value="60"/>
+      <parameter name="dmm.max_coalesce_size" value="64"/>
+      <parameter name="dmm.min_split_size" value="64"/>
     </parameters>
     <system_metrics>
       <system_metric name="power" value="6.099738"/>
