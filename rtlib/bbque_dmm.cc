@@ -92,11 +92,18 @@ LibDMM::~LibDMM() {
 RTLIB_ExitCode_t
 LibDMM::Init() {
 
-	if (dmm_knobs == NULL
-			|| dmm_knobs_count == 0
-			|| dmm_rtm_init == NULL) {
+	if (dmm_knobs == NULL || dmm_knobs_count == 0) {
 		fprintf(stderr, FE("LibDMM initalization failed "
 					"(Error: knobs not exposed)\n"));
+		return RTLIB_ERROR;
+	}
+
+	fprintf(stderr, FI("Found %d DMM knobs @0x%p, dmm::init @0x%p\n"),
+				dmm_knobs_count, dmm_knobs, dmm_rtm_init);
+
+	if (dmm_rtm_init == NULL) {
+		fprintf(stderr, FE("LibDMM initalization failed "
+					"(Error: DMM::Init not exposed)\n"));
 		return RTLIB_ERROR;
 	}
 
