@@ -18,6 +18,8 @@
 #include "bbque/config.h"
 #include "bbque/rtlib/bbque_dmm.h"
 
+#include <dmmlib/knobs.h>
+
 #include <cstdio>
 #include <sys/stat.h>
 
