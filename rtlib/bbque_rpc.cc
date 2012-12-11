@@ -20,6 +20,7 @@
 #include "bbque/rtlib/rpc_fifo_client.h"
 #include "bbque/rtlib/rpc_unmanaged_client.h"
 #include "bbque/app/application.h"
+#include "bbque/rtlib/bbque_dmm.h"
 
 #include <cstdio>
 #include <sys/stat.h>
@@ -27,13 +28,6 @@
 // Setup logging
 #undef  BBQUE_LOG_MODULE
 #define BBQUE_LOG_MODULE "rpc"
-
-#ifdef CONFIG_BBQUE_RTLIB_DMM_SUPPORT
-# define DMMLIB(func) bbque::rtlib::LibDMM::func
-#include "bbque/rtlib/bbque_dmm.h"
-#else
-# define DMMLIB(func)
-#endif
 
 namespace ba = bbque::app;
 namespace bu = bbque::utils;
