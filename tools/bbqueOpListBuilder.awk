@@ -65,7 +65,7 @@ BEGIN {
 	printf ("/* the bbque-opp Operating Points parser script. */\n") >>DMMLIB_FD
 	printf ("#include <dmmlib/knobs.h>\n") >>DMMLIB_FD
 	printf ("#include <stdint.h>\n") >>DMMLIB_FD
-	printf ("struct dmm_knobs_s %s = {\n", BBQUE_DMMLIB_KNOBSLIST) >>DMMLIB_FD
+	printf ("struct dmm_knobs_s %s [] = {\n", BBQUE_DMMLIB_KNOBSLIST) >>DMMLIB_FD
 }
 
 /<parameters>/ {
