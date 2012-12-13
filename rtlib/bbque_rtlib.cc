@@ -216,8 +216,26 @@ RTLIB_ExitCode_t RTLIB_Init(const char *name, RTLIB_Services_t **rtlib) {
 
 	// Welcome screen
 	fprintf(stderr, FI("Barbeque RTLIB (ver. %s)\n"), g_git_version);
-	fprintf(stderr, FI("Built: " __DATE__  " " __TIME__ "\n"));
-
+	fprintf(stderr, FI("         Built data: " __DATE__  " " __TIME__ "\n"));
+#if defined(CONFIG_BBQUE_RTLIB_PERF_SUPPORT) \
+	|| defined(CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT) \
+	|| defined(CONFIG_BBQUE_RTLIB_DMM_SUPPORT) \
+	|| defined(CONFIG_BBQUE_RPC_FIFO)
+	fprintf(stderr, FI("         Enabled supports: "
+# ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
+				"perf "
+# endif
+# ifdef CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT
+				"cgroups "
+# endif
+# ifdef CONFIG_BBQUE_RTLIB_DMM_SUPPORT
+				"dmmlib "
+# endif
+# ifdef CONFIG_BBQUE_RPC_FIFO
+				"rpc_fifo "
+# endif
+				"\n"));
+#endif
 	// Data structure initialization
 	rtlib_services.version.major = RTLIB_VERSION_MAJOR;
 	rtlib_services.version.minor = RTLIB_VERSION_MINOR;
