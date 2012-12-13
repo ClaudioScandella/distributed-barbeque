@@ -802,7 +802,7 @@ RTLIB_ExitCode_t BbqueRPC::SetCGroupPath(pregExCtx_t prec) {
 void BbqueRPC::DumpMemoryReport(pregExCtx_t prec) {
 	(void)prec;
 }
-#endif // CONFIG_BBQUE_RTLIB_CGROUPS_SUPPPORT
+#endif // CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT
 
 
 void BbqueRPC::DumpStats(pregExCtx_t prec, bool verbose) {
