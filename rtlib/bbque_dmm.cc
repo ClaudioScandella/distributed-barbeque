@@ -86,9 +86,12 @@ RTLIB_ExitCode_t
 LibDMM::Init(const dmm_knobs_t *conf, uint32_t count) {
 
 	if (dmm_knobs == NULL
-			|| dmm_rtm_init == NULL
-			|| dmm_set_knobs == NULL)
+			|| dmm_knobs_count == 0
+			|| dmm_rtm_init == NULL) {
+		fprintf(stderr, FE("LibDMM initalization failed "
+					"(Error: knobs not exposed)\n"));
 		return RTLIB_ERROR;
+	}
 
 	if (dmm_rtm_init(conf, count) != 0)
 		return RTLIB_ERROR;
