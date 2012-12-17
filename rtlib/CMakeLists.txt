@@ -103,7 +103,7 @@ add_library(bbque_rtlib_dmm SHARED ${RTLIB_SRC} bbque_dmm)
 # Linking dependencies
 target_link_libraries(
 	bbque_rtlib_dmm
-	libdmm_static.a
+	-Wl,-whole-archive libdmm_static.a -Wl,-no-whole-archive
 	${RTLIB_LIBS}
 )
 
