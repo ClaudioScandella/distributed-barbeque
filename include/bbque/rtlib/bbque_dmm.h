@@ -65,6 +65,18 @@ public:
 	 */
 	static RTLIB_ExitCode_t SetKnobs(uint32_t index);
 
+	/**
+	 * @brief Notify DMM Library about a completed processing cycle
+	 *
+	 * Each time a new processing cycle (i.e. onRun) has been completed,
+	 * this method is called on the DMM library. This could be
+	 * conveniently used by the DMM library to collect statistics on a
+	 * processing cycle base.
+	 *
+	 * @return RTLIB_OK on success, RTLIB_ERROR otherwise
+	 */
+	static RTLIB_ExitCode_t NotifyCycle();
+
 private:
 
 	/**

@@ -69,6 +69,8 @@ extern uint32_t dmm_rtm_init(const dmm_knobs_t *conf, uint32_t count) __attribut
  */
 extern uint32_t dmm_set_knobs(dmm_knobs_t *conf) __attribute__((weak));
 
+extern void dmm_notify_cycle() __attribute__((weak));
+
 namespace bbque { namespace rtlib {
 
 bool LibDMM::initialized = false;
@@ -125,6 +127,18 @@ LibDMM::SetKnobs(uint32_t index) {
 				index);
 		return RTLIB_ERROR;
 	}
+
+	return RTLIB_OK;
+}
+
+RTLIB_ExitCode_t
+LibDMM::NotifyCycle() {
+	DB(fprintf(stderr, FD("Notify DMM Cycle\n")));
+
+	if (!initialized || dmm_notify_cycle == NULL)
+		return RTLIB_ERROR;
+
+	dmm_notify_cycle();
 
 	return RTLIB_OK;
 }
