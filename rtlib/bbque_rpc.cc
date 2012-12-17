@@ -68,6 +68,9 @@ BbqueRPC * BbqueRPC::GetInstance() {
 	goto channel_done;
 channel_done:
 
+	// Init the DMM Library (if enabled)
+	DMMLIB(Init(NULL, 0));
+
 	return instance;
 }
 
@@ -2241,8 +2244,21 @@ void BbqueRPC::NotifyExit(
 
 void BbqueRPC::NotifyPreConfigure(
 	RTLIB_ExecutionContextHandler_t ech) {
+	pregExCtx_t prec;
+
+	assert(ech);
+
+	prec = getRegistered(ech);
+	if (!prec) {
+		fprintf(stderr, FE("Unregister EXC [%p] FAILED "
+				"(EXC not registered)\n"), (void*)ech);
+		return;
+	}
+
+	assert(isRegistered(prec) == true);
+
 	DB(fprintf(stderr, FD("===> NotifyConfigure\n")));
-	(void)ech;
+	DMMLIB(SetKnobs(prec->awm_id));
 }
 
 void BbqueRPC::NotifyPostConfigure(
@@ -2319,6 +2335,9 @@ void BbqueRPC::NotifyPostRun(
 			PerfCollectStats(prec);
 		}
 	}
+
+	// Notify DMM about a new cycle completed
+	DMMLIB(NotifyCycle());
 
 }
 
