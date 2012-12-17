@@ -93,8 +93,13 @@ LibDMM::Init(const dmm_knobs_t *conf, uint32_t count) {
 		return RTLIB_ERROR;
 	}
 
-	if (dmm_rtm_init(conf, count) != 0)
+	if (dmm_rtm_init(dmm_knobs, dmm_knobs_count) != 0) {
+		fprintf(stderr, FE("LibDMM initalization failed "
+					"(Error: DMM init failed)\n"));
 		return RTLIB_ERROR;
+	}
+
+	fprintf(stderr, FI("LibDMM Initilized\n"));
 
 	initialized = true;
 	return RTLIB_OK;
