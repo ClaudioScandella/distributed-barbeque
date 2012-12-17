@@ -115,6 +115,9 @@
 /** Unmanaged Mode Support */
 #cmakedefine CONFIG_BBQUE_RTLIB_UNMANAGED_SUPPORT
 
+/** DMM Library Support */
+#cmakedefine CONFIG_BBQUE_RTLIB_DMM_SUPPORT
+
 /** CGroups Support */
 #cmakedefine CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT
 
