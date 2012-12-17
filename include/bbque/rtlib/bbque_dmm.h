@@ -77,6 +77,31 @@ public:
 	 */
 	static RTLIB_ExitCode_t NotifyCycle();
 
+	/**
+	 * @brief Get the current amount of application required memory
+	 *
+	 * A call to this method query the DMM library about the current total
+	 * amount of memory required by the application. This could be
+	 * conveniently used by the RTLib to collect statistics on memory
+	 * usage by the application.
+	 *
+	 * @return the current total amount of application required memory
+	 */
+	static size_t RequestedMemory();
+
+	/**
+	 * @brief Get the current amount of allocated memory
+	 *
+	 * A call to this method query the DMM library about the current total
+	 * amount of memory allocated by the library. This could be
+	 * conveniently used by the RTLib to collect statistics on overall
+	 * memory usage for data, considering dynamic memory methadata as
+	 * well.
+	 *
+	 * @return the current total amount of application allocated memory
+	 */
+	static size_t AllocatedMemory();
+
 private:
 
 	/**

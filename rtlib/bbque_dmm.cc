@@ -71,6 +71,9 @@ extern uint32_t dmm_set_knobs(dmm_knobs_t *conf) __attribute__((weak));
 
 extern void dmm_notify_cycle() __attribute__((weak));
 
+extern size_t get_total_requested_memory(void) __attribute__((weak));
+extern size_t get_total_allocated_memory(void) __attribute__((weak));
+
 namespace bbque { namespace rtlib {
 
 bool LibDMM::initialized = false;
@@ -142,6 +145,27 @@ LibDMM::NotifyCycle() {
 
 	return RTLIB_OK;
 }
+
+size_t
+LibDMM::RequestedMemory(void) {
+	DB(fprintf(stderr, FD("Get DMMLib.TotalRequestedMemory\n")));
+
+	if (!initialized || get_total_requested_memory == NULL)
+		return 0;
+
+	return get_total_requested_memory();
+}
+
+size_t
+LibDMM::AllocatedMemory(void) {
+	DB(fprintf(stderr, FD("Get DMMLib.TotalAllocatedMemory\n")));
+
+	if (!initialized || get_total_allocated_memory == NULL)
+		return 0;
+
+	return get_total_allocated_memory();
+}
+
 
 } // namespace rtlib
 
