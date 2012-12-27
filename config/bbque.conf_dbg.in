@@ -52,8 +52,6 @@ msl.pe        = 75
 msl.mem       = 90
 
 [SchedPol.Contrib.awmvalue]
-penalty.pe    = 100
-penalty.mem   = 100
 
 [SchedPol.Contrib.reconfig]
 migfact       = 5
