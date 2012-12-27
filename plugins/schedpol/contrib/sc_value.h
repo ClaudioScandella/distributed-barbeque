@@ -20,6 +20,8 @@
 
 #include "sched_contrib.h"
 
+#define SC_VALUE_NAPW_DEFAULT 	60
+
 
 namespace bbque { namespace plugins {
 
@@ -39,6 +41,9 @@ public:
 	ExitCode_t Init(void * params);
 
 private:
+
+	/** The weight of the NAP assertion in the contribution value */
+	float nap_weight;
 
 	/**
 	 * @brief Compute the AWM value contribute

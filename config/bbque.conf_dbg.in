@@ -52,6 +52,7 @@ msl.pe        = 75
 msl.mem       = 90
 
 [SchedPol.Contrib.awmvalue]
+nap.weight    = 60
 
 [SchedPol.Contrib.reconfig]
 migfact       = 5

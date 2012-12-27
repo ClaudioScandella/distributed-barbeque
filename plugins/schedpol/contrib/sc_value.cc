@@ -26,6 +26,30 @@ namespace bbque { namespace plugins {
 
 SCValue::SCValue(const char * _name, uint16_t const cfg_params[]):
 	SchedContrib(_name, cfg_params) {
+	char conf_str[50];
+	uint16_t napw;
+	po::options_description opts_desc("AWM value contribution parameters");
+
+	// NAP weight
+	snprintf(conf_str, 50, SC_CONF_BASE_STR"%s.nap.weight", name);
+	opts_desc.add_options()
+		(conf_str,
+		 po::value<uint16_t>(&napw)->default_value(SC_VALUE_NAPW_DEFAULT),
+		 "Normalized Actual Penalty (NAP) weight");
+		;
+	po::variables_map opts_vm;
+	cm.ParseConfigurationFile(opts_desc, opts_vm);
+
+	// Check boundary value
+	if (napw > 100) {
+		napw = SC_VALUE_NAPW_DEFAULT;
+		logger->Warn("NAP weight out of range (set to default = %.2f)",
+				(float) SC_VALUE_NAPW_DEFAULT / 100.0);
+	}
+
+	// Convent to a indexed value [0..1]
+	nap_weight = static_cast<float>(napw) / 100.0;
+	logger->Debug("Normalized Actual Penalty weight \t= %.2f", nap_weight);
 }
 
 SchedContrib::ExitCode_t
@@ -44,11 +68,11 @@ SCValue::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	float nap = 0;
 
 	// Initialize the index contribute to the AWM static value
-	ctrib = 0.4 * evl_ent.pawm->Value();
+	ctrib = (1.0 - nap_weight) * evl_ent.pawm->Value();
 	logger->Debug("%s: AWM static value: %.4f", evl_ent.StrId(), ctrib);
 
 	// NAP set?
-	nap = 0.6 * static_cast<float>(evl_ent.papp->GetGoalGap()) / 100.0;
+	nap = nap_weight * static_cast<float>(evl_ent.papp->GetGoalGap()) / 100.0;
 	if (!curr_awm || (nap == 0) ||
 			(curr_awm->Value() >= evl_ent.pawm->Value()))
 		return SC_SUCCESS;
