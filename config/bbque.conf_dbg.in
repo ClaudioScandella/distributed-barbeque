@@ -104,6 +104,7 @@ rootCategory = DEBUG, raConsole
 #category.bq.sm = 		ERROR
 #category.bq.ym = 		ERROR
 #category.bq.om = 		ERROR
+#category.bq.cm =		ERROR
 #category.bq.ra = 		ERROR
 #category.bq.ap = 		ERROR
 #category.bq.tpd = 		ERROR
