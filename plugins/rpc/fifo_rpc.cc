@@ -24,6 +24,7 @@
 
 #include <sys/stat.h>
 #include <unistd.h>
+#include <poll.h>
 #include <fcntl.h>
 #include <csignal>
 
@@ -153,6 +154,11 @@ int FifoRPC::Init() {
 
 	logger->Info("FIFO RPC: channel initialization DONE");
 	return 0;
+}
+
+int FifoRPC::Poll() {
+	int ret = 0;
+	return ret;
 }
 
 ssize_t FifoRPC::RecvMessage(rpc_msg_ptr_t & msg) {

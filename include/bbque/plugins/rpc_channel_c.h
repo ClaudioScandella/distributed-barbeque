@@ -28,6 +28,7 @@ typedef struct C_RPCChannelHandle_ { char c; } * C_RPCChannelHandle;
  */
 typedef struct C_RPCChannel_ {
 	int    (*Init)(void);
+	int    (*Poll)(void);
 	ssize_t (*RecvMessage)(void *buff_ptr);
 	void*  (*GetPluginData)(void *buff_ptr);
 	void   (*ReleasePluginData)(void *pd);

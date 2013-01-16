@@ -47,6 +47,10 @@ public:
 		return rc->Init();
 	}
 
+	int Poll() {
+		return rc->Poll();
+	}
+
 	ssize_t RecvMessage(rpc_msg_ptr_t & msg) {
 		return rc->RecvMessage((void*)msg);
 	}

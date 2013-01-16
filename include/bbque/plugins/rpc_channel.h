@@ -55,6 +55,17 @@ public:
 	virtual int Init() = 0;
 
 	/**
+	 * @brief Block waiting for new data or signal
+	 *
+	 * A call to this method is blocking until new data are available for
+	 * reading or the channel has been closed.
+	 *
+	 * @return Not negative numner of new data is available, negative
+	 * error otherwise.
+	 */
+	virtual int Poll() = 0;
+
+	/**
 	 * @brief Get a pointer to the next message buffer.
 	 *
 	 * This methods blocks the caller until a new message is available and

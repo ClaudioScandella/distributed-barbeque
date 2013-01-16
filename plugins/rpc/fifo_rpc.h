@@ -67,6 +67,7 @@ public:
 
 //----- RPCChannelIF module interface
 
+	virtual int Poll();
 
 	virtual ssize_t RecvMessage(rpc_msg_ptr_t & msg);
 

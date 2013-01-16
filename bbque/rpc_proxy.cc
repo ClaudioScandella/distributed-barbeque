@@ -147,6 +147,10 @@ int RPCProxy::Init() {
 	return 0;
 }
 
+int RPCProxy::Poll() {
+	return 0;
+}
+
 ssize_t RPCProxy::RecvMessage(rpc_msg_ptr_t & msg) {
 	std::unique_lock<std::mutex> queue_status_ul(msg_queue_mtx);
 	channel_msg_t ch_msg;

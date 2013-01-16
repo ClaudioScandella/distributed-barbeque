@@ -63,6 +63,19 @@ public:
 	 */
 	virtual int Init();
 
+
+	/**
+	 * @brief Block waiting for new data or signal
+	 *
+	 * A call to this method is blocking until new data are available for
+	 * reading or the channel has been closed.
+	 * @see RPCChannelIF::Poll
+	 *
+	 * @return Not negative numner of new data is available, negative
+	 * error otherwise.
+	 */
+	virtual int Poll();
+
 	/**
 	 * @brief Get a pointer to the next message buffer.
 	 *
