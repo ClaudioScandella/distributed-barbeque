@@ -28,6 +28,7 @@
 #include "bbque/synchronization_manager.h"
 #include "bbque/profile_manager.h"
 #include "bbque/resource_accounter.h"
+#include "bbque/command_manager.h"
 
 #include "bbque/plugins/logger.h"
 #include "bbque/utils/timer.h"
@@ -118,6 +119,7 @@ public:
 	 */
 	void NotifyEvent(controlEvent_t evt);
 
+
 	/**
 	 * @brief Register a Worker to track
 	 *
@@ -201,6 +203,11 @@ private:
 	 * @brief The Platform Proxy module
 	 */
 	PlatformProxy & pp;
+
+	/**
+	 * @brief The Commands Manager module
+	 */
+	CommandManager & cm;
 
 	std::bitset<EVENTS_COUNT> pendingEvts;
 

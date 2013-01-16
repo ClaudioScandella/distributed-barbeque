@@ -140,6 +140,7 @@ ResourceManager::ResourceManager() :
 	ra(ResourceAccounter::GetInstance()),
 	mc(MetricsCollector::GetInstance()),
 	pp(PlatformProxy::GetInstance()),
+	cm(CommandManager::GetInstance()),
 	optimize_dfr("rm.opt", std::bind(&ResourceManager::Optimize, this)) {
 
 	//---------- Setup all the module metrics
