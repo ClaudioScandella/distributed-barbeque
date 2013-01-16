@@ -19,6 +19,7 @@
 #define BBQUE_APPLICATION_PROXY_H_
 
 #include "bbque/app/application.h"
+#include "bbque/utils/worker.h"
 #include "bbque/plugins/logger.h"
 #include "bbque/plugins/rpc_channel.h"
 #include "bbque/rtlib/rpc_messages.h"
@@ -28,11 +29,14 @@
 #include <map>
 #include <memory>
 
+#define APPLICATION_PROXY_NAMESPACE "bq.ap"
+
 #define BBQUE_DEFAULT_SYNCP_TIMEOUT 1000
 
 using namespace bbque::plugins;
 using namespace bbque::rtlib;
 using namespace bbque::app;
+using namespace bbque::utils;
 
 namespace bbque {
 
@@ -44,16 +48,11 @@ namespace bbque {
  * be accessed using methods defined by this proxy. Each call requires to
  * specify the application to witch it is addressed and the actual parameters.
  */
-class ApplicationProxy {
+class ApplicationProxy : public Worker {
 
 private:
 
-	std::thread dispatcher_thd;
-
-	plugins::LoggerIF *logger;
-
 	plugins::RPCChannelIF *rpc;
-
 
 	typedef struct snCtx {
 		std::thread exe;
@@ -91,9 +90,6 @@ private:
 public:
 
 	static ApplicationProxy & GetInstance();
-
-	void Start();
-
 
 	~ApplicationProxy();
 
@@ -182,12 +178,6 @@ private:
 	snCtxMap_t snCtxMap;
 
 	std::mutex snCtxMap_mtx;
-
-	bool trdRunning;
-
-	std::mutex trdStatus_mtx;
-
-	std::condition_variable trdStatus_cv;
 
 	typedef struct conCtx {
 		/** The applicaiton PID */
@@ -358,7 +348,7 @@ private:
 	/**
 	 * @brief The command dispatching thread.
 	 */
-	void Dispatcher();
+	void Task();
 
 };
 

@@ -25,17 +25,16 @@
 
 #include "bbque/cpp11/chrono.h"
 
+#define MODULE_NAMESPACE APPLICATION_PROXY_NAMESPACE
+
 namespace ba = bbque::app;
 
 namespace bbque {
 
-ApplicationProxy::ApplicationProxy() :
-	trdRunning(false) {
+ApplicationProxy::ApplicationProxy() : Worker() {
 
-	//---------- Get a logger module
-	std::string logger_name("bq.ap");
-	plugins::LoggerIF::Configuration conf(logger_name.c_str());
-	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
+	//---------- Setup Worker
+	Worker::Setup(BBQUE_MODULE_NAME("ap"), APPLICATION_PROXY_NAMESPACE);
 
 	//---------- Initialize the RPC channel module
 	// TODO look the configuration file for the required channel
@@ -52,7 +51,7 @@ ApplicationProxy::ApplicationProxy() :
 	}
 
 	// Spawn the command dispatching thread
-	dispatcher_thd = std::thread(&ApplicationProxy::Dispatcher, this);
+	Worker::Start();
 
 }
 
@@ -65,14 +64,6 @@ ApplicationProxy & ApplicationProxy::GetInstance() {
 	return instance;
 }
 
-void ApplicationProxy::Start() {
-	std::unique_lock<std::mutex> ul(trdStatus_mtx);
-
-	logger->Debug("APPs PRX: service starting...");
-	trdRunning = true;
-	trdStatus_cv.notify_one();
-}
-
 rpc_msg_type_t ApplicationProxy::GetNextMessage(pchMsg_t & pChMsg) {
 
 	rpc->RecvMessage(pChMsg);
@@ -82,7 +73,6 @@ rpc_msg_type_t ApplicationProxy::GetNextMessage(pchMsg_t & pChMsg) {
 
 	return (rpc_msg_type_t)pChMsg->typ;
 }
-
 
 /*******************************************************************************
  * Command Sessions
@@ -1440,25 +1430,19 @@ void ApplicationProxy::ProcessRequest(pchMsg_t & pmsg) {
 
 }
 
-void ApplicationProxy::Dispatcher() {
-	std::unique_lock<std::mutex> trdStatus_ul(trdStatus_mtx);
+void ApplicationProxy::Task() {
+	rpc_msg_type_t msgType;
 	pchMsg_t pmsg;
-
-	// Set the module name
-	if (prctl(PR_SET_NAME, (long unsigned int)BBQUE_MODULE_NAME("ap"), 0, 0, 0) != 0) {
-		logger->Error("Set name FAILED! (Error: %s)\n", strerror(errno));
-	}
-
-	// Waiting for thread authorization to start
-	if (!trdRunning)
-		trdStatus_cv.wait(trdStatus_ul);
-
-	trdStatus_ul.unlock();
 
 	logger->Info("APPs PRX: Messages dispatcher STARTED");
 
-	while (trdRunning) {
-		if (GetNextMessage(pmsg)>RPC_EXC_MSGS_COUNT) {
+	while (!done) {
+
+		if (rpc->Poll() < 0)
+			continue;
+
+		msgType = GetNextMessage(pmsg);
+		if (msgType > RPC_EXC_MSGS_COUNT) {
 			CompleteTransaction(pmsg);
 			continue;
 		}
