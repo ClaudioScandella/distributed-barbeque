@@ -148,7 +148,25 @@ int RPCProxy::Init() {
 }
 
 int RPCProxy::Poll() {
-	return 0;
+	std::unique_lock<std::mutex> queue_status_ul(msg_queue_mtx);
+	size_t size = msg_queue.size();
+
+	if (size) return 0;
+
+	// Wait for at least one element being pushed into the queue
+	logger->Debug("PRXY RPC: waiting for new message...");
+	queue_ready_cv.wait(queue_status_ul);
+
+	if (size) return 0;
+
+	// We have been signaled by the lower layer, and we have to exit
+	return -EINTR;
+}
+
+void RPCProxy::SignalPoll() {
+	std::unique_lock<std::mutex> queue_status_ul(msg_queue_mtx);
+	logger->Debug("PRXY RPC: interrupted POLL");
+	queue_ready_cv.notify_one();
 }
 
 ssize_t RPCProxy::RecvMessage(rpc_msg_ptr_t & msg) {

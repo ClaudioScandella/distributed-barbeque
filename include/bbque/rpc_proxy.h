@@ -253,6 +253,8 @@ private:
 	 */
 	void EnqueueMessages();
 
+	void SignalPoll();
+
 };
 
 } // namespace bbque
