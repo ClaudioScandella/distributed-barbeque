@@ -19,6 +19,7 @@
 #define BBQUE_RPC_PROXY_H_
 
 #include "bbque/plugins/rpc_channel.h"
+#include "bbque/utils/worker.h"
 #include "bbque/plugins/logger.h"
 
 #include "bbque/utils/metrics_collector.h"
@@ -32,6 +33,7 @@
 
 using bbque::plugins::RPCChannelIF;
 using bbque::utils::MetricsCollector;
+namespace bu = bbque::utils;
 
 namespace bbque {
 
@@ -44,7 +46,7 @@ namespace bbque {
  * implementaton. Meanwhile, this is class provides all the code to manage
  * message queuing and dequenung policies.
  */
-class RPCProxy : public RPCChannelIF {
+class RPCProxy : public RPCChannelIF, public bu::Worker {
 
 public:
 
@@ -148,7 +150,6 @@ public:
 	 */
 	virtual void FreeMessage(rpc_msg_ptr_t & msg);
 
-
 private:
 
 	/**
@@ -177,38 +178,7 @@ private:
 	/**
 	 * 
 	 */
-	pid_t emTrdPid;
-
-	/**
-	 * 
-	 */
-	std::mutex trdStatus_mtx;
-
-	/**
-	 * 
-	 */
-	std::condition_variable trdStarted_cv;
-
-
-	/**
-	 * 
-	 */
-	bool done;
-
-	/**
-	 * @brief System logger instance
-	 */
-	plugins::LoggerIF *logger;
-
-	/**
-	 * 
-	 */
 	std::unique_ptr<RPCChannelIF> rpc_channel;
-
-	/**
-	 * 
-	 */
-	std::thread msg_fetch_trd;
 
 	/**
 	 * 
@@ -251,7 +221,7 @@ private:
 	 * Provides an enqueuing thread which continuously fetch messages from the
 	 * low-level channel module and enqueue them to the proper queue.
 	 */
-	void EnqueueMessages();
+	void Task();
 
 	void SignalPoll();
 

@@ -70,14 +70,11 @@ RPCProxy::metrics[RP_METRICS_COUNT] = {
 typedef bp::ObjectAdapter<bp::RPCChannelAdapter, C_RPCChannel>
 	RPCChannel_ObjectAdapter;
 
-RPCProxy::RPCProxy(std::string const &id) :
-	mc(bu::MetricsCollector::GetInstance()),
-	done(false) {
+RPCProxy::RPCProxy(std::string const &id) : Worker(),
+	mc(bu::MetricsCollector::GetInstance()) {
 
-	// Get a logger
-	plugins::LoggerIF::Configuration conf(RPC_CHANNEL_NAMESPACE".prx");
-	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
-	assert(logger!=NULL);
+	//---------- Setup Worker
+	Worker::Setup(BBQUE_MODULE_NAME("rpc"), RPC_CHANNEL_NAMESPACE ".prx");
 
 	// Build a object adapter for the Logger
 	logger->Debug("PRXY RPC: RPC channel loading...");
@@ -100,16 +97,12 @@ RPCProxy::RPCProxy(std::string const &id) :
 }
 
 RPCProxy::~RPCProxy() {
-	std::unique_lock<std::mutex> trdStatus_ul(trdStatus_mtx);
 
 	if (rpc_channel) {
 		//FIXME add plugins release code
 		//bp::PluginManager::GetInstance().
 		//	DeleteObject((void*)(rpc_channel.get()));
 	}
-
-	done = true;
-	::kill(emTrdPid, EINTR);
 
 }
 
@@ -131,19 +124,12 @@ RPCProxy *RPCProxy::GetInstance(std::string const & id) {
 }
 
 int RPCProxy::Init() {
-	std::unique_lock<std::mutex> trdStatus_ul(trdStatus_mtx);
 
 	assert(rpc_channel);
 	if (rpc_channel->Init())
 		return -1;
 
-	// Intialize message queues
-	logger->Debug("Using (dummy) message priority based on RPC message ID");
-
-	// Spawn the Enqueuing thread
-	msg_fetch_trd = std::thread(&RPCProxy::EnqueueMessages, this);
-	trdStarted_cv.wait(trdStatus_ul);
-
+	Worker::Start();
 	return 0;
 }
 
@@ -171,14 +157,10 @@ void RPCProxy::SignalPoll() {
 
 ssize_t RPCProxy::RecvMessage(rpc_msg_ptr_t & msg) {
 	std::unique_lock<std::mutex> queue_status_ul(msg_queue_mtx);
-	channel_msg_t ch_msg;
 	size_t size = msg_queue.size();
+	channel_msg_t ch_msg;
 
-	if (!size) {
-		// Wait for at least one element being pushed into the queue
-		logger->Debug("PRXY RPC: waiting for new message");
-		queue_ready_cv.wait(queue_status_ul);
-	}
+	if (!size) return 0;
 
 	// Dequeue received message
 	ch_msg = msg_queue.top();
@@ -239,27 +221,24 @@ bool RPCProxy::RPCMsgCompare::operator() (
 	return false;
 }
 
-void RPCProxy::EnqueueMessages() {
-	size_t size;
-	rpc_msg_ptr_t msg;
+void RPCProxy::Task() {
 	std::unique_lock<std::mutex> queue_status_ul(
 			msg_queue_mtx, std::defer_lock);
+	rpc_msg_ptr_t msg;
+	ssize_t size;
 
-	// Set the module name
-	if (prctl(PR_SET_NAME, (long unsigned int)BBQUE_MODULE_NAME("rpc"), 0, 0, 0) != 0) {
-		logger->Error("Set name FAILED! (Error: %s)\n", strerror(errno));
-	}
+	logger->Info("PRXY RPC: Fetcher thread STARTED");
 
-	// get the thread ID for further management
-	emTrdPid = gettid();
-	trdStarted_cv.notify_one();
-
-	logger->Info("PRXY RPC: message fetcher started");
 	while (!done) {
+
+		logger->Debug("PRXY RPC: waiting message...");
+
 		// Wait for a new message being ready
 		size = rpc_channel->RecvMessage(msg);
-		if (size==EINTR)
-			break;
+		if (size == -EINTR) {
+			SignalPoll();
+			continue;
+		}
 		assert(msg);
 
 		logger->Debug("PRXY RPC: RX [typ: %2d, sze: %3d]",
@@ -279,6 +258,8 @@ void RPCProxy::EnqueueMessages() {
 			msg->typ, br::RPC_MessageStr(msg->typ), size, msg_queue.size());
 
 	}
+
+	logger->Info("PRXY RPC: Messages fetcher ENDED");
 }
 
 void RPCProxy::FreeMessage(rpc_msg_ptr_t & msg) {
