@@ -19,6 +19,7 @@
 #include "bbque/modules_factory.h"
 
 #define DEFERRABLE_NAMESPACE "bq.df"
+#define MODULE_NAMESPACE DEFERRABLE_NAMESPACE
 
 namespace bp = bbque::plugins;
 
@@ -26,22 +27,15 @@ namespace bbque { namespace utils {
 
 Deferrable::Deferrable(const char *name,
 		DeferredFunction_t func,
-		milliseconds period) :
+		milliseconds period) : Worker(),
 	name(name),
 	func(func),
 	max_time(period),
-	next_time(system_clock::now()),
-	done(false) {
+	next_time(system_clock::now()) {
 
-	//---------- Get a logger module
-	char logName[64];
-	snprintf(logName, 64, DEFERRABLE_NAMESPACE".%s", name);
-	bp::LoggerIF::Configuration conf(logName);
-	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
-	if (!logger) {
-		fprintf(stderr, "DF: Logger module creation FAILED\n");
-		assert(logger);
-	}
+	//---------- Setup Worker
+	snprintf(thdName, BBQUE_DEFERRABLE_THDNAME_MAXLEN, DEFERRABLE_NAMESPACE ".%s", Name());
+	Worker::Setup(thdName, thdName);
 
 	if (max_time == SCHEDULE_NONE) {
 		logger->Debug("Starting new \"on-demand\" deferrable [%s]...",
@@ -51,21 +45,16 @@ Deferrable::Deferrable(const char *name,
 				Name(), max_time);
 	}
 
-	// Spawn the executor thread
-	executor_thd = std::thread(&Deferrable::Executor, this);
-
 	// Start "periodic" deferrables
-	Start();
+	Worker::Start();
 
 }
 
 Deferrable::~Deferrable() {
-	// Stop the executor thread
-	Stop();
 }
 
 void Deferrable::Schedule(milliseconds time) {
-	std::unique_lock<std::mutex> ul(trdStatus_mtx);
+	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
 	DeferredTime_t request_time = system_clock::now();
 	DeferredTime_t schedule_time;
 
@@ -73,7 +62,7 @@ void Deferrable::Schedule(milliseconds time) {
 	if (time == SCHEDULE_NOW) {
 		logger->Debug("DF[%s] immediate scheduling required", Name());
 		next_timeout = SCHEDULE_NOW;
-		trdStatus_cv.notify_one();
+		worker_status_cv.notify_one();
 		return;
 	}
 
@@ -95,12 +84,12 @@ void Deferrable::Schedule(milliseconds time) {
 	logger->Debug("DF[%s] update nearest schedule to %d[ms]", Name(), time);
 	next_time = schedule_time;
 	next_timeout = time;
-	trdStatus_cv.notify_one();
+	worker_status_cv.notify_one();
 
 }
 
 void Deferrable::SetPeriodic(milliseconds period) {
-	std::unique_lock<std::mutex> ul(trdStatus_mtx);
+	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
 
 	if (period == SCHEDULE_NONE) {
 		logger->Info("DF[%s] unexpected SetPeriodic() 0[ms], "
@@ -114,40 +103,14 @@ void Deferrable::SetPeriodic(milliseconds period) {
 			Name(), period);
 
 	max_time = period;
-	trdStatus_cv.notify_one();
+	worker_status_cv.notify_one();
 }
 
 void Deferrable::SetOnDemand() {
-	std::unique_lock<std::mutex> ul(trdStatus_mtx);
+	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
 	logger->Info("DF[%s] set \"on-demand\" mode", Name());
 	max_time = SCHEDULE_NONE;
-	trdStatus_cv.notify_one();
-}
-
-void Deferrable::Start() {
-	std::unique_lock<std::mutex> ul(trdStatus_mtx);
-
-	logger->Debug("DF[%s] starting deferrable...", Name());
-	trdRunning = true;
-	trdStatus_cv.notify_one();
-}
-
-void Deferrable::Stop() {
-	std::unique_lock<std::mutex> ul(trdStatus_mtx);
-
-	if (done == true)
-		return;
-
-	logger->Debug("DF[%s] stopping deferrable...", Name());
-	done = true;
-	trdStatus_cv.notify_one();
-	ul.unlock();
-
-	// Waiting for the thread to exit
-	if (executor_thd.joinable()) {
-		logger->Debug("DF[%s] joining executor...", Name());
-		executor_thd.join();
-	}
+	worker_status_cv.notify_one();
 }
 
 #define RESET_TIMEOUT \
@@ -158,25 +121,14 @@ void Deferrable::Stop() {
 		next_time = system_clock::now() + next_timeout; \
 	} while(0)
 
-void Deferrable::Executor() {
-	std::unique_lock<std::mutex> trdStatus_ul(trdStatus_mtx);
+void Deferrable::Task() {
+	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
 	std::cv_status wakeup_reason;
 
-	// Set the module name
-	char thdName[64];
-	snprintf(thdName, 64, DEFERRABLE_NAMESPACE".%s", Name());
-	if (prctl(PR_SET_NAME, (long unsigned int)thdName, 0, 0, 0) != 0) {
-		logger->Error("Set name FAILED! (Error: %s)\n", strerror(errno));
-	}
-
-	// Waiting for thread authorization to start
-	while (!trdRunning)
-		trdStatus_cv.wait(trdStatus_ul);
+	logger->Info("DF[%s] Deferrable thread STARTED", Name());
 
 	// Schedule next execution if we are "repetitive"
 	RESET_TIMEOUT;
-
-	logger->Info("DF[%s] Deferrable thread STARTED", Name());
 
 	DB(tmr.start());
 	while (!done) {
@@ -187,7 +139,7 @@ void Deferrable::Executor() {
 					Name(), tmr.getElapsedTimeMs()));
 
 			DB(tmr.start());
-			trdStatus_cv.wait(trdStatus_ul);
+			worker_status_cv.wait(worker_status_ul);
 			DB(logger->Debug("DF[%s: %9.3f] wakeup ON-DEMAND",
 					Name(), tmr.getElapsedTimeMs()));
 
@@ -197,7 +149,7 @@ void Deferrable::Executor() {
 					next_timeout));
 
 			DB(tmr.start());
-			wakeup_reason = trdStatus_cv.wait_for(trdStatus_ul, next_timeout);
+			wakeup_reason = worker_status_cv.wait_for(worker_status_ul, next_timeout);
 			if (wakeup_reason == std::cv_status::timeout) {
 				DB(logger->Debug("DF[%s: %9.3f] wakeup TIMEOUT",
 						Name(), tmr.getElapsedTimeMs()));

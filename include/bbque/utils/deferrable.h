@@ -24,6 +24,7 @@
 #include "bbque/cpp11/thread.h"
 #include "bbque/plugins/logger.h"
 #include "bbque/utils/utility.h"
+#include "bbque/utils/worker.h"
 #include "bbque/utils/timer.h"
 
 #include <functional>
@@ -34,6 +35,7 @@ using std::chrono::system_clock;
 
 using bbque::plugins::LoggerIF;
 using bbque::utils::Timer;
+using bbque::utils::Worker;
 
 namespace bbque { namespace utils {
 
@@ -46,7 +48,7 @@ namespace bbque { namespace utils {
  * On each time, the most recent future execution request is executed, by
  * discarding all the (non periodic) older ones.
  */
-class Deferrable {
+class Deferrable : public Worker {
 
 public:
 
@@ -112,12 +114,13 @@ protected:
 	 */
 	const std::string name;
 
-	/**
-	 * @brief The logger to use.
-	 */
-	LoggerIF *logger;
-
 private:
+
+#define BBQUE_DEFERRABLE_THDNAME_MAXLEN 32
+	/**
+	 * @brief The deferrable (thread) name
+	 */
+	char thdName[BBQUE_DEFERRABLE_THDNAME_MAXLEN];
 
 	/**
 	 * @brief
@@ -145,54 +148,14 @@ private:
 	milliseconds next_timeout;
 
 	/**
-	 * @brief The deferrable executor thread
-	 */
-	std::thread executor_thd;
-
-	/**
-	 * @brief Status of the executor thread
-	 *
-	 * This variable is set true when the executor thread has been autorized
-	 * to run.
-	 */
-	bool trdRunning;
-
-	/**
-	 * @brief Set true to terminate the executor thread
-	 *
-	 * This is set to true to end the executor thread.
-	 */
-	bool done;
-
-	/*
-	 * @brief Mutex controlling the thread execution
-	 */
-	std::mutex trdStatus_mtx;
-
-	/**
-	 * @brief Conditional variable used to signal the monitoring thread
-	 */
-	std::condition_variable trdStatus_cv;
-
-	/**
 	 * @brief A timer used for validation
 	 */
 	DB(Timer tmr);
 
 	/**
-	 * @brief Start the executor thread
+	 * @brief The deferrable execution thread
 	 */
-	void Start();
-
-	/**
-	 * @brief Stop the executor thread
-	 */
-	void Stop();
-
-	/**
-	 * @brief The thread providing the execution context for this deferrable
-	 */
-	void Executor();
+	void Task();
 
 };
 
