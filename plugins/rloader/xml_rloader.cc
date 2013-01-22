@@ -218,9 +218,8 @@ error:
 
 ticpp::Element * XMLRecipeLoader::LoadPlatform(ticpp::Element * _xml_elem) {
 	ticpp::Element * pp_elem     = nullptr;
-	ticpp::Element * pp_gen_elem = nullptr;
-
 #ifndef CONFIG_BBQUE_TEST_PLATFORM_DATA
+	ticpp::Element * pp_gen_elem = nullptr;
 	const char * sys_platform_id;
 	std::string platform_id;
 	PlatformProxy & pp(PlatformProxy::GetInstance());
