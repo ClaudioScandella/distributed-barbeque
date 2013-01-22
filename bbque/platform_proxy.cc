@@ -63,6 +63,13 @@ PlatformProxy & PlatformProxy::GetInstance() {
 	return instance;
 }
 
+void PlatformProxy::Refresh() {
+	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
+	// Notify the platform monitoring thread about a new event ot be
+	// processed
+	worker_status_cv.notify_one();
+}
+
 void PlatformProxy::Task() {
 #ifndef CONFIG_BBQUE_TEST_PLATFORM_DATA
 	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
@@ -75,8 +82,7 @@ void PlatformProxy::Task() {
 		worker_status_cv.wait(worker_status_ul);
 
 		logger->Info("PLAT PRX: Processing platform event");
-
-		// TODO add plataform parsing code
+		RefreshPlatformData();
 
 	}
 
@@ -118,6 +124,15 @@ PlatformProxy::LoadPlatformData() {
 	// Dump status of registered resource
 	ra.PrintStatusReport(0, true);
 
+	return result;
+}
+
+PlatformProxy::ExitCode_t
+PlatformProxy::RefreshPlatformData() {
+	ExitCode_t result = OK;
+
+	logger->Debug("PLAT PRX: refreshing platform description...");
+	result = _RefreshPlatformData();
 	return result;
 }
 

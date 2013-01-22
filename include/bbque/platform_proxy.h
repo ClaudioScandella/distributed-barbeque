@@ -126,6 +126,16 @@ public:
  * @{
  */
 
+	/**
+	 * @brief Notify a platform event related to resources status
+	 *
+	 * If the platform description should change at run-time, e.g.
+	 * resources availability changed, this method should be called to
+	 * notify PlatformProxy about the need to reload the platform
+	 * description.
+	 */
+	virtual void Refresh();
+
 
 /**
  * @}
@@ -197,6 +207,22 @@ private:
 	 */
 	ExitCode_t Setup(AppPtr_t papp);
 
+	/**
+	 * @brief Refresh the platform description.
+	 *
+	 * If the platform description should change at run-time, e.g.
+	 * resources availability changed, this method is called to notify the
+	 * ResourceManage to be aware about the new platform status.
+	 *
+	 * A platform specific proxy could customize the behavior of this
+	 * method by overloading the low-level method @see
+	 * _RefreshPlatformData.
+	 *
+	 * @return OK on success.
+	 */
+	ExitCode_t RefreshPlatformData();
+
+
 protected:
 
 	/**
@@ -258,6 +284,14 @@ protected:
 		TestPlatformData &tpd(TestPlatformData::GetInstance());
 		tpd.LoadPlatformData();
 #endif // !CONFIG_BBQUE_TEST_PLATFORM_DATA
+		return OK;
+	};
+
+	/**
+	 * @brief Platform specific resources refresh
+	 */
+	virtual ExitCode_t _RefreshPlatformData() {
+		logger->Debug("PLAT PRX: default _RefreshPlatformData()");
 		return OK;
 	};
 
