@@ -23,6 +23,7 @@
 #include "bbque/app/application.h"
 #include "bbque/resource_accounter.h"
 #include "bbque/cpp11/thread.h"
+#include "bbque/utils/worker.h"
 
 #ifdef CONFIG_BBQUE_TEST_PLATFORM_DATA
 # include "bbque/test_platform_data.h"
@@ -35,6 +36,7 @@
 using bbque::app::AppPtr_t;
 using bbque::res::RViewToken_t;
 using bbque::res::UsagesMapPtr_t;
+using bbque::utils::Worker;
 
 namespace bbque {
 
@@ -42,7 +44,7 @@ namespace bbque {
  * @brief The Platform Proxy module
  * @ingroup sec20_pp
  */
-class PlatformProxy {
+class PlatformProxy : public Worker {
 
 public:
 
@@ -89,24 +91,6 @@ public:
 	 * @brief Release all the platform proxy resources
 	 */
 	~PlatformProxy();
-
-	/**
-	 * @brief Start the platform monitoring thread
-	 *
-	 * The platform integration layer provides support for monitoring
-	 * resources status at run-time. This methods setup and trigger the
-	 * execution of the proper platform monitoring thread.
-	 */
-	void Start();
-
-	/**
-	 * @brief Stop the platform monitoring thread
-	 *
-	 * The platform integration layer provides support for monitoring
-	 * resources status at run-time. This methods setup and trigger the
-	 * execution of the proper platform monitoring thread.
-	 */
-	void Stop();
 
 /**
  * @}
@@ -183,27 +167,6 @@ public:
 
 private:
 
-
-	/**
-	 * @brief The platform monitoring thread
-	 */
-	std::thread monitor_thd;
-
-	/**
-	 * @brief Status of the monitoring thread
-	 *
-	 * This variable is set true when the monitoring thread has been autorized
-	 * to run.
-	 */
-	bool trdRunning;
-
-	/**
-	 * @brief Set true to terminate the moniroting thread
-	 *
-	 * This is set to true to end the monitoring thread.
-	 */
-	bool done;
-
 	/**
 	 * @brief Set true if the PIL has been properly initialized
 	 *
@@ -214,19 +177,15 @@ private:
 	bool pilInitialized;
 
 	/**
-	 * @brief Mutex controlling the thread execution
-	 */
-	std::mutex trdStatus_mtx;
-
-	/**
-	 * @brief Conditional variable used to signal the monitoring thread
-	 */
-	std::condition_variable trdStatus_cv;
-
-	/**
 	 * @brief The platform monitoring thread.
+	 *
+	 * A default implementation is provided for the platform monitoring
+	 * task, which reloadis the platform description each time a new event
+	 * is signaled via the @see UpdatePlatform call.
+	 * A specific platform could overload this method in case a different
+	 * behavior is required.
 	 */
-	void Monitor();
+	virtual void Task();
 
 	/**
 	 * @brief Setup platform data required to manage the specified application
@@ -239,11 +198,6 @@ private:
 	ExitCode_t Setup(AppPtr_t papp);
 
 protected:
-
-	/**
-	 * @brief The logger module
-	 */
-	plugins::LoggerIF *logger;
 
 	/**
 	 * @biref Build a new platform proxy
@@ -337,7 +291,6 @@ protected:
 		logger->Debug("PLAT PRX: default _MapResources()");
 		return OK;
 	};
-
 
 };
 

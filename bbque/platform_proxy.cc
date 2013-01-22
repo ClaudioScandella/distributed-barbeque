@@ -34,25 +34,21 @@
 # endif
 #endif // CONFIG_BBQUE_TEST_PLATFORM_DATA
 
+#define PLATFORM_PROXY_NAMESPACE "bq.pp"
+#define MODULE_NAMESPACE PLATFORM_PROXY_NAMESPACE
+
 namespace br = bbque::res;
 
 namespace bbque {
 
-PlatformProxy::PlatformProxy() :
-	trdRunning(false),
-	done(false),
+PlatformProxy::PlatformProxy() : Worker(),
 	pilInitialized(false),
 	platformIdentifier(NULL) {
 
-	// Get a logger module
-	std::string logger_name(PLATFORM_PROXY_NAMESPACE);
-	plugins::LoggerIF::Configuration conf(logger_name.c_str());
-	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
+	//---------- Setup Worker
+	Worker::Setup(BBQUE_MODULE_NAME("pp"), PLATFORM_PROXY_NAMESPACE);
 
-#ifndef CONFIG_BBQUE_TEST_PLATFORM_DATA
-	// Spawn the platform monitoring thread
-	monitor_thd = std::thread(&PlatformProxy::Monitor, this);
-#else
+#ifdef CONFIG_BBQUE_TEST_PLATFORM_DATA
 	// Mark the Platform Integration Layer (PIL) as initialized
 	SetPilInitialized();
 #endif // !CONFIG_BBQUE_TEST_PLATFORM_DATA
@@ -60,8 +56,6 @@ PlatformProxy::PlatformProxy() :
 }
 
 PlatformProxy::~PlatformProxy() {
-	// Stopping the monitor thread
-	Stop();
 }
 
 PlatformProxy & PlatformProxy::GetInstance() {
@@ -69,50 +63,29 @@ PlatformProxy & PlatformProxy::GetInstance() {
 	return instance;
 }
 
-
-void PlatformProxy::Start() {
-	std::unique_lock<std::mutex> ul(trdStatus_mtx);
-
-	logger->Debug("PLAT PRX: starting the monitoring service...");
-	trdRunning = true;
-	trdStatus_cv.notify_one();
-}
-
-void PlatformProxy::Stop() {
-	std::unique_lock<std::mutex> ul(trdStatus_mtx);
-
-	if (done == true)
-		return;
-
-	logger->Debug("PLAT PRX: stopping the monitoring service...");
-	done = true;
-	trdStatus_cv.notify_one();
-}
-
-void PlatformProxy::Monitor() {
-	std::unique_lock<std::mutex> trdStatus_ul(trdStatus_mtx);
-
-	// Set the module name
-	if (prctl(PR_SET_NAME, (long unsigned int)BBQUE_MODULE_NAME("pp"), 0, 0, 0) != 0) {
-		logger->Error("Set name FAILED! (Error: %s)\n", strerror(errno));
-	}
-
-	// Waiting for thread authorization to start
-	if (!trdRunning)
-		trdStatus_cv.wait(trdStatus_ul);
-
-	trdStatus_ul.unlock();
+void PlatformProxy::Task() {
+#ifndef CONFIG_BBQUE_TEST_PLATFORM_DATA
+	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
 
 	logger->Info("PLAT PRX: Monitoring thread STARTED");
 
 	while (!done) {
-		// TODO place here the code to monitor for resources availability and
-		// run-time status (e.g. thermal, load-average)
-		trdStatus_ul.lock();
-		trdStatus_cv.wait(trdStatus_ul);
+
+		// Waiting for an event from the platform
+		worker_status_cv.wait(worker_status_ul);
+
+		logger->Info("PLAT PRX: Processing platform event");
+
+		// TODO add plataform parsing code
+
 	}
 
 	logger->Info("PLAT PRX: Monitoring thread ENDED");
+#else
+	logger->Info("PLAT PRX: Terminating monitoring thread (TPD in use)");
+	return;
+#endif
+
 }
 
 
