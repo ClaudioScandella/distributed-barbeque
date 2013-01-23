@@ -27,12 +27,9 @@
 #include <unordered_map>
 
 #include "bbque/app/application_status.h"
+#include "bbque/res/identifier.h"
 #include "bbque/utils/utility.h"
 #include "bbque/utils/timer.h"
-
-/** @see WorkingMode BindResource */
-#define RSRC_ID_ANY 	-1
-#define RSRC_ID_NONE 	-2
 
 using bbque::app::AppSPtr_t;
 using bbque::app::AppUid_t;
@@ -51,8 +48,6 @@ namespace res {
 class Resource;
 struct ResourceState;
 
-/** Type for ID used in resource path */
-typedef int16_t ResID_t;
 /** Resource state view token data type */
 typedef size_t RViewToken_t;
 /** Shared pointer to Resource descriptor */

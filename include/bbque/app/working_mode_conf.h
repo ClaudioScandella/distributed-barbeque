@@ -80,7 +80,7 @@ public:
 	 * WM_ERR_RSRC_NAME if the resource name specified is not correct, and
 	 * WM_RSRC_MISS_BIND if the resulting binding is incomplete.
 	 *
-	 * @note Use RSRC_ID_ANY if you want to bind the resource without care
+	 * @note Use R_ID_ANY if you want to bind the resource without care
 	 * about its ID.
 	 */
 	virtual ExitCode_t BindResource(std::string const & rsrc_name,

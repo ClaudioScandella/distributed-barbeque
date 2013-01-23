@@ -295,7 +295,7 @@ WorkingMode::ExitCode_t WorkingMode::SetResourceBinding(uint8_t bid) {
 
 		// Retrieve the bound cluster[s]
 		ResID_t cl_id = ResourcePathUtils::GetID(bind_it->first, "cluster");
-		if (cl_id == RSRC_ID_NONE)
+		if (cl_id == R_ID_NONE)
 			continue;
 
 		// Set the bit in the clusters bitset

@@ -21,7 +21,7 @@
 #include <sstream>
 #include <string>
 
-#include "bbque/res/resources.h"
+#include "bbque/res/identifier.h"
 
 #define POW_2_10 0x400
 #define POW_2_20 0x100000
@@ -160,7 +160,7 @@ public:
 		std::string ret_name(orig_name);
 
 		// Check ID validity
-		if (rid <= RSRC_ID_ANY)
+		if (rid <= R_ID_ANY)
 			return orig_name;
 
 		std::stringstream ss;
@@ -209,14 +209,14 @@ public:
 	 * @param rsrc_name Resource name
 	 *
 	 * @return The ID of the resource if it is part of the part.
-	 * RSRC_ID_NONE otherwise.
+	 * R_ID_NONE otherwise.
 	 */
 	inline static ResID_t GetID(std::string const & rsrc_path,
 					std::string	const & rsrc_name) {
 		// Find the ID of the resource in the path
 		size_t start_pos = rsrc_path.find(rsrc_name);
 		if (start_pos == std::string::npos)
-			return RSRC_ID_NONE;
+			return R_ID_NONE;
 
 		// Extract and return the ID value
 		size_t dot_pos = rsrc_path.find(".", start_pos);

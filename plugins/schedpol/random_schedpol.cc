@@ -99,7 +99,7 @@ void RandomSchedPol::ScheduleApp(AppCPtr_t papp) {
 	selected_cluster = dist(rng_engine) % cluster_count;
 	logger->Debug("Scheduling EXC [%s] on Cluster [%d of %d]",
 			papp->StrId(), selected_cluster, ra.Total(RSRC_CLUSTER));
-	bindResult = (*it)->BindResource("cluster", RSRC_ID_ANY, selected_cluster);
+	bindResult = (*it)->BindResource("cluster", R_ID_ANY, selected_cluster);
 	if (bindResult != ba::WorkingMode::WM_SUCCESS) {
 		logger->Error("Resource biding for EXC [%s] FAILED", papp->StrId());
 		return;

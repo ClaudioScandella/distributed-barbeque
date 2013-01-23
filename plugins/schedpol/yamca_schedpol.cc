@@ -506,7 +506,7 @@ SchedulerPolicyIF::ExitCode_t YamcaSchedPol::GetContentionLevel(
 	// Binding of the resources requested by the working mode into the current
 	// cluster. Note: No multi-cluster allocation supported yet!
 	logger->Debug("Contention level: Binding into cluster %d", cl_id);
-	wm_result = wm->BindResource("cluster", RSRC_ID_ANY, cl_id);
+	wm_result = wm->BindResource("cluster", R_ID_ANY, cl_id);
 	if (wm_result == WorkingMode::WM_RSRC_MISS_BIND)
 		logger->Error("Contention level: {AWM %d} [cluster = %d]"
 				"Incomplete resources binding. %d / %d resources bound.",

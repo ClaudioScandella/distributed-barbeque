@@ -458,7 +458,7 @@ YamsSchedPol::ExitCode_t YamsSchedPol::BindCluster(SchedEntityPtr_t pschd) {
 	// Binding of the AWM resource into the current cluster.
 	// The cluster ID is also used as reference for the resource binding,
 	// since the policy handles more than one binding per AWM.
-	awm_result = pawm->BindResource("cluster", RSRC_ID_ANY, cl_id, cl_id);
+	awm_result = pawm->BindResource("cluster", R_ID_ANY, cl_id, cl_id);
 
 	// The cluster binding should never fail
 	if (awm_result == WorkingModeStatusIF::WM_RSRC_MISS_BIND) {
