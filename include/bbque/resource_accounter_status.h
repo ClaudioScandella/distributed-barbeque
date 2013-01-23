@@ -91,6 +91,13 @@ public:
 		/** Resource usage required exceeds the availabilities */
 		RA_ERR_USAGE_EXC,
 
+		// --- Update mode ---
+
+		/** Resource has not been registered at boot */
+		RA_ERR_NOT_REGISTERED,
+		/** Amount exceeding registered total amount */
+		RA_ERR_OVERFLOW,
+
 		// --- Synchronization mode ---
 
 		/** Initialization failed */

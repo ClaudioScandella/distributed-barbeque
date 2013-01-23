@@ -338,6 +338,45 @@ ResourceAccounter::ExitCode_t ResourceAccounter::RegisterResource(
 	return RA_SUCCESS;
 }
 
+ResourceAccounter::ExitCode_t ResourceAccounter::UpdateResource(
+		std::string const & _path,
+		std::string const & _units,
+		uint64_t _amount) {
+	ResourcePtr_t pres;
+	uint64_t availability;
+	uint64_t reserved;
+
+	// Lookup for the resource to be updated
+	pres = GetResource(_path);
+	if (!pres) {
+		logger->Fatal("Updating resource FAILED "
+				"(Error: resource [%s] not found",
+				_path.c_str());
+		return RA_ERR_NOT_REGISTERED;
+	}
+
+	// If the required amount is <= 1, the resource is off-lined
+	if (_amount == 0)
+		pres->SetOffline();
+
+	// Check if the required amount is compliant with the total defined at
+	// registration time
+	availability = ConvertValue(_amount, _units);
+	if (pres->Total() < availability) {
+		logger->Error("Updating resource FAILED "
+				"(Error: availability [%d] exceeding registered amount [%d]",
+				availability, pres->Total());
+		return RA_ERR_OVERFLOW;
+	}
+
+	// Setup reserved amount of resource, considering the units
+	reserved = pres->Total() - availability;
+	ReserveResources(_path, reserved);
+	pres->SetOnline();
+
+	return RA_SUCCESS;
+}
+
 ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 		AppSPtr_t papp,
 		UsagesMapPtr_t const & rsrc_usages,

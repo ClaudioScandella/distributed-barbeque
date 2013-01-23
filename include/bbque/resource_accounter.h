@@ -252,6 +252,13 @@ public:
 			std::string const & units, uint64_t amount);
 
 	/**
+	 * @brief Update availabilies for the specified resource
+	 *
+	 */
+	ExitCode_t UpdateResource(std::string const & path,
+			std::string const & units, uint64_t amount);
+
+	/**
 	 * @brief Book e a set of resources
 	 *
 	 * The method first check that the application doesn't hold another
