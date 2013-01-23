@@ -48,6 +48,7 @@
 # warning CPU Quota management disabled, Linux kernel >= 3.2 required
 #endif
 
+#define MODULE_NAMESPACE PLATFORM_PROXY_NAMESPACE ".lnx"
 
 namespace bb = bbque;
 namespace br = bbque::res;
@@ -97,6 +98,11 @@ LinuxPP::LinuxPP() :
 	}
 
 	free(mount_path);
+
+	// Register a command dispatcher to handle CGroups reconfiguration
+	CommandManager &cm = CommandManager::GetInstance();
+	cm.RegisterCommand(MODULE_NAMESPACE ".refresh", static_cast<CommandHandler*>(this),
+			"Refresh CGroups resources description");
 
 	// Mark the Platform Integration Layer (PIL) as initialized
 	SetPilInitialized();
@@ -1001,6 +1007,16 @@ LinuxPP::_MapResources(AppPtr_t papp, UsagesMapPtr_t pum, RViewToken_t rvt,
 	return OK;
 }
 
+
+int LinuxPP::CommandsCb(int argc, char *argv[]) {
+	(void)argc;
+	(void)argv;
+
+	// Notify the PlatformProxy to refresh the platform description
+	Refresh();
+
+	return 0;
+}
 
 LinuxPP::ExitCode_t
 LinuxPP::_RefreshPlatformData() {

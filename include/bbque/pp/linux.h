@@ -20,6 +20,7 @@
 
 #include "bbque/config.h"
 #include "bbque/platform_proxy.h"
+#include "bbque/command_manager.h"
 #include "bbque/utils/attributes_container.h"
 
 #include <libcgroup.h>
@@ -70,6 +71,7 @@
 using bbque::res::UsagePtr_t;
 using bbque::res::ResourcePtr_t;
 using bbque::utils::AttributesContainer;
+using bbque::CommandHandler;
 
 namespace bbque {
 
@@ -77,7 +79,7 @@ namespace bbque {
  * @brief The Linux Platform Proxy module
  * @ingroup sec20_pp_linux
  */
-class LinuxPP : public PlatformProxy {
+class LinuxPP : public PlatformProxy, public CommandHandler {
 
 public:
 
@@ -297,6 +299,8 @@ private:
 	ExitCode_t GetCGroupData(AppPtr_t papp, CGroupDataPtr_t &pcgd);
 	ExitCode_t SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 			bool excl = false, bool move = true);
+
+	int CommandsCb(int argc, char *argv[]);
 
 };
 
