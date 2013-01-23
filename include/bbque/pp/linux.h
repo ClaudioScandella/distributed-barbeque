@@ -265,6 +265,7 @@ private:
 	 * control group.
 	 */
 	ExitCode_t _LoadPlatformData();
+	ExitCode_t _RefreshPlatformData();
 	ExitCode_t _Setup(AppPtr_t papp);
 	ExitCode_t _Release(AppPtr_t papp);
 

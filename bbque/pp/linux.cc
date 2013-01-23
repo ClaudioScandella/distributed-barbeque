@@ -1001,4 +1001,14 @@ LinuxPP::_MapResources(AppPtr_t papp, UsagesMapPtr_t pum, RViewToken_t rvt,
 	return OK;
 }
 
+
+LinuxPP::ExitCode_t
+LinuxPP::_RefreshPlatformData() {
+	logger->Notice("Refreshing CGroups resources description...");
+	assert(refreshMode == true);
+	if (!refreshMode)
+		return PLATFORM_INIT_FAILED;
+	return _LoadPlatformData();
+}
+
 } /* bbque */
