@@ -248,6 +248,19 @@ protected:
 		pilInitialized = true;
 	}
 
+	/**
+	 * @brief Notify the completion of a resources refresh
+	 *
+	 * The Platform Specific (low-level) module is expected to call this
+	 * method once the availability of platform resources has changed and
+	 * the ResourceAccounter module properly notified about variations.
+	 *
+	 * A call to this method will ensure a notification of the
+	 * ResourceManager about availability changes, thus eventually
+	 * triggering a new optimization run.
+	 */
+	ExitCode_t CommitRefresh();
+
 /*******************************************************************************
  *  Platform Specific (low-level) methods
  ******************************************************************************/

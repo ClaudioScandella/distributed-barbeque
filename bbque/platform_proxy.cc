@@ -17,6 +17,7 @@
 
 #include "bbque/platform_proxy.h"
 
+#include "bbque/resource_manager.h"
 #include "bbque/utils/utility.h"
 #include "bbque/modules_factory.h"
 
@@ -133,7 +134,26 @@ PlatformProxy::RefreshPlatformData() {
 
 	logger->Debug("PLAT PRX: refreshing platform description...");
 	result = _RefreshPlatformData();
+	if (result != OK)
+		return result;
+
+	CommitRefresh();
+
 	return result;
+}
+
+PlatformProxy::ExitCode_t
+PlatformProxy::CommitRefresh() {
+	ResourceManager &rm = ResourceManager::GetInstance();
+
+	// TODO add a better policy which triggers immediate rescheduling only
+	// on resources reduction. Perhaps such a policy could be plugged into
+	// the ResourceManager module.
+
+	// Notify a scheduling event to the ResourceManager
+	rm.NotifyEvent(ResourceManager::BBQ_PLAT);
+
+	return OK;
 }
 
 PlatformProxy::ExitCode_t
