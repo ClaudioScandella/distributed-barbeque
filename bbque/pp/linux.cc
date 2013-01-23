@@ -59,7 +59,8 @@ LinuxPP::LinuxPP() :
 	controller("cpuset"),
 	cfsQuotaSupported(true),
 	MaxCpusCount(DEFAULT_MAX_CPUS),
-	MaxMemsCount(DEFAULT_MAX_MEMS) {
+	MaxMemsCount(DEFAULT_MAX_MEMS),
+	refreshMode(false) {
 	ExitCode_t pp_result = OK;
 	char *mount_path = NULL;
 	int cg_result;
@@ -128,7 +129,8 @@ LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 	//   QUOTA = CPU_QUOTA * 100 / CPU_PERIOD
 	if (prlb->amount_cpup) {
 		cpu_quota = (prlb->amount_cpuq * 100) / prlb->amount_cpup;
-		logger->Debug("Registering CPUs of node [%d] with CPU quota of [%lu]%",
+		logger->Debug("%s CPUs of node [%d] with CPU quota of [%lu]%",
+				refreshMode ? "Reconfiguring" : "Registering",
 				prlb->socket_id, cpu_quota);
 	}
 
@@ -140,8 +142,13 @@ LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 		sscanf(p, "%hu", &first_cpu_id);
 		snprintf(resourcePath+13, 10, "%hu.pe%d",
 				prlb->socket_id, first_cpu_id);
-		logger->Debug("PLAT LNX: Registering [%s]...", resourcePath);
-		ra.RegisterResource(resourcePath, "", cpu_quota);
+		logger->Debug("PLAT LNX: %s [%s]...",
+				refreshMode ? "Refreshing" : "Registering",
+				resourcePath);
+		if (refreshMode)
+			ra.UpdateResource(resourcePath, "", cpu_quota);
+		else
+			ra.RegisterResource(resourcePath, "", cpu_quota);
 
 		// Look-up for next CPU id
 		while (*p && (*p != ',') && (*p != '-')) {
@@ -163,8 +170,14 @@ LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 		while (++first_cpu_id <= last_cpu_id) {
 			snprintf(resourcePath+13, 8, "%hu.pe%d",
 					prlb->socket_id, first_cpu_id);
-			logger->Debug("PLAT LNX: Registering [%s]...", resourcePath);
-			ra.RegisterResource(resourcePath, "", cpu_quota);
+			logger->Debug("PLAT LNX: %s [%s]...",
+					refreshMode ? "Refreshing" : "Registering",
+					resourcePath);
+
+			if (refreshMode)
+				ra.UpdateResource(resourcePath, "", cpu_quota);
+			else
+				ra.RegisterResource(resourcePath, "", cpu_quota);
 		}
 
 		// Look-up for next CPU id
@@ -188,9 +201,14 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 	// Setup resource path
 	snprintf(resourcePath+13, 11, "%hu.mem0", prlb->socket_id);
 
-	logger->Debug("PLAT LNX: Registering [%s: %" PRIu64 " Bytes]...",
+	logger->Debug("PLAT LNX: %s [%s: %" PRIu64 " Bytes]...",
+			refreshMode ? "Refreshing" : "Registering",
 			resourcePath, limit_in_bytes);
-	ra.RegisterResource(resourcePath, "Bytes", limit_in_bytes);
+
+	if (refreshMode)
+		ra.UpdateResource(resourcePath, "Bytes", limit_in_bytes);
+	else
+		ra.RegisterResource(resourcePath, "Bytes", limit_in_bytes);
 
 	return OK;
 }
@@ -199,8 +217,9 @@ LinuxPP::ExitCode_t
 LinuxPP::RegisterCluster(RLinuxBindingsPtr_t prlb) {
 	ExitCode_t pp_result = OK;
 
-	logger->Debug("PLAT LNX: Setup resources for Node [%d], "
+	logger->Debug("PLAT LNX: %s resources for Node [%d], "
 			"CPUs [%s], MEMs [%s]",
+			refreshMode ? "Check" : "Setup",
 			prlb->socket_id, prlb->cpus, prlb->mems);
 
 	// The CPUs are generally represented with a syntax like this:
@@ -471,6 +490,9 @@ LinuxPP::_LoadPlatformData() {
 
 	// Release the iterator
 	cgroup_walk_tree_end(&node_it);
+
+	// Switch to refresh mode for the upcoming calls
+	refreshMode = true;
 
 	return pp_result;
 }

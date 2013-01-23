@@ -215,6 +215,22 @@ private:
 	CGroupDataPtr_t psilos;
 
 
+	/**
+	 * @brief Set true if resources status should be refreshed
+	 *
+	 * This value is false just the first time this platform proxy is
+	 * running. If false parsed resources produces a corresponding
+	 * registration into the ResourceManager.
+	 *
+	 * After initialization its value is updated to true, and this
+	 * platform proxy switch to refresh mode. In this mode, each new
+	 * resources scanning is intended to notice changes on resources
+	 * availability and thus trigger reservation or online/offline
+	 * requests to the ResourceManager.
+	 */
+	bool refreshMode;
+
+
 /**
  * @defgroup group_plt_prx Platform Proxy
  * @{
