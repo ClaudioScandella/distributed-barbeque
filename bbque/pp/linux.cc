@@ -140,6 +140,17 @@ LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 				prlb->socket_id, cpu_quota);
 	}
 
+	// Because of CGroups interface, we cannot assign an empty CPU quota.
+	// The minimum allowed value is 1%, since this value is also quite
+	// un-useful on a real configuration, we assume a CPU being offline
+	// when a CPU quota <= 1% is required.
+	if (cpu_quota <= 1) {
+		logger->Warn("Quota < 1%, Offlining CPUs of node [%d]...",
+				prlb->socket_id);
+		cpu_quota = 0;
+	}
+
+
 #endif
 
 	while (*p) {
