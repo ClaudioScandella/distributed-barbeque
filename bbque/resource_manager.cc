@@ -90,6 +90,7 @@ ResourceManager::metrics[RM_METRICS_COUNT] = {
 	RM_COUNTER_METRIC("evt.tot",	"Total events"),
 	RM_COUNTER_METRIC("evt.start",	"  START events"),
 	RM_COUNTER_METRIC("evt.stop",	"  STOP  events"),
+	RM_COUNTER_METRIC("evt.plat",	"  PALT  events"),
 	RM_COUNTER_METRIC("evt.opts",	"  OPTS  events"),
 	RM_COUNTER_METRIC("evt.usr1",	"  USR1  events"),
 	RM_COUNTER_METRIC("evt.usr2",	"  USR2  events"),
@@ -106,6 +107,7 @@ ResourceManager::metrics[RM_METRICS_COUNT] = {
 	RM_SAMPLE_METRIC("evt.avg.time",  "Avg events processing t[ms]"),
 	RM_SAMPLE_METRIC("evt.avg.start", "  START events"),
 	RM_SAMPLE_METRIC("evt.avg.stop",  "  STOP  events"),
+	RM_SAMPLE_METRIC("evt.avg.plat",  "  PLAT  events"),
 	RM_SAMPLE_METRIC("evt.avg.opts",  "  OPTS  events"),
 	RM_SAMPLE_METRIC("evt.avg.usr1",  "  USR1  events"),
 	RM_SAMPLE_METRIC("evt.avg.usr2",  "  USR2  events"),
@@ -113,6 +115,7 @@ ResourceManager::metrics[RM_METRICS_COUNT] = {
 	RM_PERIOD_METRIC("evt.per",		"Avg events period t[ms]"),
 	RM_PERIOD_METRIC("evt.per.start",	"  START events"),
 	RM_PERIOD_METRIC("evt.per.stop",	"  STOP  events"),
+	RM_PERIOD_METRIC("evt.per.plat",	"  PLAT  events"),
 	RM_PERIOD_METRIC("evt.per.opts",	"  OPTS  events"),
 	RM_PERIOD_METRIC("evt.per.usr1",	"  USR1  events"),
 	RM_PERIOD_METRIC("evt.per.usr2",	"  USR2  events"),
@@ -404,6 +407,23 @@ void ResourceManager::EvtExcStop() {
 	RM_GET_TIMING(metrics, RM_EVT_TIME_STOP, rm_tmr);
 }
 
+void ResourceManager::EvtBbqPlat() {
+
+	logger->Info("BBQ Platform Request");
+
+	// Reset timer for START event execution time collection
+	RM_RESET_TIMING(rm_tmr);
+
+	// Platform generated events triggers an immediate rescheduling.
+	// TODO add a better policy which triggers immediate rescheduling only
+	// on resources reduction. Perhaps such a policy could be plugged into
+	// the PlatformProxy module.
+	optimize_dfr.Schedule();
+
+	// Collecing execution metrics
+	RM_GET_TIMING(metrics, RM_EVT_TIME_PLAT, rm_tmr);
+}
+
 void ResourceManager::EvtBbqOpts() {
 	uint32_t timeout = 0;
 
@@ -542,6 +562,12 @@ void ResourceManager::ControlLoop() {
 			EvtExcStop();
 			RM_COUNT_EVENT(metrics, RM_EVT_STOP);
 			RM_GET_PERIOD(metrics, RM_EVT_PERIOD_STOP, period);
+			break;
+		case BBQ_PLAT:
+			logger->Debug("Event [BBQ_PLAT]");
+			EvtBbqPlat();
+			RM_COUNT_EVENT(metrics, RM_EVT_PLAT);
+			RM_GET_PERIOD(metrics, RM_EVT_PERIOD_PLAT, period);
 			break;
 		case BBQ_OPTS:
 			logger->Debug("Event [BBQ_OPTS]");
