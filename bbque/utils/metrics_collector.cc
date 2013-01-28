@@ -20,6 +20,7 @@
 #include "bbque/modules_factory.h"
 
 #define METRICS_COLLECTOR_NAMESPACE "bq.mc"
+#define MODULE_NAMESPACE METRICS_COLLECTOR_NAMESPACE
 
 namespace bp = bbque::plugins;
 
@@ -110,6 +111,11 @@ MetricsCollector::MetricsCollector() {
 		fprintf(stderr, "MC: Logger module creation FAILED\n");
 		assert(logger);
 	}
+
+	//---------- Register commands
+	CommandManager &cm = CommandManager::GetInstance();
+	cm.RegisterCommand(MODULE_NAMESPACE ".report", static_cast<CommandHandler*>(this),
+			"Report all the registered metrics");
 
 	logger->Debug("Starting metrics collector...");
 }
@@ -757,6 +763,15 @@ MetricsCollector::metricClassName[MetricsCollector::CLASSES_COUNT] = {
 	"Period"
 };
 
+
+int
+MetricsCollector::CommandsCb(int argc, char *argv[]) {
+
+	logger->Debug("Dumping metrics collection...");
+	DumpMetrics();
+
+	return 0;
+}
 
 } // namespace utils
 

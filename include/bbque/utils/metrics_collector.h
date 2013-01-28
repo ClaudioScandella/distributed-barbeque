@@ -21,6 +21,7 @@
 #include "bbque/plugins/logger.h"
 #include "bbque/utils/timer.h"
 #include "bbque/cpp11/mutex.h"
+#include "bbque/command_manager.h"
 
 #include <map>
 #include <vector>
@@ -38,6 +39,7 @@
 using namespace boost::accumulators;
 using bbque::plugins::LoggerIF;
 using bbque::utils::Timer;
+using bbque::CommandHandler;
 
 namespace bbque { namespace utils {
 
@@ -48,7 +50,7 @@ namespace bbque { namespace utils {
  * a base class which provides a centralized repository for system metrics
  * which could be dynamically defined, updated and queryed.
  */
-class MetricsCollector {
+class MetricsCollector : CommandHandler {
 
 public:
 
@@ -497,6 +499,11 @@ private:
 	 * @brief Dump the current value for a sub-metric of class PERIOD
 	 */
 	void DumpPeriodSM(PeriodMetric *m, uint8_t idx, MetricStats<double> &ms);
+
+	/**
+	 * @brief The handler for commands defined by this module
+	 */
+	int CommandsCb(int argc, char *argv[]);
 
 };
 
