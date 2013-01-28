@@ -148,6 +148,22 @@ ResourceManager::ResourceManager() :
 
 	//---------- Setup all the module metrics
 	mc.Register(metrics, RM_METRICS_COUNT);
+
+	//---------- Register commands
+	CommandManager &cm = CommandManager::GetInstance();
+#define CMD_STATUS_EXC ".exc_status"
+	cm.RegisterCommand(MODULE_NAMESPACE CMD_STATUS_EXC, static_cast<CommandHandler*>(this),
+			"Dump the status of each registered EXC");
+#define CMD_STATUS_QUEUES ".que_status"
+	cm.RegisterCommand(MODULE_NAMESPACE CMD_STATUS_QUEUES, static_cast<CommandHandler*>(this),
+			"Dump the status of each Scheduling Queue");
+#define CMD_STATUS_RESOURCES ".res_status"
+	cm.RegisterCommand(MODULE_NAMESPACE CMD_STATUS_RESOURCES, static_cast<CommandHandler*>(this),
+			"Dump the status of each registered Resource");
+#define CMD_STATUS_SYNC ".syn_status"
+	cm.RegisterCommand(MODULE_NAMESPACE CMD_STATUS_SYNC, static_cast<CommandHandler*>(this),
+			"Dump the status of each Synchronization Queue");
+
 }
 
 ResourceManager::~ResourceManager() {
@@ -526,6 +542,69 @@ void ResourceManager::EvtBbqExit() {
 	ResourceManager::TerminateWorkers();
 
 }
+
+int ResourceManager::CommandsCb(int argc, char *argv[]) {
+	uint8_t cmd_offset = ::strlen(MODULE_NAMESPACE) + 1;
+
+	logger->Debug("Processing command [%s]", argv[0] + cmd_offset);
+
+	switch (argv[0][cmd_offset]) {
+	case 'e':
+		if (strcmp(argv[0], MODULE_NAMESPACE CMD_STATUS_EXC))
+			goto exit_cmd_not_found;
+
+		logger->Notice("");
+		logger->Notice("");
+		logger->Notice("==========[ EXCs Status ]=============="
+				"========================================");
+		logger->Notice("");
+		am.PrintStatusReport(true);
+		break;
+
+	case 'q':
+		if (strcmp(argv[0], MODULE_NAMESPACE CMD_STATUS_QUEUES))
+			goto exit_cmd_not_found;
+
+		logger->Info("");
+		logger->Info("==========[ Status Queues ]============"
+				"========================================");
+		logger->Info("");
+		am.ReportStatusQ(true);
+		break;
+
+	case 'r':
+		if (strcmp(argv[0], MODULE_NAMESPACE CMD_STATUS_RESOURCES))
+			goto exit_cmd_not_found;
+
+		logger->Notice("");
+		logger->Notice("");
+		logger->Notice("==========[ Resources Status ]========="
+				"========================================");
+		logger->Notice("");
+		ra.PrintStatusReport(0, true);
+		break;
+
+	case 's':
+		if (strcmp(argv[0], MODULE_NAMESPACE CMD_STATUS_SYNC))
+			goto exit_cmd_not_found;
+
+		logger->Info("");
+		logger->Info("");
+		logger->Info("==========[ Synchronization Queues ]==="
+				"========================================");
+		logger->Info("");
+		am.ReportSyncQ(true);
+		break;
+
+	}
+
+	return 0;
+
+exit_cmd_not_found:
+	logger->Error("Command [%s] not suppported by this moduel", argv[0]);
+	return -1;
+}
+
 
 void ResourceManager::ControlLoop() {
 	std::unique_lock<std::mutex> pendingEvts_ul(pendingEvts_mtx);

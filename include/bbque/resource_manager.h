@@ -44,6 +44,7 @@ using bbque::plugins::LoggerIF;
 using bbque::utils::MetricsCollector;
 using bbque::utils::Deferrable;
 using bbque::utils::Worker;
+using bbque::CommandHandler;
 
 namespace bbque {
 
@@ -57,7 +58,7 @@ namespace bbque {
  * This class is in charge to load all needed modules and run the control
  * loop.
  */
-class ResourceManager {
+class ResourceManager : public CommandHandler {
 
 public:
 
@@ -366,6 +367,11 @@ private:
 	 * @brief Process a BBQ_EXIT event
 	 */
 	void EvtBbqExit();
+
+	/**
+	 * @brief The handler for commands defined by this module
+	 */
+	int CommandsCb(int argc, char *argv[]);
 
 	/**
 	 * @brief Terminate all the registered Worker
