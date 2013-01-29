@@ -69,7 +69,6 @@ typedef std::map<AppUid_t, uint64_t> AppUseQtyMap_t;
 typedef std::unordered_map<RViewToken_t, ResourceStatePtr_t> RSHashMap_t;
 
 
-
 /**
  * @brief The status of a resource
  *
@@ -111,7 +110,7 @@ struct ResourceState {
 
 
 /**
- * @brief A generi resource
+ * @brief A generic resource
  *
  * Of course the "Resource" is the fundamental entity for Barbeque RTRM.
  * To access a resource is a matter of using a "path". A resource path is

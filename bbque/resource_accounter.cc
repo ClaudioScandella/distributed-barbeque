@@ -209,37 +209,34 @@ uint64_t ResourceAccounter::QueryStatus(
 		QueryOption_t _att,
 		RViewToken_t vtok,
 		AppSPtr_t papp) const {
-	// Cumulative value to return
-	uint64_t val = 0;
+	ResourcePtrList_t::const_iterator res_it(rsrc_list.begin());
+	ResourcePtrList_t::const_iterator res_end(rsrc_list.end());
+	uint64_t value = 0;
 
 	// For all the descriptors in the list add the quantity of resource in the
 	// specified state (available, used, total)
-	ResourcePtrList_t::const_iterator res_it(rsrc_list.begin());
-	ResourcePtrList_t::const_iterator res_end(rsrc_list.end());
 	for (; res_it != res_end; ++res_it) {
-		// Current resource descriptor
 		ResourcePtr_t const & rsrc(*res_it);
-
 		switch(_att) {
 		// Resource availability
 		case RA_AVAIL:
-			val += rsrc->Available(papp, vtok);
+			value += rsrc->Available(papp, vtok);
 			break;
 		// Resource used
 		case RA_USED:
-			val += rsrc->Used(vtok);
+			value += rsrc->Used(vtok);
 			break;
 		// Resource not reserved quantity
 		case RA_UNRESERVED:
-			val += rsrc->Unreserved();
+			value += rsrc->Unreserved();
 			break;
 		// Resource total
 		case RA_TOTAL:
-			val += rsrc->Total();
+			value += rsrc->Total();
 			break;
 		}
 	}
-	return val;
+	return value;
 }
 
 ResourceAccounter::ExitCode_t ResourceAccounter::CheckAvailability(
@@ -886,11 +883,9 @@ bool ResourceAccounter::IsReshuffling(
 		while (presc && presa) {
 			logger->Debug("Checking: curr [%s:%d] vs next [%s:%d]",
 				presc->Name().c_str(),
-				presc->ApplicationUsage(
-					puc->own_app, 0),
+				presc->ApplicationUsage(puc->own_app, 0),
 				presa->Name().c_str(),
-				presc->ApplicationUsage(
-					puc->own_app, pua->view_tk));
+				presc->ApplicationUsage(puc->own_app, pua->view_tk));
 			// Check for resource binding differences
 			if (presc->ApplicationUsage(puc->own_app, 0) !=
 				presc->ApplicationUsage(puc->own_app,

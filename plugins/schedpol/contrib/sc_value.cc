@@ -65,7 +65,7 @@ SCValue::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	std::string rsrc_tmp_path;
 	UsagesMap_t::const_iterator usage_it;
 	AwmPtr_t const & curr_awm(evl_ent.papp->CurrentAWM());
-	float nap = 0;
+	float nap = 0.0;
 
 	// Initialize the index contribute to the AWM static value
 	ctrib = (1.0 - nap_weight) * evl_ent.pawm->Value();
@@ -76,14 +76,13 @@ SCValue::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	if (!curr_awm || (nap == 0) ||
 			(curr_awm->Value() >= evl_ent.pawm->Value()))
 		return SC_SUCCESS;
-
 	logger->Debug("%s: Normalized Actual Penalty (NAP) = %d/100): %.4f",
 			evl_ent.StrId(), evl_ent.papp->GetGoalGap(), nap);
 
-	// Add the NAP part to the contribute
+	// Add the NAP part to the value of the contribution
 	ctrib += nap;
-
 	logger->Debug("%s: AWM Value index: %.4f", evl_ent.StrId(),	ctrib);
+
 	return SC_SUCCESS;
 }
 

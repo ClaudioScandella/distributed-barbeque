@@ -89,8 +89,8 @@ public:
 	virtual AppSPtr_t const & Owner() const = 0;
 
 	/**
-	 * @brief Get the QoS value associated to the working mode
-	 * @return A floating point value
+	 * @brief Get the static QoS value
+	 * @return A value in the [0..1] range
 	 */
 	virtual float Value() const = 0;
 
@@ -103,9 +103,8 @@ public:
 		const = 0;
 
 	/**
-	 * @brief Return a map of all the resource usages in the current working
-	 * mode.
-	 * @return A constant reference to the map of resources
+	 * @brief Return a map of all the requested resources
+	 * @return A constant reference to the map of resource usages object
 	 */
 	virtual UsagesMap_t const & RecipeResourceUsages() const = 0;
 

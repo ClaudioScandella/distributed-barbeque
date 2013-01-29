@@ -71,9 +71,10 @@ AwmPtr_t const Recipe::AddWorkingMode(uint8_t _id,
 	return working_modes[_id];
 }
 
-void Recipe::AddConstraint(std::string const & rsrc_path,
-				uint64_t lb,
-				uint64_t ub) {
+void Recipe::AddConstraint(
+		std::string const & rsrc_path,
+		uint64_t lb,
+		uint64_t ub) {
 	// Check resource existance
 	ResourceAccounter & ra(ResourceAccounter::GetInstance());
 	if (!ra.ExistResource(rsrc_path))

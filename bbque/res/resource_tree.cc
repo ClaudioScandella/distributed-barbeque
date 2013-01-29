@@ -23,7 +23,6 @@
 #include "bbque/res/resources.h"
 #include "bbque/utils/utility.h"
 
-namespace bp = bbque::plugins;
 
 namespace bbque { namespace res {
 
@@ -36,10 +35,11 @@ ResourceTree::ResourceTree():
 	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
 	assert(logger);
 
-	root = new ResourceNode_t;
-	root->data = ResourcePtr_t(new Resource("root"));
+	// Initialize the root node
+	root         = new ResourceNode_t;
+	root->data   = ResourcePtr_t(new Resource("root"));
 	root->parent = NULL;
-	root->depth = 0;
+	root->depth  = 0;
 }
 
 

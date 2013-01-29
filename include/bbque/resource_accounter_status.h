@@ -255,7 +255,7 @@ public:
 	/**
 	 * @brief The number of resources of a given type
 	 *
-	 * @param type A string identifying the type (name) of resource
+	 * @param type A string identifying the type of resource
 	 *
 	 * @return How many resources of a type have been registered
 	 */

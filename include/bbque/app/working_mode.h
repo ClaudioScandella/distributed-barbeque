@@ -27,11 +27,14 @@ namespace bbque { namespace app {
 
 
 /**
- * @brief Profile for supporting the application execution.
+ * @class WorkingMode
  *
- * Each Application object should be filled with a list of WorkingMode.
- * A "working mode" is characterized by a set of resource usage request and a
- * "value" which expresses a level of Quality of Service
+ * @brief Collect information about a specific running mode of an
+ * Application/EXC
+ *
+ * Each Application's Recipe must include a set of WorkingMode definitions.
+ * An "Application Working Mode" (AWM) is characterized by a set of resource
+ * usage requested and a "value", which is a Quality of Service indicator
  */
 class WorkingMode: public WorkingModeConfIF {
 

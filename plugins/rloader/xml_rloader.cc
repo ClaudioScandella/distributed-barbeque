@@ -305,11 +305,11 @@ RecipeLoaderIF::ExitCode_t XMLRecipeLoader::LoadWorkingModes(
 		// For each working mode we need resource usages data and (optionally)
 		// plugins specific data
 		awms_elem = _xml_elem->FirstChildElement("awms", true);
-		awm_elem = awms_elem->FirstChildElement("awm", true);
+		awm_elem  = awms_elem->FirstChildElement("awm",  true);
 		while (awm_elem) {
 			// Working mode attributes
-			awm_elem->GetAttribute("id", &wm_id, true);
-			awm_elem->GetAttribute("name", &wm_name, false);
+			awm_elem->GetAttribute("id",    &wm_id,    true);
+			awm_elem->GetAttribute("name",  &wm_name,  false);
 			awm_elem->GetAttribute("value", &wm_value, true);
 
 			// The awm ID must be unique!
@@ -429,7 +429,7 @@ uint8_t XMLRecipeLoader::GetResourceAttributes(
 	_res_path += _res_elem->Value() + res_id;
 
 	// Resource quantity request and units
-	_res_elem->GetAttribute("qty", &res_usage, false);
+	_res_elem->GetAttribute("qty",   &res_usage, false);
 	_res_elem->GetAttribute("units", &res_units, false);
 
 	// The usage requested must be > 0

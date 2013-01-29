@@ -21,9 +21,9 @@
 
 #include "bbque/modules_factory.h"
 #include "bbque/plugin_manager.h"
+#include "bbque/resource_accounter.h"
 
 #include "bbque/app/application.h"
-#include "bbque/resource_accounter.h"
 #include "bbque/res/resource_utils.h"
 #include "bbque/utils/utility.h"
 

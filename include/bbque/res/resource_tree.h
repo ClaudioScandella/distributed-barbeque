@@ -28,13 +28,13 @@
 
 #define RESOURCE_TREE_NAMESPACE "rt"
 
-using bbque::plugins::LoggerIF;
+namespace bp = bbque::plugins;
 
 namespace bbque { namespace res {
 
 
 /**
- * @brief A tree-based representation of resources.
+ * @brief A tree-based representation of resources
  *
  * The class allow the management of the resource descriptors in a hierachical
  * way. The hierarchy is structured as a tree. The access to the content is
@@ -125,12 +125,12 @@ public:
 	 * @return A shared pointer to the resource descriptor found
 	 */
 	inline ResourcePtr_t find(std::string const & rsrc_path) const {
-		// List of matches to be filled
-		ResourcePtrList_t matches;
+		// List of matchings to be filled
+		ResourcePtrList_t matchings;
 
 		// Return the first element of the list if success
-		if (find_node(root, rsrc_path, RT_EXACT_MATCH, matches))
-			return (*(matches.begin()));
+		if (find_node(root, rsrc_path, RT_EXACT_MATCH, matchings))
+			return (*(matchings.begin()));
 		return ResourcePtr_t();
 	}
 
@@ -218,7 +218,7 @@ public:
 private:
 
 	/** The logger used by the resource accounter */
-	LoggerIF  *logger;
+	bp::LoggerIF  *logger;
 
 	/** Pointer to the root of the tree*/
 	ResourceNode_t * root;
@@ -239,12 +239,12 @@ private:
 	 * @param curr_node The root node from which start
 	 * @param rsrc_path Resource path (or template path)
 	 * @param opt Specify the type of search (@see SearchOption_t)
-	 * @param matches A list to fill with the descriptors matching the path.
+	 * @param matchings A list to fill with the descriptors matching the path.
 	 *
 	 * @return True if the search have found some matchings.
 	 */
 	bool find_node(ResourceNode_t * curr_node, std::string const & rsrc_path,
-			SearchOption_t opt, ResourcePtrList_t & matches) const;
+			SearchOption_t opt, ResourcePtrList_t & matchings) const;
 
 	/**
 	 * @brief Append a child to the current node

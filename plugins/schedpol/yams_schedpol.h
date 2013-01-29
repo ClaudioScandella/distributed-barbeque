@@ -43,7 +43,7 @@
 #define YAMS_GET_TIMING(METRICS, INDEX, TIMER) \
 	mc.AddSample(METRICS[INDEX].mh, TIMER.getElapsedTimeMs());
 
-/* Get a new samplefor the metrics */
+/* Get a new sample for the metrics */
 #define YAMS_GET_SAMPLE(METRICS, INDEX, VALUE) \
 	mc.AddSample(METRICS[INDEX].mh, VALUE);
 

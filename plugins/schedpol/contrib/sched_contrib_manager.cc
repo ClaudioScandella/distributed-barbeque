@@ -89,16 +89,20 @@ SchedContribManager::SchedContribManager(
 		switch (sc_types[i]) {
 
 		case VALUE:
-			sc_objs_reqs[sc_str[VALUE]] = SchedContribManager::sc_objs[sc_str[VALUE]];
+			sc_objs_reqs[sc_str[VALUE]] =
+				SchedContribManager::sc_objs[sc_str[VALUE]];
 			break;
 		case RECONFIG:
-			sc_objs_reqs[sc_str[RECONFIG]] = SchedContribManager::sc_objs[sc_str[RECONFIG]];
+			sc_objs_reqs[sc_str[RECONFIG]] =
+				SchedContribManager::sc_objs[sc_str[RECONFIG]];
 			break;
 		case CONGESTION:
-			sc_objs_reqs[sc_str[CONGESTION]] = SchedContribManager::sc_objs[sc_str[CONGESTION]];
+			sc_objs_reqs[sc_str[CONGESTION]] =
+				SchedContribManager::sc_objs[sc_str[CONGESTION]];
 			break;
 		case FAIRNESS:
-			sc_objs_reqs[sc_str[FAIRNESS]] = SchedContribManager::sc_objs[sc_str[FAIRNESS]];
+			sc_objs_reqs[sc_str[FAIRNESS]] =
+				SchedContribManager::sc_objs[sc_str[FAIRNESS]];
 			break;
 		default:
 			logger->Error("Scheduling contribution unknown: %d", sc_types[i]);

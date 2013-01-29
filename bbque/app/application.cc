@@ -1100,7 +1100,7 @@ bool Application::UsageOutOfBounds(AwmPtr_t & awm) {
 		// Check if the usage value is out of the constraint bounds
 		UsagePtr_t const & pusage(usage_it->second);
 		if ((pusage->GetAmount() < rsrc_constr_it->second->lower) ||
-				(pusage->GetAmount() > rsrc_constr_it->second->upper))
+			(pusage->GetAmount() > rsrc_constr_it->second->upper))
 			return true;
 	}
 
@@ -1113,11 +1113,9 @@ void Application::UpdateEnabledWorkingModes() {
 	for (; awms_it != awms.enabled_list.end(); awms_it++) {
 		if (!UsageOutOfBounds(*awms_it))
 			continue;
-
 		// This AWM must be removed
 		awms.enabled_list.remove(*awms_it);
 	}
-
 	// Check current AWM and re-order the list
 	FinalizeEnabledWorkingModes();
 }
@@ -1208,15 +1206,12 @@ uint64_t Application::GetResourceUsageStat(std::string const & rsrc_path,
 	uint64_t min_usage  = UINT64_MAX;
 	uint64_t max_usage  = 0;
 	uint64_t usages_sum = 0;
-
 	AwmPtrList_t::iterator awm_it(awms.enabled_list.begin());
 	AwmPtrList_t::iterator awm_end(awms.enabled_list.end());
 
 	// AWMs (enabled)
 	for (; awm_it != awm_end; ++awm_it) {
-		// Map of resource usages
 		UsagesMap_t const & awm_usages = (*awm_it)->RecipeResourceUsages();
-
 		UsagesMap_t::const_iterator rsrc_it(awm_usages.begin());
 		UsagesMap_t::const_iterator rsrc_end(awm_usages.end());
 
@@ -1229,13 +1224,9 @@ uint64_t Application::GetResourceUsageStat(std::string const & rsrc_path,
 			if (rsrc_path.compare(ResourcePathUtils::GetTemplate(rp)) != 0)
 				continue;
 
-			// Cumulate the resource usage
+			// Cumulate the resource usage and update min or max
 			usages_sum += curr_usage;
-
-			// Update min?
 			curr_usage < min_usage ? min_usage = curr_usage: min_usage;
-
-			// Update max?
 			curr_usage > max_usage ? max_usage = curr_usage: max_usage;
 		}
 	}
@@ -1244,10 +1235,8 @@ uint64_t Application::GetResourceUsageStat(std::string const & rsrc_path,
 	switch (ru_stat) {
 	case RU_STAT_MIN:
 		return min_usage;
-
 	case RU_STAT_AVG:
 		return usages_sum / awms.enabled_list.size();
-
 	case RU_STAT_MAX:
 		return max_usage;
 	};

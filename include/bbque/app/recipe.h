@@ -141,7 +141,7 @@ public:
 	 * If a bound value has been specified previously, take the the greater
 	 * between the previous and the current one.
 	 *
-	 * @param rsrc_path Resource path to constrain.
+	 * @param rsrc_path Resource path to constrain
 	 * @param lb Lower bound value
 	 * @param ub Upper bound value
 	 */

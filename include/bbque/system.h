@@ -228,8 +228,7 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF::GetResources()
 	 */
-	inline ResourcePtrList_t GetResources(std::string const & temp_path)
-		const {
+	inline ResourcePtrList_t GetResources(std::string const & temp_path) const {
 		return ra.GetResources(temp_path);
 	}
 
