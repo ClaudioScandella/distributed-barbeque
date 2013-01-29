@@ -27,9 +27,11 @@ namespace bbque { namespace res {
  *****************************************************************************/
 
 Resource::Resource(std::string const & res_path, uint64_t tot):
+	ResourceIdentifier(UNDEFINED, 0),
 	total(tot),
 	reserved(0),
 	offline(false) {
+	name.assign(res_path);
 
 	// Extract the name from the path
 	size_t pos = res_path.find_last_of(".");
@@ -37,6 +39,18 @@ Resource::Resource(std::string const & res_path, uint64_t tot):
 		name = res_path.substr(pos + 1);
 	else
 		name = res_path;
+
+	// Initialize availability profile monitors;
+	av_profile.online_tmr.start();
+	av_profile.lastOfflineTime = 0;
+	av_profile.lastOnlineTime = 0;
+}
+
+Resource::Resource(ResourceIdentifier::Type_t type, ResID_t id, uint64_t tot):
+	ResourceIdentifier(type, id),
+	total(tot),
+	reserved(0),
+	offline(false) {
 
 	// Initialize availability profile monitors;
 	av_profile.online_tmr.start();
@@ -83,6 +97,7 @@ void Resource::SetOnline() {
 			name.c_str(), (av_profile.lastOfflineTime / 1000.0));
 
 }
+
 
 uint64_t Resource::Used(RViewToken_t vtok) {
 	// Retrieve the state view

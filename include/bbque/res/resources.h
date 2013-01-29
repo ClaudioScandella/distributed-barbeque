@@ -119,7 +119,7 @@ struct ResourceState {
  * of resource. This feature is particularly useful for components like the
  * Scheduler/Optimizer (see below.)
  */
-class Resource: public AttributesContainer {
+class Resource: public ResourceIdentifier, public AttributesContainer {
 
 // This makes method SetTotal() accessible to RA
 friend class bbque::ResourceAccounter;
@@ -141,6 +141,16 @@ public:
 	 * @param tot The total amount of resource
 	 */
 	Resource(std::string const & res_path, uint64_t tot = 1);
+
+
+	/**
+	 * @brief Constructor
+	 *
+	 * @param type Resource type
+	 * @param id Resource integer ID
+	 * @param tot The total amount of resource
+	 */
+	Resource(ResourceIdentifier::Type_t type, ResID_t id, uint64_t tot = 1);
 
 	/**
 	 * Destructor
@@ -255,9 +265,6 @@ public:
 	}
 
 private:
-
-	/** Resource name (i.e. "mem0", "pe1", "dma1", ...)        */
-	std::string name;
 
 	/** The total amount of resource  */
 	uint64_t total;
