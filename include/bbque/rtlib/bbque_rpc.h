@@ -261,9 +261,10 @@ protected:
 		/** The time [ms] spent on processing into this AWM */
 		uint32_t time_processing;
 
-		/** Statistics on AWM cycles */
+		/** Statistics on synchronization time */
 		accumulator_set<double,
-			stats<tag::min, tag::max, tag::variance>> samples;
+			stats<tag::min, tag::max, tag::variance> >
+				sync_time_samples;
 
 #ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 		/** Map of registered Perf counters */
