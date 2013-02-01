@@ -2292,6 +2292,11 @@ void BbqueRPC::NotifyPreRun(
 		prec->rr.time_rtm = prec->rr.tmr.getElapsedTimeUs();
 	}
 
+	// CPS Enforcing: this is done here to exclude the time spent for
+	// cycles forcing from the time_rtm used to compute the RR
+	if (prec->cps_expect != 0)
+		ForceCPS(prec);
+
 	// Restart timer for tRunning profiling
 	prec->rr.tmr.start();
 
@@ -2376,11 +2381,6 @@ void BbqueRPC::NotifyPostMonitor(
 	assert(isRegistered(prec) == true);
 
 	DB(fprintf(stderr, FD("<=== NotifyMonitor\n")));
-
-	// CPS Enforcing
-	if (prec->cps_expect != 0)
-		ForceCPS(prec);
-
 
 }
 
