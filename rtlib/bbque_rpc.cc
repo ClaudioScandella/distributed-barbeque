@@ -2163,6 +2163,30 @@ void BbqueRPC::ForceCPS(pregExCtx_t prec) {
 	prec->cps_tstart = bbque_tmr.getElapsedTimeMs();
 }
 
+
+/*******************************************************************************
+ *    Reconfiguration Rate (RR) Management  Support
+ ******************************************************************************/
+
+double BbqueRPC::GetRR(
+	RTLIB_ExecutionContextHandler_t ech) {
+	pregExCtx_t prec;
+
+	assert(ech);
+
+	prec = getRegistered(ech);
+	if (!prec) {
+		fprintf(stderr, FE("Unregister EXC [%p] FAILED "
+				"(EXC not registered)\n"), (void*)ech);
+		return 0.0;
+	}
+
+	assert(isRegistered(prec) == true);
+
+	// Add all the required performance counters
+	return prec->rr.pStats->get();
+}
+
 /*******************************************************************************
  *    RTLib Notifiers Support
  ******************************************************************************/

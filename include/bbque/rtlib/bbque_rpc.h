@@ -166,6 +166,18 @@ public:
 	}
 
 /*******************************************************************************
+ *    Reconfiguration Rate (RR) Management Support
+ ******************************************************************************/
+
+	/**
+	 * @brief Get the actual Reconfiguration Ratio (RR)
+	 *
+	 * This allows to get the current profiled Reconfiguration Ratio (RR)
+	 * which could be cenveniently used to support AS-RTM policies.
+	 */
+	double GetRR(RTLIB_ExecutionContextHandler_t ech);
+
+/*******************************************************************************
  *    Performance Monitoring Support
  ******************************************************************************/
 

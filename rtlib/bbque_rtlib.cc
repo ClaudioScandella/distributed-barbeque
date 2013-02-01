@@ -126,6 +126,15 @@ static RTLIB_ExitCode_t rtlib_cps_set_ctime_us(
 }
 
 /*******************************************************************************
+ *    Reconfiguration Rate (RR) Management Support
+ ******************************************************************************/
+
+static double rtlib_rr_get(
+		RTLIB_ExecutionContextHandler_t ech) {
+	return rpc->GetRR(ech);
+}
+
+/*******************************************************************************
  *    Performance Monitoring Support
  ******************************************************************************/
 
@@ -238,6 +247,9 @@ RTLIB_ExitCode_t RTLIB_Init(const char *name, RTLIB_Services_t **rtlib) {
 	// Cycles Time Control interface
 	rtlib_services.CPS.Set = rtlib_cps_set;
 	rtlib_services.CPS.SetCTimeUs = rtlib_cps_set_ctime_us;
+
+	// Reconfiguration Rate interface
+	rtlib_services.RR.Get = rtlib_rr_get;
 
 	// Performance monitoring notifiers
 	rtlib_services.Notify.Setup = rtlib_notify_setup;

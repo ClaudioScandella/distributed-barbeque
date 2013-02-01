@@ -673,6 +673,32 @@ typedef RTLIB_ExitCode_t (*RTLIB_CPS_CTimeUs)(
 /**@}*/
 
 /*******************************************************************************
+ *    Reconfiguration Rate (RR) Management Support
+ ******************************************************************************/
+
+/**
+ * @name Reconfiguration Rate Management Functions
+ *
+ * ADD DESCRIPTION HERE
+ *
+ * @{
+ */
+
+/**
+ * @brief Read the actual Reconfiguration Ratio (RR)
+ * @ingroup rtlib_sec03_plain_rr
+ *
+ * The RTLib provides the support to profile and report the Reconfiguration
+ * Ratio (RR) of an application. This function get the actual computed RR.
+ *
+ * @param ech the handler of the EXC to configure
+ */
+typedef double (*RTLIB_RR_Get)(
+		RTLIB_ExecutionContextHandler_t ech);
+
+/**@}*/
+
+/*******************************************************************************
  *    Performance Monitoring Support
  ******************************************************************************/
 
@@ -955,6 +981,11 @@ struct RTLIB_Services {
 		RTLIB_CPS_Set Set;
 		RTLIB_CPS_CTimeUs SetCTimeUs;
 	} CPS;
+
+	/* Reconfiguration Ratio interface */
+	struct {
+		RTLIB_RR_Get Get;
+	} RR;
 
 	/* Performance estimation and notification interface */
 	struct {

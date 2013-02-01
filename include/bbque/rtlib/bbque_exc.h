@@ -371,6 +371,21 @@ public:
 	RTLIB_ExitCode_t SetCTimeUs(uint32_t us);
 
 /**
+ * @brief Get the actual Reconfiguration Rate (RR) for this EXC
+ *
+ * The reconfiguration rate is defined as the ratio between the time spent in
+ * doing "useful" processing (i.e. onRun) versus the time spent for Run-Time
+ * Management activities (i.e. onMonitor, onConfigure, ...)
+ * This metrics is estimanted by the RTLib and could be obtained by the
+ * application using this method.
+ *
+ * @return the estimated actual reconfiguration rate.
+ *
+ * @ingroup rtlib_sec02_aem_utils
+ */
+	double GetRR();
+
+/**
  * @brief The number of completed cycles
  *
  * The RTLib keeps track of the completed processing cycles count.
