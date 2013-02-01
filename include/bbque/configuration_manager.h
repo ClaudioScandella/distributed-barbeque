@@ -158,14 +158,17 @@ public:
 	}
 
 #ifdef CONFIG_BBQUE_TEST_PLATFORM_DATA
-	inline uint8_t  TPD_ClusterCount() const {
-		return tpd_clusters_count;
+	inline uint8_t  TPD_CPUCount() const {
+		return tpd_cpus_count;
 	}
-	inline uint16_t TPD_ClusterMem() const {
-		return tpd_cluster_mem_mb;
+	inline uint16_t TPD_CPUMem() const {
+		return tpd_cpu_mem_mb;
 	}
 	inline uint8_t  TPD_PEsCount() const {
 		return tpd_pes_count;
+	}
+	inline uint32_t TPD_SysMem() const {
+		return tpd_sys_mem;
 	}
 #endif // CONFIG_BBQUE_TEST_PLATFORM_DATA
 
@@ -199,9 +202,10 @@ private:
 	 * The description of TEST platform data parameters
 	 */
 	options_description tpd_opts_desc;
-	unsigned short tpd_clusters_count;
-	uint16_t tpd_cluster_mem_mb;
+	unsigned short tpd_cpus_count;
+	uint16_t tpd_cpu_mem_mb;
 	unsigned short  tpd_pes_count;
+	uint32_t tpd_sys_mem;
 #endif // CONFIG_BBQUE_TEST_PLATFORM_DATA
 
 	/**

@@ -54,33 +54,38 @@ TestPlatformData::ExitCode_t
 TestPlatformData::LoadPlatformData() {
 		ConfigurationManager &cm(ConfigurationManager::GetInstance());
 		ResourceAccounter &ra(ResourceAccounter::GetInstance());
-		char resourcePath[] = "tile0.cluster256.mem0";
-		//                     .............^
-		//                            13
+		char resourcePath[] = "sys0.cpu256.mem0";
+		//                     ........^
+		//                        8
 
 		if (platformLoaded)
 				return TPD_SUCCESS;
 
 		logger->Warn("Loading TEST platform data");
-		logger->Debug("Cluster        : %5d", cm.TPD_ClusterCount());
-		logger->Debug("Cluster memory : %5d [MB]", cm.TPD_ClusterMem());
-		logger->Debug("PEs per cluster: %5d", cm.TPD_PEsCount());
+		logger->Debug("CPUs          : %5d", cm.TPD_CPUCount());
+		logger->Debug("CPU memory    : %5d [MB]", cm.TPD_CPUMem());
+		logger->Debug("PEs per CPU   : %5d", cm.TPD_PEsCount());
+		logger->Debug("System memory : %5d", cm.TPD_SysMem());
 
-		// Registering Clusters, per-clusters memory and PEs
+		// Registering CPUs, per-CPU memory and processing elements (cores)
 		logger->Debug("Registering resources:");
-		for (uint8_t c = 0; c < cm.TPD_ClusterCount(); ++c) {
+		for (uint8_t c = 0; c < cm.TPD_CPUCount(); ++c) {
 
-				snprintf(resourcePath+13, 8, "%d.mem0", c);
+				snprintf(resourcePath+8, 8, "%d.mem0", c);
 				logger->Debug("  %s", resourcePath);
-				ra.RegisterResource(resourcePath, "MB", cm.TPD_ClusterMem());
+				ra.RegisterResource(resourcePath, "MB", cm.TPD_CPUMem());
 
 				for (uint8_t p = 0; p < cm.TPD_PEsCount(); ++p) {
-						snprintf(resourcePath+13, 8, "%d.pe%d", c, p);
+						snprintf(resourcePath+8, 8, "%d.pe%d", c, p);
 						logger->Debug("  %s", resourcePath);
 						ra.RegisterResource(resourcePath, " ", 100);
 				}
-
 		}
+
+		// Registering system memory
+		char sysMemPath[]   = "sys0.mem0";
+		logger->Debug("  %s", sysMemPath);
+		ra.RegisterResource(sysMemPath, "MB", cm.TPD_SysMem());
 
 		platformLoaded = true;
 
