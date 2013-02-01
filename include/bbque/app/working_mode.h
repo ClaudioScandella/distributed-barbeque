@@ -128,6 +128,13 @@ public:
 	}
 
 	/**
+	 * @brief Provide an ID-string supporting log messages readability
+	 */
+	const char * StrId() const {
+		return str_id;
+	}
+
+	/**
 	 * @brief Set the QoS value specified in the recipe
 	 *
 	 * The value is viewed as a kind of satisfaction level, from the user
@@ -314,6 +321,9 @@ private:
 
 	/** A descriptive name */
 	std::string name;
+
+	/** Logger messages ID string */
+	char str_id[15];
 
 	/**
 	 * Whether the AWM includes resource requirements that cannot be

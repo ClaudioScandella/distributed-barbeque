@@ -95,6 +95,11 @@ public:
 	virtual float Value() const = 0;
 
 	/**
+	 * @brief A string identifier for log messaging purpose
+	 */
+	virtual const char * StrId() const = 0;
+
+	/**
 	 * @brief The amount required of a specific resource
 	 * @param res_path Resource path
 	 * @return A floating point value

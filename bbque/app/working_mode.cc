@@ -38,6 +38,8 @@ namespace bbque { namespace app {
 WorkingMode::WorkingMode():
 	hidden(false) {
 	resources.on_sched.resize(MAX_NUM_BINDINGS);
+	// Set the log string id
+	strncpy(str_id, "", 12);
 }
 
 
@@ -57,8 +59,10 @@ WorkingMode::WorkingMode(uint8_t _id,
 	// Get a logger
 	bp::LoggerIF::Configuration conf(AWM_NAMESPACE);
 	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
-}
 
+	// Set the log string id
+	snprintf(str_id, 15, "AWM{%d,%s}", id, name.c_str());
+}
 
 WorkingMode::~WorkingMode() {
 	resources.from_recp.clear();
