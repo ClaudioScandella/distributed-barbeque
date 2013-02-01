@@ -37,7 +37,7 @@
 #policy = yams
 
 ################################################################################
-# Yams Scheduling Policy: Metrics Contribute weights
+# Scheduling Policy
 ################################################################################
 # Scheduling policy parameters
 [SchedPol]
@@ -50,11 +50,11 @@ reconfig.weight      = 5
 congestion.weight    = 5
 fairness.weight      = 10
 
-# Contribution specific parameters
 [SchedPol.Contrib]
 msl.pe        = 75
 msl.mem       = 90
 
+# Contribution specific parameters
 [SchedPol.Contrib.awmvalue]
 nap.weight    = 60
 
