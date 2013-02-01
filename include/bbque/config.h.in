@@ -136,6 +136,9 @@
 /** Build flavor */
 #define BBQUE_BUILD_FLAVOR "${BBQUE_BUILD_FLAVOR}"
 
+/** RTLib: The number cycles for RR EMA characterization */
+#define CONFIG_BBQUE_RTLIB_RR_CYCLES ${CONFIG_BBQUE_RTLIB_RR_CYCLES}
+
 /*******************************************************************************
  * BarbequeRTRM Plugins Selection
  ******************************************************************************/

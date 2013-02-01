@@ -2285,11 +2285,25 @@ void BbqueRPC::NotifyPreRun(
 		}
 	}
 
+	// Update RR just if this is not the really first cycle
+	if (likely(prec->rr.time_running != 0)) {
+		// Get the tRunTimeManagement, used for RR computation:
+		// tRTM = [tPostRun ... tPreRun]
+		prec->rr.time_rtm = prec->rr.tmr.getElapsedTimeUs();
+	}
+
+	// Restart timer for tRunning profiling
+	prec->rr.tmr.start();
+
 }
 
 void BbqueRPC::NotifyPostRun(
 	RTLIB_ExecutionContextHandler_t ech) {
 	pregExCtx_t prec;
+	// The actual reconfiguration rate
+	// At the really first cycle, the rr_time_rtm is 0, thus we set a null
+	// reconfiguration rate.
+	double rr_now = 0.0;
 
 	assert(ech);
 
@@ -2312,6 +2326,33 @@ void BbqueRPC::NotifyPostRun(
 			PerfCollectStats(prec);
 		}
 	}
+
+	// Get the tRunning, used for RR computation:
+	// tRunning = [tPreRun ... tPostRun]
+	prec->rr.time_running = prec->rr.tmr.getElapsedTimeUs();
+
+	// Compute actual Reconfiguration Rate (RR)
+	if (prec->rr.time_running != 0)
+		rr_now = static_cast<double>(prec->rr.time_rtm) / prec->rr.time_running;
+
+	// Update the Reconfiguration Rate (RR)
+	// This is done right before entering the onMonitor, which could be a
+	// source of RTM control actions to be delivered to BBQ. Thus, that
+	// actions will be subject to RR defined constraints.
+	if (likely(prec->rr.pStats != NULL)) {
+		prec->rr.pStats->update(rr_now);
+	} else {
+		prec->rr.pStats =
+			pEma_t(new EMA(CONFIG_BBQUE_RTLIB_RR_CYCLES, rr_now));
+	}
+
+	DB(fprintf(stderr, FD("Comp: %7d[us], RTM: %7d[us], RR: %8.3f[%%]\n"),
+			prec->rr.time_running,
+			prec->rr.time_rtm,
+			100.0 * prec->rr.pStats->get()));
+
+	// Restart timer for tRTM profiling
+	prec->rr.tmr.start();
 
 }
 

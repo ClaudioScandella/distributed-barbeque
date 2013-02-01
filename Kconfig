@@ -171,4 +171,23 @@ config BBQUE_YP_SASB_ASYNC
   Select this option if you plan to run the BarbequeRTRM daemon on a multi-core
   host machine and with a average high number of concurrent applications.
 
+comment "RTLib Configuration"
+
+config BBQUE_RTLIB_RR_CYCLES
+  int "Reconfgiuration Rate profiling cycles"
+  default 30
+  ---help---
+  Define the number of processing cycles considered for the characterization
+  of the "Exponential Moving Average" (EMA) function used to estimante the
+  reconfiguration rate of an application.
+
+  This parameter is used to defined the "alpha" factor of the exponential
+  distribution. The alpha factor is expressed in terms of N samples,
+  where:
+    alpha = 2/(N+1).
+  For example, N = 19 is equivalent to alpha = 0.1.
+
+  The half-life of the weights (the interval over which the weights decrease
+  by a factor of two) is approximately N/2.8854 (within 1% if N > 5).
+
 endmenu # Advanced options

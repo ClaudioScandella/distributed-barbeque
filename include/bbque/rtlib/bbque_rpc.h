@@ -290,6 +290,64 @@ protected:
 	 */
 	typedef std::map<uint8_t, pAwmStats_t> AwmStatsMap_t;
 
+	/**
+	 * @brief Exponential Moving Average accumulator
+	 *
+	 * This class provides a simple accumulator for on-line computation of an
+	 * Exponential Moving Average, with an exponential factor @see alpha.
+	 *
+	 * The alpha factor is expressed in terms of N samples, where alpha =
+	 * 2/(N+1). For example, N = 19 is equivalent to alpha = 0.1.
+	 * The half-life of the weights (the interval over which the
+	 * weights decrease by a factor of two) is approximately N/2.8854
+	 * (within 1% if N > 5).
+	 */
+	class EMA {
+	private:
+		double alpha;
+		double value;
+	public:
+		EMA(int samples = 6, double firstValue = 0) :
+			alpha(2.0 / (samples +1)),
+			value(firstValue) {
+		}
+		double update(double newValue) {
+			value = ((alpha * newValue) + ((1 - alpha) * value));
+			return value;
+		}
+		double get() const {
+			return value;
+		}
+	};
+
+	/**
+	 * @brief A pointer to an EMA-defined accounter
+	 */
+	typedef std::shared_ptr<EMA> pEma_t;
+
+	/**
+	 * @brief Reconfiguration Rate (RR) porfiling
+	 *
+	 * This is a set of parameters useful to track and profile the
+	 * application reconfiguration rate.
+	 */
+	typedef struct ReconfigurationRate {
+		/** Timer used for Reconfiguratio Rate (RR) profiling */
+		Timer tmr;
+		/** The time spend doing "useful" work during last cycle */
+		uint32_t time_running;
+		/** The time spend doing RTM during last cycle
+		 * (i.e. Monitor + Conffig) */
+		uint32_t time_rtm;
+		/** The (EMA defined) Reconfiguration Ratio (RR) */
+		pEma_t pStats;
+		ReconfigurationRate() :
+			time_running(0),
+			time_rtm(0) {
+		}
+	} ReconfigurationRate_t;
+
+
 	typedef struct RegisteredExecutionContext {
 		/** The Execution Context data */
 		RTLIB_ExecutionContextParams_t exc_params;
@@ -343,6 +401,13 @@ protected:
 		float cps_max = 0;     // [Hz] the requried maximum CPS
 		float cps_expect = 0;  // [ms] the expected cycle time
 
+		/** Reconfiguration Rate profiling support */
+		ReconfigurationRate_t rr;
+
+		double cps_tstart; // [ms] at the last cycle start time
+		float cps_max;     // [Hz] the requried maximum CPS
+		float cps_expect;  // [ms] the expected cycle time
+
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
 			name(_name), exc_id(id) {
 		}
@@ -350,6 +415,7 @@ protected:
 		~RegisteredExecutionContext() {
 			stats.clear();
 			pAwmStats = pAwmStats_t();
+			rr.pStats = pEma_t();
 		}
 
 
