@@ -56,7 +56,7 @@ public:
 	/**
 	 * @brief Types of scheduling metrics contributions
 	 */
-	enum SCType_t {
+	enum Type_t {
 		VALUE = 0,
 		RECONFIG,
 		CONGESTION,
@@ -76,7 +76,7 @@ public:
 	 * @param sc_types Array of contributions type required
 	 * @param sc_num Number of contributions required
 	 */
-	SchedContribManager(SCType_t const * sc_types, uint8_t sc_num);
+	SchedContribManager(Type_t const * sc_types, uint8_t sc_num);
 
 	/**
 	 * @brief Scheduling Contributions Manager destructor
@@ -95,7 +95,7 @@ public:
 	 *
 	 * @return 
 	 */
-	SchedContribManager::ExitCode_t GetIndex(SCType_t sc_type,
+	SchedContribManager::ExitCode_t GetIndex(Type_t sc_type,
 			SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 			float & sc_value, SchedContrib::ExitCode_t & sc_ret,
 			bool weighed = true);
@@ -107,7 +107,7 @@ public:
 	 *
 	 * @return A shared pointer to a SchedContrib object
 	 */
-	SchedContribPtr_t GetContrib(SCType_t sc_type);
+	SchedContribPtr_t GetContrib(Type_t sc_type);
 
 	/**
 	 * @brief Get the string of the SchedContrib type name
@@ -116,7 +116,7 @@ public:
 	 *
 	 * @return the SchedContrib type as a char string
 	 */
-	inline const char * GetString(SCType_t sc_type) {
+	inline const char * GetString(Type_t sc_type) {
 		return sc_str[sc_type];
 	}
 
@@ -150,10 +150,10 @@ private:
 
 
 	/** Scheduling contributions required*/
-	std::map<const char *, SchedContribPtr_t> sc_objs_reqs;
+	std::map<Type_t, SchedContribPtr_t> sc_objs_reqs;
 
 	/** Scheduling contributions (all) */
-	static std::map<const char *, SchedContribPtr_t> sc_objs;
+	static std::map<Type_t, SchedContribPtr_t> sc_objs;
 
 
 	/** Metrics contribute configuration keys */

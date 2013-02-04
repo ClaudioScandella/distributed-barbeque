@@ -174,8 +174,7 @@ private:
 	SchedContribManager * scm;
 
 	/** Set of scheduling contributions type used for the metrics */
-	static SchedContribManager::SCType_t sc_types[YAMS_SC_COUNT];
-
+	static SchedContribManager::Type_t sc_types[YAMS_SC_COUNT];
 
 	/**
 	 * @brief ClustersInfo

@@ -51,7 +51,7 @@ char const * SchedContribManager::sc_str[SC_COUNT] = {
 	// ...:: ADD_SC ::...
 };
 
-std::map<const char *, SchedContribPtr_t> SchedContribManager::sc_objs = {};
+std::map<SchedContribManager::Type_t, SchedContribPtr_t> SchedContribManager::sc_objs = {};
 float SchedContribManager::sc_weights_norm[SC_COUNT] = {0};
 uint16_t SchedContribManager::sc_weights[SC_COUNT] = {0};
 uint16_t SchedContribManager::sc_cfg_params[SchedContrib::SC_CPT_COUNT] = {0};
@@ -62,7 +62,7 @@ uint16_t SchedContribManager::sc_cfg_params[SchedContrib::SC_CPT_COUNT] = {0};
  *****************************************************************************/
 
 SchedContribManager::SchedContribManager(
-		SCType_t const * sc_types,
+		Type_t const * sc_types,
 		uint8_t sc_num):
 	cm(ConfigurationManager::GetInstance()) {
 
@@ -89,20 +89,20 @@ SchedContribManager::SchedContribManager(
 		switch (sc_types[i]) {
 
 		case VALUE:
-			sc_objs_reqs[sc_str[VALUE]] =
-				SchedContribManager::sc_objs[sc_str[VALUE]];
+			sc_objs_reqs[VALUE] =
+				SchedContribManager::sc_objs[VALUE];
 			break;
 		case RECONFIG:
-			sc_objs_reqs[sc_str[RECONFIG]] =
-				SchedContribManager::sc_objs[sc_str[RECONFIG]];
+			sc_objs_reqs[RECONFIG] =
+				SchedContribManager::sc_objs[RECONFIG];
 			break;
 		case CONGESTION:
-			sc_objs_reqs[sc_str[CONGESTION]] =
-				SchedContribManager::sc_objs[sc_str[CONGESTION]];
+			sc_objs_reqs[CONGESTION] =
+				SchedContribManager::sc_objs[CONGESTION];
 			break;
 		case FAIRNESS:
-			sc_objs_reqs[sc_str[FAIRNESS]] =
-				SchedContribManager::sc_objs[sc_str[FAIRNESS]];
+			sc_objs_reqs[FAIRNESS] =
+				SchedContribManager::sc_objs[FAIRNESS];
 			break;
 		default:
 			logger->Error("Scheduling contribution unknown: %d", sc_types[i]);
@@ -116,19 +116,19 @@ SchedContribManager::~SchedContribManager() {
 }
 
 SchedContribManager::ExitCode_t SchedContribManager::GetIndex(
-		SCType_t sc_type,
+		Type_t sc_type,
 		SchedulerPolicyIF::EvalEntity_t const & evl_ent,
-		float &  sc_value,
+		float & sc_value,
 		SchedContrib::ExitCode_t & sc_ret,
 		bool weighed) {
-	std::map<const char *, SchedContribPtr_t>::iterator sc_it;
+	std::map<Type_t, SchedContribPtr_t>::iterator sc_it;
 	
 	// Boundary check
 	if (sc_type >= SC_COUNT)
 		return SC_TYPE_UNKNOWN;
 
 	// Get the SchedContrib object
-	sc_it = sc_objs_reqs.find(sc_str[sc_type]);
+	sc_it = sc_objs_reqs.find(sc_type);
 	if (sc_it == sc_objs_reqs.end())
 		return SC_TYPE_MISSING;
 
@@ -144,11 +144,11 @@ SchedContribManager::ExitCode_t SchedContribManager::GetIndex(
 	return OK;
 }
 
-SchedContribPtr_t SchedContribManager::GetContrib(SCType_t sc_type) {
-	std::map<const char *, SchedContribPtr_t>::iterator sc_it;
+SchedContribPtr_t SchedContribManager::GetContrib(Type_t sc_type) {
+	std::map<Type_t, SchedContribPtr_t>::iterator sc_it;
 
 	// Find the SchedContrib object
-	sc_it = sc_objs_reqs.find(sc_str[sc_type]);
+	sc_it = sc_objs_reqs.find(sc_type);
 	if (sc_it == sc_objs_reqs.end())
 		return SchedContribPtr_t();
 
@@ -156,7 +156,7 @@ SchedContribPtr_t SchedContribManager::GetContrib(SCType_t sc_type) {
 }
 
 void SchedContribManager::SetViewInfo(System * sv, RViewToken_t vtok) {
-	std::map<const char *, SchedContribPtr_t>::iterator sc_it;
+	std::map<Type_t, SchedContribPtr_t>::iterator sc_it;
 
 	// For each SchedContrib set the resource view information 
 	for (sc_it = sc_objs_reqs.begin(); sc_it != sc_objs_reqs.end(); ++sc_it)
@@ -230,13 +230,13 @@ void SchedContribManager::NormalizeWeights() {
 void SchedContribManager::AllocateContribs() {
 
 	// Init the map of scheduling contribution objects
-	sc_objs[sc_str[VALUE]] = SchedContribPtr_t(
-			new SCValue(sc_str[VALUE],	sc_cfg_params));
-	sc_objs[sc_str[RECONFIG]] = SchedContribPtr_t(
+	sc_objs[VALUE] = SchedContribPtr_t(
+			new SCValue(sc_str[VALUE], sc_cfg_params));
+	sc_objs[RECONFIG] = SchedContribPtr_t(
 			new SCReconfig(sc_str[RECONFIG], sc_cfg_params));
-	sc_objs[sc_str[CONGESTION]] = SchedContribPtr_t(
+	sc_objs[CONGESTION] = SchedContribPtr_t(
 			new SCCongestion(sc_str[CONGESTION], sc_cfg_params));
-	sc_objs[sc_str[FAIRNESS]] = SchedContribPtr_t(
+	sc_objs[FAIRNESS] = SchedContribPtr_t(
 			new SCFairness(sc_str[FAIRNESS], sc_cfg_params));
 	// ...:: ADD_SC ::...
 }

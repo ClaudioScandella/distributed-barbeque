@@ -35,7 +35,7 @@ namespace po = boost::program_options;
 namespace bbque { namespace plugins {
 
 
-SchedContribManager::SCType_t YamsSchedPol::sc_types[] = {
+SchedContribManager::Type_t YamsSchedPol::sc_types[] = {
 	SchedContribManager::VALUE,
 	SchedContribManager::RECONFIG,
 	SchedContribManager::CONGESTION,
