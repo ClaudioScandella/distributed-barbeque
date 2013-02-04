@@ -118,6 +118,9 @@ YamsSchedPol::~YamsSchedPol() {
 }
 
 YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
+	ResourceAccounterStatusIF::ExitCode_t ra_result;
+	char token_path[30];
+
 	// Set the counter (avoiding overflow)
 	vtok_count == std::numeric_limits<uint32_t>::max() ?
 		vtok_count = 0:
@@ -125,18 +128,15 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 
 	// Build a string path for the resource state view
 	std::string schedpolname(MODULE_NAMESPACE);
-	char token_path[30];
 	snprintf(token_path, 30, "%s%d", schedpolname.c_str(), vtok_count);
 
 	// Get a resource state view
-	ResourceAccounterStatusIF::ExitCode_t ra_result;
+	logger->Debug("Init: Requiring state view token for %s", token_path);
 	ra_result = ra.GetView(token_path, vtok);
 	if (ra_result != ResourceAccounterStatusIF::RA_SUCCESS) {
 		logger->Fatal("Init: Cannot get a resource state view");
 		return YAMS_ERR_VIEW;
 	}
-
-	logger->Debug("Init: Requiring state view token for %s", token_path);
 	logger->Debug("Init: Resources state view token = %d", vtok);
 
 	// Get the number of clusters
@@ -298,29 +298,23 @@ bool YamsSchedPol::SelectSchedEntities(uint8_t naps_count) {
 
 		// Send the schedule request
 		app_result = pschd->papp->ScheduleRequest(pschd->pawm, vtok,
-				pschd->clust_id);
-		logger->Debug("Selecting: [%s] schedule requested", pschd->StrId());
-
-		// Scheduling request rejected
+				pschd->bind_id);
+		logger->Debug("Selecting: %s schedule requested", pschd->StrId());
 		if (app_result != ApplicationStatusIF::APP_WM_ACCEPTED) {
-			logger->Debug("Selecting: [%s] rejected !", pschd->StrId());
+			logger->Debug("Selecting: %s rejected!", pschd->StrId());
 			continue;
 		}
-
-		// Logging messages
 		if (!pschd->papp->Synching() || pschd->papp->Blocking()) {
 			logger->Debug("Selecting: [%s] state %s|%s", pschd->papp->StrId(),
 					Application::StateStr(pschd->papp->State()),
 					Application::SyncStateStr(pschd->papp->SyncState()));
 			continue;
 		}
-		logger->Notice("Selecting: [%s] scheduled << metrics: %.4f >>",
+		logger->Notice("Selecting: %s SCHEDULED metrics: %.4f",
 				pschd->StrId(), pschd->metrics);
 
-		// Set the application value (scheduling aggregate metrics)
+		// Set the application value (scheduling metrics)
 		pschd->papp->SetValue(pschd->metrics);
-
-		// Sample the AWM value for future evaluation of the scheduling results
 		YAMS_GET_SAMPLE(coll_metrics, YAMS_METRICS_AWMVALUE,
 				pschd->pawm->Value());
 
@@ -364,17 +358,17 @@ void YamsSchedPol::InsertWorkingModes(AppCPtr_t const & papp, uint16_t cl_id) {
 	for_each(awm_thds.begin(), awm_thds.end(), mem_fn(&std::thread::join));
 	awm_thds.clear();
 #endif
-	logger->Debug("Evaluate: table size = %d", entities.size());
+	logger->Debug("Evaluate: number of entities = %d", entities.size());
 }
 
 void YamsSchedPol::EvalWorkingMode(SchedEntityPtr_t pschd) {
 	std::unique_lock<std::mutex> sched_ul(sched_mtx, std::defer_lock);
 	ExitCode_t result;
-	logger->Debug("Insert: [%s] ...metrics computing...", pschd->StrId());
+	logger->Debug("Insert: %s ...metrics computing...", pschd->StrId());
 
 	// Skip if the application has been disabled/stopped in the meanwhile
 	if (pschd->papp->Disabled()) {
-		logger->Debug("Insert: [%s] disabled/stopped during schedule ordering",
+		logger->Debug("Insert: %s disabled/stopped during schedule ordering",
 				pschd->papp->StrId());
 		return;
 	}
@@ -393,8 +387,8 @@ void YamsSchedPol::EvalWorkingMode(SchedEntityPtr_t pschd) {
 	// Insert the SchedEntity in the scheduling list
 	sched_ul.lock();
 	entities.push_back(pschd);
-	logger->Debug("Insert [%d]: %s: ..:: metrics %1.3f",
-			entities.size(), pschd->StrId(), pschd->metrics);
+	logger->Debug("Insert: %s scheduling metrics: %1.3f [%d]",
+			pschd->StrId(), pschd->metrics, entities.size());
 }
 
 void YamsSchedPol::AggregateContributes(SchedEntityPtr_t pschd) {
@@ -416,7 +410,7 @@ void YamsSchedPol::AggregateContributes(SchedEntityPtr_t pschd) {
 		scm_ret = scm->GetIndex(sc_types[i], eval_ent, sc_value, sc_ret);
 		if (scm_ret != SchedContribManager::OK) {
 
-			logger->Error("Aggregate: [SchedContribManager error %d]", scm_ret);
+			logger->Error("Aggregate: [SC manager error:%d]", scm_ret);
 			if (scm_ret != SchedContribManager::SC_ERROR) {
 				YAMS_RESET_TIMING(comp_tmr);
 				continue;
@@ -446,8 +440,8 @@ void YamsSchedPol::AggregateContributes(SchedEntityPtr_t pschd) {
 	}
 
 	metrics_log[len-2] = '\0';
-	logger->Notice("Aggregate: %s app-value: (%s) => %5.4f", pschd->StrId(),
-			metrics_log, pschd->metrics);
+	logger->Notice("Aggregate: %s app-value:%s => %5.4f",
+			pschd->StrId(),	metrics_log, pschd->metrics);
 }
 
 YamsSchedPol::ExitCode_t YamsSchedPol::BindCluster(SchedEntityPtr_t pschd) {
