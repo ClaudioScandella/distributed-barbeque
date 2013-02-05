@@ -23,11 +23,6 @@ namespace po = boost::program_options;
 
 namespace bbque { namespace plugins {
 
-/** Set default congestion penalties values */
-uint16_t SCFairness::penalties_default[SC_RSRC_COUNT] = {
-	5,
-	5
-};
 
 SCFairness::SCFairness(
 		const char * _name,
@@ -43,7 +38,7 @@ SCFairness::SCFairness(
 	snprintf(conf_str, 50, SC_CONF_BASE_STR"%s.expbase", name);
 	opts_desc.add_options()
 		(conf_str,
-		 po::value<uint16_t>(&expbase)->default_value(DEFAULT_CONG_EXPBASE),
+		 po::value<uint16_t>(&expbase)->default_value(SC_FAIR_DEFAULT_EXPBASE),
 		 "Base for exponential function");
 		;
 
@@ -55,7 +50,7 @@ SCFairness::SCFairness(
 		opts_desc.add_options()
 			(conf_str,
 			 po::value<uint16_t>
-				(&penalties_int[i])->default_value(penalties_default[i]),
+				(&penalties_int[i])->default_value(SC_FAIR_DEFAULT_PENALTY),
 			 "Fairness penalty per resource");
 		;
 	}
@@ -70,6 +65,8 @@ SCFairness::SCFairness(
 					"found %d. Setting to %d", ResourceNames[i],
 					penalties_int[i], penalties_default[i]);
 			penalties_int[i] = penalties_default[i];
+					penalties_int[i], SC_FAIR_DEFAULT_PENALTY);
+			penalties_int[i] = SC_FAIR_DEFAULT_PENALTY;
 		}
 		logger->Debug("Resource [%s] saturation penalty \t= %.2f",
 				ResourceNames[i], static_cast<float>(penalties_int[i]) / 100.0);
