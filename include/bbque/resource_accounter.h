@@ -20,8 +20,9 @@
 
 #include <set>
 
-#include "bbque/application_manager.h"
 #include "bbque/resource_accounter_conf.h"
+
+#include "bbque/application_manager.h"
 #include "bbque/res/resource_utils.h"
 #include "bbque/res/resource_tree.h"
 #include "bbque/plugins/logger.h"
@@ -531,7 +532,6 @@ private:
 	 * the corresponding view on resources state. When that schedule has been
 	 * committed, i.e. resources usage synchronized, this has the same value
 	 * of sys_view_token.
-	 * 
 	 */
 	RViewToken_t sch_view_token;
 

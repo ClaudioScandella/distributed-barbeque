@@ -220,19 +220,15 @@ uint64_t ResourceAccounter::QueryStatus(
 	for (; res_it != res_end; ++res_it) {
 		ResourcePtr_t const & rsrc(*res_it);
 		switch(_att) {
-		// Resource availability
 		case RA_AVAIL:
 			value += rsrc->Available(papp, vtok);
 			break;
-		// Resource used
 		case RA_USED:
 			value += rsrc->Used(vtok);
 			break;
-		// Resource not reserved quantity
 		case RA_UNRESERVED:
 			value += rsrc->Unreserved();
 			break;
-		// Resource total
 		case RA_TOTAL:
 			value += rsrc->Total();
 			break;
