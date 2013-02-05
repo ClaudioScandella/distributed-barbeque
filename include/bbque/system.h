@@ -161,9 +161,11 @@ public:
 		return ra.Available(path, vtok, papp);
 	}
 
-	/**
-	 * @see ResourceAccounterStatusIF::Available()
-	 */
+	inline uint64_t ResourceAvailable(ResourcePathPtr_t ppath,
+			RViewToken_t vtok = 0, AppSPtr_t papp = AppSPtr_t()) const {
+		return ra.Available(ppath, ResourceAccounter::UNDEFINED, vtok, papp);
+	}
+
 	inline uint64_t ResourceAvailable(ResourcePtrList_t & rsrc_list,
 			RViewToken_t vtok = 0, AppCPtr_t papp = AppCPtr_t()) const {
 		return ra.Available(rsrc_list, vtok, papp);
@@ -176,9 +178,10 @@ public:
 		return ra.Total(path);
 	}
 
-	/**
-	 * @see ResourceAccounterStatusIF::Total()
-	 */
+	inline uint64_t ResourceTotal(ResourcePathPtr_t ppath) const {
+		return ra.Total(ppath, ResourceAccounter::UNDEFINED);
+	}
+
 	inline uint64_t ResourceTotal(ResourcePtrList_t & rsrc_list) const {
 		return ra.Total(rsrc_list);
 	}
@@ -191,9 +194,11 @@ public:
 		return ra.Used(path, vtok);
 	}
 
-	/**
-	 * @see ResourceAccounterStatusIF::Used()
-	 */
+	inline uint64_t ResourceUsed(ResourcePathPtr_t ppath,
+			RViewToken_t vtok = 0) const {
+		return ra.Used(ppath, ResourceAccounter::UNDEFINED, vtok);
+	}
+
 	inline uint64_t ResourceUsed(ResourcePtrList_t & rsrc_list,
 			RViewToken_t vtok = 0) const {
 		return ra.Used(rsrc_list, vtok);

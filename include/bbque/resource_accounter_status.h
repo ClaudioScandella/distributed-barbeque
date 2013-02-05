@@ -155,6 +155,9 @@ public:
 	 */
 	virtual uint64_t Total(std::string const & path) const = 0;
 
+	virtual uint64_t Total(ResourcePathPtr_t ppath,
+			PathClass_t rpc = EXACT) const = 0;
+
 	/**
 	 * @brief Total amount of not reserved resources
 	 *
@@ -216,6 +219,10 @@ public:
 	virtual uint64_t Available(std::string const & path, RViewToken_t vtok = 0,
 			AppSPtr_t papp = AppSPtr_t()) const = 0;
 
+	virtual uint64_t Available(ResourcePathPtr_t ppath,
+			PathClass_t rpc = EXACT, RViewToken_t vtok = 0,
+			AppSPtr_t papp = AppSPtr_t()) const = 0;
+
 	/**
 	 * @brief Amount of resources available
 	 *
@@ -252,6 +259,9 @@ public:
 	 */
 	virtual uint64_t Used(std::string const & path, RViewToken_t vtok = 0)
 		const = 0;
+
+	virtual uint64_t Used(ResourcePathPtr_t ppath,
+			PathClass_t rpc = EXACT, RViewToken_t vtok = 0) const = 0;
 
 	/**
 	 * @brief Amount of resources used

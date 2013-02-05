@@ -85,31 +85,13 @@ public:
 		return QueryStatus(matchings, RA_TOTAL, 0);
 	}
 
-	/**
-	 * @see ResourceAccounterStatusIF
-	 */
-	inline uint64_t Unreserved(std::string const & path) const {
-		ResourcePtrList_t matchings = GetResources(path);
-		return QueryStatus(matchings, RA_UNRESERVED, 0);
-	}
-
-	/**
-	 * @see ResourceAccounterStatusIF
-	 */
 	inline uint64_t Total(ResourcePtrList_t & rsrc_list) const {
 		if (rsrc_list.empty())
 			return 0;
 		return QueryStatus(rsrc_list, RA_TOTAL);
 	}
 
-	/**
-	 * @see ResourceAccounterStatusIF
-	 */
-	inline uint64_t Unreserved(ResourcePtrList_t & rsrc_list) const {
-		if (rsrc_list.empty())
-			return 0;
-		return QueryStatus(rsrc_list, RA_UNRESERVED);
-	}
+	uint64_t Total(ResourcePathPtr_t ppath,	PathClass_t rpc = EXACT) const;
 
 	/**
 	 * @see ResourceAccounterStatusIF
@@ -120,15 +102,15 @@ public:
 		return QueryStatus(matchings, RA_AVAIL, vtok, papp);
 	}
 
-	/**
-	 * @see ResourceAccounterStatusIF
-	 */
 	inline uint64_t Available(ResourcePtrList_t & rsrc_list,
 			RViewToken_t vtok = 0, AppSPtr_t papp = AppSPtr_t()) const {
 		if (rsrc_list.empty())
 			return 0;
 		return QueryStatus(rsrc_list, RA_AVAIL, vtok, papp);
 	}
+
+	uint64_t Available(ResourcePathPtr_t ppath, PathClass_t rpc = EXACT,
+			RViewToken_t vtok = 0, AppSPtr_t papp = AppSPtr_t()) const;
 
 	/**
 	 * @see ResourceAccounterStatusIF
@@ -139,14 +121,28 @@ public:
 		return QueryStatus(matchings, RA_USED, vtok);
 	}
 
-	/**
-	 * @see ResourceAccounterStatusIF
-	 */
 	inline uint64_t Used(ResourcePtrList_t & rsrc_list,
 			RViewToken_t vtok = 0) const {
 		if (rsrc_list.empty())
 			return 0;
 		return QueryStatus(rsrc_list, RA_USED, vtok);
+	}
+
+	uint64_t Used(ResourcePathPtr_t ppath, PathClass_t rpc = EXACT,
+			RViewToken_t vtok = 0) const;
+
+	/**
+	 * @see ResourceAccounterStatusIF
+	 */
+	inline uint64_t Unreserved(std::string const & path) const {
+		ResourcePtrList_t matchings = GetResources(path);
+		return QueryStatus(matchings, RA_UNRESERVED, 0);
+	}
+
+	inline uint64_t Unreserved(ResourcePtrList_t & rsrc_list) const {
+		if (rsrc_list.empty())
+			return 0;
+		return QueryStatus(rsrc_list, RA_UNRESERVED);
 	}
 
 	/**
@@ -179,12 +175,21 @@ public:
 	 * @see ResourceAccounterStatusIF
 	 */
 	ResourcePtr_t GetResource(std::string const & path) const;
+
 	ResourcePtr_t GetResource(ResourcePathPtr_t ppath) const;
 
+	/**
+	 * @see ResourceAccounterStatusIF
+	 */
 	ResourcePtrList_t GetResources(std::string const & path) const;
+
 	ResourcePtrList_t GetResources(ResourcePathPtr_t ppath) const;
 
+	/**
+	 * @see ResourceAccounterStatusIF
+	 */
 	bool ExistResource(std::string const & path) const;
+
 	bool ExistResource(ResourcePathPtr_t ppath) const;
 
 	/**
@@ -548,6 +553,25 @@ private:
 			return 0;
 		}
 	}
+
+	/**
+	 * @brief Get a list of resource descriptor
+	 *
+	 * The list is retrieved depending on the resource path class specified.
+	 * If this is "undefined" it will be up to the function to understand the
+	 * class of the resource path, by invoking function member GetResources.
+	 * Otherwise, whenever the path class is given, the ResourceTree findList
+	 * member function is called with the suitable matching flags.
+	 *
+	 * @param ppath The resource path referencing the resources
+	 * @param rpc The token referencing the resource state view
+	 *
+	 * @return A list of pointers (shared) to resource descriptors
+	 */
+	ResourcePtrList_t GetList(ResourcePathPtr_t ppath,
+			PathClass_t rpc = EXACT) const;
+
+	/**
 	 * @brief Return a state parameter (availability, resources used, total
 	 * amount) for the resource.
 	 *

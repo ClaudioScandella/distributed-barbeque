@@ -126,7 +126,7 @@ void ResourceAccounter::PrintStatusReport(RViewToken_t vtok, bool verbose) const
 
 	for (; path_it != end_path; ++path_it) {
 		// Amount of resource used
-		rsrc_used = Used(*path_it, vtok);
+		rsrc_used = Used(ppath, EXACT, vtok);
 
 		// Build the resource text row
 		uint8_t len = 0;
@@ -271,6 +271,38 @@ ResourcePathPtr_t const ResourceAccounter::GetPath(
 /************************************************************************
  *                   QUERY METHODS                                      *
  ************************************************************************/
+
+uint64_t ResourceAccounter::Total(
+		ResourcePathPtr_t ppath,
+		PathClass_t rpc) const {
+	ResourcePtrList_t matchings = GetList(ppath, rpc);
+	return QueryStatus(matchings, RA_TOTAL, 0);
+}
+
+uint64_t ResourceAccounter::Used(
+		ResourcePathPtr_t ppath,
+		PathClass_t rpc,
+		RViewToken_t vtok) const {
+	ResourcePtrList_t matchings = GetList(ppath, rpc);
+	return QueryStatus(matchings, RA_USED, vtok);
+}
+
+uint64_t ResourceAccounter::Available(
+		ResourcePathPtr_t ppath,
+		PathClass_t rpc,
+		RViewToken_t vtok,
+		AppSPtr_t papp) const {
+	ResourcePtrList_t matchings = GetList(ppath, rpc);
+	return QueryStatus(matchings, RA_AVAIL, vtok, papp);
+}
+
+ResourcePtrList_t ResourceAccounter::GetList(
+		ResourcePathPtr_t ppath,
+		PathClass_t rpc) const {
+	if (rpc == UNDEFINED)
+		return GetResources(ppath);
+	return resources.findList(*(ppath.get()), RTFlags(rpc));
+}
 
 uint64_t ResourceAccounter::QueryStatus(
 		ResourcePtrList_t const & rsrc_list,
