@@ -26,31 +26,11 @@
 #include "bbque/res/identifier.h"
 #include "bbque/res/usage.h"
 
-// Following macros are defined in order to give a lightweight abstraction
-// upon the path template details of some typical resources. The purpose is
-// simply to give a more clean way in writing code for Barbeque modules using
-// ResourceAccounter calls.
 
-/** System memory */
-#define RSRC_SYS_MEM 	"mem"
 
-/** Platform internal memory */
-#define RSRC_PLAT_MEM 	"mem"
 
-/** Set of clusters */
-#define RSRC_TILE   	"tile"
 
-/** Memory at Tile scope */
-#define RSRC_TILE_MEM 	"tile.mem"
 
-/** Cluster of processing element */
-#define RSRC_CLUSTER 	"tile.cluster"
-
-/** Memory at Cluster level */
-#define RSRC_CLUST_MEM 	"tile.cluster.mem"
-
-/** Processing element of the Cluster */
-#define RSRC_CLUST_PE 	"tile.cluster.pe"
 
 namespace bbque {
 

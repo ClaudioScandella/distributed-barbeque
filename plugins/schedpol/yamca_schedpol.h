@@ -28,6 +28,8 @@
 #define MODULE_NAMESPACE SCHEDULER_POLICY_NAMESPACE "." SCHEDULER_POLICY_NAME
 #define MODULE_CONFIG SCHEDULER_POLICY_CONFIG "." SCHEDULER_POLICY_NAME
 
+#define RSRC_CLUSTER "sys.cpu"
+
 using bbque::res::RViewToken_t;
 using bbque::utils::Timer;
 using bbque::utils::MetricsCollector;
