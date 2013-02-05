@@ -102,12 +102,11 @@ public:
 	virtual const char * StrId() const = 0;
 
 	/**
-	 * @brief The amount required of a specific resource
-	 * @param res_path Resource path
-	 * @return A floating point value
+	 * @brief A specific resource request amount
+	 * @param r_path Resource path object (shared pointer)
+	 * @return The requested amount
 	 */
-	virtual uint64_t ResourceUsageAmount(std::string const & res_path)
-		const = 0;
+	virtual uint64_t ResourceUsageAmount(ResourcePathPtr_t r_path) const = 0;
 
 	/**
 	 * @brief Return a map of all the requested resources

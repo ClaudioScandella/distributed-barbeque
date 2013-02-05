@@ -204,7 +204,7 @@ public:
 	/**
 	 * @see WorkingModeStatusIF
 	 */
-	uint64_t ResourceUsageAmount(std::string const & rsrc_path) const;
+	uint64_t ResourceUsageAmount(ResourcePathPtr_t ppath) const;
 
 	/**
 	 * @see WorkingModeStatusIF
@@ -381,22 +381,7 @@ private:
 	} clusters;
 
 
-	/**
-	 * @brief Usage object referenced by template path
-	 *
-	 * @param temp_path The resource path (template)
-	 * @return The Usage object from the recipe map.
-	 */
-	UsagePtr_t ResourceUsageTempRef(std::string const & temp_path) const;
 
-	/**
-	 * @brief Usage object referenced by ID-based path
-	 *
-	 * @param path The resource path (ID-based)
-	 * @return The Usage object from the binding map. If this is
-	 * missing, the recipe map is considered.
-	 */
-	UsagePtr_t ResourceUsageRef(std::string const & rsrc_path) const;
 };
 
 } // namespace app
