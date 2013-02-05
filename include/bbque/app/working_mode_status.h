@@ -137,13 +137,13 @@ public:
 	 * scheduling policy. If the method returns a null pointer then the
 	 * resources have been set for being allocated yet.
 	 *
-	 * @param bid A binding identifier. This should be specified if the
+	 * @param b_id A binding identifier. This should be specified if the
 	 * scheduling policy aims to handle more than one binding. Currently the
 	 * range of acceptable values goes from 0 to 255.
 	 *
 	 * @return A map of Usage objects
 	 */
-	virtual UsagesMapPtr_t GetSchedResourceBinding(uint8_t bid = 0) const = 0;
+	virtual UsagesMapPtr_t GetSchedResourceBinding(uint16_t b_id = 0) const = 0;
 
 	/**
 	 * @brief Get the bitmap of the clusters currently used.
@@ -153,7 +153,7 @@ public:
 	 *
 	 * @return A bitset data structure
 	 */
-	virtual ClustersBitSet const & ClusterSet() const = 0;
+	virtual BindingBitset BindingSet(ResourceIdentifier::Type_t r_type) const = 0;
 
 	/**
 	 * @brief Get the bitmap of the clusters previously used.
@@ -163,7 +163,8 @@ public:
 	 *
 	 * @return A bitset data structure
 	 */
-	virtual ClustersBitSet const & PrevClusterSet() const = 0;
+	virtual BindingBitset BindingSetPrev(
+			ResourceIdentifier::Type_t r_type) const = 0;
 
 	/**
 	 * @brief Check if clusters used are changed
@@ -175,7 +176,7 @@ public:
 	 *
 	 * @return True if the AWM use a different map of clusters, false otherwise.
 	 */
-	virtual bool ClustersChanged() const = 0;
+	virtual bool BindingChanged(ResourceIdentifier::Type_t r_type) const = 0;
 
 };
 

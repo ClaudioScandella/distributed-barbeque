@@ -225,23 +225,27 @@ public:
 		return resources.requested.size();
 	}
 
+	/*-----------------------------------------------------------------------*
+	 *                RESOURCE BINDING function members                      *
+	 *-----------------------------------------------------------------------*/
+
 	/**
 	 * @see WorkingModeConfIF
 	 */
-	ExitCode_t BindResource(std::string const & rsrc_name, ResID_t src_ID,
-			ResID_t dst_ID, uint8_t bid = 0);
+	ExitCode_t BindResource(ResourceIdentifier::Type_t r_type,
+			ResID_t src_ID,	ResID_t dst_ID, uint16_t b_id = 0);
 
 	/**
 	 * @see WorkingModeStatusIF
 	 */
-	inline UsagesMapPtr_t GetSchedResourceBinding(uint8_t bid = 0) const {
-		return resources.on_sched[bid];
+	inline UsagesMapPtr_t GetSchedResourceBinding(uint16_t b_id = 0) const {
+		return resources.sched_bindings[b_id];
 	}
 
 	/**
 	 * @brief Set the resource binding to schedule
 	 *
-	 * This binds the map of resource usages pointed by "resources.on_sched"
+	 * This binds the map of resource usages pointed by "resources.sched_bindings"
 	 * to the WorkingMode. The map will contain Usage objects
 	 * specifying the the amount of resource requested (value) and a list of
 	 * system resource descriptors to which bind the request.
@@ -249,20 +253,13 @@ public:
 	 * This method is invoked during the scheduling step to track the set of
 	 * resources to acquire at the end of the synchronization step.
 	 *
-	 * @param bid The scheduling binding id to set ready for synchronization
+	 * @param b_id The scheduling binding id to set ready for synchronization
 	 * (optional)
 	 *
 	 * @return WM_SUCCESS, or WM_RSRC_MISS_BIND if some bindings are missing
 	 */
-	ExitCode_t SetResourceBinding(uint8_t bid = 0);
+	ExitCode_t SetResourceBinding(uint16_t b_id = 0);
 
-	/**
-	 * @see WorkingModeConfIF
-	 */
-	inline void ClearSchedResourceBinding() {
-		resources.on_sched.clear();
-		resources.on_sched.resize(MAX_NUM_BINDINGS);
-	}
 
 	/**
 	 * @brief Get the map of scheduled resource usages
@@ -276,7 +273,7 @@ public:
 	 * @return A shared pointer to a map of Usage objects
 	 */
 	inline UsagesMapPtr_t GetResourceBinding() const {
-		return resources.to_sync;
+		return resources.sync_bindings;
 	}
 
 	/**
@@ -284,31 +281,29 @@ public:
 	 *
 	 * The method reverts the effects of SetResourceBinding()
 	 */
-	inline void ClearResourceBinding() {
-		resources.to_sync->clear();
-		clusters.curr = clusters.prev;
+	void ClearResourceBinding();
+
+	/**
+	 * @see WorkingModeConfIF
+	 */
+	inline void ClearSchedResourceBinding() {
+		resources.sched_bindings.clear();
 	}
 
 	/**
 	 * @see WorkingModeStatusIF
 	 */
-	inline ClustersBitSet const & ClusterSet() const {
-		return clusters.curr;
-	}
+	BindingBitset BindingSet(ResourceIdentifier::Type_t r_type) const;
 
 	/**
 	 * @see WorkingModeStatusIF
 	 */
-	inline ClustersBitSet const & PrevClusterSet() const {
-		return clusters.prev;
-	}
+	BindingBitset BindingSetPrev(ResourceIdentifier::Type_t r_type) const;
 
 	/**
 	 * @see WorkingModeStatusIF
 	 */
-	inline bool ClustersChanged() const {
-		return clusters.changed;
-	}
+	bool BindingChanged(ResourceIdentifier::Type_t r_type) const;
 
 private:
 

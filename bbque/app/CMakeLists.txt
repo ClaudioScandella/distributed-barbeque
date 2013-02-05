@@ -11,4 +11,4 @@ set (APPLICATION_SRC application working_mode recipe)
 add_library(bbque_apps STATIC ${APPLICATION_SRC})
 
 #Link static library
-target_link_libraries(bbque_apps bbque_utils)
+target_link_libraries(bbque_apps bbque_utils bbque_resources)

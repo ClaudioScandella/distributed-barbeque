@@ -531,7 +531,8 @@ Application::Reshuffling(AwmPtr_t const & next_awm) {
 
 	// NOTE: This method is intended to be called if we already know we
 	// are in a RECONF state.
-	assert(_CurrentAWM()->ClusterSet() == next_awm->ClusterSet());
+	assert(_CurrentAWM()->BindingSet(ResourceIdentifier::CPU) ==
+			    next_awm->BindingSet(ResourceIdentifier::CPU));
 	assert(_CurrentAWM()->Id() == next_awm->Id());
 
 	if (ra.IsReshuffling(pumc, puma)) {
@@ -551,13 +552,14 @@ Application::SyncRequired(AwmPtr_t const & awm) {
 
 	// Check if the assigned operating point implies RECONF|MIGREC|MIGRATE
 	if ((_CurrentAWM()->Id() != awm->Id()) &&
-			(_CurrentAWM()->ClusterSet() != awm->ClusterSet())) {
+			(_CurrentAWM()->BindingSet(ResourceIdentifier::CPU) !=
+			           awm->BindingSet(ResourceIdentifier::CPU))) {
 		logger->Debug("SynchRequired: [%s] to MIGREC", StrId());
 		return MIGREC;
 	}
 
 	if ((_CurrentAWM()->Id() == awm->Id()) &&
-			(_CurrentAWM()->ClustersChanged())) {
+			(_CurrentAWM()->BindingChanged(ResourceIdentifier::CPU))) {
 		logger->Debug("SynchRequired: [%s] to MIGRATE", StrId());
 		return MIGRATE;
 	}

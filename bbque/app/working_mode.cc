@@ -157,142 +157,94 @@ uint64_t WorkingMode::ResourceUsageAmount(
 	return 0;
 }
 
-
 WorkingMode::ExitCode_t WorkingMode::BindResource(
-		std::string const & rsrc_name,
+		ResourceIdentifier::Type_t r_type,
 		ResID_t src_ID,
 		ResID_t dst_ID,
-		uint8_t bid) {
-	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	UsagesMap_t::iterator usage_it, it_end;
+		uint16_t b_id) {
+	uint32_t b_count;
+	UsagesMap_t::const_iterator b_it, b_end;
 
-	// Null name check
-	if (rsrc_name.empty()) {
-		logger->Error("Binding [AWM%d]: Missing resource name", id);
-		return WM_RSRC_ERR_TYPE;
-	}
+	// Sanity check
+	if (b_id >= MAX_R_ID_NUM)
+		return WM_BIND_ID_OVERFLOW;
 
 	// Allocate a new temporary resource usages map
-	UsagesMapPtr_t temp_binds(UsagesMapPtr_t(new UsagesMap_t()));
+	UsagesMapPtr_t bind_pum(UsagesMapPtr_t(new UsagesMap_t()));
 
-	// If this is the first binding action, the resource paths to consider
-	// must be taken from the recipe resource map. Converserly, if a previous
-	// call to this method has been performed, a map of resource usages to
-	// schedule has been created. Thus we must continue the binding...
-	if (!resources.on_sched[bid]) {
-		usage_it = resources.from_recp.begin();
-		it_end = resources.from_recp.end();
-	}
-	else {
-		usage_it = resources.on_sched[bid]->begin();
-		it_end = resources.on_sched[bid]->end();
-	}
-
-	// Proceed with the resource binding...
-	for (; usage_it != it_end; ++usage_it) {
-		UsagePtr_t & rcp_pusage(usage_it->second);
-		std::string const & rcp_path(usage_it->first);
-
-		// Replace resource name+src_ID with resource_name+dst_ID in the
-		// resource path
-		std::string bind_path(
-				ResourcePathUtils::ReplaceID(rcp_path, rsrc_name, src_ID,
-					dst_ID));
-		logger->Debug("Binding [AWM%d]: 'recipe' [%s] \t=> 'platform' [%s]", id,
-				rcp_path.c_str(), bind_path.c_str());
-
-		// Create a new Usage object and set the binding list
-		UsagePtr_t bind_pusage(new Usage(rcp_pusage->GetAmount()));
-		bind_pusage->SetBindingList(ra.GetResources(bind_path));
-		assert(!bind_pusage->EmptyBindingList());
-
-		// Insert the bound resource into the temporary resource usages map
-		temp_binds->insert(std::pair<std::string,
-					UsagePtr_t>(bind_path, bind_pusage));
-	}
-
-	// Update the resource usages map to schedule
-	resources.on_sched[bid] = temp_binds;
-
-	// Debug messages
-	DB(
-		usage_it = resources.on_sched[bid]->begin();
-		it_end = resources.on_sched[bid]->end();
-		for (; usage_it != it_end; ++usage_it) {
-			UsagePtr_t & pusage(usage_it->second);
-			std::string const & rcp_path(usage_it->first);
-
-			logger->Debug("Binding [AWM%d]: {%s}\t[amount: %" PRIu64 " bindings: %d]",
-					id, rcp_path.c_str(), pusage->GetAmount(),
-					pusage->GetBindingList().size());
-		}
-		logger->Debug("Binding [AWM%d]: %d resources bound", id,
-			resources.on_sched[bid]->size());
-	);
-
-	// Are all the resource usages bound ?
-	if (resources.from_recp.size() < resources.on_sched[bid]->size())
+	// Binding
+	b_count = ResourceBinder::Bind(
+			resources.requested, r_type, src_ID, dst_ID, bind_pum);
+	if (b_count == 0) {
+		logger->Warn("%s BindResource: nothing to bind", str_id);
 		return WM_RSRC_MISS_BIND;
+	}
+	logger->Debug("%s BindResource: R{%s} b_id[%d] size:%d count:%d",
+			str_id, ResourceIdentifier::StringFromType(r_type),
+			b_id, bind_pum->size(), b_count);
+
+	// Store the resource binding
+	resources.sched_bindings[b_id] = bind_pum;
 
 	return WM_SUCCESS;
 }
 
+WorkingMode::ExitCode_t WorkingMode::SetResourceBinding(uint16_t b_id) {
+	BindingBitset new_mask, temp_mask;
+	uint8_t r_type;
 
-WorkingMode::ExitCode_t WorkingMode::SetResourceBinding(uint8_t bid) {
-	ClustersBitSet clust_tmp;
+	// Sanity check
+	if (b_id >= MAX_R_ID_NUM)
+		return WM_BIND_ID_OVERFLOW;
 
-	// The binding map must have the same size of resource usages map built
-	// from the recipe
-	if (!resources.on_sched[bid] ||
-			(resources.on_sched[bid]->size() != resources.from_recp.size()))
-		return WM_RSRC_MISS_BIND;
+	// Update the resource binding bitmask (for each type)
+	for (r_type = ResourceIdentifier::SYSTEM;
+			r_type < ResourceIdentifier::TYPE_COUNT; ++r_type) {
 
-	// Init the iterators for the maps
-	UsagesMap_t::iterator bind_it(resources.on_sched[bid]->begin());
-	UsagesMap_t::iterator end_bind(resources.on_sched[bid]->end());
-	UsagesMap_t::iterator recp_it(resources.from_recp.begin());
-	UsagesMap_t::iterator end_recp(resources.from_recp.end());
+		// Update the binding mask
+		BindingInfo & r_mask(resources.binding_masks[r_type]);
+		new_mask = ResourceBinder::GetMask(
+				resources.sched_bindings[b_id],
+				static_cast<ResourceIdentifier::Type_t>(r_type));
+		r_mask.prev = r_mask.curr;
+		r_mask.curr = new_mask;
 
-	// Check the correctness of the binding
-	for(; bind_it != end_bind, recp_it != end_recp; ++recp_it, ++bind_it) {
-		std::string const & bind_tmpl(
-				ResourcePathUtils::GetTemplate(bind_it->first));
-		std::string const & recp_tmpl(
-				ResourcePathUtils::GetTemplate(recp_it->first));
-
-		// A mismatch of path template means an error
-		if (bind_tmpl.compare(recp_tmpl) != 0) {
-			logger->Error("SetBinding [AWM%d]: %s resource path mismatch %s",
-					id, bind_tmpl.c_str(), recp_tmpl.c_str());
-			return WM_RSRC_MISS_BIND;
-		}
-
-		// Retrieve the bound cluster[s]
-		ResID_t cl_id = ResourcePathUtils::GetID(bind_it->first, "cluster");
-		if (cl_id == R_ID_NONE)
-			continue;
-
-		// Set the bit in the clusters bitset
-		logger->Debug("SetBinding [AWM%d]: Bound into cluster %d", id, cl_id);
-		clust_tmp.set(cl_id);
+		// Set the flag if changed and print a log message
+		r_mask.changed = r_mask.prev != new_mask;
+		logger->Debug("%s SetBinding: R{%-3s} changed? [%d]",
+				str_id, ResourceIdentifier::TypeStr[r_type], r_mask.changed);
 	}
 
-	// Update the clusters bitset
-	clusters.prev = clusters.curr;
-	clusters.curr = clust_tmp;
-	logger->Debug("SetBinding [AWM%d]: previous cluster set: %s", id,
-			clusters.prev.to_string().c_str());
-	logger->Debug("SetBinding [AWM%d]:  current cluster set: %s", id,
-			clusters.curr.to_string().c_str());
-
-	// Cluster set changed?
-	clusters.changed = clusters.prev != clusters.curr;
-
 	// Set the new binding / resource usages map
-	resources.to_sync = resources.on_sched[bid];
-	resources.on_sched[bid].reset();
+	resources.sync_bindings = resources.sched_bindings[b_id];
+	resources.sched_bindings[b_id].reset();
 
 	return WM_SUCCESS;
+}
+
+void WorkingMode::ClearResourceBinding() {
+	uint8_t r_type = 0;
+	resources.sync_bindings->clear();
+	for (; r_type < ResourceIdentifier::TYPE_COUNT; ++r_type) {
+		resources.binding_masks[r_type].curr =
+			resources.binding_masks[r_type].prev;
+	}
+}
+
+BindingBitset WorkingMode::BindingSet(
+		ResourceIdentifier::Type_t r_type) const {
+	BindingInfo const & bi(resources.binding_masks[r_type]);
+	return bi.curr;
+}
+
+BindingBitset WorkingMode::BindingSetPrev(
+		ResourceIdentifier::Type_t r_type) const {
+   return resources.binding_masks[r_type].prev;
+}
+
+bool WorkingMode::BindingChanged(
+		ResourceIdentifier::Type_t r_type) const {
+   return resources.binding_masks[r_type].changed;
 }
 
 } // namespace app

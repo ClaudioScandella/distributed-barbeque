@@ -20,7 +20,6 @@
 #include "bbque/modules_factory.h"
 #include "bbque/plugin_manager.h"
 #include "bbque/platform_proxy.h"
-
 #include "bbque/app/application.h"
 #include "bbque/app/working_mode.h"
 #include "bbque/app/recipe.h"
@@ -50,6 +49,7 @@ namespace br = bbque::res;
 namespace bp = bbque::plugins;
 namespace po = boost::program_options;
 
+using br::ResourceIdentifier;
 using std::chrono::milliseconds;
 
 namespace bbque {
@@ -647,9 +647,9 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 	AppPtr_t papp;
 	char line[66];
 	char state_str[10];
-	char curr_awm_cl[15];
-	char next_awm_cl[15];
-	char clset[8];
+	char curr_awm_bd[15];
+	char next_awm_bd[15];
+	char b_set[MAX_R_ID_NUM];
 
 	PRINT_NOTICE_IF_VERBOSE(verbose, RP_DIV1);
 	PRINT_NOTICE_IF_VERBOSE(verbose, RP_HEAD);
@@ -663,28 +663,37 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 		// Current AWM
 		if (awm) {
 			// MIGRATE case => must see previous set of the same AWM
-			if ((awm == next_awm) && (awm->ClustersChanged()))
-				strncpy(clset, awm->PrevClusterSet().to_string().c_str(), 8);
+			if ((awm == next_awm) &&
+				(awm->BindingChanged(ResourceIdentifier::CPU)))
+				strncpy(b_set,
+						awm->BindingSetPrev(
+							ResourceIdentifier::CPU).to_string().c_str(),
+							MAX_R_ID_NUM);
 			else
-				strncpy(clset, awm->ClusterSet().to_string().c_str(), 8);
-
-			snprintf(curr_awm_cl, 12, "%02d:%s", awm->Id(), clset);
+				strncpy(b_set,
+						awm->BindingSet(
+							ResourceIdentifier::CPU).to_string().c_str(),
+							MAX_R_ID_NUM);
+			snprintf(curr_awm_bd, 12, "%02d:%s", awm->Id(), b_set);
 		}
 		else
-			snprintf(curr_awm_cl, 12, "-");
+			snprintf(curr_awm_bd, 12, "-");
 
 		// Next AWM
 		if (next_awm) {
-			strncpy(clset, next_awm->ClusterSet().to_string().c_str(), 8);
-			snprintf(next_awm_cl, 12, "%02d:%s", next_awm->Id(), clset);
+			strncpy(b_set,
+					next_awm->BindingSet(
+						ResourceIdentifier::CPU).to_string().c_str(),
+						MAX_R_ID_NUM);
+			snprintf(next_awm_bd, 12, "%02d:%s", next_awm->Id(), b_set);
 		}
 		else
-			snprintf(next_awm_cl, 12, "-");
+			snprintf(next_awm_bd, 12, "-");
 
 		// State/Sync
 		BuildStateStr(papp, state_str);
 		snprintf(line, 66, "| %16s | %10s | %11s | %11s |",
-				papp->StrId(), state_str, curr_awm_cl, next_awm_cl);
+				papp->StrId(), state_str, curr_awm_bd, next_awm_bd);
 
 		// Print the row
 		PRINT_NOTICE_IF_VERBOSE(verbose, line);

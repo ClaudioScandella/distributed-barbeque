@@ -44,48 +44,31 @@ public:
 	 * @brief Bind resource usages to system resources descriptors
 	 *
 	 * Resource paths taken from the recipes use IDs that do not care about
-	 * the real system resource IDs registered by Barbeque. Thus a binding
-	 * must be solved in order to make the request of resources satisfiables.
+	 * the real system resource IDs registered by BarbequeRTRM. Thus a binding
+	 * must be solved in order to make the request of resources satisfiable.
 	 *
-	 * The method takes the resource name we want to bind (i.e. "cluster"),
-	 * the source resource ID (optional), i.e. the ID specified in the recipe,
-	 * and the destination ID related to the system resource to bind. Then it
-	 * substitutes "cluster+[source ID]" with "cluster+[dest ID]" and get the
-	 * list of descriptors (bindings) returned by ResourceAccounter.
+	 * The function member takes the resource type we want to bind (i.e.
+	 * "CPU"), its source ID number (as specified in the recipe), and the
+	 * destination ID related to the system resource to bind. Thus it builds
+	 * a UsagesMap, wherein the ResourcePath objects, featuring the resource
+	 * type specified, have the destination ID number in place of the source
+	 * ID.
 	 *
-	 * If a binding on the same resource is performed again, before the
-	 * current binding has been set for scheduling, the behavior is the one
-	 * explained below:
-	 *
-	 * BindResource("cluster", 0, 1);   // Recp ID 0 -> Sys ID 1
-	 * BindResource("cluster", 1, 2);   //  Sys ID 1 -> Sys ID 2 = Recp ID 0
-	 *
-	 * Therefore... BEWARE! To undo the previous binding (the whole map) @see
-	 * ClearSchedResourceBinding().
-	 *
-	 * If the source ID is left blank, the method will bind ALL the
-	 * resource path containing "cluster" or "clusterN" to the descriptor
-	 * referenced by such path, with the destination resource ID in
-	 * the system.
-	 *
-	 * As result a map of ResourceUsage objects is built. It defines the set
-	 * of resources to allocate to the application, according to the
-	 * assignment of the working mode.
-	 *
-	 * @param rsrc_name The resource name we want to bind
+	 * @param r_type The type of resource to bind
 	 * @param src_ID Recipe resource name ID
 	 * @param dst_ID System resource name ID
-	 * @param bid An optional binding identifier
+	 * @param b_id An optional binding identifier
 	 *
 	 * @return WM_SUCCESS if the binding has been correctly performed.
-	 * WM_ERR_RSRC_NAME if the resource name specified is not correct, and
-	 * WM_RSRC_MISS_BIND if the resulting binding is incomplete.
+	 * WM_ERR_RSRC_TYPE if the resource type specified is not correct, and
+	 * WM_BIND_ID_OVERFLOW in case of binding ID provided overflow. In this
+	 * regards the maximum number is defined by MAX_R_ID_NUM macro.
 	 *
 	 * @note Use R_ID_ANY if you want to bind the resource without care
 	 * about its ID.
 	 */
-	virtual ExitCode_t BindResource(std::string const & rsrc_name,
-			ResID_t src_ID, ResID_t dst_ID, uint8_t bid = 0) = 0;
+	virtual ExitCode_t BindResource(ResourceIdentifier::Type_t r_type,
+			ResID_t src_ID, ResID_t dst_ID, uint16_t b_id = 0) = 0;
 
 	/**
 	 * @brief Clear the resource binding to schedule
