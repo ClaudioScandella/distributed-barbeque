@@ -258,6 +258,16 @@ bool ResourceAccounter::ExistResource(ResourcePathPtr_t ppath) const {
 	return !matchings.empty();
 }
 
+ResourcePathPtr_t const ResourceAccounter::GetPath(
+		std::string const & path_str) const {
+	std::map<std::string, ResourcePathPtr_t>::const_iterator rp_it;
+	// Retrieve the resource path object
+	rp_it = r_paths.find(path_str);
+	if (rp_it == r_paths.end())
+		return ResourcePathPtr_t();
+	return (*rp_it).second;
+}
+
 /************************************************************************
  *                   QUERY METHODS                                      *
  ************************************************************************/
