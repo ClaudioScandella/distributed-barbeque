@@ -39,7 +39,11 @@
 ################################################################################
 # Yams Scheduling Policy: Metrics Contribute weights
 ################################################################################
-# Global parameters [0,100]
+# Scheduling policy parameters
+[SchedPol]
+binding.domain = sys.cpu
+
+# Global contribution parameters [0,100]
 [SchedPol.Contrib]
 awmvalue.weight      = 20
 reconfig.weight      = 5
