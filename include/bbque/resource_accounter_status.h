@@ -18,9 +18,12 @@
 #ifndef BBQUE_RESOURCE_ACCOUNT_STATUS_H_
 #define BBQUE_RESOURCE_ACCOUNT_STATUS_H_
 
+#include <list>
+#include <map>
 #include <memory>
 #include <string>
 
+#include "bbque/res/identifier.h"
 #include "bbque/res/usage.h"
 
 // Following macros are defined in order to give a lightweight abstraction
@@ -49,17 +52,26 @@
 /** Processing element of the Cluster */
 #define RSRC_CLUST_PE 	"tile.cluster.pe"
 
-
 namespace bbque {
 
 namespace res {
-
+class Resource;
 class ResourcePath;
 typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
 
+/** Resource state view token data type */
+typedef size_t RViewToken_t;
+typedef std::shared_ptr<Resource> ResourcePtr_t;
+typedef std::list<ResourcePtr_t> ResourcePtrList_t;
+}
+
+namespace app {
+class ApplicationStatusIF;
+typedef std::shared_ptr<ApplicationStatusIF> AppSPtr_t;
 }
 
 using namespace bbque::res;
+using namespace bbque::app;
 
 /**
  * @brief Resource accounting data

@@ -33,7 +33,6 @@
 #include "bbque/plugin_manager.h"
 #include "bbque/platform_services.h"
 #include "bbque/app/working_mode.h"
-#include "bbque/res/usage.h"
 #include "bbque/res/resource_path.h"
 
 #define RP_DIV1 " ========================================================================="
