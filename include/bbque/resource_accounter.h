@@ -383,13 +383,6 @@ public:
 	}
 
 	/**
-	 * @brief Print the resource hierarchy in a tree-like form
-	 */
-	inline void TreeView() {
-		resources.printTree();
-	}
-
-	/**
 	 * @brief Start a synchronized mode session
 	 *
 	 * Once a scheduling/resource allocation has been performed we need to
