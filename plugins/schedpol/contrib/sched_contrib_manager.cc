@@ -89,7 +89,6 @@ SchedContribManager::SchedContribManager(
 	for (int i = 0; i < sc_num; ++i) {
 
 		switch (sc_types[i]) {
-
 		case VALUE:
 			sc_objs_reqs[VALUE] =
 				SchedContribManager::sc_objs[VALUE];
@@ -124,7 +123,7 @@ SchedContribManager::ExitCode_t SchedContribManager::GetIndex(
 		SchedContrib::ExitCode_t & sc_ret,
 		bool weighed) {
 	std::map<Type_t, SchedContribPtr_t>::iterator sc_it;
-	
+
 	// Boundary check
 	if (sc_type >= SC_COUNT)
 		return SC_TYPE_UNKNOWN;

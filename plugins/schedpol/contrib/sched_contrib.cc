@@ -55,6 +55,7 @@ SchedContrib::SchedContrib(const char * _name,
 		uint16_t const params[]):
 	cm(ConfigurationManager::GetInstance()),
 	binding_domain(b_domain) {
+	char logname[16];
 
 	// Identifier name of the contribute
 	strncpy(name, _name, SC_NAME_MAX_LEN);
@@ -65,7 +66,6 @@ SchedContrib::SchedContrib(const char * _name,
 		msl_params[i] = static_cast<float> (params[i]) / 100.0;
 
 	// Get a logger instance
-	char logname[16];
 	snprintf(logname, 16, MODULE_NAMESPACE".%s", name);
 	plugins::LoggerIF::Configuration conf(logname);
 	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
@@ -83,7 +83,7 @@ SchedContrib::Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 
 	_Compute(evl_ent, ctrib);
 
-	logger->Info("%s: %s = %.4f", evl_ent.StrId(), name, ctrib);
+	logger->Info("%s: %-10s = %.4f", evl_ent.StrId(), name, ctrib);
 	assert((ctrib >= 0) && (ctrib <= 1));
 
 	return SC_SUCCESS;
@@ -103,8 +103,8 @@ void SchedContrib::GetResourceThresholds(std::string const & rsrc_path,
 	else
 		rl.saturate = rl.total * msl_params[1];
 
-	// Resource availability (system resource state view)
-	rl.free = sv->ResourceAvailable(rsrc_path, vtok);
+	// Resource availability (scheduling resource state view)
+	rl.free  = sv->ResourceAvailable(rsrc_path, vtok);
 	rl.usage = rl.total - rl.free;
 
 	// Amount of resource remaining before reaching the saturation
@@ -113,8 +113,8 @@ void SchedContrib::GetResourceThresholds(std::string const & rsrc_path,
 		rl.sat_lack = rl.saturate - rl.total + rl.free;
 
 	assert(rl.sat_lack <= rl.free);
-	logger->Debug("%s: Regions => usg: %lu| sat: %lu| sat-lack: %lu| "
-			"free: %lu| req: %lu|",
+	logger->Debug("%s: REGIONS -> usg: %" PRIu64 "| sat: %" PRIu64 "|"
+			" sat-lack: %" PRIu64 " | free: %" PRIu64 "| req: %" PRIu64 "|",
 			evl_ent.StrId(),
 			rl.usage, rl.saturate, rl.sat_lack, rl.free, rsrc_amount);
 }

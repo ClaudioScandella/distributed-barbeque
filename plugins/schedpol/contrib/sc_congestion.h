@@ -37,6 +37,11 @@ public:
 	SCCongestion(const char * _name, std::string const & b_domain,
 			uint16_t const cfg_params[]);
 
+	/**
+	 * @brief Initialize the contribution
+	 *
+	 * Actually, this is an empty member function
+	 */
 	ExitCode_t Init(void * params);
 
 private:

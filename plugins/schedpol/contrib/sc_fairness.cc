@@ -77,12 +77,11 @@ SCFairness::SCFairness(
 }
 
 SchedContrib::ExitCode_t SCFairness::Init(void * params) {
-	AppPrio_t * prio;
-	prio = static_cast<AppPrio_t *>(params);
 
 	// Applications/EXC to schedule, given the priority level
+	AppPrio_t * prio = static_cast<AppPrio_t *>(params);
 	num_apps = sv->ApplicationsCount(*prio);
-	logger->Debug("%d Applications/EXC for priority level %d", num_apps, *prio);
+	logger->Debug("Applications/EXCs: Prio[%d] #:%d", *prio, num_apps);
 
 	// Get the total amount of resource per types
 	for (int i = 0; i < SC_RSRC_COUNT; ++i) {
@@ -159,7 +158,7 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		logger->Debug("%s: R{%s} index = %.4f", evl_ent.StrId(),
 				rsrc_path.c_str(), ru_index);
 
-		// Update the contribute if the index is lower, i.e. the most
+		// Update the contribution if the index is lower, i.e. the most
 		// penalizing request dominates
 		ru_index < ctrib ? ctrib = ru_index: ctrib;
 	}
@@ -167,18 +166,19 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	return SC_SUCCESS;
 }
 
-void SCFairness::SetIndexParameters(uint64_t cfp,
-		uint64_t cra,
+void SCFairness::SetIndexParameters(
+		uint64_t bfp,
+		uint64_t bra,
 		float & penalty,
 		CLEParams_t & params) {
 	// Linear parameters
 	params.lin.xoffset = 0.0;
-	params.lin.scale = penalty / static_cast<float>(cfp);
+	params.lin.scale   = penalty / static_cast<float>(bfp);
 
 	// Exponential parameters
-	params.exp.yscale = (1.0 - penalty) / (params.exp.base - 1.0);
-	params.exp.xscale = static_cast<float>(cfp) - static_cast<float>(cra);
-	params.exp.xoffset = static_cast<float>(cra);
+	params.exp.yscale  = (1.0 - penalty) / (params.exp.base - 1.0);
+	params.exp.xscale  = static_cast<float>(bfp) - static_cast<float>(bra);
+	params.exp.xoffset = static_cast<float>(bra);
 }
 
 

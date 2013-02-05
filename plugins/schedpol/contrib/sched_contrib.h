@@ -209,7 +209,7 @@ public:
 	 * @param _vtok The token of scheduling resource state view
 	 */
 	inline void SetViewInfo(System * _sv, RViewToken_t _vtok) {
-		sv = _sv;
+		sv   = _sv;
 		vtok = _vtok;
 	}
 
@@ -302,6 +302,8 @@ protected:
 	  * Give a resource request, the method returns an index of the goodness
 	  * of performing a given resource allocation.
 	  *
+	  * <tt>
+	  *
 	  * Index
 	  * ^
 	  * |----------       Constant
@@ -312,6 +314,8 @@ protected:
 	  * |_________._.__`-.___________
 	  *          /   \
 	  *         c     l
+	  *
+	  * </tt>
 	  *
 	  * @param c_thresh Threshold of constant index
 	  * @param l_thresh Threshold of linear decreasing index
