@@ -96,11 +96,27 @@ YamsSchedPol::YamsSchedPol():
 	// Get a logger
 	plugins::LoggerIF::Configuration conf(MODULE_NAMESPACE);
 	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
-
 	if (logger)
 		logger->Info("yams: Built a new dynamic object[%p]", this);
 	else
 		fprintf(stderr, FI("yams: Built new dynamic object [%p]\n"), (void *)this);
+
+	// Binding domain resource path
+	po::options_description opts_desc("Scheduling policy parameters");
+	opts_desc.add_options()
+		(SCHEDULER_POLICY_CONFIG".binding.domain",
+		 po::value<std::string>
+		 (&bindings.domain)->default_value(SCHEDULER_DEFAULT_BINDING_DOMAIN),
+		"Resource binding domain");
+	;
+	po::variables_map opts_vm;
+	cm.ParseConfigurationFile(opts_desc, opts_vm);
+
+	// Binding domain resource type
+	ResourcePath rp(bindings.domain);
+	bindings.type = rp.Type();
+	logger->Debug("Binding domain:'%s' Type:%s",
+			bindings.domain.c_str(), ResourceIdentifier::TypeStr[bindings.type]);
 
 	// Instantiate the SchedContribManager
 	scm = new SchedContribManager(sc_types, YAMS_SC_COUNT);
@@ -139,25 +155,27 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 	}
 	logger->Debug("Init: Resources state view token = %d", vtok);
 
-	// Get the number of clusters
-	cl_info.rsrcs = sv->GetResources(RSRC_CLUSTER);
-	cl_info.num   = cl_info.rsrcs.size();
-	cl_info.ids.resize(cl_info.num);
-	if (cl_info.num == 0) {
-		logger->Error("Init: No clusters available on the platform");
+	// Get the base information for the resource bindings
+	bindings.rsrcs = sv->GetResources(bindings.domain);
+	bindings.num   = bindings.rsrcs.size();
+	bindings.ids.resize(bindings.num);
+	if (bindings.num == 0) {
+		logger->Error("Init: No bindings to R{%s} possible."
+				"Please check the platform configuration.");
 		return YAMS_ERR_CLUSTERS;
 	}
 
-	// Get all the clusters IDs
-	ResourcePtrList_t::iterator cl_it(cl_info.rsrcs.begin());
-	ResourcePtrList_t::iterator end_cl(cl_info.rsrcs.end());
-	for (uint8_t j = 0; cl_it != end_cl; ++cl_it, ++j) {
-		ResourcePtr_t & rsrc(*cl_it);
-		cl_info.ids[j] = ResourcePathUtils::GetID(rsrc->Name(), "cluster");
-		logger->Debug("Init: Cluster ID: %d", cl_info.ids[j]);
+	// Get all the possible resource binding IDs
+	ResourcePtrList_t::iterator b_it(bindings.rsrcs.begin());
+	ResourcePtrList_t::iterator b_end(bindings.rsrcs.end());
+	for (uint8_t j = 0; b_it != b_end; ++b_it, ++j) {
+		ResourcePtr_t const & rsrc(*b_it);
+		bindings.ids[j] = rsrc->ID();
+		logger->Debug("Init: R{%s} ID: %d",
+				bindings.domain.c_str(), bindings.ids[j]);
 	}
-
-	logger->Debug("Init: Clusters on the platform: %d", cl_info.num);
+	logger->Debug("Init: R{%s}: %d possible bindings",
+			bindings.domain.c_str(), bindings.num);
 	logger->Debug("Init: Lowest application prio : %d",
 			sv->ApplicationLowestPriority());
 
@@ -192,7 +210,7 @@ YamsSchedPol::Schedule(System & sys_if, RViewToken_t & rav) {
 
 	// Cleaning
 	entities.clear();
-	cl_info.full.reset();
+	bindings.full.reset();
 
 	ra.PrintStatusReport(vtok);
 	logger->Debug("################ Scheduling policy exiting ##############");
@@ -202,7 +220,7 @@ YamsSchedPol::Schedule(System & sys_if, RViewToken_t & rav) {
 error:
 	logger->Error("Schedule: an error occurred. Interrupted.");
 	entities.clear();
-	cl_info.full.reset();
+	bindings.full.reset();
 
 	ra.PutView(vtok);
 	return SCHED_ERROR;
@@ -225,19 +243,21 @@ do_schedule:
 	sc_fair->Init(&prio);
 
 	// For each cluster/node evaluate...
-	ids_it = cl_info.ids.begin();
-	for (; ids_it != cl_info.ids.end(); ++ids_it) {
-		ResID_t & cl_id(*ids_it);
-		logger->Debug("Schedule: :::::::::::::::::::::: Cluster %d:", cl_id);
+	ids_it = bindings.ids.begin();
+	for (; ids_it != bindings.ids.end(); ++ids_it) {
+		ResID_t & bd_id(*ids_it);
+		logger->Debug("Schedule: :::::::::: BINDING:'%s' ID:[%d] :::::::::",
+				bindings.domain.c_str(), bd_id);
 
 		// Skip current cluster if full
-		if (cl_info.full[cl_id]) {
-			logger->Debug("Schedule: cluster %d is full, skipping...", cl_id);
+		if (bindings.full[bd_id]) {
+			logger->Debug("Schedule: domain '%s'%d is full, skipping...",
+					bindings.domain.c_str(), bd_id);
 			continue;
 		}
 
 		// Order schedule entities by aggregate metrics
-		naps_count = OrderSchedEntities(prio, cl_id);
+		naps_count = OrderSchedEntities(prio, bd_id);
 	}
 	// Collect "ordering step" metrics
 	YAMS_GET_TIMING(coll_metrics, YAMS_ORDERING_TIME, yams_tmr);
@@ -254,7 +274,7 @@ do_schedule:
 	YAMS_GET_TIMING(coll_metrics, YAMS_SELECTING_TIME, yams_tmr);
 }
 
-uint8_t YamsSchedPol::OrderSchedEntities(AppPrio_t prio, uint16_t cl_id) {
+uint8_t YamsSchedPol::OrderSchedEntities(AppPrio_t prio, uint16_t bd_id) {
 	uint8_t naps_count = 0;
 	AppsUidMapIt app_it;
 	AppCPtr_t papp;
@@ -266,8 +286,8 @@ uint8_t YamsSchedPol::OrderSchedEntities(AppPrio_t prio, uint16_t cl_id) {
 		if (CheckSkipConditions(papp))
 			continue;
 
-		// Compute the metrics for each AWM binding resources to cluster 'cl_id'
-		InsertWorkingModes(papp, cl_id);
+		// Compute the metrics for each AWM binding resources to cluster 'bd_id'
+		InsertWorkingModes(papp, bd_id);
 
 		// Keep track of NAPped Applications/EXC
 		if (papp->GetGoalGap())
@@ -290,9 +310,9 @@ bool YamsSchedPol::SelectSchedEntities(uint8_t naps_count) {
 	for (; se_it != end_se; ++se_it) {
 		SchedEntityPtr_t & pschd(*se_it);
 
-		// Skip this AWM-Cluster if the cluster is full or if the
+		// Skip this AWM,Binding if the bound domain is full or if the
 		// Application/EXC must be skipped
-		if (cl_info.full.test(pschd->clust_id) ||
+		if (bindings.full.test(pschd->bind_id) ||
 				(CheckSkipConditions(pschd->papp)))
 			continue;
 
@@ -332,7 +352,7 @@ bool YamsSchedPol::SelectSchedEntities(uint8_t naps_count) {
 	return false;
 }
 
-void YamsSchedPol::InsertWorkingModes(AppCPtr_t const & papp, uint16_t cl_id) {
+void YamsSchedPol::InsertWorkingModes(AppCPtr_t const & papp, uint16_t bd_id) {
 	std::list<std::thread> awm_thds;
 	float metrics = 0.0;
 
@@ -341,10 +361,10 @@ void YamsSchedPol::InsertWorkingModes(AppCPtr_t const & papp, uint16_t cl_id) {
 	AwmPtrList_t::const_iterator awm_it(awms->begin());
 	AwmPtrList_t::const_iterator end_awm(awms->end());
 
-	// AWMs (+resources bound to 'cl_id') evaluation
+	// AWMs (+resources bound to 'bd_id') evaluation
 	for (; awm_it != end_awm; ++awm_it) {
 		AwmPtr_t const & pawm(*awm_it);
-		SchedEntityPtr_t pschd(new SchedEntity_t(papp, pawm, cl_id, metrics));
+		SchedEntityPtr_t pschd(new SchedEntity_t(papp, pawm, bd_id, metrics));
 #ifdef BBQUE_SP_YAMS_PARALLEL
 		awm_thds.push_back(
 				std::thread(&YamsSchedPol::EvalWorkingMode, this, pschd)
@@ -373,8 +393,8 @@ void YamsSchedPol::EvalWorkingMode(SchedEntityPtr_t pschd) {
 		return;
 	}
 
-	// Bind the resources of the AWM to the current cluster
-	result = BindCluster(pschd);
+	// Bind the resources of the AWM to the current binding domain
+	result = BindResources(pschd);
 	if (result != YAMS_SUCCESS)
 		return;
 
@@ -419,13 +439,13 @@ void YamsSchedPol::AggregateContributes(SchedEntityPtr_t pschd) {
 			// SchedContrib specific error handling
 			switch (sc_ret) {
 			case SchedContrib::SC_RSRC_NO_PE:
-				logger->Debug("Aggregate: No available PEs in cluster/node %d",
-						pschd->clust_id);
-				cl_info.full.set(pschd->clust_id);
+				logger->Debug("Aggregate: No available PEs in {%s} %d",
+						bindings.domain.c_str(), pschd->bind_id);
+				bindings.full.set(pschd->bind_id);
 				return;
 			default:
-				logger->Warn("Aggregate: Unable to schedule into cluster/node %d"
-						" [SchedContrib error %d]", pschd->clust_id);
+				logger->Warn("Aggregate: Unable to schedule in {%s} %d [err:%d]",
+						bindings.domain.c_str(), pschd->bind_id, sc_ret);
 				YAMS_GET_TIMING(coll_mct_metrics, i, comp_tmr);
 				continue;
 			}
@@ -444,28 +464,28 @@ void YamsSchedPol::AggregateContributes(SchedEntityPtr_t pschd) {
 			pschd->StrId(),	metrics_log, pschd->metrics);
 }
 
-YamsSchedPol::ExitCode_t YamsSchedPol::BindCluster(SchedEntityPtr_t pschd) {
+YamsSchedPol::ExitCode_t YamsSchedPol::BindResources(SchedEntityPtr_t pschd) {
 	WorkingModeStatusIF::ExitCode_t awm_result;
 	AwmPtr_t & pawm(pschd->pawm);
-	ResID_t & cl_id(pschd->clust_id);
+	ResID_t & bd_id(pschd->bind_id);
 
 	// Binding of the AWM resource into the current cluster.
-	// The cluster ID is also used as reference for the resource binding,
-	// since the policy handles more than one binding per AWM.
-	awm_result = pawm->BindResource("cluster", R_ID_ANY, cl_id, cl_id);
+	// Since the policy handles more than one binding per AWM the resource
+	// binding is referenced by the ID of the bound resource
+	awm_result = pawm->BindResource(bindings.type, R_ID_ANY, bd_id, bd_id);
 
-	// The cluster binding should never fail
+	// The resource binding should never fail
 	if (awm_result == WorkingModeStatusIF::WM_RSRC_MISS_BIND) {
-		logger->Error("BindCluster: {AWM %d} [cluster %d]"
+		logger->Error("BindResources: AWM{%d} to resource '%s' ID=%d."
 				"Incomplete	resources binding. %d / %d resources bound.",
-				pawm->Id(), cl_id,
+				pawm->Id(), bindings.type, bd_id,
 				pawm->GetSchedResourceBinding()->size(),
 				pawm->RecipeResourceUsages().size());
 		assert(awm_result == WorkingModeStatusIF::WM_SUCCESS);
 		return YAMS_ERROR;
 	}
-	logger->Debug("BindCluster: {AWM %d} resources bound to cluster %d",
-			pawm->Id(), cl_id);
+	logger->Debug("BindResources: AWM{%d} to resource '%s' ID=%d",
+			pawm->Id(), bindings.domain.c_str(), bd_id);
 
 	return YAMS_SUCCESS;
 }

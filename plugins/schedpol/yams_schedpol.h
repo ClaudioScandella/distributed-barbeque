@@ -185,16 +185,20 @@ private:
 	 *
 	 * Keep track of the runtime status of the clusters
 	 */
-	struct ClustersInfo_t {
-		/** Number of clusters on the platform	 */
+	struct BindingSchedInfo {
+		/** The base resource path for the binding step */
+		std::string domain;
+		/** The type of resource to bind (e.g. CPU, GROUP,...) */
+		Resource::Type_t type;
+		/** Number of binding domains on the platform	 */
 		uint16_t num;
 		/** Resource pointer descriptor list */
 		ResourcePtrList_t rsrcs;
-		/** The IDs of all the available clusters */
+		/** The IDs of all the possible bindings */
 		std::vector<ResID_t> ids;
-		/** Keep track the clusters without available PEs */
-		ClustersBitSet full;
-	} cl_info;
+		/** Keep track the bindings without available processing elements */
+		BindingBitset full;
+	} bindings;
 
 	/** Mutex */
 	std::mutex sched_mtx;
@@ -325,14 +329,14 @@ private:
 	}
 
 	/**
-	 * @brief Bind the resources of the AWM into a given cluster
+	 * @brief Bind the resources of the AWM into the given binding domain
 	 *
 	 * @param pschd The scheduling entity to evaluate
 	 *
 	 * @return YAMS_SUCCESS for success, YAMS_ERROR if an unexpected error has
 	 * been encountered
 	 */
-	YamsSchedPol::ExitCode_t BindCluster(SchedEntityPtr_t pschd);
+	YamsSchedPol::ExitCode_t BindResources(SchedEntityPtr_t pschd);
 
 	/**
 	 * @brief Compute the metrics of the given scheduling entity
