@@ -23,6 +23,8 @@
 #include "bbque/configuration_manager.h"
 #include "bbque/plugins/scheduler_policy.h"
 #include "bbque/plugins/logger.h"
+#include "bbque/res/usage.h"
+#include "bbque/res/resource_path.h"
 
 #define SC_CONF_BASE_STR 	SCHEDULER_POLICY_CONFIG".Contrib."
 #define SC_NAME_MAX_LEN 	11
@@ -288,13 +290,13 @@ protected:
 	 * 3. OVER-SATURATION: The new resource usage would be overpass the
 	 * maximum saturation level.
 	 *
-	 * @param rsrc_path Resource path
+	 * @param r_path Resource path
 	 * @param amount Requested resource usage amount
 	 * @param evl_ent Entity to evaluate for scheduling
 	 * @param rt The structure filled with the information regarding the
 	 * resource thresholds information
 	 */
-	 void GetResourceThresholds(std::string const & rsrc_path, uint64_t amount,
+	 void GetResourceThresholds(ResourcePathPtr_t r_path, uint64_t amount,
 			 SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 			 ResourceThresholds_t & rt);
 

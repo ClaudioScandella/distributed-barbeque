@@ -92,19 +92,17 @@ SchedContrib::Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	return SC_SUCCESS;
 }
 
-void SchedContrib::GetResourceThresholds(std::string const & rsrc_path,
+void SchedContrib::GetResourceThresholds(
+		ResourcePathPtr_t rsrc_path,
 		uint64_t rsrc_amount,
 		SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		ResourceThresholds_t & rl) {
+
 	// Total amount of resource
 	rl.total = sv->ResourceTotal(rsrc_path);
 
-	// Get the max saturation level of the resource
-	std::string rsrc_name(ResourcePathUtils::GetNameTemplate(rsrc_path));
-	if (rsrc_name.compare(ResourceNames[0]) == 0)
-		rl.saturate = rl.total * msl_params[0];
-	else
-		rl.saturate = rl.total * msl_params[1];
+	// Get the max saturation level of this type of resource
+	rl.saturate = rl.total * msl_params[rsrc_path->Type()];
 
 	// Resource availability (scheduling resource state view)
 	rl.free  = sv->ResourceAvailable(rsrc_path, vtok);
