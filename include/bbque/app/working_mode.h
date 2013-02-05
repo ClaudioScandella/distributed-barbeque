@@ -18,13 +18,16 @@
 #ifndef BBQUE_WORKING_MODE_H_
 #define BBQUE_WORKING_MODE_H_
 
+#include <vector>
+
 #include "bbque/app/working_mode_conf.h"
 #include "bbque/plugins/logger.h"
 
 #define AWM_NAMESPACE "bq.awm"
 
-namespace bbque { namespace app {
+using bbque::plugins::LoggerIF;
 
+namespace bbque { namespace app {
 
 /**
  * @class WorkingMode
@@ -197,7 +200,9 @@ public:
 	 * @param amount The usage amount
 	 *
 	 * @return WM_RSRC_NOT_FOUND if the resource cannot be found in the
-	 * system. WM_SUCCESS if the request has been correctly added
+	 * system. WM_RSRC_ERR_NAME if the resource path is not valid (unknown
+	 * types have been specified in the resource path string).
+	 * WM_SUCCESS if the request has been correctly added
 	 */
 	ExitCode_t AddResourceUsage(std::string const & rsrc_path, uint64_t amount);
 
@@ -210,14 +215,14 @@ public:
 	 * @see WorkingModeStatusIF
 	 */
 	inline UsagesMap_t const & RecipeResourceUsages() const {
-		return resources.from_recp;
+		return resources.requested;
 	}
 
 	/**
 	 * @see WorkingModeStatusIF
 	 */
 	inline size_t NumberOfResourceUsages() const {
-		return resources.from_recp.size();
+		return resources.requested.size();
 	}
 
 	/**
@@ -307,6 +312,21 @@ public:
 
 private:
 
+	/**
+	 * @struct BindingInfo
+	 *
+	 * Store binding information, i.e., on which system resources IDs the
+	 * resource (type) has been bound by the scheduling policy
+	 */
+	struct BindingInfo {
+		/** Save the previous set of clusters bound */
+		BindingBitset prev;
+		/** The current set of clusters bound */
+		BindingBitset curr;
+		/** True if current set differs from previous */
+		bool changed;
+	};
+
 	/** The logger used by the application manager */
 	LoggerIF  *logger;
 
@@ -353,34 +373,28 @@ private:
 	 * Store information about the resource requests specified in the recipe
 	 * and the bindings built by the scheduling policy
 	 */
-	struct ResourceUsagesInfo {
-		/** The map of resources usages from the recipe  */
-		UsagesMap_t from_recp;
-		/** The temporary map of resource bindings. This is built by the
-		 * BindResource calls */
-		std::vector<UsagesMapPtr_t> on_sched;
-		/** The map of the resource bindings allocated for the working mode.
+	struct ResourcesInfo {
+		/**
+		 * The map of resources usages from the recipe
+		 */
+		UsagesMap_t requested;
+		/**
+		 * The temporary map of resource bindings. This is built by the
+		 * BindResource calls
+		 */
+		std::vector<UsagesMapPtr_t> sched_bindings;
+		/**
+		 * The map of the resource bindings allocated for the working mode.
 		 * This is set by SetResourceBinding() as a commit of the
-		 * bindings performed, reasonably by the scheduling policy.	 */
-		UsagesMapPtr_t to_sync;
+		 * bindings performed, reasonably by the scheduling policy.
+		 */
+		UsagesMapPtr_t sync_bindings;
+		/**
+		 *Info regarding bindings per resource
+		 */
+		std::vector<BindingInfo> binding_masks;
+
 	} resources;
-
-	/**
-	 * @struct ClustersInfo
-	 *
-	 * The set of clusters used by this working mode. The current and previous
-	 * one.
-	 */
-	struct ClustersInfo {
-		/** Save the previous set of clusters bound */
-		ClustersBitSet prev;
-		/** The current set of clusters bound */
-		ClustersBitSet curr;
-		/** True if current set differs from previous */
-		bool changed;
-	} clusters;
-
-
 
 };
 

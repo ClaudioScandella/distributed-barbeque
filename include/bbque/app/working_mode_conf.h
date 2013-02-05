@@ -21,6 +21,7 @@
 #include "bbque/app/working_mode_status.h"
 
 using bbque::res::ResID_t;
+using bbque::res::ResourceIdentifier;
 
 namespace bbque { namespace app {
 

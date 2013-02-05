@@ -25,23 +25,30 @@
 
 #include "bbque/app/application.h"
 #include "bbque/res/resource_utils.h"
+#include "bbque/res/resource_path.h"
+#include "bbque/res/identifier.h"
+#include "bbque/res/binder.h"
+#include "bbque/res/usage.h"
 #include "bbque/utils/utility.h"
 
 namespace br = bbque::res;
 namespace bp = bbque::plugins;
 
 using br::ResourcePathUtils;
+using br::ResourceBinder;
+using br::ResourceIdentifier;
 
 namespace bbque { namespace app {
 
 
 WorkingMode::WorkingMode():
 	hidden(false) {
-	resources.on_sched.resize(MAX_NUM_BINDINGS);
+	resources.sched_bindings.resize(MAX_R_ID_NUM);
+	resources.binding_masks.resize(
+		static_cast<uint16_t>(ResourceIdentifier::TYPE_COUNT));
 	// Set the log string id
 	strncpy(str_id, "", 12);
 }
-
 
 WorkingMode::WorkingMode(uint8_t _id,
 		std::string const & _name,
@@ -54,7 +61,8 @@ WorkingMode::WorkingMode(uint8_t _id,
 	_value > 0 ? value.recpv = _value : value.recpv = 0;
 
 	// Init the size of the scheduling bindings vector
-	resources.on_sched.resize(MAX_NUM_BINDINGS);
+	resources.sched_bindings.resize(MAX_R_ID_NUM);
+	resources.binding_masks.resize(ResourceIdentifier::TYPE_COUNT);
 
 	// Get a logger
 	bp::LoggerIF::Configuration conf(AWM_NAMESPACE);
@@ -65,33 +73,40 @@ WorkingMode::WorkingMode(uint8_t _id,
 }
 
 WorkingMode::~WorkingMode() {
-	resources.from_recp.clear();
-	if (resources.to_sync)
-		resources.to_sync->clear();
+	resources.requested.clear();
+	if (resources.sync_bindings)
+		resources.sync_bindings->clear();
 }
-
 
 WorkingMode::ExitCode_t WorkingMode::AddResourceUsage(
 		std::string const & rsrc_path,
 		uint64_t required_amount) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 
+	// Build a resource path object
+	ResourcePathPtr_t ppath(new ResourcePath(rsrc_path));
+	if (!ppath) {
+		logger->Error("%s AddResourceUsage: {%s} invalid resource path",
+				str_id,	rsrc_path.c_str());
+		return WM_RSRC_ERR_TYPE;
+	}
+
 	// Check the existance of the resource required
-	if (!ra.ExistResource(rsrc_path)) {
-		logger->Warn("AddResourceUsage: {%s} not found.", rsrc_path.c_str());
+	if (!ra.ExistResource(ppath)) {
+		logger->Warn("%s AddResourceUsage: {%s} not found.",
+				str_id, rsrc_path.c_str());
 		return WM_RSRC_NOT_FOUND;
 	}
 
 	// Insert a new resource usage object in the map
 	UsagePtr_t pusage(UsagePtr_t(new Usage(required_amount)));
-	resources.from_recp.insert(
-			std::pair<std::string, UsagePtr_t>(rsrc_path, pusage));
+	resources.requested.insert(
+			std::pair<ResourcePathPtr_t, UsagePtr_t>(ppath, pusage));
+	logger->Debug("%s AddResourceUsage: added {%s}\t[usage: %" PRIu64 "]",
+			str_id, ppath->ToString().c_str(), required_amount);
 
-	logger->Debug("AddResourceUsage: added {%s}\t[usage: %" PRIu64 "]",
-			rsrc_path.c_str(), required_amount);
 	return WM_SUCCESS;
 }
-
 
 WorkingMode::ExitCode_t WorkingMode::Validate() {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
@@ -99,30 +114,28 @@ WorkingMode::ExitCode_t WorkingMode::Validate() {
 	uint64_t total_amount;
 
 	// Initialization
-	usage_it = resources.from_recp.begin();
-	it_end   = resources.from_recp.end();
+	usage_it = resources.requested.begin();
+	it_end   = resources.requested.end();
 	hidden   = false;
 
-	// Map of resource usages required
+	// Map of resource usages requested
 	for (; usage_it != it_end; ++usage_it) {
 		// Current resource: path and amount required
-		std::string const & rcp_path(usage_it->first);
+		ResourcePathPtr_t const & rcp_path(usage_it->first);
 		UsagePtr_t & rcp_pusage(usage_it->second);
 
-		// Consider the resource template path, since generally the requirement
-		// can be mapped on more than one hardware resource
-		std::string rcp_path_tpl(ResourcePathUtils::GetTemplate(rcp_path));
-
 		// Check the total amount available. Hide the AWM if the current total
-		// amount available cannot satisfy the amount required
-		total_amount = ra.Total(rcp_path_tpl);
+		// amount available cannot satisfy the amount required.
+		// Consider the resource template path, since the requested resource
+		// can be mapped on more than one system/HW resource.
+		total_amount = ra.Total(rcp_path, ResourceAccounter::TEMPLATE);
 		if (total_amount < rcp_pusage->GetAmount()) {
-			logger->Warn("Validation: {%s} usage required (%" PRIu64 ") "
+			logger->Warn("%s Validate: {%s} usage required (%" PRIu64 ") "
 					"exceeds total (%" PRIu64 ")",
-					rcp_path_tpl.c_str(), rcp_pusage->GetAmount(),
-					total_amount);
+					str_id, rcp_path->ToString().c_str(),
+					rcp_pusage->GetAmount(), total_amount);
 			hidden = true;
-			logger->Warn("validation: AWM %d set to 'hidden'", id);
+			logger->Warn("%s Validate: set to 'hidden'", str_id);
 			return WM_RSRC_USAGE_EXCEEDS;
 		}
 	}

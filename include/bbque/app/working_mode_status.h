@@ -21,28 +21,38 @@
 #include <bitset>
 #include <list>
 #include <map>
+#include <memory>
 
-#include "bbque/res/usage.h"
+#include "bbque/res/identifier.h"
 #include "bbque/utils/attributes_container.h"
 
-#define MAX_NUM_CLUSTERS 	8
-#define MAX_NUM_BINDINGS 	255
 
-using bbque::res::ResID_t;
-using bbque::res::Usage;
-using bbque::res::UsagePtr_t;
-using bbque::res::UsagesMap_t;
-using bbque::res::UsagesMapPtr_t;
+using namespace bbque::res;
 using bbque::utils::AttributesContainer;
 
-namespace bbque { namespace app {
 
+namespace bbque {
 
+namespace res {
+class Resource;
+class ResourcePath;
+typedef size_t RViewToken_t;
+typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
+
+class Usage;
+typedef std::shared_ptr<Usage> UsagePtr_t;
+typedef std::map<ResourcePathPtr_t, UsagePtr_t> UsagesMap_t;
+typedef std::shared_ptr<UsagesMap_t> UsagesMapPtr_t;
+}
+
+namespace app {
+
+class ApplicationStatusIF;
 class WorkingModeStatusIF;
+
 /** Shared pointer to the class here defined */
 typedef std::shared_ptr<WorkingModeStatusIF> AwmSPtr_t;
-/** Bitset for clusters use monitoring */
-typedef std::bitset<MAX_NUM_CLUSTERS> ClustersBitSet;
+typedef std::shared_ptr<ApplicationStatusIF> AppSPtr_t;
 
 /**
  * @brief Working mode status interface
