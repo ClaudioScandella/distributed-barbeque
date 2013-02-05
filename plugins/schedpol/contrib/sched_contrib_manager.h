@@ -95,7 +95,10 @@ public:
 	 * @param weighed if true (default) the function multiplies the index for
 	 * the weight
 	 *
-	 * @return 
+	 * @return OK for success, with sc_value set to the index value.
+	 * 	SC_TYPE_UNKNOWN, if a not valid contribution type has been specified
+	 *	SC_TYPE_MISSING, if the contribution type has not been instanced
+	 *	SC_ERROR, if the contribution computation has returned an error
 	 */
 	SchedContribManager::ExitCode_t GetIndex(Type_t sc_type,
 			SchedulerPolicyIF::EvalEntity_t const & evl_ent,
