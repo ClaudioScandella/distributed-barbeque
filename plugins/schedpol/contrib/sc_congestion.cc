@@ -102,9 +102,10 @@ SCCongestion::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 
 	// Iterate the whole set of resource usage
 	for_each_sched_resource_usage(evl_ent, usage_it) {
-		std::string const & rsrc_path(usage_it->first);
+		ResourcePathPtr_t const & rsrc_path(usage_it->first);
 		UsagePtr_t const & pusage(usage_it->second);
-		logger->Debug("%s: {%s}", evl_ent.StrId(), rsrc_path.c_str());
+		logger->Debug("%s: {%s}",
+				evl_ent.StrId(), rsrc_path->ToString().c_str());
 
 		// Get the region of the (next) resource usage
 		GetResourceThresholds(rsrc_path, pusage->GetAmount(), evl_ent, rl);
@@ -115,18 +116,13 @@ SCCongestion::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 			return SC_SUCCESS;
 		}
 
-		// 1. Get the congestion penalty to use
-		// 2. Finish to set the parameters for the index computation
-		std::string rsrc_name(ResourcePathUtils::GetNameTemplate(rsrc_path));
-		if (rsrc_name.compare(ResourceNames[SC_RSRC_PE]) == 0)
-			SetIndexParameters(rl, penalties[SC_RSRC_PE], params);
-		else
-			SetIndexParameters(rl, penalties[SC_RSRC_MEM], params);
+		// Set the last parameters for the index computation
+		SetIndexParameters(rl, penalties[rsrc_path->Type()], params);
 
 		// Compute the region index
 		ru_index = CLEIndex(rl.sat_lack, rl.free, pusage->GetAmount(), params);
 		logger->Debug("%s: {%s} index = %.4f", evl_ent.StrId(),
-				rsrc_path.c_str(), ru_index);
+				rsrc_path->ToString().c_str(), ru_index);
 
 		// Update the contribute if the index is lower, i.e. the most
 		// penalizing request dominates
