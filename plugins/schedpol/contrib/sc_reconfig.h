@@ -51,6 +51,12 @@ private:
 	uint16_t migfact;
 
 	/**
+	 * The type of resource according to which evaluate task migration
+	 * (e.g., CPU, GROUP, ACCELERATOR, ...)
+	 */
+	ResourceIdentifier::Type_t r_type;
+
+	/**
 	 * @brief Compute the reconfiguration contribute
 	 */
 	ExitCode_t _Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
