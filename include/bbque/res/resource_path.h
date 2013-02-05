@@ -35,6 +35,7 @@ namespace bp = bbque::plugins;
 namespace bbque { namespace res {
 
 
+
 /**
  * @class ResourcePath
  *

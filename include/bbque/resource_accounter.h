@@ -43,6 +43,16 @@ using bbque::app::AppSPtr_t;
 
 namespace bbque {
 
+
+namespace res {
+
+class ResourcePath;
+typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
+
+}
+
+using bbque::res::ResourcePathPtr_t;
+
 /** Map of map of Usage descriptors. Key: Application UID*/
 typedef std::map<AppUid_t, UsagesMapPtr_t> AppUsagesMap_t;
 /** Shared pointer to a map of pair Application/Usages */
@@ -158,23 +168,19 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	inline uint16_t CountPerType(std::string const & type="") const {
-		// Return 0 if the type cannot be found
-		std::map<std::string, uint16_t>::const_iterator
-			rsrc_found_it(rsrc_count_map.find(type));
-
-		if (rsrc_found_it == rsrc_count_map.end())
+	inline uint16_t CountPerType(ResourceIdentifier::Type_t type) const {
+		std::map<Resource::Type_t, uint16_t>::const_iterator it;
+		it =  r_count.find(type);
+		if (it == r_count.end())
 			return 0;
-
-		// Return the num of resource of the type requested
-		return rsrc_found_it->second;
+		return it->second;
 	}
 
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
 	inline uint16_t CountTypes() const {
-		return rsrc_count_map.size();
+		return r_count.size();
 	}
 
 	/**
@@ -231,16 +237,10 @@ public:
 	 *
 	 * Setup informations about a resource installed into the system.
 	 * Resources can be system-wide or placed on the platform. A resource is
-	 * identified by its pathname.
+	 * identified by its path, which also provides information about
+	 * architectural hierarchies of the platform.
 	 *
-	 * Thus we could have resource paths as below :
-	 *
-	 * "mem0"               : system memory
-	 * "mem0"               : internal memory (to the platform)
-	 * "tile.cluster2       : cluster 2 of the platform
-	 * "tile.cluster0.pe1   : processing element 1 in cluster 0
-	 *
-	 * @param path Resource path
+	 * @param path_str Resource path in char string format
 	 * @param units Units for the amount value (i.e. "1", "Kbps", "Mb", ...)
 	 * @param amount The total amount available
 	 *
@@ -248,7 +248,7 @@ public:
 	 * RA_ERR_MISS_PATH if the path string is empty. RA_ERR_MEM if the
 	 * resource descriptor cannot be allocated.
 	 */
-	ExitCode_t RegisterResource(std::string const & path,
+	ExitCode_t RegisterResource(std::string const & path_str,
 			std::string const & units, uint64_t amount);
 
 	/**
@@ -488,11 +488,15 @@ private:
 	/** The set of all the resource paths registered */
 	std::set<std::string> paths;
 
+	/** The resource paths registered (strings and objects) */
+	std::map<std::string, ResourcePathPtr_t> r_paths;
+
+	/** Counter for the total number of registered resources */
+	std::map<Resource::Type_t, uint16_t> r_count;
+
 	/** Keep track of the max length between resources path string */
 	uint8_t path_max_len;
 
-	/** Counter for the total number of registered resources */
-	std::map<std::string, uint16_t> rsrc_count_map;
 
 	/**
 	 * Map containing the pointers to the map of resource usages specified in

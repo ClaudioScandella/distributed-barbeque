@@ -207,7 +207,7 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF::CountPerType()
 	 */
-	inline uint16_t ResourceCountPerType(std::string const & type) const {
+	inline uint16_t ResourceCountPerType(Resource::Type_t type) const {
 		return ra.CountPerType(type);
 	}
 

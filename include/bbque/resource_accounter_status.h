@@ -259,7 +259,7 @@ public:
 	 *
 	 * @return How many resources of a type have been registered
 	 */
-	virtual uint16_t CountPerType(std::string const & type) const = 0;
+	virtual uint16_t CountPerType(ResourceIdentifier::Type_t type) const = 0;
 
 	/**
 	 * @brief The number of resource types

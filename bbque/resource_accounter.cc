@@ -33,6 +33,8 @@
 #include "bbque/plugin_manager.h"
 #include "bbque/platform_services.h"
 #include "bbque/app/working_mode.h"
+#include "bbque/res/usage.h"
+#include "bbque/res/resource_path.h"
 
 #define RP_DIV1 " ========================================================================="
 #define RP_DIV2 "|-------------------------------+-------------+---------------------------|"
@@ -298,40 +300,44 @@ ResourceAccounter::ExitCode_t ResourceAccounter::GetAppUsagesByView(
  *                   RESOURCE MANAGEMENT                                *
  ************************************************************************/
 
-ResourceAccounter::ExitCode_t ResourceAccounter::RegisterResource(
-		std::string const & _path,
-		std::string const & _units,
-		uint64_t _amount) {
-	std::string rsrc_type;
 
-	// Check arguments
-	if(_path.empty()) {
+ResourceAccounter::ExitCode_t ResourceAccounter::RegisterResource(
+		std::string const & path_str,
+		std::string const & units,
+		uint64_t amount) {
+	ResourceIdentifier::Type_t type;
+
+	// Build a resource path object (from the string)
+	ResourcePathPtr_t ppath(new ResourcePath(path_str));
+	if (!ppath) {
 		logger->Fatal("Registering: Invalid resource path");
 		return RA_ERR_MISS_PATH;
 	}
 
 	// Insert a new resource in the tree
-	ResourcePtr_t rsrc(resources.insert(_path));
-	if (!rsrc) {
+	ResourcePtr_t pres(resources.insert(*(ppath.get())));
+	if (!pres) {
 		logger->Crit("Registering: Unable to allocate a new resource"
 				"descriptor");
 		return RA_ERR_MEM;
 	}
-
-	// Set the amount of resource considering the units
-	rsrc->SetTotal(ConvertValue(_amount, _units));
+	pres->SetTotal(ConvertValue(amount, units));
+	logger->Debug("Registering: Total = %llu", pres->Total());
 
 	// Insert the path in the paths set
-	paths.insert(_path);
-	path_max_len = std::max((int) path_max_len, (int) _path.length());
+	r_paths.insert(std::pair<std::string, ResourcePathPtr_t> (path_str, ppath));
+	path_max_len = std::max((int) path_max_len, (int) path_str.length());
 
 	// Track the number of resources per type
-	rsrc_type = ResourcePathUtils::GetNameTemplate(_path);
-	if (rsrc_count_map.find(rsrc_type) == rsrc_count_map.end())
-		rsrc_count_map.insert(std::pair<std::string, uint16_t>(rsrc_type, 1));
+	type = ppath->Type();
+	if (r_count.find(type) == r_count.end())
+		r_count.insert(std::pair<Resource::Type_t, uint16_t>(type, 1));
 	else
-		++rsrc_count_map[rsrc_type];
+		++r_count[type];
 
+	logger->Debug("Registered %s: %llu %s (c[%d]=%d)",
+			path_str.c_str(), Total(path_str), units.c_str(),
+			type, r_count[type]);
 	return RA_SUCCESS;
 }
 
