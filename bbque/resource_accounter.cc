@@ -101,10 +101,11 @@ static char *PrettyFormat(float value) {
 }
 
 void ResourceAccounter::PrintStatusReport(RViewToken_t vtok, bool verbose) const {
-	std::set<std::string>::const_iterator path_it(paths.begin());
-	std::set<std::string>::const_iterator end_path(paths.end());
-	//                        +--------- 27 ------------+     +-- 11 ---+   +-- 11 ---+   +-- 11 ---+
-	char rsrc_text_row[] = "| tile0.cluster0.mem0         I : 1234.123e+1 | 1234.123e+1 | 1234.123e+1 |";
+	std::map<std::string, ResourcePathPtr_t>::const_iterator path_it;
+	std::map<std::string, ResourcePathPtr_t>::const_iterator end_path;
+	end_path = r_paths.end();
+	//                        +--------- 22 ------------+     +-- 11 ---+   +-- 11 ---+   +-- 11 ---+
+	char rsrc_text_row[] = "| sys0.cpu0.mem0              I : 1234.123e+1 | 1234.123e+1 | 1234.123e+1 |";
 	uint64_t rsrc_used;
 
 
@@ -124,23 +125,26 @@ void ResourceAccounter::PrintStatusReport(RViewToken_t vtok, bool verbose) const
 		);
 	}
 
-	for (; path_it != end_path; ++path_it) {
+	for (path_it = r_paths.begin(); path_it != end_path; ++path_it) {
+		std::string const & path_str((*path_it).first);
+		ResourcePathPtr_t ppath((*path_it).second);
+
 		// Amount of resource used
 		rsrc_used = Used(ppath, EXACT, vtok);
 
 		// Build the resource text row
 		uint8_t len = 0;
 		char online = 'I';
-		if (IsOfflineResource(*path_it))
+		if (IsOfflineResource(path_str))
 			online = 'O';
 
 		len += sprintf(rsrc_text_row + len, "| %-27s %c : %11s | ",
-				(*path_it).c_str(), online,
+				ppath->ToString().c_str(), online,
 				PrettyFormat(rsrc_used));
 		len += sprintf(rsrc_text_row + len, "%11s | ",
-				PrettyFormat(Unreserved(*path_it)));
+				PrettyFormat(Unreserved(path_str)));
 		len += sprintf(rsrc_text_row + len, "%11s |",
-				PrettyFormat(Total(*path_it)));
+				PrettyFormat(Total(ppath)));
 
 		PRINT_NOTICE_IF_VERBOSE(verbose, rsrc_text_row);
 
@@ -149,14 +153,13 @@ void ResourceAccounter::PrintStatusReport(RViewToken_t vtok, bool verbose) const
 			continue;
 
 		// Print details about how usage is partitioned among applications
-		PrintAppDetails(*path_it, vtok, verbose);
+		PrintAppDetails(ppath, vtok, verbose);
 	}
-
 	PRINT_NOTICE_IF_VERBOSE(verbose, RP_DIV1);
 }
 
 void ResourceAccounter::PrintAppDetails(
-		std::string const & path,
+		ResourcePathPtr_t ppath,
 		RViewToken_t vtok,
 		bool verbose) const {
 	Resource::ExitCode_t res_result;
@@ -168,7 +171,7 @@ void ResourceAccounter::PrintAppDetails(
 	char app_text_row[] = "|     12345:exc_01:01,P01,AWM01 : 1234.123e+1 |             |             |";
 
 	// Get the resource descriptor
-	ResourcePtr_t rsrc(GetResource(path));
+	ResourcePtr_t rsrc(GetResource(ppath));
 	if (!rsrc || rsrc->ApplicationsCount(vtok) == 0)
 		return;
 
@@ -190,7 +193,6 @@ void ResourceAccounter::PrintAppDetails(
 				papp->CurrentAWM()->Id(),
 				PrettyFormat(rsrc_amount),
 				"", "");
-
 		PRINT_NOTICE_IF_VERBOSE(verbose, app_text_row);
 
 		// Next application/EXC

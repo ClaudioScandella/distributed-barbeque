@@ -224,7 +224,7 @@ public:
 	 * @param vtok The token referencing the resource state view
 	 * @param verbose print in INFO log level is true, while false in DEBUG
 	 */
-	void PrintAppDetails(std::string const & path, RViewToken_t vtok,
+	void PrintAppDetails(ResourcePathPtr_t path, RViewToken_t vtok,
 			bool verbose) const;
 
 	/**
