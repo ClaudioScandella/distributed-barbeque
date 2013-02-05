@@ -19,7 +19,7 @@
 #define BBQUE_APPLICATION_MANAGER_CONF_IF_H_
 
 #include "bbque/application_manager_status.h"
-#include "bbque/plugins/recipe_loader.h"
+#include "bbque/rtlib.h"
 
 namespace bbque {
 

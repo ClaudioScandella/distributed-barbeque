@@ -25,17 +25,24 @@
 #include "bbque/application_manager_conf.h"
 #include "bbque/utils/deferrable.h"
 #include "bbque/plugins/logger.h"
+#include "bbque/plugins/recipe_loader.h"
 #include "bbque/cpp11/mutex.h"
 
 #define APPLICATION_MANAGER_NAMESPACE "bq.am"
 
 using bbque::app::Application;
-using bbque::app::RecipePtr_t;
 using bbque::utils::Deferrable;
 using bbque::plugins::LoggerIF;
 using bbque::plugins::RecipeLoaderIF;
 
 namespace bbque {
+
+namespace app {
+class Recipe;
+typedef std::shared_ptr<Recipe> RecipePtr_t;
+}
+
+using bbque::app::RecipePtr_t;
 
 // Forward declaration
 class PlatformProxy;
@@ -259,7 +266,7 @@ public:
 	 * @return AM_SUCCESS if the synchronization request has been accepted,
 	 * AM_ABORT on synchronization request errors
 	 */
-	ExitCode_t SyncRequest(AppPtr_t papp, Application::SyncState_t state);
+	ExitCode_t SyncRequest(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
 
 	/**
 	 * @brief Commit the synchronization for the specified application
@@ -293,7 +300,7 @@ public:
 	 * @return AM_SUCCESS on internal maps update success, AM_ABORT on
 	 * failure.
 	 */
-	ExitCode_t NotifyNewState(AppPtr_t papp, Application::State_t next);
+	ExitCode_t NotifyNewState(AppPtr_t papp, ApplicationStatusIF::State_t next);
 
 	/**
 	 * @brief Commit the "continue to run" for the specified application
@@ -407,18 +414,18 @@ private:
 	 * Array grouping the applications by status (@see ScheduleFlag).
 	 * Each position points to a set of maps pointing applications
 	 */
-	AppsUidMap_t status_vec[Application::STATE_COUNT];
+	AppsUidMap_t status_vec[ApplicationStatusIF::STATE_COUNT];
 
 	/**
 	 * Array of mutexes protecting the status queues.
 	 */
-	std::mutex status_mtx[Application::STATE_COUNT];
+	std::mutex status_mtx[ApplicationStatusIF::STATE_COUNT];
 
 	/**
 	 * Array of iterator retainers for "in loop erase" support on STATUS
 	 * queues
 	 */
-	AppsUidMapItRetainer_t status_ret[Application::STATE_COUNT];
+	AppsUidMapItRetainer_t status_ret[ApplicationStatusIF::STATE_COUNT];
 
 
 	/**
@@ -429,18 +436,18 @@ private:
 	 * correposnding scheduled status. This view on applicaitons could be
 	 * exploited by the synchronization module to update applications.
 	 */
-	AppsUidMap_t sync_vec[Application::SYNC_STATE_COUNT];
+	AppsUidMap_t sync_vec[ApplicationStatusIF::SYNC_STATE_COUNT];
 
 	/**
 	 * Array of mutexes protecting the synchronization queues.
 	 */
-	std::mutex sync_mtx[Application::SYNC_STATE_COUNT];
+	std::mutex sync_mtx[ApplicationStatusIF::SYNC_STATE_COUNT];
 
 	/**
 	 * Array of iterator retainers for "in loop erase" support on SYNC
 	 * queues
 	 */
-	AppsUidMapItRetainer_t sync_ret[Application::SYNC_STATE_COUNT];
+	AppsUidMapItRetainer_t sync_ret[ApplicationStatusIF::SYNC_STATE_COUNT];
 
 	/**
 	 * @brief EXC cleaner deferrable
@@ -487,7 +494,7 @@ private:
 	 * @param next next application status
 	 */
 	ExitCode_t UpdateStatusMaps(AppPtr_t papp,
-			Application::State_t prev, Application::State_t next);
+			ApplicationStatusIF::State_t prev, ApplicationStatusIF::State_t next);
 
 	/**
 	 * @brief Release a synchronization request for the specified application
@@ -495,7 +502,7 @@ private:
 	 * @param papp the application to release
 	 * @param state the synchronization state to remove
 	 */
-	void SyncRemove(AppPtr_t papp, Application::SyncState_t state);
+	void SyncRemove(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
 
 	/**
 	 * @brief Release any synchronization request for the specified
@@ -511,7 +518,7 @@ private:
 	 * @param papp the application to synchronize
 	 * @param state the synchronization state to add
 	 */
-	void SyncAdd(AppPtr_t papp, Application::SyncState_t state);
+	void SyncAdd(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
 
 	/**
 	 * @brief Add the configured synchronization request for the specified
