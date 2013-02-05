@@ -47,6 +47,10 @@
 #define YAMS_GET_SAMPLE(METRICS, INDEX, VALUE) \
 	mc.AddSample(METRICS[INDEX].mh, VALUE);
 
+/* Number of scheduling contributions used for the scheduling metrics
+ * computation */
+#define YAMS_SC_COUNT 	4
+
 using bbque::res::RViewToken_t;
 using bbque::utils::Timer;
 using bbque::utils::MetricsCollector;
