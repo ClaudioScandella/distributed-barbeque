@@ -35,14 +35,21 @@ using bbque::plugins::LoggerIF;
 using bbque::res::ResourceConstraint;
 using bbque::utils::AttributesContainer;
 
-namespace bbque { namespace app {
+namespace bbque {
+
+namespace res {
+class ResourcePath;
+typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
+}
+
+using bbque::res::ResourcePathPtr_t;
+
+namespace app {
 
 // Forward declarations
 class Application;
 class WorkingMode;
 
-/** Shared pointer to Application descriptor  */
-typedef std::shared_ptr<Application> AppPtr_t;
 /** Shared pointer to Working Mode descriptor */
 typedef std::shared_ptr<WorkingMode> AwmPtr_t;
 /** Vector of shared pointer to WorkingMode*/
@@ -50,7 +57,7 @@ typedef std::vector<AwmPtr_t> AwmPtrVect_t;
 /** Shared pointer to Constraint object */
 typedef std::shared_ptr<ResourceConstraint> ConstrPtr_t;
 /** Map of Constraints pointers, with the resource path as key*/
-typedef std::map<std::string, ConstrPtr_t> ConstrMap_t;
+typedef std::map<ResourcePathPtr_t, ConstrPtr_t> ConstrMap_t;
 
 /**
  * @brief An application recipe

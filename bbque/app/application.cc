@@ -26,9 +26,12 @@
 
 #include "bbque/application_manager.h"
 #include "bbque/app/working_mode.h"
+#include "bbque/app/recipe.h"
 #include "bbque/modules_factory.h"
 #include "bbque/plugin_manager.h"
 #include "bbque/resource_accounter.h"
+#include "bbque/res/resource_path.h"
+#include "bbque/res/usage.h"
 
 namespace ba = bbque::app;
 namespace br = bbque::res;
@@ -154,8 +157,8 @@ void Application::InitResourceConstraints() {
 
 	// For each static constraint on a resource make an assertion
 	for (; cons_it != end_cons; ++cons_it) {
-		std::string const & rsrc_path(cons_it->first);
-		ResourceConstrPtr_t const & rsrc_constr(cons_it->second);
+		ResourcePathPtr_t const & rsrc_path(cons_it->first);
+		ConstrPtr_t const & rsrc_constr(cons_it->second);
 
 		// Lower bound
 		if (rsrc_constr->lower > 0)
@@ -1121,44 +1124,44 @@ void Application::UpdateEnabledWorkingModes() {
 }
 
 Application::ExitCode_t Application::SetResourceConstraint(
-				std::string const & _rsrc_path,
-				ResourceConstraint::BoundType_t _type,
+		ResourcePathPtr_t r_path,
+		ResourceConstraint::BoundType_t b_type,
 				uint64_t _value) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 
 	// Check the existance of the resource
-	if (!ra.ExistResource(_rsrc_path)) {
+	if (!ra.ExistResource(r_path)) {
 		logger->Warn("SetResourceConstraint: %s not found",
-				_rsrc_path.c_str());
+				r_path->ToString().c_str());
 		return APP_RSRC_NOT_FOUND;
 	}
 
 	// Init a new constraint (if do not exist yet)
-	ConstrMap_t::iterator it_con(rsrc_constraints.find(_rsrc_path));
+	ConstrMap_t::iterator it_con(rsrc_constraints.find(r_path));
 	if (it_con == rsrc_constraints.end()) {
-		rsrc_constraints.insert(ConstrPair_t(_rsrc_path,
+		rsrc_constraints.insert(ConstrPair_t(r_path,
 					ConstrPtr_t(new ResourceConstraint)));
 	}
 
 	// Set the constraint bound value (if value exists overwrite it)
-	switch(_type) {
+	switch(b_type) {
 	case ResourceConstraint::LOWER_BOUND:
-		rsrc_constraints[_rsrc_path]->lower = _value;
-		if (rsrc_constraints[_rsrc_path]->upper < _value)
-			rsrc_constraints[_rsrc_path]->upper =
+		rsrc_constraints[r_path]->lower = _value;
+		if (rsrc_constraints[r_path]->upper < _value)
+			rsrc_constraints[r_path]->upper =
 				std::numeric_limits<uint64_t>::max();
 
 		logger->Debug("SetConstraint (Resources): Set on {%s} LB = %" PRIu64,
-				_rsrc_path.c_str(), _value);
+				r_path->ToString().c_str(), _value);
 		break;
 
 	case ResourceConstraint::UPPER_BOUND:
-		rsrc_constraints[_rsrc_path]->upper = _value;
-		if (rsrc_constraints[_rsrc_path]->lower > _value)
-			rsrc_constraints[_rsrc_path]->lower = 0;
+		rsrc_constraints[r_path]->upper = _value;
+		if (rsrc_constraints[r_path]->lower > _value)
+			rsrc_constraints[r_path]->lower = 0;
 
 		logger->Debug("SetConstraint (Resources): Set on {%s} UB = %" PRIu64,
-				_rsrc_path.c_str(), _value);
+				r_path->ToString().c_str(), _value);
 		break;
 	}
 
@@ -1169,10 +1172,10 @@ Application::ExitCode_t Application::SetResourceConstraint(
 }
 
 Application::ExitCode_t Application::ClearResourceConstraint(
-				std::string const & _rsrc_path,
-				ResourceConstraint::BoundType_t _type) {
+		ResourcePathPtr_t r_path,
+		ResourceConstraint::BoundType_t b_type) {
 	// Lookup the constraint by resource pathname
-	ConstrMap_t::iterator it_con(rsrc_constraints.find(_rsrc_path));
+	ConstrMap_t::iterator it_con(rsrc_constraints.find(r_path));
 	if (it_con == rsrc_constraints.end()) {
 		logger->Warn("ClearConstraint (Resources): failed due to unknown "
 				"resource path");
@@ -1180,7 +1183,7 @@ Application::ExitCode_t Application::ClearResourceConstraint(
 	}
 
 	// Reset the constraint
-	switch (_type) {
+	switch (b_type) {
 	case ResourceConstraint::LOWER_BOUND :
 		it_con->second->lower = 0;
 		if (it_con->second->upper == std::numeric_limits<uint64_t>::max())

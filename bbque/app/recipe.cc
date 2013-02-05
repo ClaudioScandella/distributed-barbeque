@@ -22,6 +22,7 @@
 #include "bbque/modules_factory.h"
 #include "bbque/app/working_mode.h"
 #include "bbque/resource_accounter.h"
+#include "bbque/res/resource_path.h"
 
 namespace ba = bbque::app;
 namespace bp = bbque::plugins;
@@ -77,28 +78,30 @@ void Recipe::AddConstraint(
 		uint64_t ub) {
 	// Check resource existance
 	ResourceAccounter & ra(ResourceAccounter::GetInstance());
-	if (!ra.ExistResource(rsrc_path))
+	ResourcePathPtr_t const r_path(ra.GetPath(rsrc_path));
+	if (!r_path)
 		return;
 
 	// If there's a constraint yet, take the greater value between the bound
 	// found and the one passed by argument
-	ConstrMap_t::iterator cons_it(constraints.find(rsrc_path));
+	ConstrMap_t::iterator cons_it(constraints.find(r_path));
 	if (cons_it != constraints.end()) {
 		(cons_it->second)->lower = std::max((cons_it->second)->lower, lb);
 		(cons_it->second)->upper = std::max((cons_it->second)->upper, ub);
-		logger->Debug("Constraint (edit): %s L=%d U=%d", rsrc_path.c_str(),
-						(cons_it->second)->lower,
-						(cons_it->second)->upper);
+		logger->Debug("Constraint (edit): %s L=%d U=%d",
+				r_path->ToString().c_str(),
+				(cons_it->second)->lower,
+				(cons_it->second)->upper);
 		return;
 	}
 
 	// Insert a new constraint
-	constraints.insert(std::pair<std::string, ConstrPtr_t>(rsrc_path,
-							ConstrPtr_t(new ResourceConstraint(lb, ub))));
+	constraints.insert(std::pair<ResourcePathPtr_t, ConstrPtr_t>(
+				r_path, ConstrPtr_t(new ResourceConstraint(lb, ub))));
 	logger->Debug("Constraint (new): %s L=%" PRIu64 " U=%" PRIu64,
-					rsrc_path.c_str(),
-					constraints[rsrc_path]->lower,
-					constraints[rsrc_path]->upper);
+					r_path->ToString().c_str(),
+					constraints[r_path]->lower,
+					constraints[r_path]->upper);
 }
 
 void Recipe::Validate() {

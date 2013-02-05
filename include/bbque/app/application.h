@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "bbque/rtlib.h"
 #include "bbque/app/application_conf.h"
 #include "bbque/app/recipe.h"
 #include "bbque/plugins/logger.h"
@@ -35,17 +36,30 @@
 
 using bbque::plugins::LoggerIF;
 
-namespace bbque { namespace app {
+namespace bbque {
 
+namespace res {
+class Resource;
+class ResourcePath;
+class ResourceConstraint;
+class Usage;
+typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
+typedef std::shared_ptr<Usage> UsagePtr_t;
+typedef std::map<ResourcePathPtr_t, UsagePtr_t> UsagesMap_t;
+typedef std::shared_ptr<UsagesMap_t> UsagesMapPtr_t;
+}
+
+using bbque::res::RViewToken_t;
+using bbque::res::ResourcePathPtr_t;
+
+namespace app {
+
+class Recipe;
 
 /** Shared pointer to Recipe object */
 typedef std::shared_ptr<Recipe> RecipePtr_t;
-/** Shared pointer to ResourceConstraint object */
-typedef std::shared_ptr<ResourceConstraint> ResourceConstrPtr_t;
-/** Map of Resource constraints pointers, with the resource path as key*/
-typedef std::map<std::string, ConstrPtr_t> ConstrMap_t;
 /** Pair contained in the resource constraints map  */
-typedef std::pair<std::string, ConstrPtr_t> ConstrPair_t;
+typedef std::pair<ResourcePathPtr_t, ConstrPtr_t> ConstrPair_t;
 
 
 /**
@@ -409,7 +423,7 @@ public:
 	inline bool CurrentAWMNotValid() const {
 		return awms.curr_inv;
 	}
-	
+
 	/**
 	 * @brief Dump on logger a list of valid AWMs
 	 *
@@ -557,8 +571,8 @@ private:
 	 * @return APP_SUCCESS if success, APP_RSRC_NOT_FOUND if the resource
 	 * specified does not exist.
 	 */
-	ExitCode_t SetResourceConstraint(std::string const & res_path,
-			ResourceConstraint::BoundType_t type, uint64_t value);
+	ExitCode_t SetResourceConstraint(ResourcePathPtr_t r_path,
+			ResourceConstraint::BoundType_t b_type, uint64_t value);
 
 	/**
 	 * @brief Remove a constraint upon a specific resource.
@@ -571,8 +585,8 @@ private:
 	 * @return APP_SUCCESS if success, APP_CONS_NOT_FOUND if cannot be found
 	 * a previous constraint on the resource
 	 */
-	ExitCode_t ClearResourceConstraint(std::string const & res_path,
-			ResourceConstraint::BoundType_t type);
+	ExitCode_t ClearResourceConstraint(ResourcePathPtr_t r_path,
+			ResourceConstraint::BoundType_t b_type);
 
 	/**
 	 * @brief Find a working mode from a list

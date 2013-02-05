@@ -22,7 +22,6 @@
 #include <list>
 #include <string>
 
-#include "bbque/app/recipe.h"
 #include "bbque/cpp11/mutex.h"
 #include "bbque/utils/attributes_container.h"
 
@@ -41,6 +40,9 @@ typedef uint32_t AppPid_t;
 typedef BBQUE_UID_TYPE AppUid_t;
 /** The application priority type */
 typedef uint16_t AppPrio_t;
+
+class WorkingMode;
+typedef std::shared_ptr<WorkingMode> AwmPtr_t;
 /** List of WorkingMode pointers */
 typedef std::list<AwmPtr_t> AwmPtrList_t;
 

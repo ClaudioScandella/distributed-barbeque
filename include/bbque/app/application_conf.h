@@ -19,18 +19,21 @@
 #define BBQUE_APPLICATION_CONF_IF_H_
 
 #include "bbque/app/application_status.h"
-#include "bbque/app/working_mode_status.h"
-#include "bbque/rtlib.h"
 
-using bbque::res::RViewToken_t;
 
-namespace bbque { namespace app {
+namespace bbque {
 
+namespace res {
+typedef size_t RViewToken_t;
+}
+
+namespace app {
 
 class ApplicationConfIF;
-/** Shared pointer to the class here defined */
+class Application;
+class WorkingMode;
 typedef std::shared_ptr<ApplicationConfIF> AppCPtr_t;
-
+typedef std::shared_ptr<Application> AppPtr_t;
 
 /**
  * @brief Interface to configure application status
@@ -63,7 +66,8 @@ public:
 	 * scheduled. If the application is currently disabled this call returns
 	 * always APP_DISABLED.
 	 */
-	virtual ExitCode_t ScheduleRequest(AwmPtr_t const & awm, RViewToken_t tok,
+	virtual ExitCode_t ScheduleRequest(AwmPtr_t const & awm,
+			bbque::res::RViewToken_t tok,
 			uint8_t bid = 0) = 0;
 
 	/**
