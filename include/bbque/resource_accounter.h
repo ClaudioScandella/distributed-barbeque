@@ -530,6 +530,24 @@ private:
 	ResourceAccounter();
 
 	/**
+	 * @brief Wrap the class of resource path on resource tree matching flags
+	 *
+	 * @param rpc The resource path class
+	 *
+	 * @return A resource tree matching flag
+	 */
+	inline uint16_t RTFlags(PathClass_t rpc) const {
+		switch (rpc) {
+		case EXACT:
+			return RT_MATCH_FIRST;
+		case MIXED:
+			return RT_MATCH_MIXED;
+		case TEMPLATE:
+			return RT_MATCH_TYPE;
+		default:
+			return 0;
+		}
+	}
 	 * @brief Return a state parameter (availability, resources used, total
 	 * amount) for the resource.
 	 *

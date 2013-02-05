@@ -127,6 +127,23 @@ public:
 	};
 
 	/**
+	 * @enum PathClass
+	 * @brief The class of resource path specified in the query functions
+	 */
+	enum PathClass_t {
+		UNDEFINED = 0,
+		/** Exact resource path matching (type+ID). <br>
+		 *  Example: sys1.cpu2.pe0 */
+		EXACT   ,
+		/** Type matching if no ID provided, otherwise type+ID. <br>
+		 *  Example: sys1.cpu.pe0  */
+		MIXED   ,
+		/** Only type matching. <br>
+		 *  Example: sys.cpu.pe    */
+		TEMPLATE
+	};
+
+	/**
 	 * @brief Total amount of resources
 	 *
 	 * This is used when the only available information is the resource path
