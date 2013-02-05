@@ -19,6 +19,7 @@
 
 #include <cmath>
 
+
 namespace po = boost::program_options;
 
 namespace bbque { namespace plugins {
@@ -42,11 +43,10 @@ SCFairness::SCFairness(
 		 "Base for exponential function");
 		;
 
-	// Congestion penalties
-	for (int i = 0; i < SC_RSRC_COUNT; ++i) {
+	// Fairness penalties
+	for (int i = 1; i < ResourceIdentifier::TYPE_COUNT; ++i) {
 		snprintf(conf_str, 50, SC_CONF_BASE_STR"%s.penalty.%s",
-				name, ResourceNames[i]);
-
+				name, ResourceIdentifier::TypeStr[i]);
 		opts_desc.add_options()
 			(conf_str,
 			 po::value<uint16_t>
@@ -54,22 +54,21 @@ SCFairness::SCFairness(
 			 "Fairness penalty per resource");
 		;
 	}
-
 	po::variables_map opts_vm;
 	cm.ParseConfigurationFile(opts_desc, opts_vm);
 
 	// Boundaries enforcement (0 <= penalty <= 100)
-	for (int i = 0; i < SC_RSRC_COUNT; ++i) {
+	for (int i = 1; i < ResourceIdentifier::TYPE_COUNT; ++i) {
 		if (penalties_int[i] > 100) {
-			logger->Warn("Parameter penalty.%s out of range [0,100]: "
-					"found %d. Setting to %d", ResourceNames[i],
-					penalties_int[i], penalties_default[i]);
-			penalties_int[i] = penalties_default[i];
+			logger->Warn("penalty.%s out of range [0,100]: "
+					"found %d. Setting to %d",
+					ResourceIdentifier::TypeStr[i],
 					penalties_int[i], SC_FAIR_DEFAULT_PENALTY);
 			penalties_int[i] = SC_FAIR_DEFAULT_PENALTY;
 		}
-		logger->Debug("Resource [%s] saturation penalty \t= %.2f",
-				ResourceNames[i], static_cast<float>(penalties_int[i]) / 100.0);
+		logger->Debug("penalty.%-3s: %.2f",
+				ResourceIdentifier::TypeStr[i],
+				static_cast<float>(penalties_int[i]) / 100.0);
 	}
 }
 

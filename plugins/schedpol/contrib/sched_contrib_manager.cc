@@ -54,7 +54,9 @@ char const * SchedContribManager::sc_str[SC_COUNT] = {
 std::map<SchedContribManager::Type_t, SchedContribPtr_t> SchedContribManager::sc_objs = {};
 float SchedContribManager::sc_weights_norm[SC_COUNT] = {0};
 uint16_t SchedContribManager::sc_weights[SC_COUNT] = {0};
-uint16_t SchedContribManager::sc_cfg_params[SchedContrib::SC_CPT_COUNT] = {0};
+uint16_t
+	SchedContribManager::sc_cfg_params[SchedContrib::SC_CONFIG_COUNT*Resource::TYPE_COUNT] = {
+	0};
 
 
 /*****************************************************************************
@@ -171,45 +173,53 @@ void SchedContribManager::SetViewInfo(System * sv, RViewToken_t vtok) {
 
 
 void SchedContribManager::ParseConfiguration() {
-	char conf_opts[SC_COUNT+SchedContrib::SC_CPT_COUNT][40];
+	char weig_opts[SC_COUNT][40];
+	char conf_opts[SchedContrib::SC_CONFIG_COUNT*Resource::TYPE_COUNT][40];
+	uint16_t offset;
 
 	// Load the weights of the metrics contributes
 	po::options_description opts_desc("Scheduling contributions parameters");
 	for (int i = 0; i < SC_COUNT; ++i) {
-		snprintf(conf_opts[i], 40, MODULE_CONFIG".%s.weight", sc_str[i]);
+		snprintf(weig_opts[i], 40, MODULE_CONFIG".%s.weight", sc_str[i]);
+		logger->Debug("%s", weig_opts[i]);
 		opts_desc.add_options()
-			(conf_opts[i],
+			(weig_opts[i],
 			 po::value<uint16_t> (&sc_weights[i])->default_value(0),
 			"Single contribution weight");
 		;
 	}
 
-	// Global SchedContrib config parameters
-	for (int i = 0; i < SchedContrib::SC_CPT_COUNT; ++i) {
-		snprintf(conf_opts[SC_COUNT+i], 40, SC_CONF_BASE_STR".%s",
-				SchedContrib::ConfigParamsStr[i]);
-		opts_desc.add_options()
-			(conf_opts[SC_COUNT+i],
-			 po::value<uint16_t>
-			 (&sc_cfg_params[i])->default_value(
-				 SchedContrib::ConfigParamsDefault[i]),
-			"SC global parameters");
-		;
+	// Global configuration parameters
+	for (int j = 0; j < SchedContrib::SC_CONFIG_COUNT; ++j) {
+		offset = j * ResourceIdentifier::TYPE_COUNT;
+		// 1. Maximum saturation levels (MSL)
+		for (int i = 1; i < ResourceIdentifier::TYPE_COUNT; ++i) {
+			snprintf(conf_opts[i+offset], 30, SC_CONF_BASE_STR"%s.%s",
+					SchedContrib::ConfigParamsStr[j],
+					ResourceIdentifier::TypeStr[i]);
+			opts_desc.add_options()
+				(conf_opts[i+offset],
+				 po::value<uint16_t>
+				 (&sc_cfg_params[i+offset])->default_value(
+					 SchedContrib::ConfigParamsDefault[j]),
+				"Maximum saturation levels");
+			;
+		}
 	}
 	po::variables_map opts_vm;
 	cm.ParseConfigurationFile(opts_desc, opts_vm);
 
-	// Boundaries enforcement (0 <= MSL <= 100)
-	for (int i = 0; i < SchedContrib::SC_CPT_COUNT; ++i) {
-		logger->Debug("Resource [%s] min saturation level \t= %d [%]",
-				(strpbrk(SchedContrib::ConfigParamsStr[i], "."))+1,
-				sc_cfg_params[i]);
+	// MSL boundaries enforcement (0 <= MSL <= 100)
+	for (int i = 1; i < ResourceIdentifier::TYPE_COUNT; ++i) {
+		offset = SchedContrib::SC_MSL * ResourceIdentifier::TYPE_COUNT;
+		logger->Debug("%s: %d",	conf_opts[i+offset],sc_cfg_params[i+offset]);
 		if (sc_cfg_params[i] > 100) {
-			logger->Warn("Parameter %s out of range [0,100]: found %d. Setting to %d",
-					SchedContrib::ConfigParamsStr[i],
-					sc_cfg_params[i],
-					SchedContrib::ConfigParamsDefault[i]);
-			sc_cfg_params[i] = SchedContrib::ConfigParamsDefault[i];
+			logger->Warn("'%s' out of range [0,100]: found %d. Setting to %d",
+					conf_opts[i+offset],
+					sc_cfg_params[i+offset],
+					SchedContrib::ConfigParamsDefault[SchedContrib::SC_MSL]);
+			sc_cfg_params[i] =
+				SchedContrib::ConfigParamsDefault[SchedContrib::SC_MSL];
 		}
 	}
 }

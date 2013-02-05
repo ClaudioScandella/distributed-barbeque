@@ -37,6 +37,7 @@
 			usage_it != end_usage; ++usage_it)
 
 
+
 namespace bbque { namespace plugins {
 
 
@@ -85,27 +86,16 @@ public:
 	};
 
 	/**
-	  * @brief Type of resource to manage
-	  */
-	enum ResourceType_t {
-		/** Processing element */
-		SC_RSRC_PE,
-		/** Memory */
-		SC_RSRC_MEM,
-
-		SC_RSRC_COUNT
-	};
-
-	/**
-	 * @brief Global configuration parameters type
+	 * @brief Common configuration parameters
+	 *
+	 * The set of common configuration parameters that can be set for each
+	 * type or resource
 	 */
-	enum ConfigParamType_t {
-		/** Maximum Saturation Level of processing elements */
-		SC_MSL_PE,
-		/** Maximum Saturation Level of memory */
-		SC_MSL_MEM,
+	enum ConfigParams_t {
+		/** Maximum Saturation Level */
+		SC_MSL,
 
-		SC_CPT_COUNT
+		SC_CONFIG_COUNT
 	};
 
 	/**
@@ -172,17 +162,12 @@ public:
 
 	/************************ Static data ****************************/
 
-	/** Resource names */
-	static char const * ResourceNames[SC_RSRC_COUNT];
 
-	/** Resource path templates */
-	static char const * ResourceGenPaths[SC_RSRC_COUNT];
+	/** Type of configuration parameters string */
+	static char const * ConfigParamsStr[SC_CONFIG_COUNT];
 
-	/** Global configuration parameters string */
-	static char const * ConfigParamsStr[SC_CPT_COUNT];
-
-	 /** Default values for configuration parameters */
-	static uint16_t const ConfigParamsDefault[SC_CPT_COUNT];
+	 /** Default values per type of configuration parameters */
+	static uint16_t const ConfigParamsDefault[SC_CONFIG_COUNT];
 
 
 	/*********************** Public methods **************************/
@@ -268,12 +253,10 @@ protected:
 	  * in which consider the index computation
 	  */
 	 std::string binding_domain;
+
+
 	 /** Contribute identifier name */
 	 char name[SC_NAME_MAX_LEN];
-
-	 /** Maximum Saturation Levels per resource */
-	 float msl_params[SC_RSRC_COUNT];
-
 
 	/**
 	 * @brief Resource usage thresholds
@@ -371,6 +354,11 @@ protected:
 	 virtual ExitCode_t _Compute(
 			 SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 			 float & ctrib) = 0;
+
+private:
+
+	 /** Maximum Saturation Levels per resource */
+	 float msl_params[ResourceIdentifier::TYPE_COUNT];
 
 };
 

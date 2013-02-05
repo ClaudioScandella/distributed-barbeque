@@ -29,24 +29,12 @@ namespace po = boost::program_options;
 namespace bbque { namespace plugins {
 
 
-char const * SchedContrib::ResourceGenPaths[SC_RSRC_COUNT] = {
-	RSRC_CLUST_PE,
-	RSRC_CLUST_MEM
+char const * SchedContrib::ConfigParamsStr[SC_CONFIG_COUNT] = {
+	"msl"
 };
 
-char const * SchedContrib::ResourceNames[SC_RSRC_COUNT] = {
-	"pe",
-	"mem"
-};
-
-char const * SchedContrib::ConfigParamsStr[SC_CPT_COUNT] = {
-	"msl.pe",
-	"msl.mem"
-};
-
-uint16_t const SchedContrib::ConfigParamsDefault[SC_CPT_COUNT] = {
-	90,
-	70,
+uint16_t const SchedContrib::ConfigParamsDefault[SC_CONFIG_COUNT] = {
+	90
 };
 
 
@@ -62,7 +50,7 @@ SchedContrib::SchedContrib(const char * _name,
 	name[SC_NAME_MAX_LEN-1] = '\0';
 
 	// Array of Maximum Saturation Levels parameters
-	for (int i = 0; i < SC_RSRC_COUNT; ++i)
+	for (int i = 0; i < ResourceIdentifier::TYPE_COUNT; ++i)
 		msl_params[i] = static_cast<float> (params[i]) / 100.0;
 
 	// Get a logger instance

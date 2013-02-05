@@ -59,15 +59,12 @@ private:
 
 	/** Base for exponential functions used in the computation */
 	uint16_t expbase;
-	/**
-	 * Congestion penalties per resource type. This stores the values parsed
-	 * from the configuration file.
-	 *
-	 * 0 = "pe"
-	 * 1 = "mem"
-	 */
-	uint16_t penalties_int[SC_RSRC_COUNT];
 
+	/**
+	 * Fairness penalties per resource type. This stores the values parsed
+	 * from the configuration file.
+	 */
+	uint16_t penalties_int[ResourceIdentifier::TYPE_COUNT];
 
 	/** Number of applications to schedule */
 	uint16_t num_apps;

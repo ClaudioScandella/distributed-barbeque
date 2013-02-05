@@ -41,9 +41,9 @@ SCCongestion::SCCongestion(
 		;
 
 	// Congestion penalties
-	for (int i = 0; i < SC_RSRC_COUNT; ++i) {
+	for (int i = 1; i < ResourceIdentifier::TYPE_COUNT; ++i) {
 		snprintf(conf_str, 50, SC_CONF_BASE_STR"%s.penalty.%s",
-				name, ResourceNames[i]);
+				name, ResourceIdentifier::TypeStr[i]);
 
 		opts_desc.add_options()
 			(conf_str,
@@ -52,23 +52,21 @@ SCCongestion::SCCongestion(
 			 "Congestion penalty per resource");
 		;
 	}
-
 	po::variables_map opts_vm;
 	cm.ParseConfigurationFile(opts_desc, opts_vm);
 
 	// Boundaries enforcement (0 <= penalty <= 100)
-	for (int i = 0; i < SC_RSRC_COUNT; ++i) {
+	for (int i = 1; i < ResourceIdentifier::TYPE_COUNT; ++i) {
 		if (penalties_int[i] > 100) {
-			logger->Warn("Parameter penalty.%s out of range [0,100]: "
-					"found %d. Setting to %d", ResourceNames[i],
-					penalties_int[i], penalties_default[i]);
-			penalties_int[i] = penalties_default[i];
+			logger->Warn("penalty.%s out of range [0,100]: "
+					"found %d. Setting to %d",
+					ResourceIdentifier::TypeStr[i],
 					penalties_int[i], SC_CONG_DEFAULT_PENALTY);
 			penalties_int[i] = SC_CONG_DEFAULT_PENALTY;
 		}
 		penalties[i] = static_cast<float>(penalties_int[i]) / 100.0;
-		logger->Debug("Resource [%s] saturation penalty \t= %.2f",
-				ResourceNames[i], penalties[i]);
+		logger->Debug("penalty.%-3s: %.2f",
+				ResourceIdentifier::TypeStr[i], penalties[i]);
 	}
 }
 
@@ -89,7 +87,6 @@ SCCongestion::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	ResourceThresholds_t rl;
 	CLEParams_t params;
 	float ru_index;
-
 	ctrib = 1.0;
 
 	// Fixed function parameters
@@ -138,8 +135,8 @@ void SCCongestion::SetIndexParameters(ResourceThresholds_t const & rl,
 		(static_cast<float>(rl.free) - static_cast<float>(rl.sat_lack));
 
 	// Exponential parameters
-	params.exp.yscale = (1.0 - penalty) / (params.exp.base - 1.0);
-	params.exp.xscale = static_cast<float>(rl.free) - static_cast<float>(rl.total);
+	params.exp.yscale  = (1.0 - penalty) / (params.exp.base - 1.0);
+	params.exp.xscale  = static_cast<float>(rl.free) - static_cast<float>(rl.total);
 	params.exp.xoffset = static_cast<float>(rl.total);
 }
 

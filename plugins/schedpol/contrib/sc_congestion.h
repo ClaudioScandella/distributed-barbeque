@@ -57,15 +57,11 @@ private:
 	/**
 	 * Congestion penalties per resource type. This stores the values parsed
 	 * from the configuration file.
-	 *
-	 * 0 = "pe"
-	 * 1 = "mem"
 	 */
-	uint16_t penalties_int[SC_RSRC_COUNT];
-
+	uint16_t penalties_int[ResourceIdentifier::TYPE_COUNT];
 
 	/** Penalty indices */
-	float penalties[SC_RSRC_COUNT];
+	float penalties[ResourceIdentifier::TYPE_COUNT];
 
 	/**
 	 * @brief Compute the congestion contribute

@@ -168,12 +168,13 @@ private:
 
 	/** Normalized metrics contributes weights */
 	static float sc_weights_norm[SC_COUNT];
-	
+
 	/** Metrics contributes weights */
 	static uint16_t sc_weights[SC_COUNT];
 
 	/** Global config parameters for metrics contributes */
-	static uint16_t sc_cfg_params[SchedContrib::SC_CPT_COUNT];
+	static uint16_t
+		sc_cfg_params[SchedContrib::SC_CONFIG_COUNT*Resource::TYPE_COUNT];
 
 
 	/**
