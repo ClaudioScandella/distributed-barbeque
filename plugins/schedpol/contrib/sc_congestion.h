@@ -20,7 +20,8 @@
 
 #include "sched_contrib.h"
 
-#define DEFAULT_CONG_EXPBASE 	2
+#define SC_CONG_DEFAULT_EXPBASE     2
+#define SC_CONG_DEFAULT_PENALTY     10
 
 namespace bbque { namespace plugins {
 
@@ -62,8 +63,6 @@ private:
 	 */
 	uint16_t penalties_int[SC_RSRC_COUNT];
 
-	/** Default values for the congestion penalties */
-	static uint16_t penalties_default[SC_RSRC_COUNT];
 
 	/** Penalty indices */
 	float penalties[SC_RSRC_COUNT];
