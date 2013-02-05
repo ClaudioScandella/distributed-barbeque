@@ -22,24 +22,47 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "bbque/plugins/logger.h"
 #include "bbque/res/resources.h"
 #include "bbque/res/resource_utils.h"
+
 #define RESOURCE_TREE_NAMESPACE "bq.rt"
+
+/*** Matching flags used for search functions */
+
+/**
+ * Stop search after the first matching
+ * Whether this flag is unset, the search will not stop until all the matching
+ * paths have been retrieved from the tree
+ */
+                // ALL       ...000
+#define RT_MATCH_FIRST  1 // ...001
+
+/**
+ * Ask for a per resource type maatching will be performed
+ * Whether this flag is unset, an "exact matching" (type + ID) will be
+ * performed
+ */
+              // EXACT       ...00x
+#define RT_MATCH_TYPE   2 // ...01x
+#define RT_MATCH_MIXED  4 // ...10x
 
 
 namespace bp = bbque::plugins;
 
 namespace bbque { namespace res {
 
+// Forward declaration
+class ResourcePath;
 
 /**
  * @brief A tree-based representation of resources
  *
  * The class allow the management of the resource descriptors in a hierachical
  * way. The hierarchy is structured as a tree. The access to the content is
- * based on a namespace-like approach (i.e. arch.clusters.cluster0.mem0 ...)
+ * based on a namespace-like approach (i.e. sys.cpu0.pe2 ...)
  */
 class ResourceTree {
 
@@ -116,6 +139,8 @@ public:
 	 */
 	ResourcePtr_t & insert(std::string const & rsrc_path);
 
+	ResourcePtr_t & insert(ResourcePath const & rsrc_path);
+
 	/**
 	 * @brief Find a resource by its pathname
 	 *
@@ -135,15 +160,6 @@ public:
 		return ResourcePtr_t();
 	}
 
-	/**
-	 * @brief Find all the resources matching a template path
-	 *
-	 * It fills a list with all the resource descriptors matching the template
-	 * path.
-	 *
-	 * @param temp_path Template path to match
-	 * @return A list of resource descriptors (pointers)
-	 */
 	inline ResourcePtrList_t findAll(std::string const & temp_path) const {
 		// List of matches to return
 		ResourcePtrList_t matches;
@@ -194,6 +210,52 @@ public:
 	}
 
 	/**
+	 * @brief Find a set of resources matching a template path
+	 *
+	 * According to the resource path, the function member can return
+	 * different results. Basically, there are three cases of resource path,
+	 * related to the resource IDs provided:
+	 *
+	 * <ul>
+	 *   <li> <b>All IDs</b>: Return a single specific resource descriptor.
+	 *          This is the same behavior of function member @ref find().<br>
+	 *          Example: <tt>sys0.cpu2.pe3</tt>
+	 *   </li>
+	 *   <li> <b>Some IDs</b>: Return all the descriptors matching path levels
+	 *          per type+ID (when provided) or only type (if missing, i.e.
+	 *          R_ID_NONE or R_ID_ANY) ("mixed path").<br>
+	 *          Example: <tt>sys0.cpu.pe2</tt>
+	 *   </li>
+	 *   <li> <b>No IDs</b>:  Return all the descriptors matching path levels
+	 *          per type ("template path"). <br>
+	 *          Example: <tt>sys.cpu.pe</tt>
+	 *   </li>
+	 * </ul>
+	 *
+	 * The wanted behavior can be obtained by setting the matching flags:
+	 *
+	 * <tt>
+	 *               match_flags
+	 *           ------------------
+	 *           |   unused | 0 0 0
+	 *                        \ / ^
+	 *                         |  |
+	 *   00x: EXACT -----------`  |
+	 *   01x: TYPE                |
+	 *   10x: MIXED               |
+	 *   xx0: ALL   --------------`
+	 *   xx1: FIRST
+	 * </tt>
+	 *
+	 * @param rsrc_path   A resource path object to match
+	 * @param match_flags The matching flags
+	 *
+	 * @return A list of resource descriptors (pointers)
+	 */
+	ResourcePtrList_t findList(ResourcePath & rsrc_path,
+			uint16_t match_flags = 0) const;
+
+	/**
 	 * @brief Maximum depth of the tree
 	 * @return The maxim depth value
 	 */
@@ -227,6 +289,9 @@ private:
 	/** Maximum depth of the tree */
 	uint16_t max_depth;
 
+	/** Counter of resources */
+	uint16_t count;
+
 	/**
 	 * @brief Find a node by its pathname or template path
 	 *
@@ -247,6 +312,12 @@ private:
 	bool find_node(ResourceNode_t * curr_node, std::string const & rsrc_path,
 			SearchOption_t opt, ResourcePtrList_t & matchings) const;
 
+	bool findNode(ResourceNode_t * curr_node,
+			std::vector<ResourceIdentifierPtr_t>::iterator & rp_it,
+			std::vector<ResourceIdentifierPtr_t>::iterator const & rp_end,
+			uint16_t match_flags,
+			ResourcePtrList_t & matchings) const;
+
 	/**
 	 * @brief Append a child to the current node
 	 * @param curr_node Current resource node
@@ -255,6 +326,8 @@ private:
 	 */
 	ResourceNode_t * add_child(ResourceNode_t * curr_node,
 			std::string const & rsrc_name);
+
+	ResourceNode_t * addChild(ResourceNode_t * curr_node, ResourcePtr_t pres);
 
 	/**
 	 * @brief Recursive method for printing nodes content in a tree-like form
