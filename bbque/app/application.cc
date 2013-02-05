@@ -1217,11 +1217,12 @@ uint64_t Application::GetResourceUsageStat(std::string const & rsrc_path,
 
 		// Resources
 		for (; rsrc_it != rsrc_end; ++rsrc_it) {
-			std::string const &rp((*rsrc_it).first);
+			ResourcePathPtr_t const & rp((*rsrc_it).first);
 			uint64_t curr_usage = ((*rsrc_it).second)->GetAmount();
 
 			// Is current resource the one required?
-			if (rsrc_path.compare(ResourcePathUtils::GetTemplate(rp)) != 0)
+			ResourcePath stat_rp(rsrc_path);
+			if (stat_rp.Compare(*(rp.get())) == ResourcePath::EQUAL_TYPES)
 				continue;
 
 			// Cumulate the resource usage and update min or max

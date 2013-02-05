@@ -16,7 +16,7 @@
  */
 
 #include "bbque/res/usage.h"
-
+#include "bbque/res/resource_path.h"
 
 namespace bbque { namespace res {
 

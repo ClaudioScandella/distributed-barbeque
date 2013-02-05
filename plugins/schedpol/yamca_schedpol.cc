@@ -24,6 +24,8 @@
 
 #include "bbque/modules_factory.h"
 #include "bbque/cpp11/thread.h"
+#include "bbque/res/usage.h"
+#include "bbque/res/resource_path.h"
 
 /** Metrics (class VALUE) declaration */
 #define YAMCA_VALUE_METRIC(NAME, DESC)\
@@ -532,19 +534,20 @@ SchedulerPolicyIF::ExitCode_t YamcaSchedPol::ComputeContentionLevel(
 	UsagesMap_t::const_iterator end_usage(rsrc_usages->end());
 	while (usage_it != end_usage) {
 		// Current resource
-		std::string const & rsrc_path(usage_it->first);
+		ResourcePathPtr_t const & rsrc_path(usage_it->first);
 		UsagePtr_t const & pusage(usage_it->second);
 
 		// Query resource availability
 		rsrc_avail = rsrc_acct.Available(pusage->GetBindingList(),
 				rsrc_view_token, papp);
 		logger->Debug("{%s} availability = %" PRIu64,
-				rsrc_path.c_str(), rsrc_avail);
+				rsrc_path->ToString().c_str(), rsrc_avail);
 
 		// Is the request satisfiable?
 		if (rsrc_avail < pusage->GetAmount()) {
 			logger->Debug("Contention level: [%s] R=%d / A=%d",
-					rsrc_path.c_str(), pusage->GetAmount(),	rsrc_avail);
+					rsrc_path->ToString().c_str(),
+					pusage->GetAmount(), rsrc_avail);
 
 			// Set the availability to a 1/10 of the requested amount of
 			// resource in order to increase dramatically the resulting

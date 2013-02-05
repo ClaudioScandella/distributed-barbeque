@@ -348,7 +348,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::CheckAvailability(
 	// Check availability for each Usage object
 	for (; usages_it != usages_end; ++usages_it) {
 		// Current Usage
-		std::string const & rsrc_path(usages_it->first);
+		ResourcePathPtr_t const & rsrc_path(usages_it->first);
 		UsagePtr_t const & pusage(usages_it->second);
 
 		// Query the availability of the resources in the list
@@ -358,7 +358,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::CheckAvailability(
 		if (avail < pusage->GetAmount()) {
 			logger->Debug("Check availability: Exceeding request for {%s}"
 					"[USG:%" PRIu64 " | AV:%" PRIu64 " | TOT:%" PRIu64 "] ",
-					rsrc_path.c_str(), pusage->GetAmount(), avail,
+					rsrc_path->ToString().c_str(), pusage->GetAmount(), avail,
 					QueryStatus(pusage->GetBindingList(), RA_TOTAL));
 			return RA_ERR_USAGE_EXC;
 		}
@@ -475,6 +475,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::UpdateResource(
 
 	return RA_SUCCESS;
 }
+
 
 ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 		AppSPtr_t papp,
@@ -876,19 +877,19 @@ void ResourceAccounter::IncBookingCounts(
 	UsagesMap_t::const_iterator usages_end(app_usages->end());
 	for (; usages_it != usages_end;	++usages_it) {
 		// Current required resource (Usage object)
-		std::string const & rsrc_path(usages_it->first);
+		ResourcePathPtr_t const & rsrc_path(usages_it->first);
 		UsagePtr_t pusage(usages_it->second);
 		logger->Debug("Booking: [%s] requires resource {%s}",
-				papp->StrId(), rsrc_path.c_str());
+				papp->StrId(), rsrc_path->ToString().c_str());
 
 		// Do booking for the current resource request
 		result = DoResourceBooking(papp, pusage, vtok);
 		if (result != RA_SUCCESS)  {
 			logger->Crit("Booking: unexpected fail! %s "
 					"[USG:%" PRIu64 " | AV:%" PRIu64 " | TOT:%" PRIu64 "]",
-				rsrc_path.c_str(), pusage->GetAmount(),
-				Available(rsrc_path, vtok, papp),
-				Total(rsrc_path));
+				rsrc_path->ToString().c_str(), pusage->GetAmount(),
+				Available(rsrc_path, MIXED, vtok, papp),
+				Total(rsrc_path, MIXED));
 
 			// Print the report table of the resource assignments
 			PrintStatusReport();
@@ -896,9 +897,9 @@ void ResourceAccounter::IncBookingCounts(
 
 		assert(result == RA_SUCCESS);
 		logger->Info("Booking: SUCCESS - %s [USG:%" PRIu64 " | AV:%" PRIu64 " | TOT:%" PRIu64 "]",
-				rsrc_path.c_str(), pusage->GetAmount(),
-				Available(rsrc_path, vtok, papp),
-				Total(rsrc_path));
+				rsrc_path->ToString().c_str(), pusage->GetAmount(),
+				Available(rsrc_path, MIXED, vtok, papp),
+				Total(rsrc_path, MIXED));
 	}
 }
 
@@ -1055,13 +1056,14 @@ void ResourceAccounter::DecBookingCounts(
 
 	// Release the all the resources hold by the Application/EXC
 	for (; usages_it != usages_end; ++usages_it) {
-		std::string const & rsrc_path(usages_it->first);
+		ResourcePathPtr_t const  & rsrc_path(usages_it->first);
 		UsagePtr_t pusage(usages_it->second);
 
 		// Release the resources bound to the current request
 		UndoResourceBooking(papp, pusage, vtok);
 		logger->Debug("DecCount: [%s] has freed {%s} of %" PRIu64,
-				papp->StrId(), rsrc_path.c_str(), pusage->GetAmount());
+				papp->StrId(), rsrc_path->ToString().c_str(),
+				pusage->GetAmount());
 	}
 }
 
