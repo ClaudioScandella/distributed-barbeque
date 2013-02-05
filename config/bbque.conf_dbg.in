@@ -100,27 +100,33 @@ rootCategory = DEBUG, raConsole
 # to redefine the category priority to a value diffent from that of
 # the rootCategory
 ###
-#category.bq = 			ERROR
-#category.bq.Test =		ERROR
-#category.bq.pm =		ERROR
-#category.bq.rm = 		ERROR
-#category.bq.sm = 		ERROR
-#category.bq.ym = 		ERROR
-#category.bq.om = 		ERROR
-#category.bq.cm =		ERROR
-#category.bq.ra = 		ERROR
-#category.bq.ap = 		ERROR
-#category.bq.tpd = 		ERROR
-#category.bq.app = 		ERROR
-#category.bq.app.awm =		ERROR
-#category.bq.app.exc =		ERROR
-#category.rpc = 		ERROR
-#category.test = 		ERROR
-#category.rpc.fif = 		ERROR
-#category.rpc.prx = 		ERROR
-#category.rloader = 		ERROR
-#category.sched.pol = 		ERROR
-#category.sync.pol = 		ERROR
+#category.bq = 		ERROR
+#category.bq.am =	ERROR
+#category.bq.mc =	ERROR
+#category.bq.om =	ERROR
+#category.bq.cm =	ERROR
+#category.bq.tpd = 	ERROR
+#category.bq.Test =	ERROR
+#category.bq.ra = 	ERROR
+category.bq.ri = 	ERROR
+#category.bq.rb = 	ERROR
+#category.bq.rl = 	ERROR
+#category.bq.rm = 	ERROR
+category.bq.rp = 	ERROR
+category.bq.rt = 	ERROR
+#category.bq.ap = 	ERROR
+#category.bq.app = 	ERROR
+#category.bq.awm =	ERROR
+#category.bq.df = 	ERROR
+#category.bq.pp = 	ERROR
+#category.bq.pm =	ERROR
+#category.bq.rpc.fif = 	ERROR
+#category.bq.rpc.prx = 	ERROR
+#category.bq.sm = 	ERROR
+#category.bq.sp = 	ERROR
+#category.bq.sp.sc = 	ERROR
+#category.bq.ym = 	ERROR
+
 ###
 # Root Appender
 ###
@@ -139,4 +145,4 @@ appender.raFile.layout.ConversionPattern = %d{%Y-%m-%d %H:%M:%S,%l} - %-6p %-15c
 #appender.raRSyslog.syslogHost = localhost
 #appender.raRSyslog.facility = -1
 #appender.raRSyslog.portNumber = -1
-#appender.raRSyslog.layout.ConversionPattern = %d{%Y-%m-%d %H:%M:%S,%l} - %-6p %40c : %m%n	
+#appender.raRSyslog.layout.ConversionPattern = %d{%Y-%m-%d %H:%M:%S,%l} - %-6p %40c : %m%n

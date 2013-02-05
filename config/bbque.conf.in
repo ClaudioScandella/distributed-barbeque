@@ -100,31 +100,33 @@ rootCategory = ERROR, raFile
 # to redefine the category priority to a value diffent from that of
 # the rootCategory
 ###
-category.bq.rm = 	NOTICE
+#category.bq = 		INFO
 category.bq.am =	NOTICE
-category.bq.ra =	NOTICE
 category.bq.mc =	NOTICE
 category.bq.om =	NOTICE
 category.bq.cm =	INFO
-#category.bq.sp =	INFO
-#category.bq = 		INFO
-#category.bq.Test =	INFO
-#category.bq.pm =	INFO
-#category.bq.sm = 	INFO
-#category.bq.ym = 	INFO
-#category.bq.ra = 	INFO
-#category.bq.ap = 	INFO
-#category.bq.pp = 	INFO
 #category.bq.tpd = 	INFO
+#category.bq.Test =	INFO
+category.bq.ra =	NOTICE
+#category.bq.ri = 	INFO
+#category.bq.rb = 	INFO
+#category.bq.rl = 	INFO
+category.bq.rm = 	NOTICE
+#category.bq.rp = 	INFO
+#category.bq.rt = 	INFO
+#category.bq.ap = 	INFO
 #category.bq.app = 	INFO
-#category.bq.app.awm =	INFO
-#category.bq.app.exc =	INFO
-#category.rpc = 	INFO
-#category.test = 	INFO
-#category.rpc.fif = 	INFO
-#category.rpc.prx = 	INFO
-#category.rloader = 	INFO
-#category.sync.   = 	INFO
+#category.bq.awm =	INFO
+#category.bq.df = 	INFO
+#category.bq.pp = 	INFO
+#category.bq.pm =	INFO
+#category.bq.rpc.fif = 	INFO
+#category.bq.rpc.prx = 	INFO
+#category.bq.sm = 	INFO
+#category.bq.sp = 	INFO
+#category.bq.sp.sc = 	INFO
+#category.bq.ym = 	INFO
+
 ###
 # Root Appender
 ###
