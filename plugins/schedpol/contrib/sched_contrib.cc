@@ -16,6 +16,7 @@
  */
 
 #include <cmath>
+#include <cstring>
 
 #include "sched_contrib.h"
 #include "bbque/modules_factory.h"
@@ -50,8 +51,10 @@ uint16_t const SchedContrib::ConfigParamsDefault[SC_CPT_COUNT] = {
 
 
 SchedContrib::SchedContrib(const char * _name,
+		std::string const & b_domain,
 		uint16_t const params[]):
-	cm(ConfigurationManager::GetInstance()) {
+	cm(ConfigurationManager::GetInstance()),
+	binding_domain(b_domain) {
 
 	// Identifier name of the contribute
 	strncpy(name, _name, SC_NAME_MAX_LEN);

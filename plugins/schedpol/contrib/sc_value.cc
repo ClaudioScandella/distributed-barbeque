@@ -24,8 +24,11 @@ namespace po = boost::program_options;
 namespace bbque { namespace plugins {
 
 
-SCValue::SCValue(const char * _name, uint16_t const cfg_params[]):
-	SchedContrib(_name, cfg_params) {
+SCValue::SCValue(
+		const char * _name,
+		std::string const & b_domain,
+		uint16_t const cfg_params[]):
+	SchedContrib(_name, b_domain, cfg_params) {
 	char conf_str[50];
 	uint16_t napw;
 	po::options_description opts_desc("AWM value contribution parameters");

@@ -189,9 +189,11 @@ public:
 	 * @brief Constructor
 	 *
 	 * @param name A name identifying the specific contribute
+	 * @param b_domain The base resource path for the binding step
 	 * @param cfg_params Global configuration parameters
 	 */
-	SchedContrib(const char * name, uint16_t const cfg_params[]);
+	SchedContrib(const char * name, std::string const & b_domain,
+			uint16_t const cfg_params[]);
 
 	/**
 	 * @brief The identifying name of the contribution
@@ -256,6 +258,12 @@ protected:
 	 /** The token of scheduling resource state view */
 	 RViewToken_t vtok;
 
+	 /**
+	  * The base resource path for the binding step.
+	  * From a scheduling contribution perspective, this represents the domain
+	  * in which consider the index computation
+	  */
+	 std::string binding_domain;
 	 /** Contribute identifier name */
 	 char name[SC_NAME_MAX_LEN];
 

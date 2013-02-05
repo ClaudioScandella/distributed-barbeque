@@ -31,8 +31,11 @@ public:
 
 	/**
 	 * @brief Constructor
+	 *
+	 * @see SchedContrib
 	 */
-	SCCongestion(const char * _name, uint16_t const cfg_params[]);
+	SCCongestion(const char * _name, std::string const & b_domain,
+			uint16_t const cfg_params[]);
 
 	ExitCode_t Init(void * params);
 

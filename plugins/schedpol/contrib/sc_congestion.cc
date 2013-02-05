@@ -27,8 +27,12 @@ uint16_t SCCongestion::penalties_default[SC_RSRC_COUNT] = {
 	50
 };
 
-SCCongestion::SCCongestion(const char * _name, uint16_t const cfg_params[]):
-	SchedContrib(_name, cfg_params) {
+
+SCCongestion::SCCongestion(
+		const char * _name,
+		std::string const & b_domain,
+		uint16_t const cfg_params[]):
+	SchedContrib(_name, b_domain, cfg_params) {
 	char conf_str[50];
 
 	// Configuration parameters

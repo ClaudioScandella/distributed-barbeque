@@ -22,8 +22,11 @@ namespace po = boost::program_options;
 namespace bbque { namespace plugins {
 
 
-SCReconfig::SCReconfig(const char * _name, uint16_t cfg_params[]):
-	SchedContrib(_name, cfg_params) {
+SCReconfig::SCReconfig(
+		const char * _name,
+		std::string const & b_domain,
+		uint16_t cfg_params[]):
+	SchedContrib(_name, b_domain, cfg_params) {
 	char conf_str[40];
 
 	// Configuration parameters

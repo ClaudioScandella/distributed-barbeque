@@ -34,10 +34,10 @@ public:
 	/**
 	 * @brief Constructor
 	 *
-	 * @param name A name identifying the specific contribute
-	 * @param cfg_params Global configuration parameters
+	 * @see SchedContrib
 	 */
-	SCFairness(const char * _name, uint16_t const cfg_params[]);
+	SCFairness(const char * _name, std::string const & b_domain,
+			uint16_t const cfg_params[]);
 
 	/**
 	 * @brief Perform per-priority class information setup

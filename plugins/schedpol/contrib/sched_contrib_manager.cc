@@ -230,16 +230,15 @@ void SchedContribManager::NormalizeWeights() {
 }
 
 void SchedContribManager::AllocateContribs() {
-
 	// Init the map of scheduling contribution objects
 	sc_objs[VALUE] = SchedContribPtr_t(
-			new SCValue(sc_str[VALUE], sc_cfg_params));
+			new SCValue(sc_str[VALUE], binding_domain, sc_cfg_params));
 	sc_objs[RECONFIG] = SchedContribPtr_t(
-			new SCReconfig(sc_str[RECONFIG], sc_cfg_params));
+			new SCReconfig(sc_str[RECONFIG], binding_domain, sc_cfg_params));
 	sc_objs[CONGESTION] = SchedContribPtr_t(
-			new SCCongestion(sc_str[CONGESTION], sc_cfg_params));
+			new SCCongestion(sc_str[CONGESTION], binding_domain, sc_cfg_params));
 	sc_objs[FAIRNESS] = SchedContribPtr_t(
-			new SCFairness(sc_str[FAIRNESS], sc_cfg_params));
+			new SCFairness(sc_str[FAIRNESS], binding_domain, sc_cfg_params));
 	// ...:: ADD_SC ::...
 }
 
