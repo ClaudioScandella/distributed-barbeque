@@ -152,8 +152,8 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	inline uint16_t Count(std::string const & path) const {
-		ResourcePtrList_t matchings = GetResources(path);
+	inline uint16_t Count(ResourcePathPtr_t ppath) const {
+		ResourcePtrList_t matchings = GetResources(ppath);
 		return matchings.size();
 	}
 

@@ -202,7 +202,7 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF::Count()
 	 */
-	inline uint32_t ResourceCount(std::string const & path) const;
+	inline int16_t ResourceCount(ResourcePath & path) const;
 
 	/**
 	 * @see ResourceAccounterStatusIF::CountPerType()

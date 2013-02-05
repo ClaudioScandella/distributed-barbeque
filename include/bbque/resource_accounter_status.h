@@ -256,7 +256,7 @@ public:
 	 *
 	 * @return The number of referenced resource descriptors
 	 */
-	virtual uint16_t Count(std::string const & path) const = 0;
+	virtual uint16_t Count(ResourcePathPtr_t path) const = 0;
 
 	/**
 	 * @brief The number of resources of a given type
