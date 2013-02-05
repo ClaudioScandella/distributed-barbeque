@@ -18,6 +18,7 @@
 #ifndef BBQUE_RANDOM_SCHEDPOL_H_
 #define BBQUE_RANDOM_SCHEDPOL_H_
 
+#include "bbque/configuration_manager.h"
 #include "bbque/app/application.h"
 #include "bbque/plugins/scheduler_policy.h"
 #include "bbque/plugins/plugin.h"
@@ -78,11 +79,20 @@ private:
 	 */
 	LoggerIF *logger;
 
+	/** Configuration manager instance */
+	ConfigurationManager & cm;
+
 	/**
 	 * @brief Resource Accounter view used for the last (successfull)
 	 * scheduling
 	 */
 	RViewToken_t ra_view;
+
+	/** The base resource path for the binding step */
+	std::string binding_domain;
+
+	/** The type of resource for the binding step */
+	Resource::Type_t binding_type;
 	
 	/**
 	 * @brief Random Number Generator engine used for AWM selection

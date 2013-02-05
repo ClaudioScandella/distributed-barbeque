@@ -21,6 +21,7 @@
 #include "bbque/system.h"
 #include "bbque/app/application.h"
 #include "bbque/app/working_mode.h"
+#include "bbque/res/resource_path.h"
 #include "bbque/plugins/logger.h"
 #include "bbque/resource_accounter.h"
 
@@ -28,10 +29,12 @@
 
 namespace ba = bbque::app;
 namespace br = bbque::res;
+namespace po = boost::program_options;
 
 namespace bbque { namespace plugins {
 
 RandomSchedPol::RandomSchedPol() :
+	cm(ConfigurationManager::GetInstance()),
 	dist(0, 100) {
 
 	// Get a logger
@@ -49,6 +52,23 @@ RandomSchedPol::RandomSchedPol() :
 	assert(logger);
 	logger->Debug("Built RANDOM SchedPol object @%p", (void*)this);
 
+	// Resource binding domain information
+	po::options_description opts_desc("Scheduling policy parameters");
+	// Binding domain resource path
+	opts_desc.add_options()
+		(SCHEDULER_POLICY_CONFIG".binding.domain",
+		 po::value<std::string>
+		 (&binding_domain)->default_value(SCHEDULER_DEFAULT_BINDING_DOMAIN),
+		"Resource binding domain");
+	;
+	po::variables_map opts_vm;
+	cm.ParseConfigurationFile(opts_desc, opts_vm);
+
+	// Binding domain resource type
+	ResourcePath rp(binding_domain);
+	binding_type = rp.Type();
+	logger->Debug("Binding domain:'%s' Type:%s",
+			binding_domain.c_str(), ResourceIdentifier::TypeStr[binding_type]);
 }
 
 RandomSchedPol::~RandomSchedPol() {
@@ -73,15 +93,15 @@ void RandomSchedPol::ScheduleApp(AppCPtr_t papp) {
 	ba::AwmPtrList_t::const_iterator end;
 	ba::AwmPtrList_t const *awms;
 	uint32_t selected_awm;
-	uint32_t selected_cluster;
-	uint8_t cluster_count;
+	uint32_t selected_bd;
+	uint8_t bd_count;
 
 	assert(papp);
 
-	// Check for a valid cluster count
-	cluster_count = ra.Total(RSRC_CLUSTER);
-	if (cluster_count == 0) {
-		assert(cluster_count != 0);
+	// Check for a valid binding domain count
+	bd_count = ra.Total(binding_domain.c_str());
+	if (bd_count == 0) {
+		assert(bd_count != 0);
 		return;
 	}
 
@@ -95,17 +115,17 @@ void RandomSchedPol::ScheduleApp(AppCPtr_t papp) {
 	for ( ; selected_awm && it!=end; --selected_awm, ++it);
 	assert(it!=end);
 
-	// Bind to a random virtual cluster
-	selected_cluster = dist(rng_engine) % cluster_count;
-	logger->Debug("Scheduling EXC [%s] on Cluster [%d of %d]",
-			papp->StrId(), selected_cluster, ra.Total(RSRC_CLUSTER));
-	bindResult = (*it)->BindResource("cluster", R_ID_ANY, selected_cluster);
+	// Bind to a random virtual binding domain
+	selected_bd = dist(rng_engine) % bd_count;
+	logger->Debug("Scheduling EXC [%s] on binding domain [%d of %d]",
+			papp->StrId(), selected_bd, ra.Total(binding_domain.c_str()));
+	bindResult = (*it)->BindResource(binding_type, R_ID_ANY, selected_bd);
 	if (bindResult != ba::WorkingMode::WM_SUCCESS) {
 		logger->Error("Resource biding for EXC [%s] FAILED", papp->StrId());
 		return;
 	}
 
-	// Schedule the selected AWM on the selected Cluster
+	// Schedule the selected AWM on the selected binding domain
 	papp->ScheduleRequest((*it), ra_view);
 
 }
