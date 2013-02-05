@@ -73,9 +73,12 @@ public:
 	 * @brief Scheduling Contributions Manager constructor
 	 *
 	 * @param sc_types Array of contributions type required
+	 * @param b_domain base resource path for the binding step of the
+	 * scheduler
 	 * @param sc_num Number of contributions required
 	 */
-	SchedContribManager(Type_t const * sc_types, uint8_t sc_num);
+	SchedContribManager(Type_t const * sc_types,
+			std::string const & b_domain, uint8_t sc_num);
 
 	/**
 	 * @brief Scheduling Contributions Manager destructor
@@ -147,6 +150,8 @@ private:
 	/** Track if a SCM has been previously instanciated */
 	static bool config_ready;
 
+	/** The base resource path for the binding step */
+	std::string binding_domain;
 
 	/** Scheduling contributions required*/
 	std::map<Type_t, SchedContribPtr_t> sc_objs_reqs;

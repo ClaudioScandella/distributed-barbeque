@@ -63,8 +63,10 @@ uint16_t SchedContribManager::sc_cfg_params[SchedContrib::SC_CPT_COUNT] = {0};
 
 SchedContribManager::SchedContribManager(
 		Type_t const * sc_types,
+		std::string const & b_domain,
 		uint8_t sc_num):
-	cm(ConfigurationManager::GetInstance()) {
+	cm(ConfigurationManager::GetInstance()),
+	binding_domain(b_domain) {
 
 	// Get a logger
 	plugins::LoggerIF::Configuration conf(MODULE_NAMESPACE);
