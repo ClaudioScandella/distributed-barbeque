@@ -203,6 +203,63 @@ void ResourceAccounter::PrintAppDetails(
 }
 
 /************************************************************************
+ *             RESOURCE DESCRIPTORS ACCESS                              *
+ ************************************************************************/
+
+ResourcePtr_t ResourceAccounter::GetResource(std::string const & path) const {
+	std::map<std::string, ResourcePathPtr_t>::const_iterator rp_it;
+	// Retrieve the resource path object
+	rp_it = r_paths.find(path);
+	if (rp_it == r_paths.end())
+		return ResourcePtr_t();
+	// Call the resource path based function member
+	ResourcePathPtr_t const & ppath((*rp_it).second);
+	return GetResource(ppath);
+}
+
+ResourcePtr_t ResourceAccounter::GetResource(ResourcePathPtr_t ppath) const {
+	ResourcePtrList_t matchings;
+	matchings = resources.findList(*(ppath.get()), RT_MATCH_FIRST);
+	if (matchings.empty())
+		return ResourcePtr_t();
+	return *(matchings.begin());
+}
+
+
+ResourcePtrList_t ResourceAccounter::GetResources(
+		std::string const & path) const {
+	ResourcePathPtr_t ppath(new ResourcePath(path));
+	if (!ppath)
+		return ResourcePtrList_t();
+	// Call the resource path based function
+	return GetResources(ppath);
+}
+
+ResourcePtrList_t ResourceAccounter::GetResources(
+		ResourcePathPtr_t ppath) const {
+	// If the path is a template find all the resources matching the
+	// template. Otherwise perform a "mixed path" based search.
+	if (ppath->IsTemplate()) {
+		logger->Debug("GetResources: path {%s} is a template",
+				ppath->ToString().c_str());
+		return resources.findList(*(ppath.get()), RT_MATCH_TYPE);
+	}
+	return resources.findList(*(ppath.get()), RT_MATCH_MIXED);
+}
+
+
+bool ResourceAccounter::ExistResource(std::string const & path) const {
+	ResourcePathPtr_t ppath(new ResourcePath(path));
+	return ExistResource(ppath);
+}
+
+bool ResourceAccounter::ExistResource(ResourcePathPtr_t ppath) const {
+	ResourcePtrList_t matchings =
+		resources.findList(*(ppath.get()), RT_MATCH_TYPE | RT_MATCH_FIRST);
+	return !matchings.empty();
+}
+
+/************************************************************************
  *                   QUERY METHODS                                      *
  ************************************************************************/
 

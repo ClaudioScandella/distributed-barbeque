@@ -50,10 +50,16 @@
 #define RSRC_CLUST_PE 	"tile.cluster.pe"
 
 
-using namespace bbque::res;
-
 namespace bbque {
 
+namespace res {
+
+class ResourcePath;
+typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
+
+}
+
+using namespace bbque::res;
 
 /**
  * @brief Resource accounting data
@@ -275,6 +281,8 @@ public:
 	 */
 	virtual ResourcePtr_t GetResource(std::string const & path) const = 0;
 
+	virtual ResourcePtr_t GetResource(ResourcePathPtr_t ppath) const = 0;
+
 	/**
 	 * @brief Get a list of resource descriptors
 	 *
@@ -289,12 +297,16 @@ public:
 	virtual ResourcePtrList_t GetResources(std::string const & temp_path)
 		const = 0;
 
+	virtual ResourcePtrList_t GetResources(ResourcePathPtr_t ppath) const = 0;
+
 	/**
 	 * @brief Check the existence of a resource
 	 * @param path Resource path
 	 * @return True if the resource exists, false otherwise.
 	 */
 	virtual bool ExistResource(std::string const & path) const = 0;
+
+	virtual bool ExistResource(ResourcePathPtr_t ppath) const = 0;
 };
 
 }   // namespace bbque

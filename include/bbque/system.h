@@ -225,6 +225,10 @@ public:
 		return ra.GetResource(path);
 	}
 
+	inline ResourcePtr_t GetResource(ResourcePathPtr_t ppath) const {
+		return ra.GetResource(ppath);
+	}
+
 	/**
 	 * @see ResourceAccounterStatusIF::GetResources()
 	 */
@@ -232,11 +236,19 @@ public:
 		return ra.GetResources(temp_path);
 	}
 
+	inline ResourcePtrList_t GetResources(ResourcePathPtr_t ppath) const {
+		return ra.GetResources(ppath);
+	}
+
 	/**
 	 * @see ResourceAccounterStatusIF::ExistResources()
 	 */
 	inline bool ExistResource(std::string const & path) const {
 		return ra.ExistResource(path);
+	}
+
+	inline bool ExistResource(ResourcePathPtr_t ppath) const {
+		return ra.ExistResource(ppath);
 	}
 
 

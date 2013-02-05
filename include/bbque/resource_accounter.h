@@ -45,15 +45,6 @@ using bbque::app::AppSPtr_t;
 namespace bbque {
 
 
-namespace res {
-
-class ResourcePath;
-typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
-
-}
-
-using bbque::res::ResourcePathPtr_t;
-
 /** Map of map of Usage descriptors. Key: Application UID*/
 typedef std::map<AppUid_t, UsagesMapPtr_t> AppUsagesMap_t;
 /** Shared pointer to a map of pair Application/Usages */
@@ -187,29 +178,17 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	inline ResourcePtr_t GetResource(std::string const & path) const {
-		return resources.find(path);
-	}
+	ResourcePtr_t GetResource(std::string const & path) const;
+	ResourcePtr_t GetResource(ResourcePathPtr_t ppath) const;
+
+	ResourcePtrList_t GetResources(std::string const & path) const;
+	ResourcePtrList_t GetResources(ResourcePathPtr_t ppath) const;
+
+	bool ExistResource(std::string const & path) const;
+	bool ExistResource(ResourcePathPtr_t ppath) const;
 
 	/**
-	 * @see ResourceAccounterStatusIF
 	 */
-	inline ResourcePtrList_t GetResources(std::string const & path) const {
-		// If the path is a template find all the resources matching the
-		// template. Otherwise do an "hybrid" path based search.
-		if (ResourcePathUtils::IsTemplate(path))
-			return resources.findAll(path);
-		return resources.findSet(path);
-	}
-
-	/**
-	 * @see ResourceAccounterStatusIF
-	 */
-	inline bool ExistResource(std::string const & path) const {
-		std::string _temp_path = ResourcePathUtils::GetTemplate(path);
-		return resources.existPath(_temp_path);
-	}
-
 
 	/**
 	 * @brief Show the system resources status
