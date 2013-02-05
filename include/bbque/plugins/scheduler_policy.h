@@ -27,6 +27,8 @@
 #define SCHEDULER_POLICY_NAMESPACE "bq.sp"
 // The prefix for configuration file attributes
 #define SCHEDULER_POLICY_CONFIG "SchedPol"
+// The default base resource path for the binding step
+#define SCHEDULER_DEFAULT_BINDING_DOMAIN "sys.cpu"
 
 using namespace bbque::app;
 using namespace bbque::res;
@@ -78,15 +80,15 @@ public:
 		 *
 		 * @param _papp Application/EXC to schedule
 		 * @param _pawm AWM to evaluate
-		 * @param _clid Cluster ID for resource binding
+		 * @param _bid Cluster ID for resource binding
 		 */
-		EvalEntity_t(AppCPtr_t _papp, AwmPtr_t _pawm, uint8_t _clid):
+		EvalEntity_t(AppCPtr_t _papp, AwmPtr_t _pawm, uint8_t _bid):
 			papp(_papp),
 			pawm(_pawm),
-			clust_id(_clid) {
+			bind_id(_bid) {
 			// Log string
-			snprintf(str_id, 40, "[%s] {AWM:%02d,CL:%02d}", papp->StrId(),
-					pawm->Id(), clust_id);
+			snprintf(str_id, 40, "[%s] {AWM:%02d, B:%02d}",
+					papp->StrId(), pawm->Id(), bind_id);
 		};
 
 		/** Application/EXC to schedule */
@@ -94,7 +96,7 @@ public:
 		/** Candidate AWM */
 		AwmPtr_t pawm;
 		/** Candidate cluster for resource binding */
-		ResID_t clust_id;
+		ResID_t bind_id;
 		/** Identifier string */
 		char str_id[40];
 
@@ -118,13 +120,13 @@ public:
 		 *
 		 * @param _papp Application/EXC to schedule
 		 * @param _pawm AWM to evaluate
-		 * @param _clid Cluster ID for resource binding
+		 * @param _bid Cluster ID for resource binding
 		 * @param _metr The related scheduling metrics (also "application
 		 * value")
 		 */
-		SchedEntity_t(AppCPtr_t _papp, AwmPtr_t _pawm, uint8_t _clid,
+		SchedEntity_t(AppCPtr_t _papp, AwmPtr_t _pawm, uint8_t _bid,
 				float _metr):
-			EvalEntity_t(_papp, _pawm, _clid),
+			EvalEntity_t(_papp, _pawm, _bid),
 			metrics(_metr) {
 		};
 

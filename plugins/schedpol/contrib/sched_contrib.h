@@ -29,7 +29,7 @@
 
 #define for_each_sched_resource_usage(entity, usage_it)             \
 	UsagesMapPtr_t const & rsrc_usages(                             \
-			entity.pawm->GetSchedResourceBinding(entity.clust_id)); \
+			entity.pawm->GetSchedResourceBinding(entity.bind_id)); \
 	UsagesMap_t::const_iterator end_usage(rsrc_usages->end());      \
 	for (usage_it = rsrc_usages->begin();                           \
 			usage_it != end_usage; ++usage_it)
