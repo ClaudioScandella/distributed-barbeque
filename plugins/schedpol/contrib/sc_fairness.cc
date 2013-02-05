@@ -80,18 +80,21 @@ SCFairness::~SCFairness() {
 }
 
 SchedContrib::ExitCode_t SCFairness::Init(void * params) {
-
+	char rsrc_path_str[20];
 	// Applications/EXC to schedule, given the priority level
 	AppPrio_t * prio = static_cast<AppPrio_t *>(params);
 	num_apps = sv->ApplicationsCount(*prio);
 	logger->Debug("Applications/EXCs: Prio[%d] #:%d", *prio, num_apps);
 
-	// Get the total amount of resource per types
-	for (int i = 0; i < SC_RSRC_COUNT; ++i) {
-		rsrc_avail[i] = sv->ResourceAvailable(ResourceGenPaths[i], vtok);
+	// For each resource type get the availability and the fair partitioning
+	// among the application having the same priority
+	for (int i = 1; i < ResourceIdentifier::TYPE_COUNT; ++i) {
+		snprintf(rsrc_path_str, 20, "%s.%s",
+				binding_domain.c_str(), ResourceIdentifier::TypeStr[i]);
+		rsrc_avail[i] = sv->ResourceAvailable(rsrc_path_str, vtok);
 		fair_parts[i] = rsrc_avail[i] / num_apps;
-		logger->Debug("R{%s} AVL:%lu Fair partition:%lu",
-				ResourceGenPaths[i], rsrc_avail[i], fair_parts[i]);
+		logger->Debug("R{%s} availability:%" PRIu64 " fair partition:%"	PRIu64,
+				rsrc_path_str, rsrc_avail[i], fair_parts[i]);
 	}
 
 	return SC_SUCCESS;

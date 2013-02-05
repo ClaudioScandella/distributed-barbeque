@@ -75,10 +75,10 @@ private:
 	uint16_t num_apps;
 
 	/** Resource availability */
-	uint64_t rsrc_avail[SC_RSRC_COUNT];
+	uint64_t rsrc_avail[ResourceIdentifier::TYPE_COUNT];
 
 	/** Fair partitions */
-	uint64_t fair_parts[SC_RSRC_COUNT];
+	uint64_t fair_parts[ResourceIdentifier::TYPE_COUNT];
 
 
 	/**
