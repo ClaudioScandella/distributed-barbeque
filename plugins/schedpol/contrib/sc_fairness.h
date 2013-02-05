@@ -84,7 +84,7 @@ private:
 	/**
 	 * @brief Compute the congestion contribute
 	 *
-	 * @param evl_ent The entity to evaluate (EXC/AWM/ClusterID)
+	 * @param evl_ent The entity to evaluate (EXC/AWM/BindingID)
 	 * @param ctrib The contribute to set
 	 *
 	 * @return SC_SUCCESS for success
@@ -100,14 +100,14 @@ private:
 	 * constant index (1) and the Over Fair Region (OFR) the result of the
 	 * exponential function.
 	 *
-	 * @param cfp Cluster fair partition. Used to compute the "x-scale"
+	 * @param bfp Binding fair partition. Used to compute the "x-scale"
 	 * parameter.
-	 * @param cra Cluster resource availability. This is the "x-offset" and a
+	 * @param bra Binding resource availability. This is the "x-offset" and a
 	 * component of the "x-scale" parameter.
 	 * @param penalty The un-fairness penalty of the resource
 	 * @param params Parameters structure to fill
 	 */
-	void SetIndexParameters(uint64_t cfp, uint64_t cra,	float & penalty,
+	void SetIndexParameters(uint64_t bfp, uint64_t bra,	float & penalty,
 			CLEParams_t & params);
 
 };

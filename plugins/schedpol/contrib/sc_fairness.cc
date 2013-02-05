@@ -104,9 +104,9 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	CLEParams_t params;
 	float ru_index;
 	float penalty;
-	uint64_t clust_rsrc_avl;
-	uint64_t clust_fract;
-	uint64_t clust_fair_part;
+	uint64_t bd_rsrc_avail;
+	uint64_t bd_fract;
+	uint64_t bd_fair_part;
 	ctrib = 1.0;
 
 	// Fixed function parameters
@@ -115,51 +115,45 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 
 	// Iterate the whole set of resource usage
 	for_each_sched_resource_usage(evl_ent, usage_it) {
-		std::string const & rsrc_path(usage_it->first);
 		UsagePtr_t const & pusage(usage_it->second);
+		ResourcePathPtr_t const & rsrc_path(usage_it->first);
 		ResourcePtrList_t & rsrc_bind(pusage->GetBindingList());
 
-		// Resource availability (in the bound cluster)
-		clust_rsrc_avl = sv->ResourceAvailable(rsrc_bind, vtok);
-		logger->Debug("%s: R{%s} resource availability: %lu", evl_ent.StrId(),
-				rsrc_path.c_str(), clust_rsrc_avl);
+		// Resource availability (already bound)
+		bd_rsrc_avail = sv->ResourceAvailable(rsrc_bind, vtok);
+		logger->Debug("%s: R{%s} availability: %" PRIu64 "",
+				evl_ent.StrId(), rsrc_path->ToString().c_str(), bd_rsrc_avail);
 
 		// If there are no free resources the index contribute is equal to 0
-		if (clust_rsrc_avl < pusage->GetAmount()) {
+		if (bd_rsrc_avail < pusage->GetAmount()) {
 			ctrib = 0;
 			return SC_SUCCESS;
 		}
 
-		// Compute the cluster factor (resource type related)
-		std::string rsrc_name(ResourcePathUtils::GetNameTemplate(rsrc_path));
-		if (rsrc_name.compare(ResourceNames[SC_RSRC_PE]) == 0) {
-			clust_fract = ceil(static_cast<double>(clust_rsrc_avl) /
-					fair_parts[SC_RSRC_PE]);
-			penalty = static_cast<float>(penalties_int[SC_RSRC_PE]) / 100.0;
-		}
-		else {
-			clust_fract = ceil(static_cast<double>(clust_rsrc_avl) /
-					fair_parts[SC_RSRC_MEM]);
-			penalty = static_cast<float>(penalties_int[SC_RSRC_MEM]) / 100.0;
-		}
+		// Binding domain fraction (resource type related)
+		bd_fract = ceil(
+				static_cast<double>(bd_rsrc_avail) /
+				fair_parts[rsrc_path->Type()]);
+		logger->Debug("%s: R{%s} BD{'%s'} fraction: %" PRIu64 "",
+				evl_ent.StrId(), rsrc_path->ToString().c_str(),
+				binding_domain.c_str(), bd_fract);
+		bd_fract == 0 ? bd_fract = 1 : bd_fract;
 
-		logger->Debug("%s: R{%s} cluster fraction: %lu", evl_ent.StrId(),
-				rsrc_path.c_str(), clust_fract);
+		// Binding domain fair partition
+		bd_fair_part =
+			std::min<uint64_t>(bd_rsrc_avail, bd_rsrc_avail / bd_fract);
+		logger->Debug("%s: R{%s} BD{'%s'} fair partition: %" PRIu64 "",
+				evl_ent.StrId(), rsrc_path->ToString().c_str(),
+				binding_domain.c_str(), bd_fair_part);
 
-		// Compute the cluster fair partition
-		clust_fair_part = std::min<uint64_t>(clust_rsrc_avl,
-				clust_rsrc_avl / clust_fract);
-		logger->Debug("%s: R{%s} cluster fair partition: %lu",
-				evl_ent.StrId(), rsrc_path.c_str(), clust_fair_part);
-
-		// Set function parameters
-		SetIndexParameters(clust_fair_part, clust_rsrc_avl, penalty, params);
+		// Set last parameters for index computation
+		penalty = static_cast<float>(penalties_int[rsrc_path->Type()]) / 100.0;
+		SetIndexParameters(bd_fair_part, bd_rsrc_avail, penalty, params);
 
 		// Compute the region index
-		//ru_index = CLEIndex(clust_fair_part, clust_fair_part,
-		ru_index = CLEIndex(0, clust_fair_part, pusage->GetAmount(), params);
-		logger->Debug("%s: R{%s} index = %.4f", evl_ent.StrId(),
-				rsrc_path.c_str(), ru_index);
+		ru_index = CLEIndex(0, bd_fair_part, pusage->GetAmount(), params);
+		logger->Debug("%s: R{%s} fairness index = %.4f", evl_ent.StrId(),
+				rsrc_path->ToString().c_str(), ru_index);
 
 		// Update the contribution if the index is lower, i.e. the most
 		// penalizing request dominates
