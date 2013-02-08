@@ -21,7 +21,7 @@
 #include "bbque/app/working_mode_conf.h"
 #include "bbque/plugins/logger.h"
 
-#define AWM_NAMESPACE "ap.awm"
+#define AWM_NAMESPACE "bq.awm"
 
 namespace bbque { namespace app {
 
