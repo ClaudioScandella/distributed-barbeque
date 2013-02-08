@@ -319,7 +319,6 @@ void ResourceManager::Optimize() {
 	}
 	logger->Info(LNSCHE);
 	logger->Notice("Schedule Time: %11.3f[us]", optimization_tmr.getElapsedTimeUs());
-	ra.PrintStatusReport(true);
 	am.PrintStatusReport(true);
 
 	// Check if there is at least one application to synchronize
