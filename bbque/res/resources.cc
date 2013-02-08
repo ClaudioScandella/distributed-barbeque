@@ -250,6 +250,13 @@ uint16_t Resource::ApplicationsCount(AppUseQtyMap_t & apps_map,
 
 uint64_t Resource::ApplicationUsage(AppSPtr_t const & papp,
 		AppUseQtyMap_t & apps_map) {
+	// Sanity check
+	if (!papp) {
+		DB(fprintf(stderr, FW("Resource {%s}: App/EXC null pointer\n"),
+					name.c_str()));
+		return 0;
+	}
+
 	// Retrieve the application from the map
 	AppUseQtyMap_t::iterator app_using_it(apps_map.find(papp->Uid()));
 	if (app_using_it == apps_map.end()) {
