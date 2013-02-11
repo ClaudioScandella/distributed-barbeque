@@ -126,7 +126,6 @@ void ResourceAccounter::PrintStatusReport(RViewToken_t vtok, bool verbose) const
 	}
 
 	for (path_it = r_paths.begin(); path_it != end_path; ++path_it) {
-		std::string const & path_str((*path_it).first);
 		ResourcePathPtr_t ppath((*path_it).second);
 
 		// Amount of resource used
@@ -135,14 +134,14 @@ void ResourceAccounter::PrintStatusReport(RViewToken_t vtok, bool verbose) const
 		// Build the resource text row
 		uint8_t len = 0;
 		char online = 'I';
-		if (IsOfflineResource(path_str))
+		if (IsOfflineResource(ppath))
 			online = 'O';
 
 		len += sprintf(rsrc_text_row + len, "| %-27s %c : %11s | ",
 				ppath->ToString().c_str(), online,
 				PrettyFormat(rsrc_used));
 		len += sprintf(rsrc_text_row + len, "%11s | ",
-				PrettyFormat(Unreserved(path_str)));
+				PrettyFormat(Unreserved(ppath)));
 		len += sprintf(rsrc_text_row + len, "%11s |",
 				PrettyFormat(Total(ppath)));
 
@@ -467,15 +466,17 @@ ResourceAccounter::ExitCode_t ResourceAccounter::UpdateResource(
 		std::string const & _units,
 		uint64_t _amount) {
 	ResourcePtr_t pres;
+	ResourcePathPtr_t ppath;
 	uint64_t availability;
 	uint64_t reserved;
 
 	// Lookup for the resource to be updated
-	pres = GetResource(_path);
+	ppath = GetPath(_path);
+	pres  = GetResource(ppath);
 	if (!pres) {
 		logger->Fatal("Updating resource FAILED "
 				"(Error: resource [%s] not found",
-				_path.c_str());
+				ppath->ToString().c_str());
 		return RA_ERR_NOT_REGISTERED;
 	}
 
@@ -495,7 +496,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::UpdateResource(
 
 	// Setup reserved amount of resource, considering the units
 	reserved = pres->Total() - availability;
-	ReserveResources(_path, reserved);
+	ReserveResources(ppath, reserved);
 	pres->SetOnline();
 
 	return RA_SUCCESS;
@@ -590,16 +591,18 @@ void ResourceAccounter::ReleaseResources(AppSPtr_t papp, RViewToken_t vtok) {
 
 
 ResourceAccounter::ExitCode_t  ResourceAccounter::ReserveResources(
-		std::string const & path, uint64_t amount) {
-	ResourcePtrList_t rlist = resources.findSet(path);
+		ResourcePathPtr_t ppath, uint64_t amount) {
+	ResourcePtrList_t rlist;
+	rlist = resources.findList(*(ppath.get()), RT_MATCH_MIXED);
 	ResourcePtrListIterator_t rit = rlist.begin();
 
 	logger->Info("Reserving [%" PRIu64 "] for [%s] resources...",
 			amount, path.c_str());
+
 	if (rit == rlist.end()) {
 		logger->Error("Resource reservation FAILED "
 				"(Error: resource [%s] not matching)",
-				path.c_str());
+				ppath->ToString().c_str());
 		return RA_FAILED;
 	}
 	for ( ; rit != rlist.end(); ++rit) {
@@ -609,15 +612,17 @@ ResourceAccounter::ExitCode_t  ResourceAccounter::ReserveResources(
 	return RA_SUCCESS;
 }
 
-bool  ResourceAccounter::IsOfflineResource(std::string const & path) const {
-	ResourcePtrList_t rlist = resources.findSet(path);
+bool  ResourceAccounter::IsOfflineResource(ResourcePathPtr_t ppath) const {
+	ResourcePtrList_t rlist;
+	rlist = resources.findList(*(ppath.get()), RT_MATCH_MIXED);
 	ResourcePtrListIterator_t rit = rlist.begin();
 
-	logger->Debug("Check offline status for resources [%s]...", path.c_str());
+	logger->Debug("Check offline status for resources [%s]...",
+			ppath->ToString().c_str());
 	if (rit == rlist.end()) {
 		logger->Error("Check offline FAILED "
 				"(Error: resource [%s] not matching)",
-				path.c_str());
+				ppath->ToString().c_str());
 		return true;
 	}
 	for ( ; rit != rlist.end(); ++rit) {
@@ -630,7 +635,7 @@ bool  ResourceAccounter::IsOfflineResource(std::string const & path) const {
 
 ResourceAccounter::ExitCode_t  ResourceAccounter::OfflineResources(
 		std::string const & path) {
-	ResourcePtrList_t rlist = resources.findSet(path);
+	ResourcePtrList_t rlist = GetResources(path);
 	ResourcePtrListIterator_t rit = rlist.begin();
 
 	logger->Info("Offlining resources [%s]...", path.c_str());
@@ -649,7 +654,7 @@ ResourceAccounter::ExitCode_t  ResourceAccounter::OfflineResources(
 
 ResourceAccounter::ExitCode_t  ResourceAccounter::OnlineResources(
 		std::string const & path) {
-	ResourcePtrList_t rlist = resources.findSet(path);
+	ResourcePtrList_t rlist = GetResources(path);
 	ResourcePtrListIterator_t rit = rlist.begin();
 
 	logger->Info("Onlining resources [%s]...", path.c_str());

@@ -329,13 +329,11 @@ public:
 	 * @return RA_SUCCESS if the reservation has been completed correctly,
 	 * RA_FAILED otherwise.
 	 */
-	ExitCode_t  ReserveResources(std::string const & path,
-			uint64_t amount);
+	ExitCode_t  ReserveResources(ResourcePathPtr_t ppath, uint64_t amount);
 
-	bool  IsOfflineResource(std::string const & path) const;
+	bool  IsOfflineResource(ResourcePathPtr_t ppath) const;
 
 	ExitCode_t  OfflineResources(std::string const & path);
-
 
 	ExitCode_t  OnlineResources(std::string const & path);
 
