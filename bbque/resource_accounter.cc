@@ -306,6 +306,7 @@ ResourcePtrList_t ResourceAccounter::GetList(
 	return resources.findList(*(ppath.get()), RTFlags(rpc));
 }
 
+
 uint64_t ResourceAccounter::QueryStatus(
 		ResourcePtrList_t const & rsrc_list,
 		QueryOption_t _att,
@@ -335,6 +336,30 @@ uint64_t ResourceAccounter::QueryStatus(
 		}
 	}
 	return value;
+}
+
+uint64_t ResourceAccounter::GetUsageAmount(
+		UsagesMapPtr_t const & pum,
+		ResourceIdentifier::Type_t r_type) const {
+	UsagesMap_t::iterator uit;
+	ResourcePathPtr_t ppath;
+	UsagePtr_t pusage;
+	uint64_t usage = 0;
+
+	uit = pum->begin();
+	for ( ; uit != pum->end(); ++uit) {
+		ppath  = (*uit).first;
+		pusage = (*uit).second;
+
+		// Get the amount used
+		if (ppath->Type() != r_type)
+			continue;
+		usage += pusage->GetAmount();
+	}
+
+	logger->Debug("GetUsageAmount: R{%-3s} U = %" PRIu64 "",
+			ResourceIdentifier::TypeStr[r_type], usage);
+	return usage;
 }
 
 ResourceAccounter::ExitCode_t ResourceAccounter::CheckAvailability(

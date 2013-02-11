@@ -206,6 +206,17 @@ public:
 	ResourcePathPtr_t const GetPath(std::string const & path_str) const;
 
 	/**
+	 * @brief Get the cumulative amount of resource usage
+	 *
+	 * @param pum A map of Usage pointers
+	 * @param r_type The type of resource to query
+	 *
+	 * @return The amount of resource usage
+	 */
+	uint64_t GetUsageAmount(UsagesMapPtr_t const & pum,
+			ResourceIdentifier::Type_t r_type) const;
+
+	/**
 	 * @brief Show the system resources status
 	 *
 	 * This is an utility function for debug purpose that print out all the
