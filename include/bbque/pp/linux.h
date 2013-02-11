@@ -99,16 +99,6 @@ public:
 
 private:
 
-	typedef enum RLinuxType {
-		RLINUX_TYPE_NODE = 0,	/* A Host Linux machine */
-		RLINUX_TYPE_SOCKET,		/* A socket on an SMP Linux machine */
-		RLINUX_TYPE_CPU,		/* A CPU on an SMP Linux machine */
-		RLINUX_TYPE_SMEM,		/* A socket memory bank on an SMP Linux
-								   machine */
-
-		RLINUX_TYPE_UNKNOWN		/* Resource which could not be mapped on an Host
-								   Linux machine */
-	} RLinuxType_t;
 	/**
 	 * @brief Resource assignement bindings on a Linux machine
 	 */
@@ -282,13 +272,6 @@ private:
  * @}
  */
 
-
-	RLinuxType_t GetRLinuxType(ResourcePtr_t pres);
-
-	uint8_t GetRLinuxId(ResourcePtr_t pres);
-
-	ExitCode_t ParseBindings(AppPtr_t papp, RViewToken_t rvt,
-			RLinuxBindingsPtr_t prlb, UsagePtr_t pusage);
 	ExitCode_t GetResourceMapping(AppPtr_t papp, UsagesMapPtr_t pum,
 		RViewToken_t rvt, RLinuxBindingsPtr_t prlb);
 
