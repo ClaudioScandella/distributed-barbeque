@@ -18,6 +18,7 @@
 #include "bbque/pp/linux.h"
 
 #include "bbque/resource_accounter.h"
+#include "bbque/res/binder.h"
 #include "bbque/res/resource_utils.h"
 
 #include <string.h>
@@ -637,6 +638,29 @@ LinuxPP::GetResouceMapping(AppPtr_t papp, UsagesMapPtr_t pum,
 
 }
 
+void LinuxPP::BuildSocketCGAttr(
+		char * dest,
+		UsagesMapPtr_t pum,
+		br::ResourceBitset const & cpu_mask,
+		br::Resource::Type_t r_type,
+		AppPtr_t papp,
+		RViewToken_t rvt) {
+	br::ResourceBitset r_mask;
+	br::ResID_t cpu_id;
+
+	for (cpu_id = cpu_mask.FirstSet(); cpu_id <= cpu_mask.LastSet(); ++cpu_id) {
+		r_mask = ResourceBinder::GetMask(pum, r_type, Resource::CPU, cpu_id, papp, rvt);
+		logger->Debug("PLAT LNX: Socket attributes '%-3s' = {%s}",
+				ResourceIdentifier::TypeStr[r_type],
+				r_mask.ToStringCG().c_str());
+
+		// Memory or cores IDs string
+		strcat(dest, r_mask.ToStringCG().c_str());
+		strcat(dest, ",");
+	}
+	// Remove last ","
+	dest[strlen(dest)-1] = 0;
+}
 
 LinuxPP::ExitCode_t
 LinuxPP::BuildCGroup(CGroupDataPtr_t &pcgd) {

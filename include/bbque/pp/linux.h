@@ -21,6 +21,7 @@
 #include "bbque/config.h"
 #include "bbque/platform_proxy.h"
 #include "bbque/command_manager.h"
+#include "bbque/res/bitset.h"
 #include "bbque/utils/attributes_container.h"
 
 #include <libcgroup.h>
@@ -290,6 +291,10 @@ private:
 			RLinuxBindingsPtr_t prlb, UsagePtr_t pusage);
 	ExitCode_t GetResouceMapping(AppPtr_t papp, UsagesMapPtr_t pum,
 		RViewToken_t rvt, RLinuxBindingsPtr_t prlb);
+
+	void BuildSocketCGAttr(char * dest, UsagesMapPtr_t pum,
+			ResourceBitset const & cpu_mask, Resource::Type_t r_type,
+			AppPtr_t papp, RViewToken_t rvt);
 
 	ExitCode_t BuildCGroup(CGroupDataPtr_t &pcgd);
 
