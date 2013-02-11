@@ -11,6 +11,7 @@ set (RESOURCES_SRC resource_path ${RESOURCES_SRC})
 set (RESOURCES_SRC identifier ${RESOURCES_SRC})
 set (RESOURCES_SRC usage ${RESOURCES_SRC})
 set (RESOURCES_SRC binder ${RESOURCES_SRC})
+set (RESOURCES_SRC bitset ${RESOURCES_SRC})
 
 #Add as library
 add_library(bbque_resources STATIC ${RESOURCES_SRC})
