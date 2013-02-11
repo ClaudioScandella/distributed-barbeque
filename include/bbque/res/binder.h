@@ -25,6 +25,8 @@
 
 namespace bbque { namespace res {
 
+class ResourceBitset;
+
 /**
  * @class ResourceBinder
  *
@@ -72,10 +74,9 @@ public:
 	 * @param pum A shared pointer to the map of resource usages
 	 * @param r_type The type of resource to consider
 	 *
-	 * @return A bitset object where in the set bit are related to the ID to
-	 * which the resource usage has been bound
+	 * @return A ResourceBitset object tracking all the IDs
 	 */
-	static BindingBitset GetMask(
+	static ResourceBitset GetMask(
 			UsagesMapPtr_t pum, ResourceIdentifier::Type_t r_type);
 
 	/**

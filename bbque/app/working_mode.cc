@@ -190,7 +190,7 @@ WorkingMode::ExitCode_t WorkingMode::BindResource(
 }
 
 WorkingMode::ExitCode_t WorkingMode::SetResourceBinding(uint16_t b_id) {
-	BindingBitset new_mask, temp_mask;
+	ResourceBitset new_mask, temp_mask;
 	uint8_t r_type;
 
 	// Sanity check
@@ -231,13 +231,13 @@ void WorkingMode::ClearResourceBinding() {
 	}
 }
 
-BindingBitset WorkingMode::BindingSet(
+ResourceBitset WorkingMode::BindingSet(
 		ResourceIdentifier::Type_t r_type) const {
 	BindingInfo const & bi(resources.binding_masks[r_type]);
 	return bi.curr;
 }
 
-BindingBitset WorkingMode::BindingSetPrev(
+ResourceBitset WorkingMode::BindingSetPrev(
 		ResourceIdentifier::Type_t r_type) const {
    return resources.binding_masks[r_type].prev;
 }

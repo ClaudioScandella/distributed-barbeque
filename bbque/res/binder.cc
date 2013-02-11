@@ -19,6 +19,7 @@
 
 #include "bbque/resource_accounter.h"
 #include "bbque/res/binder.h"
+#include "bbque/res/bitset.h"
 #include "bbque/res/resource_path.h"
 
 
@@ -78,16 +79,16 @@ uint32_t ResourceBinder::Bind(
 	return count;
 }
 
-BindingBitset ResourceBinder::GetMask(
+ResourceBitset ResourceBinder::GetMask(
 		UsagesMapPtr_t pum,
 		ResourceIdentifier::Type_t r_type) {
 	UsagesMap_t::iterator pum_it;
-	BindingBitset binding_mask;
+	ResourceBitset r_mask;
 	ResID_t r_id;
 
 	// Sanity check
 	if (r_type >= ResourceIdentifier::TYPE_COUNT)
-		return binding_mask;
+		return r_mask;
 
 	// Scan the resource usages map
 	for (pum_it = pum->begin();	pum_it != pum->end(); ++pum_it) {
@@ -97,9 +98,9 @@ BindingBitset ResourceBinder::GetMask(
 		if ((r_id == R_ID_NONE) || (r_id == R_ID_ANY))
 			continue;
 		// Set the ID-th bit in the mask
-		binding_mask.set(r_id);
+		r_mask.Set(r_id);
 	}
-	return binding_mask;
+	return r_mask;
 }
 
 ResourceBinder::ExitCode_t ResourceBinder::Compatible(

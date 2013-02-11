@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "bbque/app/working_mode_conf.h"
+#include "bbque/res/bitset.h"
 #include "bbque/plugins/logger.h"
 
 #define AWM_NAMESPACE "bq.awm"
@@ -293,12 +294,12 @@ public:
 	/**
 	 * @see WorkingModeStatusIF
 	 */
-	BindingBitset BindingSet(ResourceIdentifier::Type_t r_type) const;
+	ResourceBitset BindingSet(ResourceIdentifier::Type_t r_type) const;
 
 	/**
 	 * @see WorkingModeStatusIF
 	 */
-	BindingBitset BindingSetPrev(ResourceIdentifier::Type_t r_type) const;
+	ResourceBitset BindingSetPrev(ResourceIdentifier::Type_t r_type) const;
 
 	/**
 	 * @see WorkingModeStatusIF
@@ -315,9 +316,9 @@ private:
 	 */
 	struct BindingInfo {
 		/** Save the previous set of clusters bound */
-		BindingBitset prev;
+		ResourceBitset prev;
 		/** The current set of clusters bound */
-		BindingBitset curr;
+		ResourceBitset curr;
 		/** True if current set differs from previous */
 		bool changed;
 	};

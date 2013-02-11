@@ -211,7 +211,7 @@ YamsSchedPol::Schedule(System & sys_if, RViewToken_t & rav) {
 
 	// Cleaning
 	entities.clear();
-	bindings.full.reset();
+	bindings.full.Reset();
 
 	ra.PrintStatusReport(vtok);
 	logger->Debug("################ Scheduling policy exiting ##############");
@@ -221,7 +221,7 @@ YamsSchedPol::Schedule(System & sys_if, RViewToken_t & rav) {
 error:
 	logger->Error("Schedule: an error occurred. Interrupted.");
 	entities.clear();
-	bindings.full.reset();
+	bindings.full.Reset();
 
 	ra.PutView(vtok);
 	return SCHED_ERROR;
@@ -313,7 +313,7 @@ bool YamsSchedPol::SelectSchedEntities(uint8_t naps_count) {
 
 		// Skip this AWM,Binding if the bound domain is full or if the
 		// Application/EXC must be skipped
-		if (bindings.full.test(pschd->bind_id) ||
+		if (bindings.full.Test(pschd->bind_id) ||
 				(CheckSkipConditions(pschd->papp)))
 			continue;
 
@@ -442,7 +442,7 @@ void YamsSchedPol::AggregateContributes(SchedEntityPtr_t pschd) {
 			case SchedContrib::SC_RSRC_NO_PE:
 				logger->Debug("Aggregate: No available PEs in {%s} %d",
 						bindings.domain.c_str(), pschd->bind_id);
-				bindings.full.set(pschd->bind_id);
+				bindings.full.Set(pschd->bind_id);
 				return;
 			default:
 				logger->Warn("Aggregate: Unable to schedule in {%s} %d [err:%d]",

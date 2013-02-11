@@ -197,7 +197,7 @@ private:
 		/** The IDs of all the possible bindings */
 		std::vector<ResID_t> ids;
 		/** Keep track the bindings without available processing elements */
-		BindingBitset full;
+		ResourceBitset full;
 	} bindings;
 
 	/** Mutex */

@@ -47,10 +47,7 @@ class ResourceIdentifier;
 typedef int16_t ResID_t;
 /** Shared pointer to a ResourceIdentifier object */
 typedef std::shared_ptr<ResourceIdentifier> ResourceIdentifierPtr_t;
-/**
- * Bitset for the resource binding masks: each set bit position is an
- * assigned ID  */
-typedef std::bitset<MAX_R_ID_NUM> BindingBitset;
+
 
 /**
  * @class ResourceIdentifier

@@ -667,12 +667,12 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 				(awm->BindingChanged(ResourceIdentifier::CPU)))
 				strncpy(b_set,
 						awm->BindingSetPrev(
-							ResourceIdentifier::CPU).to_string().c_str(),
+							ResourceIdentifier::CPU).ToString().c_str(),
 							MAX_R_ID_NUM);
 			else
 				strncpy(b_set,
 						awm->BindingSet(
-							ResourceIdentifier::CPU).to_string().c_str(),
+							ResourceIdentifier::CPU).ToString().c_str(),
 							MAX_R_ID_NUM);
 			snprintf(curr_awm_bd, 12, "%02d:%s", awm->Id(), b_set);
 		}
@@ -683,7 +683,7 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 		if (next_awm) {
 			strncpy(b_set,
 					next_awm->BindingSet(
-						ResourceIdentifier::CPU).to_string().c_str(),
+						ResourceIdentifier::CPU).ToString().c_str(),
 						MAX_R_ID_NUM);
 			snprintf(next_awm_bd, 12, "%02d:%s", next_awm->Id(), b_set);
 		}

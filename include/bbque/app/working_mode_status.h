@@ -36,6 +36,7 @@ namespace bbque {
 namespace res {
 class Resource;
 class ResourcePath;
+class ResourceBitset;
 typedef size_t RViewToken_t;
 typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
 
@@ -153,7 +154,8 @@ public:
 	 *
 	 * @return A bitset data structure
 	 */
-	virtual BindingBitset BindingSet(ResourceIdentifier::Type_t r_type) const = 0;
+	virtual ResourceBitset BindingSet(ResourceIdentifier::Type_t r_type)
+		const = 0;
 
 	/**
 	 * @brief Get the bitmap of the clusters previously used.
@@ -163,7 +165,7 @@ public:
 	 *
 	 * @return A bitset data structure
 	 */
-	virtual BindingBitset BindingSetPrev(
+	virtual ResourceBitset BindingSetPrev(
 			ResourceIdentifier::Type_t r_type) const = 0;
 
 	/**
