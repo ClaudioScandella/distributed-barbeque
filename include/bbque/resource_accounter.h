@@ -145,6 +145,11 @@ public:
 		return QueryStatus(rsrc_list, RA_UNRESERVED);
 	}
 
+	inline uint64_t Unreserved(ResourcePathPtr_t ppath) const {
+		ResourcePtrList_t matchings = GetList(ppath, MIXED);
+		return QueryStatus(matchings, RA_UNRESERVED, 0);
+	}
+
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
