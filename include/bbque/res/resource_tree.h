@@ -91,36 +91,6 @@ public:
 	};
 
 	/**
-	 * @brief SearchOptions_t
-	 *
-	 * Enumerate all the possible search options for the resource descriptors
-	 * in the tree
-	 */
-	enum SearchOption_t {
-		/**
-		 * Lookup exactly the descriptor of the resource specified in the
-		 * path
-		 */
-		RT_EXACT_MATCH = 0,
-		/**
-		 * Lookup the first resource descriptor having a path compatible
-		 * with the template specified
-		 */
-		RT_FIRST_MATCH,
-		/**
-		 * Find all the resource descriptors matching the "hybrid path".
-		 * Such hybrid path is a resource path part template and part
-		 * ID-based.
-		 */
-		RT_SET_MATCHES,
-		/**
-		 * Return in a list all the descriptors matching the template path
-		 * to search
-		 */
-		RT_ALL_MATCHES
-	};
-
-	/**
 	 * @brief Constructor
 	 */
 	ResourceTree();
@@ -134,83 +104,15 @@ public:
 
 	/**
 	 * @brief Insert a new resource
-	 * @param rsrc_path Resource path
+	 *
+	 * @param rsrc_path Path object to of the resource to insert
+	 *
 	 * @return A shared pointer to the resource descriptor just created
 	 */
-	ResourcePtr_t & insert(std::string const & rsrc_path);
-
 	ResourcePtr_t & insert(ResourcePath const & rsrc_path);
 
 	/**
-	 * @brief Find a resource by its pathname
-	 *
-	 * This returns a descriptor (field 'data' in the ResourceNode_t)
-	 * of the of the resource specified in the path.
-	 *
-	 * @param rsrc_path Resource path
-	 * @return A shared pointer to the resource descriptor found
-	 */
-	inline ResourcePtr_t find(std::string const & rsrc_path) const {
-		// List of matchings to be filled
-		ResourcePtrList_t matchings;
-
-		// Return the first element of the list if success
-		if (find_node(root, rsrc_path, RT_EXACT_MATCH, matchings))
-			return (*(matchings.begin()));
-		return ResourcePtr_t();
-	}
-
-	inline ResourcePtrList_t findAll(std::string const & temp_path) const {
-		// List of matches to return
-		ResourcePtrList_t matches;
-
-		// Start the recursive search
-		find_node(root, temp_path, RT_ALL_MATCHES, matches);
-		return matches;
-	}
-
-	/**
-	 * @brief Find a set of resources matching an hybrid path
-	 * @see RT_SET_MATCHES
-	 *
-	 * This is needed for instance when we are interested in getting all
-	 * the descriptors of the "processing elements" (template part)
-	 * contained in a specific cluster (ID-based part), with a single
-	 * call.
-	 * Without this, we should make "N" find() calls passing the ID-based
-	 * resource path for each processing element.
-	 *
-	 * @param hyb_path The resource path in hybrid form
-	 * @return A list of resource descriptors (pointers)
-	 */
-	inline ResourcePtrList_t findSet(std::string const & hyb_path) const {
-		// List of matches to return
-		ResourcePtrList_t matches;
-
-		// Start the recursive search
-		find_node(root, hyb_path, RT_SET_MATCHES, matches);
-		return matches;
-	}
-
-	/**
-	 * @brief Check resource existance by its template pathname.
-	 *
-	 * A template pathname is a path without the resource IDs.
-	 * It is used to look for compatible resources.
-	 *
-	 * @param temp_path Resource path
-	 * @return True if the path match a resource, false otherwise
-	 */
-	inline bool existPath(std::string const & temp_path) const {
-		// List of matches to be filled
-		ResourcePtrList_t matches;
-
-		// Start the recursive search
-		return find_node(root, temp_path, RT_FIRST_MATCH, matches);
-	}
-
-	/**
-	 * @brief Find a set of resources matching a template path
+	 * @brief Find a set of resources
 	 *
 	 * According to the resource path, the function member can return
 	 * different results. Basically, there are three cases of resource path,
@@ -293,25 +195,18 @@ private:
 	uint16_t count;
 
 	/**
-	 * @brief Find a node by its pathname or template path
+	 * @brief Find a node
 	 *
-	 * This manages three types of search (@see SearchOption_t):
-	 * 1) An exact matching for looking up a well defined resource descriptor.
-	 * 2) A template matching for checking the existance of a resource
-	 * compatible with the template path specified
-	 * 3) A matching of all the resource descriptors matching the template
-	 * path
+	 * The function is called internally by the public member functions
 	 *
 	 * @param curr_node The root node from which start
-	 * @param rsrc_path Resource path (or template path)
-	 * @param opt Specify the type of search (@see SearchOption_t)
-	 * @param matchings A list to fill with the descriptors matching the path.
+	 * @param rp_it Starting ResourcePath iterator
+	 * @param rp_end Ending ResourcePath iterator
+	 * @param match_flags The type of search to perform
+	 * @param matchings A list to fill with the descriptors matching the path
 	 *
 	 * @return True if the search have found some matchings.
 	 */
-	bool find_node(ResourceNode_t * curr_node, std::string const & rsrc_path,
-			SearchOption_t opt, ResourcePtrList_t & matchings) const;
-
 	bool findNode(ResourceNode_t * curr_node,
 			std::vector<ResourceIdentifierPtr_t>::iterator & rp_it,
 			std::vector<ResourceIdentifierPtr_t>::iterator const & rp_end,
@@ -320,17 +215,17 @@ private:
 
 	/**
 	 * @brief Append a child to the current node
+	 *
 	 * @param curr_node Current resource node
-	 * @param rsrc_name Name of the child resource
+	 * @param pres The new resource descriptor to append
+	 *
 	 * @return The child node just created
 	 */
-	ResourceNode_t * add_child(ResourceNode_t * curr_node,
-			std::string const & rsrc_name);
-
 	ResourceNode_t * addChild(ResourceNode_t * curr_node, ResourcePtr_t pres);
 
 	/**
 	 * @brief Recursive method for printing nodes content in a tree-like form
+	 *
 	 * @param node Pointer to the starting tree node
 	 * @param depth Node depth
 	 */
@@ -338,6 +233,7 @@ private:
 
 	/**
 	 * @brief Clear a node of the tree
+	 *
 	 * @param node Pointer to the node to clear
 	 */
 	void clear_node(ResourceNode_t * node);
