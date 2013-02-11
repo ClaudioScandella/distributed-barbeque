@@ -80,6 +80,54 @@ public:
 			UsagesMapPtr_t pum, ResourceIdentifier::Type_t r_type);
 
 	/**
+	 * @brief Retrieve IDs of a type of resource under a scope
+	 *
+	 * <tt>
+	 * Example:<br>
+	 *
+	 * Type:       PROC_ELEMENT
+	 * Scope type: CPU
+	 * Scope ID:   2
+	 *
+	 * Matching resource paths:<br>
+	 *
+	 * "sys0.cpu2.pe0"
+	 * "sys0.cpu2.pe1"
+	 * "sys0.cpu2.pe2"
+	 * "sys0.cpu2.pe..."
+	 *
+	 * </tt>
+	 *
+	 * @param pum A shared pointer to the map of resource usages
+	 * @param r_type The target type of resource
+	 * @param r_type_scope The type of the scope resource
+	 * @param r_type_id The ID of the scope resource
+	 * @param papp [optional] The application using the resource
+	 * @param vtok [optional] The resource state view to consider
+	 *
+	 * @return A ResourceBitset object tracking all the IDs
+	 */
+	static ResourceBitset GetMask(
+		UsagesMapPtr_t pum,
+		ResourceIdentifier::Type_t r_type,
+		ResourceIdentifier::Type_t r_scope_type,
+		ResID_t r_scope_id,
+		AppSPtr_t papp, RViewToken_t vtok = 0);
+
+	/**
+	 * @brief Retrieve IDs of a type of resource from a ResourcePtrList_t
+	 *
+	 * @param rpl A list of resource descriptors
+	 * @param r_type The type of resource to consider
+	 *
+	 * @return A ResourceBitset object tracking all the IDs
+	 */
+	static ResourceBitset GetMask(
+			ResourcePtrList_t const & rpl,
+			ResourceIdentifier::Type_t r_type,
+			AppSPtr_t papp, RViewToken_t vtok = 0);
+
+	/**
 	 * @brief Check if two resource usages map are compatible for binding
 	 *
 	 * @param src_pum A shared pointer to the first map of resource usages

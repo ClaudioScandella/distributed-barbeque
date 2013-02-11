@@ -103,6 +103,77 @@ ResourceBitset ResourceBinder::GetMask(
 	return r_mask;
 }
 
+ResourceBitset ResourceBinder::GetMask(
+		UsagesMapPtr_t pum,
+		ResourceIdentifier::Type_t r_type,
+		ResourceIdentifier::Type_t r_scope_type,
+		ResID_t r_scope_id,
+		AppSPtr_t papp,
+		RViewToken_t vtok) {
+	UsagesMap_t::iterator pum_it;
+	ResourceIdentifier::Type_t rp_type;
+	ResourceBitset r_mask;
+	ResID_t rs_id;
+
+	// Sanity check
+	if ((r_type >= ResourceIdentifier::TYPE_COUNT)       ||
+		(r_scope_type >= ResourceIdentifier::TYPE_COUNT) ||
+		(r_scope_id < 0))
+		return r_mask;
+
+	DB(fprintf(stderr, FD("GetMask: scope='%s%d' r='%s' view=%lu\n"),
+				ResourceIdentifier::TypeStr[r_scope_type], r_scope_id,
+				ResourceIdentifier::TypeStr[r_type], vtok););
+
+	// Scan the resource usages map
+	for (pum_it = pum->begin();	pum_it != pum->end(); ++pum_it) {
+		ResourcePathPtr_t const & ppath(pum_it->first);
+		UsagePtr_t const & pusage(pum_it->second);
+
+		// From the resource path extract the ID of the "scope" resource type,
+		// and the type of resource referenced
+		rs_id   = ppath->GetID(r_scope_type);
+		rp_type = ppath->Type();
+
+		// If the ID has been found and the type of resource is the one
+		// requested, then set the the bit
+		if ((rs_id == r_scope_id) && (rp_type == r_type)) {
+			DB(fprintf(stderr, FD("GetMask: scope found in R{%s}!\n"),
+						ppath->ToString().c_str()));
+			return GetMask(pusage->GetBindingList(), r_type, papp, vtok);
+		}
+	}
+	return r_mask;
+}
+
+ResourceBitset ResourceBinder::GetMask(
+		ResourcePtrList_t const & rpl,
+		ResourceIdentifier::Type_t r_type,
+		AppSPtr_t papp,
+		RViewToken_t vtok) {
+	ResourcePtrList_t::const_iterator rpl_it;
+	ResourceBitset r_mask;
+
+	// Sanity check
+	if (r_type >= ResourceIdentifier::TYPE_COUNT)
+		return r_mask;
+
+	// Scan the resource usages map
+	for (rpl_it = rpl.begin(); rpl_it != rpl.end(); ++rpl_it) {
+		ResourcePtr_t const & pres(*rpl_it);
+
+		// Is the Application/EXC using the resource?
+		DB(fprintf(stderr, FD("GetMaskL: %s\n"), pres->Name().c_str()));
+		if (pres->ApplicationUsage(papp, vtok) == 0)
+			continue;
+
+		if (pres->Type() == r_type)
+			r_mask.Set(pres->ID());
+	}
+	DB(fprintf(stderr, FD("GetMaskL: %s\n"), r_mask.ToString().c_str()));
+	return r_mask;
+}
+
 ResourceBinder::ExitCode_t ResourceBinder::Compatible(
 		UsagesMapPtr_t src_pum,
 		UsagesMapPtr_t dst_pum) {
