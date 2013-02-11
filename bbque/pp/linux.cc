@@ -20,7 +20,9 @@
 #include "bbque/resource_accounter.h"
 #include "bbque/res/binder.h"
 #include "bbque/res/resource_utils.h"
+#include "bbque/app/working_mode.h"
 
+#include <cmath>
 #include <string.h>
 #include <linux/version.h>
 
@@ -597,38 +599,32 @@ LinuxPP::ParseBindings(AppPtr_t papp, RViewToken_t rvt,
 LinuxPP::ExitCode_t
 LinuxPP::GetResouceMapping(AppPtr_t papp, UsagesMapPtr_t pum,
 		RViewToken_t rvt, RLinuxBindingsPtr_t prlb) {
-	br::UsagesMap_t::iterator uit;
-	br::UsagePtr_t pusage;
-	const char *pname;
+	br::ResourceBitset socket_ids;
+	ResourceAccounter & ra(ResourceAccounter::GetInstance());
 
-	// Reset CPUs and MEMORY amounts
-	prlb->amount_cpus = 0;
-	prlb->amount_memb = 0;
+	// Reset CPUs and MEMORY cgroup attributes value
+	memset(prlb->cpus, 0, 3*MaxCpusCount);
+	memset(prlb->mems, 0, 3*MaxMemsCount);
 
-	uit = pum->begin();
-	for ( ; uit != pum->end(); ++uit) {
-		pname = ((*uit).first).c_str();
-		pusage = (*uit).second;
+	// Set the amount of CPUs and MEMORY
+	prlb->amount_cpus = ra.GetUsageAmount(pum, Resource::PROC_ELEMENT);
+	prlb->amount_memb = ra.GetUsageAmount(pum, Resource::MEMORY);
 
-		// Get overall quantity of resource usage
-		//rqty = pusage->value;
+	// Sockets and nodes
+	socket_ids = papp->NextAWM()->BindingSet(Resource::CPU);
+	logger->Debug("PLAT LNX: CPUs mapping = {%s} ID[%d,%d] view:%d",
+			socket_ids.ToStringCG().c_str(),
+			socket_ids.FirstSet(), socket_ids.LastSet(), rvt);
+	prlb->socket_id = log(socket_ids.ToULong()) / log(2);
+	prlb->node_id   =
+		log(papp->NextAWM()->BindingSet(Resource::SYSTEM).ToULong()) / log(2);
 
-		// Parse "tile" and "cluster"
-		prlb->node_id = br::ResourcePathUtils::GetID(pname, "tile");
-		prlb->socket_id = br::ResourcePathUtils::GetID(pname, "cluster");
-		logger->Debug("PLAT LNX: Map resources [%s] @ "
-				"Node [%d], Socket [%d]",
-				pname,
-				prlb->node_id, prlb->socket_id);
+	// CPUs and MEMORY cgroup new attributes value
+	BuildSocketCGAttr(prlb->cpus, pum, socket_ids, Resource::PROC_ELEMENT, papp, rvt);
+	BuildSocketCGAttr(prlb->mems, pum, socket_ids, Resource::MEMORY, papp, rvt);
 
-		// Parse bindings...
-		ParseBindings(papp, rvt, prlb, pusage);
-	}
-
-	// clean-up leading commas
-	prlb->cpus[strlen(prlb->cpus)-1] = 0;
-	prlb->mems[strlen(prlb->mems)-1] = 0;
-
+	logger->Debug("PLAT LNX: Map resources @ Node [%d], Socket [%d]",
+			prlb->node_id, prlb->socket_id);
 	logger->Debug("PLAT LNX: [%s] => {cpus [%s: %" PRIu64 " %], "
 			"mnode[%d: %" PRIu64 " Bytes]}",
 			papp->StrId(), prlb->cpus, prlb->amount_cpus,
