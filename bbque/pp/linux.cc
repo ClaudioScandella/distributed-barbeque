@@ -518,7 +518,7 @@ LinuxPP::_LoadPlatformData() {
 }
 
 /*******************************************************************************
- *    Resources Mappign and Assigment to Applications
+ *    Resources Mapping and Assigment to Applications
  ******************************************************************************/
 
 LinuxPP::RLinuxType_t
@@ -597,7 +597,7 @@ LinuxPP::ParseBindings(AppPtr_t papp, RViewToken_t rvt,
 }
 
 LinuxPP::ExitCode_t
-LinuxPP::GetResouceMapping(AppPtr_t papp, UsagesMapPtr_t pum,
+LinuxPP::GetResourceMapping(AppPtr_t papp, UsagesMapPtr_t pum,
 		RViewToken_t rvt, RLinuxBindingsPtr_t prlb) {
 	br::ResourceBitset socket_ids;
 	ResourceAccounter & ra(ResourceAccounter::GetInstance());
@@ -1023,7 +1023,7 @@ LinuxPP::_MapResources(AppPtr_t papp, UsagesMapPtr_t pum, RViewToken_t rvt,
 	if (result != OK)
 		return result;
 
-	result = GetResouceMapping(papp, pum, rvt, prlb);
+	result = GetResourceMapping(papp, pum, rvt, prlb);
 	if (result != OK) {
 		logger->Error("PLAT LNX: binding parsing FAILED");
 		return MAPPING_FAILED;

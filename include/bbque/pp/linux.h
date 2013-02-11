@@ -110,7 +110,7 @@ private:
 								   Linux machine */
 	} RLinuxType_t;
 	/**
-	 * @breif Resource assignement bindings on a Linux machine
+	 * @brief Resource assignement bindings on a Linux machine
 	 */
 	typedef struct RLinuxBindings {
 		unsigned short node_id; ///> Maps a "tile" on Host Linux machines
@@ -261,7 +261,7 @@ private:
 	const char* _GetPlatformID();
 
 	/**
-	 * @brief Parse the resources assigned to Bqrbeque by CGroup
+	 * @brief Parse the resources assigned to BarbequeRTRM by CGroup
 	 *
 	 * This method allows to parse a set of resources, assinged to Barbeque for
 	 * run-time management, which are defined with a properly configure
@@ -289,7 +289,7 @@ private:
 
 	ExitCode_t ParseBindings(AppPtr_t papp, RViewToken_t rvt,
 			RLinuxBindingsPtr_t prlb, UsagePtr_t pusage);
-	ExitCode_t GetResouceMapping(AppPtr_t papp, UsagesMapPtr_t pum,
+	ExitCode_t GetResourceMapping(AppPtr_t papp, UsagesMapPtr_t pum,
 		RViewToken_t rvt, RLinuxBindingsPtr_t prlb);
 
 	void BuildSocketCGAttr(char * dest, UsagesMapPtr_t pum,
