@@ -13,9 +13,9 @@
     <!-- This is the collection recipe-global BBQ contratins -->
     <constraints>
       <constraint resource="dma" type="L" bound="10"/>
-      <constraint resource="arch.clusters.cluster.pe" type="L" bound="1"/>
+      <constraint resource="arch.cpus.cpu.pe" type="L" bound="1"/>
       <constraint resource="arch.mem" type="L" bound="32"/>
-      <constraint resource="arch.clusters.mem" type="U" bound="64"/>
+      <constraint resource="arch.cpus.mem" type="U" bound="64"/>
     </constraints>
 
     <!-- This is the collection recipe-global BBQ plugins data -->
@@ -84,10 +84,10 @@
                  requirements, once running on this AWM (id=0, name="wm0")
             -->
             <tile id="0">
-              <cluster id="0">
+              <cpu id="0">
                 <pe qty="1"/>
                 <mem units="Kb" qty="3"/>
-              </cluster>
+              </cpu>
             </tile>
           </arch>
         </resources>
@@ -134,10 +134,10 @@
         <resources>
           <arch name="P2012">
             <tile id="0">
-              <cluster id="0">
+              <cpu id="0">
                 <pe qty="2"/>
                 <mem units="Kb" qty="2"/>
-              </cluster>
+              </cpu>
             </tile>
           </arch>
         </resources>
@@ -175,10 +175,10 @@
         <resources>
           <arch name="P2012">
             <tile id="0">
-              <cluster id="0">
+              <cpu id="0">
                 <pe qty="1"/>
                 <mem units="Kb" qty="2"/>
-              </cluster>
+              </cpu>
             </tile>
           </arch>
         </resources>

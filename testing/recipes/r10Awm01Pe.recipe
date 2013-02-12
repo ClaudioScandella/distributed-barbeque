@@ -6,10 +6,10 @@
 				<resources>
 					<arch name="P2012">
 						<tile id="0">
-							<cluster id="0">
+							<cpu id="0">
 								<pe qty="1"/>
 								<mem units="Kb" qty="100"/>
-							</cluster>
+							</cpu>
 						</tile>
 					</arch>
 				</resources>
@@ -18,10 +18,10 @@
 				<resources>
 					<arch name="P2012">
 						<tile id="0">
-							<cluster id="0">
+							<cpu id="0">
 								<pe qty="1"/>
 								<mem units="Kb" qty="100"/>
-							</cluster>
+							</cpu>
 						</tile>
 					</arch>
 				</resources>
@@ -30,10 +30,10 @@
 				<resources>
 					<arch name="P2012">
 						<tile id="0">
-							<cluster id="0">
+							<cpu id="0">
 								<pe qty="1"/>
 								<mem units="Kb" qty="100"/>
-							</cluster>
+							</cpu>
 						</tile>
 					</arch>
 				</resources>
@@ -42,10 +42,10 @@
 				<resources>
 					<arch name="P2012">
 						<tile id="0">
-							<cluster id="0">
+							<cpu id="0">
 								<pe qty="1"/>
 								<mem units="Kb" qty="200"/>
-							</cluster>
+							</cpu>
 						</tile>
 					</arch>
 				</resources>
@@ -54,10 +54,10 @@
 				<resources>
 					<arch name="P2012">
 						<tile id="0">
-							<cluster id="0">
+							<cpu id="0">
 								<pe qty="1"/>
 								<mem units="Kb" qty="100"/>
-							</cluster>
+							</cpu>
 						</tile>
 					</arch>
 				</resources>
@@ -66,10 +66,10 @@
 				<resources>
 					<arch name="P2012">
 						<tile id="0">
-							<cluster id="0">
+							<cpu id="0">
 								<pe qty="1"/>
 								<mem units="Kb" qty="400"/>
-							</cluster>
+							</cpu>
 						</tile>
 					</arch>
 				</resources>
@@ -78,10 +78,10 @@
 				<resources>
 					<arch name="P2012">
 						<tile id="0">
-							<cluster id="0">
+							<cpu id="0">
 								<pe qty="1"/>
 								<mem units="Kb" qty="200"/>
-							</cluster>
+							</cpu>
 						</tile>
 					</arch>
 				</resources>
@@ -90,10 +90,10 @@
 				<resources>
 					<arch name="P2012">
 						<tile id="0">
-							<cluster id="0">
+							<cpu id="0">
 								<pe qty="1"/>
 								<mem units="Kb" qty="150"/>
-							</cluster>
+							</cpu>
 						</tile>
 					</arch>
 				</resources>
@@ -102,10 +102,10 @@
 				<resources>
 					<arch name="P2012">
 						<tile id="0">
-							<cluster id="0">
+							<cpu id="0">
 								<pe qty="1"/>
 								<mem units="Kb" qty="80"/>
-							</cluster>
+							</cpu>
 						</tile>
 					</arch>
 				</resources>
@@ -114,10 +114,10 @@
 				<resources>
 					<arch name="P2012">
 						<tile id="0">
-							<cluster id="0">
+							<cpu id="0">
 								<pe qty="1"/>
 								<mem units="Kb" qty="100"/>
-							</cluster>
+							</cpu>
 						</tile>
 					</arch>
 				</resources>
