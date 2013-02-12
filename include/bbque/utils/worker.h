@@ -18,6 +18,8 @@
 #ifndef BBQUE_WORKER_H_
 #define BBQUE_WORKER_H_
 
+#include "bbque/cpp11/condition_variable.h"
+#include "bbque/cpp11/mutex.h"
 #include "bbque/cpp11/thread.h"
 #include "bbque/cpp11/mutex.h"
 #include "bbque/cpp11/condition_variable.h"
