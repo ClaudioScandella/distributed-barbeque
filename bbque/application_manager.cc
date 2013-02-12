@@ -665,15 +665,15 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 			// MIGRATE case => must see previous set of the same AWM
 			if ((awm == next_awm) &&
 				(awm->BindingChanged(ResourceIdentifier::CPU)))
-				strncpy(b_set,
+				snprintf(b_set, 12, "%s{%s}",
+						ResourceIdentifier::TypeStr[ResourceIdentifier::CPU],
 						awm->BindingSetPrev(
-							ResourceIdentifier::CPU).ToString().c_str(),
-							MAX_R_ID_NUM);
+							ResourceIdentifier::CPU).ToStringCG().c_str());
 			else
-				strncpy(b_set,
+				snprintf(b_set, 12, "%s{%s}",
+						ResourceIdentifier::TypeStr[ResourceIdentifier::CPU],
 						awm->BindingSet(
-							ResourceIdentifier::CPU).ToString().c_str(),
-							MAX_R_ID_NUM);
+							ResourceIdentifier::CPU).ToStringCG().c_str());
 			snprintf(curr_awm_bd, 12, "%02d:%s", awm->Id(), b_set);
 		}
 		else
@@ -681,10 +681,10 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 
 		// Next AWM
 		if (next_awm) {
-			strncpy(b_set,
+			snprintf(b_set, 12, "%s{%s}",
+					ResourceIdentifier::TypeStr[ResourceIdentifier::CPU],
 					next_awm->BindingSet(
-						ResourceIdentifier::CPU).ToString().c_str(),
-						MAX_R_ID_NUM);
+						ResourceIdentifier::CPU).ToStringCG().c_str());
 			snprintf(next_awm_bd, 12, "%02d:%s", next_awm->Id(), b_set);
 		}
 		else
