@@ -430,19 +430,22 @@ ResourceAccounter::ExitCode_t ResourceAccounter::RegisterResource(
 	// Build a resource path object (from the string)
 	ResourcePathPtr_t ppath(new ResourcePath(path_str));
 	if (!ppath) {
-		logger->Fatal("Registering: Invalid resource path");
+		logger->Fatal("Register R{%s}: Invalid resource path",
+				path_str.c_str());
 		return RA_ERR_MISS_PATH;
 	}
 
 	// Insert a new resource in the tree
 	ResourcePtr_t pres(resources.insert(*(ppath.get())));
 	if (!pres) {
-		logger->Crit("Registering: Unable to allocate a new resource"
-				"descriptor");
+		logger->Crit("Register R{%s}: "
+				"Unable to allocate a new resource descriptor",
+				path_str.c_str());
 		return RA_ERR_MEM;
 	}
 	pres->SetTotal(ConvertValue(amount, units));
-	logger->Debug("Registering: Total = %llu", pres->Total());
+	logger->Debug("Register R{%s}: Total = %llu %s",
+			path_str.c_str(), pres->Total(), units.c_str());
 
 	// Insert the path in the paths set
 	r_paths.insert(std::pair<std::string, ResourcePathPtr_t> (path_str, ppath));
@@ -455,7 +458,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::RegisterResource(
 	else
 		++r_count[type];
 
-	logger->Debug("Registered %s: %llu %s (c[%d]=%d)",
+	logger->Debug("Register R{%s}: Total = %llu %s DONE (c[%d]=%d)",
 			path_str.c_str(), Total(path_str), units.c_str(),
 			type, r_count[type]);
 	return RA_SUCCESS;
@@ -597,7 +600,7 @@ ResourceAccounter::ExitCode_t  ResourceAccounter::ReserveResources(
 	ResourcePtrListIterator_t rit = rlist.begin();
 
 	logger->Info("Reserving [%" PRIu64 "] for [%s] resources...",
-			amount, path.c_str());
+			amount, ppath->ToString().c_str());
 
 	if (rit == rlist.end()) {
 		logger->Error("Resource reservation FAILED "
@@ -926,7 +929,8 @@ void ResourceAccounter::IncBookingCounts(
 		}
 
 		assert(result == RA_SUCCESS);
-		logger->Info("Booking: SUCCESS - %s [USG:%" PRIu64 " | AV:%" PRIu64 " | TOT:%" PRIu64 "]",
+		logger->Info("Booking: R{%s} SUCCESS "
+				"[U:%" PRIu64 " | A:%" PRIu64 " | T:%" PRIu64 "]",
 				rsrc_path->ToString().c_str(), pusage->GetAmount(),
 				Available(rsrc_path, MIXED, vtok, papp),
 				Total(rsrc_path, MIXED));
@@ -1091,7 +1095,7 @@ void ResourceAccounter::DecBookingCounts(
 
 		// Release the resources bound to the current request
 		UndoResourceBooking(papp, pusage, vtok);
-		logger->Debug("DecCount: [%s] has freed {%s} of %" PRIu64,
+		logger->Debug("DecCount: [%s] has freed {%s} of %" PRIu64 "",
 				papp->StrId(), rsrc_path->ToString().c_str(),
 				pusage->GetAmount());
 	}

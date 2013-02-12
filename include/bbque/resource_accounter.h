@@ -251,7 +251,7 @@ public:
 	 * identified by its path, which also provides information about
 	 * architectural hierarchies of the platform.
 	 *
-	 * @param path_str Resource path in char string format
+	 * @param path Resource path in char string format
 	 * @param units Units for the amount value (i.e. "1", "Kbps", "Mb", ...)
 	 * @param amount The total amount available
 	 *
@@ -259,7 +259,7 @@ public:
 	 * RA_ERR_MISS_PATH if the path string is empty. RA_ERR_MEM if the
 	 * resource descriptor cannot be allocated.
 	 */
-	ExitCode_t RegisterResource(std::string const & path_str,
+	ExitCode_t RegisterResource(std::string const & path,
 			std::string const & units, uint64_t amount);
 
 	/**
