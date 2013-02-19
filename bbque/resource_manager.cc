@@ -28,6 +28,7 @@
 #include "bbque/utils/utility.h"
 
 #define RESOURCE_MANAGER_NAMESPACE "bq.rm"
+#define MODULE_NAMESPACE RESOURCE_MANAGER_NAMESPACE
 
 /** Metrics (class COUNTER) declaration */
 #define RM_COUNTER_METRIC(NAME, DESC)\
@@ -209,6 +210,51 @@ void ResourceManager::NotifyEvent(controlEvent_t evt) {
 	// Notify the control loop (just if it is sleeping)
 	if (pendingEvts_ul.try_lock())
 		pendingEvts_cv.notify_one();
+}
+
+std::map<std::string, Worker*> ResourceManager::workers_map;
+std::mutex ResourceManager::workers_mtx;
+std::condition_variable ResourceManager::workers_cv;
+
+void ResourceManager::Register(const char *name, Worker *pw) {
+	std::unique_lock<std::mutex> workers_ul(workers_mtx);
+	fprintf(stderr, FI("Registering Worker[%s]...\n"), name);
+	workers_map[name] = pw;
+}
+
+void ResourceManager::Unregister(const char *name) {
+	std::unique_lock<std::mutex> workers_ul(workers_mtx);
+	fprintf(stderr, FI("Unregistering Worker[%s]...\n"), name);
+	workers_map.erase(name);
+	workers_cv.notify_one();
+}
+
+void ResourceManager::TerminateWorkers() {
+	std::unique_lock<std::mutex> workers_ul(workers_mtx);
+	std::chrono::milliseconds timeout(300);
+
+	// Waiting for all workers to be terminated
+	for (uint8_t i = 3; i; --i) {
+
+		// Signal all registered Workers to terminate
+		for_each(workers_map.begin(), workers_map.end(),
+				[=](std::pair<std::string, Worker*> entry) {
+				fprintf(stderr, FI("Terminating Worker[%s]...\n"),
+					entry.first.c_str());
+				entry.second->Terminate();
+				});
+
+		// Wait up to 300[ms] for workers to terminate
+		workers_cv.wait_for(workers_ul, timeout);
+		if (workers_map.empty())
+			break;
+
+		DB(fprintf(stderr, FD("Waiting for [%lu] workers to terminate...\n"),
+					workers_map.size()));
+
+	}
+
+	DB(fprintf(stderr, FD("All workers termianted\n")));
 }
 
 void ResourceManager::Optimize() {
@@ -454,6 +500,10 @@ void ResourceManager::EvtBbqExit() {
 		// Removing internal data structures
 		am.DestroyEXC(papp);
 	}
+
+	// Notify all workers
+	logger->Notice("Stopping all workers...");
+	ResourceManager::TerminateWorkers();
 
 }
 
