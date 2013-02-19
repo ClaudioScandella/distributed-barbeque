@@ -155,14 +155,6 @@ public:
 	}
 
 	/**
-	 * @brief Resource name
-	 * @return The resource name string
-	 */
-	inline std::string const & Name() {
-		return name;
-	}
-
-	/**
 	 * @brief Resource total
 	 * @return The total amount of resource
 	 */
