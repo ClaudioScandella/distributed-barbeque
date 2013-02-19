@@ -21,8 +21,8 @@
 namespace bbque { namespace res {
 
 
-Usage::Usage(uint64_t usage_value):
-	value(usage_value) {
+Usage::Usage(uint64_t usage_amount):
+	amount(usage_amount) {
 }
 
 Usage::~Usage() {
@@ -30,7 +30,7 @@ Usage::~Usage() {
 }
 
 uint64_t Usage::GetAmount() {
-	return value;
+	return amount;
 }
 
 ResourcePtrList_t & Usage::GetBindingList() {
