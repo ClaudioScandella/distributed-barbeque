@@ -201,7 +201,7 @@ SchedulerPolicyIF::ExitCode_t YamcaSchedPol::SchedulePrioQueue(
 
 		// Order schedule entities by metrics
 		result = OrderSchedEntity(sched_map, sv, prio, cl_id);
-		if (result == SCHED_CLUSTER_FULL) {
+		if (result == SCHED_BIND_DOMAIN_FULL) {
 			clusters_full[cl_id] = true;
 			continue;
 		}
@@ -391,11 +391,11 @@ SchedulerPolicyIF::ExitCode_t YamcaSchedPol::EvalWorkingMode(
 	ExitCode_t result = MetricsComputation(papp, wm, cl_id, metrics);
 
 	switch (result) {
-	case SCHED_CLUSTER_FULL:
+	case SCHED_BIND_DOMAIN_FULL:
 		logger->Warn("Insert: No more PEs in cluster %d", cl_id);
 		return result;
 
-	case SCHED_RSRC_UNAV:
+	case SCHED_R_UNAVAILABLE:
 		logger->Warn("Insert: [%s] AWM{%d} CL=%d unavailable resources "
 				"[RA:%d]", papp->StrId(), wm->Id(), cl_id, result);
 		return result;

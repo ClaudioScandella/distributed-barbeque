@@ -57,9 +57,9 @@ public:
 		/** Successful return */
 		SCHED_OK,
 		/** Resource availability */
-		SCHED_RSRC_UNAV,
+		SCHED_R_UNAVAILABLE,
 		/** No more PEs available in the cluster */
-		SCHED_CLUSTER_FULL,
+		SCHED_BIND_DOMAIN_FULL,
 		/** Application must be skipped due to a Disable/Stop event */
 		SCHED_SKIP_APP,
 		/** Error */
