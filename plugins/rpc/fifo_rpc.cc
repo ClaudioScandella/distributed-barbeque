@@ -25,6 +25,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <poll.h>
+#ifdef ANDROID
+# include "bbque/android/ppoll.h"
+#endif
 #include <fcntl.h>
 #include <csignal>
 
@@ -157,7 +160,25 @@ int FifoRPC::Init() {
 }
 
 int FifoRPC::Poll() {
+	struct pollfd fifo_poll;
+	sigset_t sigmask;
 	int ret = 0;
+
+	// Bind to the FIFO input stream
+	fifo_poll.fd = rpc_fifo_fd;
+	fifo_poll.events = POLLIN;
+
+	// Return on any signal
+	sigemptyset(&sigmask);
+
+	// Wait for data availability or signal
+	logger->Debug("FIFO RPC: waiting message...");
+	ret = ::ppoll(&fifo_poll, 1, NULL, &sigmask);
+	if (ret < 0) {
+		logger->Debug("FIFO RPC: interrupted...");
+		ret = -EINTR;
+	}
+
 	return ret;
 }
 
@@ -167,10 +188,7 @@ ssize_t FifoRPC::RecvMessage(rpc_msg_ptr_t & msg) {
 	ssize_t result;
 	ssize_t bytes;
 
-	logger->Debug("FIFO RPC: waiting message...");
-
-	// Wait for the next message being available
-	// ... which always starts with the FIFO header
+	// Read next message FIFO header
 	bytes = ::read(rpc_fifo_fd, (void*)&hdr, FIFO_PKT_SIZE(header));
 	if (bytes <= 0) {
 		if (bytes == EINTR)
