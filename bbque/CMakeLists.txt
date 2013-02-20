@@ -57,6 +57,9 @@ add_subdirectory(res)
 if (NOT CONFIG_TARGET_SUPPORT_CPP11)
 add_subdirectory(cpp11)
 endif (NOT CONFIG_TARGET_SUPPORT_CPP11)
+if (CONFIG_TARGET_ANDROID)
+  add_subdirectory(android)
+endif (CONFIG_TARGET_ANDROID)
 
 
 # Add "barbeque" target binary
@@ -112,6 +115,7 @@ endif (CONFIG_TARGET_LINUX)
 if (CONFIG_TARGET_ANDROID)
 target_link_libraries(
 	barbeque
+	bbque_android
 	-Wl,-whole-archive bbque_cpp11 -Wl,-no-whole-archive
 	-Wl,-whole-archive bbque_logger_android -Wl,-no-whole-archive
 )
