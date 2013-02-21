@@ -124,26 +124,35 @@ SchedContribManager::ExitCode_t SchedContribManager::GetIndex(
 		float & sc_value,
 		SchedContrib::ExitCode_t & sc_ret,
 		bool weighed) {
-	std::map<Type_t, SchedContribPtr_t>::iterator sc_it;
+	SchedContribPtr_t psc;
+	logger->Debug("GetIndex: requiring contribution %d", sc_type);
 
 	// Boundary check
-	if (sc_type >= SC_COUNT)
+	if (sc_type >= SC_COUNT) {
+		logger->Warn("GetIndex: unexpected contribution type (%d)", sc_type);
 		return SC_TYPE_UNKNOWN;
+	}
 
 	// Get the SchedContrib object
-	sc_it = sc_objs_reqs.find(sc_type);
-	if (sc_it == sc_objs_reqs.end())
+	psc = GetContrib(sc_type);
+	if (!psc) {
+		logger->Warn("GetIndex: contribution type (%d) not available", sc_type);
 		return SC_TYPE_MISSING;
+	}
 
 	// Compute the SchedContrib index
-	sc_ret = (*sc_it).second->Compute(evl_ent, sc_value);
-	if (unlikely(sc_ret != SchedContrib::SC_SUCCESS))
+	sc_ret = psc->Compute(evl_ent, sc_value);
+	if (unlikely(sc_ret != SchedContrib::SC_SUCCESS)) {
+		logger->Error("GetIndex: error in contribution %d. Return code:%d",
+				sc_type, sc_ret);
 		return SC_ERROR;
+	}
 
 	// Multiply the index for the weight
 	if (weighed)
 		sc_value *= sc_weights_norm[sc_type];
 
+	logger->Debug("GetIndex: computed contribution %d", sc_type);
 	return OK;
 }
 
