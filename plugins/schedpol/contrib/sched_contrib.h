@@ -194,6 +194,13 @@ public:
 	SchedContrib(const char * name, uint16_t const cfg_params[]);
 
 	/**
+	 * @brief The identifying name of the contribution
+	 */
+	inline const char *Name() {
+		return name;
+	}
+
+	/**
 	 * @brief Set information for referencing the current state view
 	 *
 	 * @param _sv Pointer to the System instance
