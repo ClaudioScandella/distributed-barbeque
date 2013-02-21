@@ -376,4 +376,88 @@ read_error_exit:
 	return result;
 }
 
+//------------------------------------------------------------------------------
+// Custom Command Line Parser
+//------------------------------------------------------------------------------
+
+enum {
+	DEFAULT = 0,
+	DOUBLE_QUOTE,
+	SINGLE_QUOTE
+};
+
+static const char *statusStr[] = {
+	"ARGUMENT",
+	"DOUBLE_QUOTE",
+	"SINGLE_QUOTE"
+};
+
+int CommandManager::ParseCommandLine(char *cmdline, int maxargs, char *argv[]) {
+	uint8_t len = strlen(cmdline);
+	uint8_t statusId = DEFAULT;
+	char *pstart, *pend;
+	const char *delim;
+	int argc;
+
+	logger->Debug("Parsing command line [%s]\n", cmdline);
+
+	// blow-up inital blanks
+	while (*cmdline && *cmdline == ' ')
+		++cmdline;
+
+	argc = 0;
+	pstart = NULL;
+	do {
+		if (argc >= maxargs)
+			return argc;
+
+		statusId = DEFAULT;
+		delim = " ";
+
+		// Lookup for pos token being an escape
+		if (pstart == NULL)
+			pstart = cmdline - 1;
+		else
+			pstart += strlen(pstart);
+
+		// Find beginning of next token
+		do {
+			++pstart;
+			logger->Debug("   Lookup: [%c]\n", *pstart);
+			switch (*pstart) {
+			case '\"':
+				statusId = DOUBLE_QUOTE;
+				delim = "\"";
+				break;
+
+			case '\'':
+				statusId = SINGLE_QUOTE;
+				delim = "\'";
+				break;
+			}
+		} while (pstart && *pstart == ' ');
+		if (delim[0] != ' ')
+			++pstart;
+
+		logger->Debug("   Following: %s, delim: [%c]\n   => [%s]\n",
+				statusStr[statusId], delim[0], pstart);
+
+		// Isolate pos token
+		pend = pstart;
+		while (*pend && *pend != delim[0])
+			++pend;
+		if (pend == pstart)
+			break;
+		*pend = '\0';
+
+		// Keep track of the new parameter
+		argv[argc++] = pstart;
+		logger->Debug("Arg%02d: [%s]\n", argc, pstart);
+
+	} while (abs(pend-cmdline) < len);
+
+	return argc;
+
+}
+
 } /* bbque */

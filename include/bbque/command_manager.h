@@ -178,6 +178,26 @@ private:
 	 */
 	void ParseCommand(char *cmd_buff);
 
+	/**
+	 * @brief Simple command line parser
+	 *
+	 * This command line parser is a replacement of wordexpr for platform
+	 * not supporting that feature, e.g. Android. Of course it is much
+	 * more simple, indeed it support only up to 16 command line
+	 * parameters, which are expected to be space separated.
+	 * A single parameter could contain spaces if wrapped with single or
+	 * double quotes. Quoting with a symbol allows to use the other quote
+	 * simple within the parameter.
+	 *
+	 * @param cmdline the command line to be parsed
+	 * @param maxargs maximum number of command line arguments
+	 * @param argv[] the array of identified parameters
+	 *
+	 * @return the value of argc, i.e. the number of parsed parameters
+	 */
+	int ParseCommandLine(char *cmdline, int maxargs, char *argv[]);
+
+	/**
 	 * @brief Command dispatcher
 	 *
 	 * Once a new command is available, this method provides the proper
