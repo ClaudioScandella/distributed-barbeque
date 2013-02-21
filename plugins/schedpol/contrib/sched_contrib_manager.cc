@@ -162,8 +162,11 @@ void SchedContribManager::SetViewInfo(System * sv, RViewToken_t vtok) {
 	std::map<Type_t, SchedContribPtr_t>::iterator sc_it;
 
 	// For each SchedContrib set the resource view information 
-	for (sc_it = sc_objs_reqs.begin(); sc_it != sc_objs_reqs.end(); ++sc_it)
-		(*sc_it).second->SetViewInfo(sv, vtok);
+	for (sc_it = sc_objs_reqs.begin(); sc_it != sc_objs_reqs.end(); ++sc_it) {
+		SchedContribPtr_t & psc(sc_it->second);
+		psc->SetViewInfo(sv, vtok);
+		logger->Debug("SetViewInfo: view %d set into %s", vtok, psc->Name());
+	}
 }
 
 
