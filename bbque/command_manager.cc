@@ -30,8 +30,8 @@
 #else
 # include <poll.h>
 # include <stdio.h>
+# include <wordexp.h>
 #endif
-#include <wordexp.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string>
@@ -278,7 +278,7 @@ void CommandManager::Task() {
 			continue;
 		}
 
-		GetNextCommand();
+		DoNextCommand();
 
 	}
 
@@ -312,10 +312,46 @@ int CommandManager::DispatchCommand(int argc, char *argv[]) {
 
 }
 
-int CommandManager::GetNextCommand() {
-	char *cmd_buff = NULL;
+
+
+void CommandManager::ParseCommand(char *cmd_buff) {
 	ssize_t result = 0;
 	wordexp_t we;
+
+	result = wordexp(cmd_buff, &we, WRDE_SHOWERR|WRDE_UNDEF);
+	switch(result) {
+	case 0:
+		break;
+	case WRDE_BADCHAR:
+		logger->Error("Command parsing FAILED"
+				" (Error: Illegal occurrence of newline or one of |, &, ;, <, >, (, ), {, })");
+		return;
+	case WRDE_BADVAL:
+		logger->Error("Command parsing FAILED"
+				" (Error: An undefined shell variable was referenced)");
+		return;
+	case WRDE_CMDSUB:
+		logger->Error("Command parsing FAILED"
+				" (Error: Command substitution occurred)");
+		return;
+	case WRDE_NOSPACE:
+		logger->Error("Command parsing FAILED"
+				" (Error: Out of memory)");
+		return;
+	case WRDE_SYNTAX:
+		logger->Error("Command parsing FAILED"
+				" (Error: Shell syntax error)");
+		return;
+	}
+
+	DispatchCommand(we.we_wordc, we.we_wordv);
+	wordfree(&we);
+}
+
+
+int CommandManager::DoNextCommand() {
+	char *cmd_buff = NULL;
+	ssize_t result = 0;
 	size_t len;
 
 	// Read next command being available
@@ -332,34 +368,7 @@ int CommandManager::GetNextCommand() {
 
 	// Parsing command
 	logger->Debug("CMD MNGR: parsing command [%s]", cmd_buff);
-	result = wordexp(cmd_buff, &we, WRDE_SHOWERR|WRDE_UNDEF);
-	switch(result) {
-	case 0:
-		break;
-	case WRDE_BADCHAR:
-		logger->Error("Command parsing FAILED"
-				" (Error: Illegal occurrence of newline or one of |, &, ;, <, >, (, ), {, })");
-		return -result;
-	case WRDE_BADVAL:
-		logger->Error("Command parsing FAILED"
-				" (Error: An undefined shell variable was referenced)");
-		return -result;
-	case WRDE_CMDSUB:
-		logger->Error("Command parsing FAILED"
-				" (Error: Command substitution occurred)");
-		return -result;
-	case WRDE_NOSPACE:
-		logger->Error("Command parsing FAILED"
-				" (Error: Out of memory)");
-		return -result;
-	case WRDE_SYNTAX:
-		logger->Error("Command parsing FAILED"
-				" (Error: Shell syntax error)");
-		return -result;
-	}
-
-	result = DispatchCommand(we.we_wordc, we.we_wordv);
-	wordfree(&we);
+	ParseCommand(cmd_buff);
 
 read_error_exit:
 

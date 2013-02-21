@@ -163,6 +163,21 @@ private:
 	void Task();
 
 	/**
+	 * @brief Parse the specified command line
+	 *
+	 * This function provides the required support to parse a command line
+	 * to produce a pair of argc and argv parameters, which are then
+	 * dispatched to the argv[0] command.
+	 *
+	 * @note The implementation of this function is platform dependent, in
+	 * a standard POSIX system which has WORDEXP support the expansion is
+	 * done by a call to the standard POSIX wordexp call. Otherwise, for
+	 * example in an Android system, a compatibility expansion routine is
+	 * provided which however supports just single and double quotes and
+	 * any one of the other advanced wordexp facilities.
+	 */
+	void ParseCommand(char *cmd_buff);
+
 	 * @brief Command dispatcher
 	 *
 	 * Once a new command is available, this method provides the proper
@@ -170,7 +185,7 @@ private:
 	 *
 	 * @return 0 on success, a negative number otherwise
 	 */
-	int GetNextCommand();
+	int DoNextCommand();
 
 	/**
 	 * @brief Dispatch a command to the registered handler
