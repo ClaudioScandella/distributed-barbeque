@@ -160,8 +160,9 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 	bindings.num   = bindings.rsrcs.size();
 	bindings.ids.resize(bindings.num);
 	if (bindings.num == 0) {
-		logger->Error("Init: No bindings to R{%s} possible."
-				"Please check the platform configuration.");
+		logger->Error("Init: No bindings to R{%s} possible. "
+				"Please check the platform configuration.",
+				bindings.domain.c_str());
 		return YAMS_ERR_CLUSTERS;
 	}
 
@@ -414,9 +415,9 @@ void YamsSchedPol::EvalWorkingMode(SchedEntityPtr_t pschd) {
 void YamsSchedPol::AggregateContributes(SchedEntityPtr_t pschd) {
 	SchedContribManager::ExitCode_t scm_ret;
 	SchedContrib::ExitCode_t sc_ret;
-	char metrics_log[255];
-	uint8_t len = 0;
 	float sc_value;
+	char mlog[255];
+	uint8_t mlog_len = 0;
 
 	for (int i = 0; i < YAMS_SC_COUNT; ++i) {
 		// Timer
@@ -451,17 +452,17 @@ void YamsSchedPol::AggregateContributes(SchedEntityPtr_t pschd) {
 			}
 		}
 		YAMS_GET_TIMING(coll_mct_metrics, i, comp_tmr);
+		logger->Debug("Aggregate: back from index computation");
 
 		// Cumulate the contribution
 		pschd->metrics += sc_value;
-		len += sprintf(metrics_log+len, "%c: %5.4f, ",
-				scm->GetString(sc_types[i])[0],
-				sc_value);
+		mlog_len += sprintf(mlog + mlog_len, "%c:%5.4f, ",
+				scm->GetString(sc_types[i])[0],	sc_value);
 	}
 
-	metrics_log[len-2] = '\0';
-	logger->Notice("Aggregate: %s app-value:%s => %5.4f",
-			pschd->StrId(),	metrics_log, pschd->metrics);
+	mlog[mlog_len-2] = '\0';
+	logger->Notice("Aggregate: %s app-value: %s => %5.4f",
+			pschd->StrId(),	mlog, pschd->metrics);
 }
 
 YamsSchedPol::ExitCode_t YamsSchedPol::BindResources(SchedEntityPtr_t pschd) {
