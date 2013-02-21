@@ -314,6 +314,28 @@ int CommandManager::DispatchCommand(int argc, char *argv[]) {
 
 
 
+#ifdef ANDROID
+
+// The maximum number of args we support (on the Android platform)
+# define MAX_ARGC 16
+
+void CommandManager::ParseCommand(char *cmd_buff) {
+	char *myargv[MAX_ARGC];
+	int myargc;
+
+	logger->Debug("Parsing command line [%s]\n", cmd_buff);
+	myargc = ParseCommandLine(cmd_buff, MAX_ARGC, myargv);
+
+	logger->Debug("Parsed %02d parameters:\n", myargc);
+	for (uint8_t i = 0; i < myargc; ++i)
+		logger->Debug("Arg%02d: [%s]\n", i, myargv[i]);
+
+	DispatchCommand(myargc, myargv);
+
+}
+
+#else
+
 void CommandManager::ParseCommand(char *cmd_buff) {
 	ssize_t result = 0;
 	wordexp_t we;
@@ -348,6 +370,7 @@ void CommandManager::ParseCommand(char *cmd_buff) {
 	wordfree(&we);
 }
 
+#endif
 
 int CommandManager::DoNextCommand() {
 	char *cmd_buff = NULL;
