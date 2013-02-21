@@ -44,7 +44,8 @@ SCFairness::SCFairness(
 		;
 
 	// Fairness penalties
-	for (int i = 1; i < ResourceIdentifier::TYPE_COUNT; ++i) {
+	for (int i = ResourceIdentifier::GROUP;
+			 i < ResourceIdentifier::TYPE_COUNT; ++i) {
 		snprintf(conf_str, 50, SC_CONF_BASE_STR"%s.penalty.%s",
 				name, ResourceIdentifier::TypeStr[i]);
 		opts_desc.add_options()
@@ -58,7 +59,8 @@ SCFairness::SCFairness(
 	cm.ParseConfigurationFile(opts_desc, opts_vm);
 
 	// Boundaries enforcement (0 <= penalty <= 100)
-	for (int i = 1; i < ResourceIdentifier::TYPE_COUNT; ++i) {
+	for (int i = ResourceIdentifier::GROUP;
+			 i < ResourceIdentifier::TYPE_COUNT; ++i) {
 		if (penalties_int[i] > 100) {
 			logger->Warn("penalty.%s out of range [0,100]: "
 					"found %d. Setting to %d",
@@ -84,7 +86,8 @@ SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 
 	// For each resource type get the availability and the fair partitioning
 	// among the application having the same priority
-	for (int i = 1; i < ResourceIdentifier::TYPE_COUNT; ++i) {
+	for (int i = ResourceIdentifier::GROUP;
+			 i < ResourceIdentifier::TYPE_COUNT; ++i) {
 		snprintf(rsrc_path_str, 20, "%s.%s",
 				binding_domain.c_str(), ResourceIdentifier::TypeStr[i]);
 		rsrc_avail[i] = sv->ResourceAvailable(rsrc_path_str, vtok);
