@@ -50,8 +50,8 @@ Resource::ExitCode_t Resource::Reserve(uint64_t amount) {
 		return RS_FAILED;
 
 	reserved = amount;
-	DB(fprintf(stderr, FD("Resource {%s}: update reserved to [%"PRIu64"] "
-					"=> available [%"PRIu64"]\n"),
+	DB(fprintf(stderr, FD("Resource {%s}: update reserved to [%" PRIu64 "] "
+					"=> available [%" PRIu64 "]\n"),
 				name.c_str(), reserved, total-reserved));
 	return RS_SUCCESS;
 }
