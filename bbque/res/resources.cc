@@ -126,7 +126,7 @@ uint64_t Resource::ApplicationUsage(AppSPtr_t const & papp, RViewToken_t vtok) {
 	// Retrieve the state view
 	ResourceStatePtr_t view = GetStateView(vtok);
 	if (!view) {
-		DB(fprintf(stderr, FW("Resource {%s}: cannot find view %lu\n"),
+		DB(fprintf(stderr, FW("Resource {%s}: cannot find view %" PRIu64 "\n"),
 					name.c_str(), vtok));
 		return 0;
 	}
@@ -191,7 +191,7 @@ uint64_t Resource::Release(AppSPtr_t const & papp, RViewToken_t vtok) {
 	// Retrieve the state view
 	ResourceStatePtr_t view = GetStateView(vtok);
 	if (!view) {
-		DB(fprintf(stderr, FW("Resource {%s}: cannot find view %lu\n"),
+		DB(fprintf(stderr, FW("Resource {%s}: cannot find view %" PRIu64 "\n"),
 					name.c_str(), vtok));
 		return 0;
 	}
