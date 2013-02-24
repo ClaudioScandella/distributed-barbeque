@@ -18,6 +18,7 @@
 #ifndef BBQUE_RESOURCE_UTILS_H_
 #define BBQUE_RESOURCE_UTILS_H_
 
+#include <cstdlib>
 #include <sstream>
 #include <string>
 
@@ -263,6 +264,23 @@ public:
 		std::string templ_name(GetName(rsrc_path));
 		size_t id_pos = templ_name.find_first_of("0123456");
 		return templ_name.substr(0, id_pos);
+	}
+
+	inline static void GetNameID(std::string const & rsrc_str,
+			std::string & rsrc_name, ResID_t & rsrc_id) {
+		size_t id_pos, dot_pos;
+
+		rsrc_id = R_ID_NONE;
+		id_pos  = rsrc_str.find_first_of("0123456789");
+		dot_pos = rsrc_str.find_first_of(".");
+
+		if (id_pos == std::string::npos)
+			// No ID
+			id_pos = dot_pos;
+		else
+			// ID
+			rsrc_id   = atoi((rsrc_str.substr(id_pos, dot_pos)).c_str());
+		rsrc_name = rsrc_str.substr(0, id_pos);
 	}
 
 };
