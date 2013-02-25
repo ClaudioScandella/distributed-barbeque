@@ -199,7 +199,7 @@ WorkingMode::ExitCode_t WorkingMode::BindResource(
 	// Null name check
 	if (rsrc_name.empty()) {
 		logger->Error("Binding [AWM%d]: Missing resource name", id);
-		return WM_RSRC_ERR_NAME;
+		return WM_RSRC_ERR_TYPE;
 	}
 
 	// Allocate a new temporary resource usages map

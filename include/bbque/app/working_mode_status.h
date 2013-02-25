@@ -66,9 +66,11 @@ public:
 		/** Resource usage request exceeds the total availability */
 		WM_RSRC_USAGE_EXCEEDS,
 		/** Resource name error */
-		WM_RSRC_ERR_NAME,
+		WM_RSRC_ERR_TYPE,
 		/** Missing some resource bindings */
-		WM_RSRC_MISS_BIND
+		WM_RSRC_MISS_BIND,
+		/** Exceeded resource binding ID */
+		WM_BIND_ID_OVERFLOW
 	};
 
 	/**
