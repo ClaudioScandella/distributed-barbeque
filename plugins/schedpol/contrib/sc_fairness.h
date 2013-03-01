@@ -39,6 +39,8 @@ public:
 	SCFairness(const char * _name, std::string const & b_domain,
 			uint16_t const cfg_params[]);
 
+	~SCFairness();
+
 	/**
 	 * @brief Perform per-priority class information setup
 	 *

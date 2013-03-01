@@ -76,6 +76,9 @@ SCFairness::SCFairness(
 	}
 }
 
+SCFairness::~SCFairness() {
+}
+
 SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 
 	// Applications/EXC to schedule, given the priority level

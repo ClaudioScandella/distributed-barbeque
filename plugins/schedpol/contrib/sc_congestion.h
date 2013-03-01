@@ -37,6 +37,8 @@ public:
 	SCCongestion(const char * _name, std::string const & b_domain,
 			uint16_t const cfg_params[]);
 
+	~SCCongestion();
+
 	/**
 	 * @brief Initialize the contribution
 	 *

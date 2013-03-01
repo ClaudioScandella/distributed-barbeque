@@ -71,6 +71,9 @@ SchedContrib::SchedContrib(const char * _name,
 	logger = ModulesFactory::GetLoggerModule(std::cref(conf));
 }
 
+SchedContrib::~SchedContrib() {
+}
+
 SchedContrib::ExitCode_t
 SchedContrib::Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		float & ctrib) {

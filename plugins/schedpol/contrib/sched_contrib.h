@@ -195,6 +195,8 @@ public:
 	SchedContrib(const char * name, std::string const & b_domain,
 			uint16_t const cfg_params[]);
 
+	virtual ~SchedContrib();
+
 	/**
 	 * @brief The identifying name of the contribution
 	 */

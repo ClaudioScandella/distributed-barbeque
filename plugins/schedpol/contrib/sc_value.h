@@ -38,6 +38,8 @@ public:
 	SCValue(const char * _name, std::string const & b_domain,
 			uint16_t const cfg_params[]);
 
+	~SCValue();
+
 	ExitCode_t Init(void * params);
 
 private:

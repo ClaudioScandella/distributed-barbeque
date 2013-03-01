@@ -45,6 +45,9 @@ SCReconfig::SCReconfig(
 	logger->Debug("Application migration cost factor \t= %d", migfact);
 }
 
+SCReconfig::~SCReconfig() {
+}
+
 SchedContrib::ExitCode_t SCReconfig::Init(void * params) {
 	(void) params;
 

@@ -55,6 +55,9 @@ SCValue::SCValue(
 	logger->Debug("Normalized Actual Penalty weight \t= %.2f", nap_weight);
 }
 
+SCValue::~SCValue() {
+}
+
 SchedContrib::ExitCode_t
 SCValue::Init(void * params) {
 	(void) params;

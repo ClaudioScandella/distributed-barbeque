@@ -38,6 +38,8 @@ public:
 	SCReconfig(const char * _name, std::string const & b_domain,
 			uint16_t cfg_params[]);
 
+	~SCReconfig();
+
 	ExitCode_t Init(void * params);
 
 private:

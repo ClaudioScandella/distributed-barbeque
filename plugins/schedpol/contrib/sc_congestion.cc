@@ -76,6 +76,9 @@ SCCongestion::SCCongestion(
 	}
 }
 
+SCCongestion::~SCCongestion() {
+}
+
 SchedContrib::ExitCode_t
 SCCongestion::Init(void * params) {
 	(void) params;
