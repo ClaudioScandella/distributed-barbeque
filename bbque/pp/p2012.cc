@@ -161,14 +161,6 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	logger->Debug("PLAT P2012: Maximum fabric percentage = %d",
 			(uint16_t) (pe_fabric_quota_max * 100.0));
 
-	// L2 memory
-	// FIXME: Static information missing in the descriptor
-	snprintf(rsrc_path, RSRC_PATH_SIZE_MAX, "tile0.mem0");
-	ra_result =	ra.RegisterResource(rsrc_path, "Kb", PLATFORM_L2MEM_SIZE);
-	if (ra_result != ResourceAccounter::RA_SUCCESS) {
-		logger->Fatal("PLAT P2012: Unable to register '%s'", rsrc_path);
-		return PLATFORM_ENUMERATION_FAILED;
-	}
 
 	// Cluster level resources
 	for (int i = 0; i < pdev->pdesc.clusters_count; ++i) {
