@@ -19,6 +19,7 @@
 #define BBQUE_UTILITY_H_
 
 #include <assert.h>
+#include <memory>
 #include <unistd.h>
 #include <cstdio>
 #include <cstdint>
@@ -135,5 +136,22 @@ inline pid_t gettid() {
 
 /** The High-Resolution timer exported by either the Barbeque and the RTLib */
 extern bbque::utils::Timer bbque_tmr;
+
+/**
+ * Comparison between shared pointer objects.
+ * This is performed by forwarding the call to the operator '<' of the pointed
+ * class type
+ */
+template<class T>
+class CompareSP {
+public:
+	bool operator() (
+			const std::shared_ptr<T> & sp1,
+			const std::shared_ptr<T> & sp2) const {
+		return sp1.get() < sp2.get();
+	}
+};
+
+
 
 #endif // BBQUE_UTILITY_H_
