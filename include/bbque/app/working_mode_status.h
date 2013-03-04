@@ -25,6 +25,7 @@
 
 #include "bbque/res/identifier.h"
 #include "bbque/utils/attributes_container.h"
+#include "bbque/utils/utility.h"
 
 
 using namespace bbque::res;
@@ -42,7 +43,7 @@ typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
 
 class Usage;
 typedef std::shared_ptr<Usage> UsagePtr_t;
-typedef std::map<ResourcePathPtr_t, UsagePtr_t> UsagesMap_t;
+typedef std::map<ResourcePathPtr_t, UsagePtr_t, CompareSP<ResourcePath> > UsagesMap_t;
 typedef std::shared_ptr<UsagesMap_t> UsagesMapPtr_t;
 }
 

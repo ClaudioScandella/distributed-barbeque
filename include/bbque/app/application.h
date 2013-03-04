@@ -31,6 +31,7 @@
 #include "bbque/app/application_conf.h"
 #include "bbque/app/recipe.h"
 #include "bbque/plugins/logger.h"
+#include "bbque/utils/utility.h"
 
 #define APPLICATION_NAMESPACE "bq.app"
 
@@ -45,7 +46,7 @@ class ResourceConstraint;
 class Usage;
 typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
 typedef std::shared_ptr<Usage> UsagePtr_t;
-typedef std::map<ResourcePathPtr_t, UsagePtr_t> UsagesMap_t;
+typedef std::map<ResourcePathPtr_t, UsagePtr_t, CompareSP<ResourcePath> > UsagesMap_t;
 typedef std::shared_ptr<UsagesMap_t> UsagesMapPtr_t;
 }
 

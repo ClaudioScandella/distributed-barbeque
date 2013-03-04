@@ -26,6 +26,7 @@
 #include <string>
 
 #include "bbque/res/resources.h"
+#include "bbque/utils/utility.h"
 
 namespace bbque { namespace res {
 
@@ -37,7 +38,7 @@ typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
 /** Shared pointer to Usage object */
 typedef std::shared_ptr<Usage> UsagePtr_t;
 /** Map of Usage descriptors. Key: resource path */
-typedef std::map<ResourcePathPtr_t, UsagePtr_t> UsagesMap_t;
+typedef std::map<ResourcePathPtr_t, UsagePtr_t, CompareSP<ResourcePath> > UsagesMap_t;
 /** Constant pointer to the map of Usage descriptors */
 typedef std::shared_ptr<UsagesMap_t> UsagesMapPtr_t;
 
