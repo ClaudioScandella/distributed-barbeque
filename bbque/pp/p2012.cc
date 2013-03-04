@@ -174,7 +174,7 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 		}
 
 		// Processing elements
-		for (int j = 0; j < CLUSTER_PES_MAX; ++j) {
+		for (uint16_t j = 0; j < pdev->pdesc.pes_count; ++j) {
 			result = RegisterClusterPE(i, j);
 			if (result != OK)
 				return PLATFORM_ENUMERATION_FAILED;
