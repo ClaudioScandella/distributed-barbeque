@@ -38,11 +38,6 @@
 #define PLATFORM_CLUSTER_MEM 		"tile.cluster.mem" 	// L1 memory
 #define PLATFORM_CLUSTER_DMA 		"tile.cluster.dma"
 
-// TODO: This must be defined only in test mode.
-// In the normal compiling, it will be the platform
-// descriptor in charge to provide such information
-#define PLATFORM_L2MEM_SIZE 		1024 	// Kb
-
 namespace br = bbque::res;
 
 namespace bbque {
