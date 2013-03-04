@@ -157,10 +157,9 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	char rsrc_path[RSRC_PATH_SIZE_MAX];
 
 	// PE fabric quota max (=1 if the maximum number of cluster is available)
-	pe_fabric_quota_max = pdev->pdesc.clusters_count / PLATFORM_CLUSTERS_MAX;
-	logger->Debug("PLAT P2012: Maximum fabric percentage = %d",
-			(uint16_t) (pe_fabric_quota_max * 100.0));
-
+	pe_fabric_quota_max =
+		pdev->pdesc.clusters_count * pdev->pdesc.pes_count * 100;
+	logger->Debug("PLAT P2012: Maximum fabric quota = %d", pe_fabric_quota_max);
 
 	// Cluster level resources
 	for (int i = 0; i < pdev->pdesc.clusters_count; ++i) {
@@ -486,8 +485,10 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 	// Set the proper descriptor's fields according to the resource type
 	switch (pbind->type) {
 	case RESOURCE_TYPE_PE:
-		// OpenCL constraints
-		pdev->pcons.exc[xcs_id].u.ocl.fabric_quota += GetPeFabricQuota(pbind->amount);
+		// OpenCL constraints: range [0, 10.000] to manage values with two
+		// decimals, e.g. 75.20% = 7520
+		pdev->pcons.exc[xcs_id].u.ocl.fabric_quota +=
+			GetPeFabricQuota(pbind->amount) * 100.0;
 		logger->Info("PLAT P2012: %s X[%d] allowed to use %3.2f percent of the fabric",
 				papp->StrId(), xcs_id,
 				(float) pdev->pcons.exc[xcs_id].u.ocl.fabric_quota / 100.0);
@@ -525,13 +526,7 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 }
 
 inline uint16_t P2012PP::GetPeFabricQuota(float const & pe_quota) {
-	float pe_cluster_quota;
-
-	// The cluster quota of processing elements usage
-	pe_cluster_quota = static_cast<float>(pe_quota) / CLUSTER_PES_MAX;
-
-	// The percentage of usage of the whole fabric
-	return (pe_cluster_quota / PLATFORM_CLUSTERS_MAX * pe_fabric_quota_max * 100.0);
+	return pe_quota / static_cast<float>(pe_fabric_quota_max) * 100.0;
 }
 
 P2012PP::ExitCode_t P2012PP::NotifyPlatform(
