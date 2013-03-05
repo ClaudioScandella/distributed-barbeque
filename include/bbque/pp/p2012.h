@@ -234,16 +234,6 @@ private:
 	ExitCode_t RegisterClusterDMA(uint8_t cluster_id, uint8_t dma_id);
 
 	/**
-	 * @brief Return the type of platform resource
-	 *
-	 * @param cluster_id Cluster ID
-	 * @param dma_id DMA channel ID
-	 *
-	 * @return The type of resource
-	 */
-	PlatformResourceType_t GetPlatformResourceType(std::string const & rsrc_path);
-
-	/**
 	 * @brief Initialize an EXC constraints descriptor
 	 *
 	 * Whenever a new scheduling has been performed, for each scheduled

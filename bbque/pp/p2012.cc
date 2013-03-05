@@ -379,30 +379,6 @@ void P2012PP::_Stop() {
 	NotifyPlatform(P2012_ALL, BBQ_STOP, 0);
 }
 
-P2012PP::PlatformResourceType_t P2012PP::GetPlatformResourceType(
-		std::string const & rsrc_path) {
-	std::string tpl_path;
-	tpl_path = br::ResourcePathUtils::GetTemplate(rsrc_path);
-
-	// L1 memory
-	if (tpl_path.compare(PLATFORM_CLUSTER_MEM) == 0)
-		return RESOURCE_TYPE_L1_MEM;
-
-	// L2 memory
-	if (tpl_path.compare(PLATFORM_FABRIC_MEM) == 0)
-		return RESOURCE_TYPE_L2_MEM;
-
-	// Processing element
-	if (tpl_path.compare(PLATFORM_CLUSTER_PE) == 0)
-		return RESOURCE_TYPE_PE;
-
-	// DMA channel
-	if (tpl_path.compare(PLATFORM_CLUSTER_DMA) == 0)
-		return RESOURCE_TYPE_DMA;
-
-	return RESOURCE_TYPE_ERR;
-}
-
 int16_t P2012PP::InitExcConstraints(AppPtr_t papp) {
 	int16_t xcs_id = -1;
 
