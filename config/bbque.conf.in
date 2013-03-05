@@ -41,7 +41,10 @@
 ################################################################################
 # Scheduling policy parameters
 [SchedPol]
-binding.domain = sys.cpu
+## Platform STHORM/P2012:
+binding.domain = sys.acc
+## Multi-core CPU
+#binding.domain = sys.cpu
 
 # Global contribution parameters [0,100]
 [SchedPol.Contrib]
