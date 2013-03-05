@@ -78,7 +78,7 @@ private:
 		/** Amount of resource to assign */
 		uint64_t amount;
 		/** Resource type */
-		PlatformResourceType_t type;
+		ResourceIdentifier::Type_t type;
 	};
 
 	/**
