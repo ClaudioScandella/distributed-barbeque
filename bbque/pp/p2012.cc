@@ -71,7 +71,7 @@ P2012PP::ExitCode_t P2012PP::_LoadPlatformData() {
 		logger->Fatal("PLAT P2012: Platform initialization failed.");
 		return PLATFORM_INIT_FAILED;
 	}
-	logger->Debug("PLAT P2012: Platform initialization performed");
+	logger->Info("PLAT P2012: Platform initialization performed");
 
 	// Register the resources
 	result = InitResources();
@@ -79,7 +79,7 @@ P2012PP::ExitCode_t P2012PP::_LoadPlatformData() {
 		logger->Fatal("PLAT P2012: Platform enumeration failed.");
 		return PLATFORM_ENUMERATION_FAILED;
 	}
-	logger->Debug("PLAT P2012: Platform is ready");
+	logger->Info("PLAT P2012: Platform is ready");
 
 	return OK;
 }
@@ -92,7 +92,7 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 	// Init p2012 user library
 	p2012_result = p2012_initUsrLib();
 	if (p2012_result != 0) {
-		logger->Info("PLAT P2012: Initialization failed...");
+		logger->Fatal("PLAT P2012: Initialization failed...");
 		return PLATFORM_INIT_FAILED;
 	}
 
@@ -113,7 +113,7 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 				strerror(p2012_result));
 		return PLATFORM_INIT_FAILED;
 	}
-	logger->Debug("PLAT P2012: Message queues initialized");
+	logger->Info("PLAT P2012: Message queues initialized");
 
 	// Notify the platform about BBQ starting
 	result = NotifyPlatform(P2012_ALL, BBQ_START, in_queue_id);
@@ -121,7 +121,7 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 		logger->Error("PLAT P2012: Error occurred in platform start message");
 		return PLATFORM_COMM_ERROR;
 	}
-	logger->Debug("PLAT P2012: Start notification sent");
+	logger->Info("PLAT P2012: Start notification sent");
 
 	// Initialize the shared memory buffer
 	p2012_result = p2012_BBQInit(&sh_mem);
@@ -130,7 +130,7 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 				strerror(p2012_result));
 		return PLATFORM_INIT_FAILED;
 	}
-	logger->Debug("PLAT P2012: Driver initialized");
+	logger->Info("PLAT P2012: Driver initialized");
 
 	// Map the memory buffer (device descriptor) into userland
 	pdev = (ManagedDevice_t *) p2012_mapMemBuf(&sh_mem);
@@ -138,7 +138,7 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 		logger->Fatal("PLAT P2012: Unable to map device descriptor");
 		return PLATFORM_INIT_FAILED;
 	}
-	logger->Debug("PLAT P2012: Device descriptor mapped");
+	logger->Info("PLAT P2012: Device descriptor mapped in [%x]", pdev);
 
 	// Clear the EXCs constraints vector
 	ClearExcConstraints();
@@ -158,6 +158,12 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	ResourceAccounter::ExitCode_t ra_result;
 	char rsrc_path[MAX_LEN_RPATH_STR];
 
+	logger->Debug("PLAT P2012: # Clusters = %-3d [MAX: %3d]",
+			pdev->pdesc.clusters_count, PLATFORM_CLUSTERS_MAX);
+	logger->Debug("PLAT P2012: # PEs      = %-3d [MAX: %3d]",
+			pdev->pdesc.pes_count, CLUSTER_PES_MAX);
+	logger->Debug("PLAT P2012: # Apps MAX = %-3d", EXCS_MAX);
+
 	// PE fabric quota max (=1 if the maximum number of cluster is available)
 	pe_fabric_quota_max =
 		pdev->pdesc.clusters_count * pdev->pdesc.pes_count * 100;
@@ -167,6 +173,10 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	for (uint16_t i = 0; i < pdev->pdesc.clusters_count; ++i) {
 		// L1 memory: Resource path
 		snprintf(rsrc_path, MAX_LEN_RPATH_STR, "sys0.acc0.grp%d.mem0", i);
+
+		logger->Debug("PLAT P2012: C[%d] L1 mem = %-3d Kb",
+				i, pdev->pdesc.cluster[i].dmem_kb);
+
 		// L1 memory: Register the resource
 		ra_result =	ra.RegisterResource(rsrc_path, "Kb",
 				pdev->pdesc.cluster[i].dmem_kb);
@@ -466,6 +476,8 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 	ExitCode_t result = OK;
 
 	// Set the proper descriptor's fields according to the resource type
+	logger->Debug("PLAT P2012: Update: Resource type '%s'",
+			ResourceIdentifier::StringFromType(pbind->type));
 	switch (pbind->type) {
 	case Resource::PROC_ELEMENT:
 		// OpenCL constraints: range [0, 10.000] to manage values with two
