@@ -29,14 +29,13 @@
 
 
 #define PLATFORM_ID         		"com.st.sthorm"
-#define RSRC_PATH_SIZE_MAX   		30
 
 // Resources template path
-#define PLATFORM_FABRIC_MEM 		"tile.mem"        	// L2 memory
-#define PLATFORM_CLUSTER    		"tile.cluster"
-#define PLATFORM_CLUSTER_PE 		"tile.cluster.pe"
-#define PLATFORM_CLUSTER_MEM 		"tile.cluster.mem" 	// L1 memory
-#define PLATFORM_CLUSTER_DMA 		"tile.cluster.dma"
+#define PLATFORM_FABRIC_MEM 		"sys.acc.mem"     	// L2 memory
+#define PLATFORM_CLUSTER    		"sys.acc.grp"
+#define PLATFORM_CLUSTER_PE 		"sys.acc.grp.pe"
+#define PLATFORM_CLUSTER_MEM 		"sys.acc.grp.mem" 	// L1 memory
+#define PLATFORM_CLUSTER_DMA 		"sys.acc.io"
 
 namespace br = bbque::res;
 

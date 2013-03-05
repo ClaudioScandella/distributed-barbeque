@@ -19,6 +19,8 @@
 
 #include "bbque/app/working_mode.h"
 #include "bbque/res/resource_utils.h"
+#include "bbque/res/resource_path.h"
+#include "bbque/res/usage.h"
 #include "bbque/pp/p2012.h"
 
 
@@ -154,7 +156,7 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	ExitCode_t result;
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	ResourceAccounter::ExitCode_t ra_result;
-	char rsrc_path[RSRC_PATH_SIZE_MAX];
+	char rsrc_path[MAX_LEN_RPATH_STR];
 
 	// PE fabric quota max (=1 if the maximum number of cluster is available)
 	pe_fabric_quota_max =
@@ -162,9 +164,10 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	logger->Debug("PLAT P2012: Maximum fabric quota = %d", pe_fabric_quota_max);
 
 	// Cluster level resources
-	for (int i = 0; i < pdev->pdesc.clusters_count; ++i) {
-		// L1 memory
-		snprintf(rsrc_path, RSRC_PATH_SIZE_MAX, "tile0.cluster%d.mem0", i);
+	for (uint16_t i = 0; i < pdev->pdesc.clusters_count; ++i) {
+		// L1 memory: Resource path
+		snprintf(rsrc_path, MAX_LEN_RPATH_STR, "sys0.acc0.grp%d.mem0", i);
+		// L1 memory: Register the resource
 		ra_result =	ra.RegisterResource(rsrc_path, "Kb",
 				pdev->pdesc.cluster[i].dmem_kb);
 		if (ra_result != ResourceAccounter::RA_SUCCESS) {
@@ -195,15 +198,17 @@ inline P2012PP::ExitCode_t P2012PP::RegisterClusterPE(
 		uint8_t pe_id) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	ResourceAccounter::ExitCode_t ra_result;
-	char rsrc_path[RSRC_PATH_SIZE_MAX];
+	char rsrc_path[MAX_LEN_RPATH_STR];
 	uint8_t pe_tot;
 
-	// Does it support PE bandwidth quota accounting?
+	// PE: Does it support PE bandwidth quota accounting?
 	pdev->descr.caps & DEVICE_RT_CAPABILITIES_RTM_BW ? pe_tot = 100: pe_tot = 1;
 
-	// Processing element
-	snprintf(rsrc_path, RSRC_PATH_SIZE_MAX, "tile0.cluster%d.pe%d",
-			cluster_id, pe_id);
+	// PE: Resource path
+	snprintf(rsrc_path, MAX_LEN_RPATH_STR,
+			"sys0.acc0.grp%d.pe%1d", cluster_id, pe_id);
+
+	// PE: Register the resource
 	ra_result = ra.RegisterResource(rsrc_path, "", pe_tot);
 	if (ra_result != ResourceAccounter::RA_SUCCESS) {
 		logger->Fatal("PLAT P2012: Unable to register '%s'", rsrc_path);
@@ -218,11 +223,13 @@ inline P2012PP::ExitCode_t P2012PP::RegisterClusterDMA(
 		uint8_t dma_id) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	ResourceAccounter::ExitCode_t ra_result;
-	char rsrc_path[RSRC_PATH_SIZE_MAX];
+	char rsrc_path[MAX_LEN_RPATH_STR];
 
-	// DMA channel
-	snprintf(rsrc_path, RSRC_PATH_SIZE_MAX, "tile0.cluster%d.dma%d",
+	// DMA channel: Resource path
+	snprintf(rsrc_path, MAX_LEN_RPATH_STR, "sys0.acc0.grp%d.io%d",
 			cluster_id, dma_id);
+
+	// DMA channel: Register the resource
 	ra_result = ra.RegisterResource(rsrc_path, "Gbps",
 			pdev->pdesc.cluster[0].dma[0].bandwidth.max);
 	if (ra_result != ResourceAccounter::RA_SUCCESS) {
