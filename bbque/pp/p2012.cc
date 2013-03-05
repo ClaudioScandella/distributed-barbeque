@@ -313,24 +313,24 @@ P2012PP::ExitCode_t P2012PP::_MapResources(AppPtr_t papp,
 	// Current AWM resource usages
 	uit = pusgm->begin();
 	for (; uit != pusgm->end(); ++uit) {
-		std::string const & rsrc_path((*uit).first);
+		ResourcePathPtr_t r_path((*uit).first);
 		pusage = (*uit).second;
 
 		// Get cluster information
 		(*pbind) = {
-			br::ResourcePathUtils::GetID(rsrc_path, "cluster"),
+			r_path->GetID(ResourceIdentifier::GROUP),
 			pusage->GetAmount(),
-			GetPlatformResourceType(rsrc_path)
+			r_path->Type()
 		};
 		logger->Debug("PLAT P2012: Resource [%s] mapped into cluster %d",
-				rsrc_path.c_str(), pbind->cluster_id);
+				r_path->ToString().c_str(), pbind->cluster_id);
 
 		// Update EXC constraint into the device descriptor
 		result = UpdateExcConstraints(papp, xcs_id, pbind);
 		if (result != OK) {
 			logger->Error("PLAT P2012: "
 					"Unable to update assignment [%s] (%llu) to [%s]",
-					rsrc_path.c_str(), pbind->amount, papp->StrId());
+					r_path->ToString().c_str(), pbind->amount, papp->StrId());
 			return MAPPING_FAILED;
 		}
 	}
@@ -491,7 +491,7 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 
 	// Set the proper descriptor's fields according to the resource type
 	switch (pbind->type) {
-	case RESOURCE_TYPE_PE:
+	case Resource::PROC_ELEMENT:
 		// OpenCL constraints: range [0, 10.000] to manage values with two
 		// decimals, e.g. 75.20% = 7520
 		pdev->pcons.exc[xcs_id].u.ocl.fabric_quota +=
@@ -501,26 +501,20 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 				(float) pdev->pcons.exc[xcs_id].u.ocl.fabric_quota / 100.0);
 		break;
 
-	case RESOURCE_TYPE_L1_MEM:
-		pdev->pcons.exc[xcs_id].u.generic.dmem.L1_B = pbind->amount;
-		logger->Info("PLAT P2012: %s X[%d] booked %02d byte from L1 memory",
-				papp->StrId(), xcs_id,
-				pdev->pcons.exc[xcs_id].u.generic.dmem.L1_B);
-		break;
-
-	case RESOURCE_TYPE_L2_MEM:
+	case Resource::MEMORY:
 		pdev->pcons.exc[xcs_id].u.generic.dmem.L2_KB = pbind->amount / 1024;
 		logger->Info("PLAT P2012: %s X[%d] booked %02d Kb from L2 memory",
 				papp->StrId(), xcs_id,
 				pdev->pcons.exc[xcs_id].u.generic.dmem.L2_KB);
 		break;
 
-	case RESOURCE_TYPE_DMA:
+	case Resource::IO:
 		logger->Warn("PLAT P2012: DMA currently unmanaged");
 		break;
 
-	case RESOURCE_TYPE_ERR:
-		logger->Error("PLAT P2012: Resource type unknown");
+	default:
+		logger->Error("PLAT P2012: Resource type {%s} unmanaged",
+				ResourceIdentifier::StringFromType(pbind->type));
 		return PLATFORM_DATA_PARSING_ERROR;
 	}
 
