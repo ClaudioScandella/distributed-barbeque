@@ -123,6 +123,11 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I../../../out/include -D__ARM_ARCH_5__
 # -ffunction-sections -fdata-sections -Wl,--gc-sections - REMOVED becaus of missing symbols
 endif (CONFIG_TARGET_ANDROID)
 
+# Add "P2012" specific flags
+if (CONFIG_TARGET_P2012)
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__ZYNQ__")
+endif (CONFIG_TARGET_P2012)
+
 # Check target bitness
 set (BBQUE_TARGET_ARCH 32)
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
