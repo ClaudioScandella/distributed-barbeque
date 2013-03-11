@@ -87,6 +87,8 @@
 /** The RPC channel TIMEOUT */
 #define BBQUE_RPC_TIMEOUT ${BBQUE_RPC_TIMEOUT}
 
+/** The Sync protocol TIMEOUT */
+#define BBQUE_SYNCP_TIMEOUT ${BBQUE_RPC_TIMEOUT}
 
 /*******************************************************************************
  * BarbequeRTRM Supported Features

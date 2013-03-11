@@ -31,8 +31,6 @@
 
 #define APPLICATION_PROXY_NAMESPACE "bq.ap"
 
-#define BBQUE_DEFAULT_SYNCP_TIMEOUT 1000
-
 using namespace bbque::plugins;
 using namespace bbque::rtlib;
 using namespace bbque::app;

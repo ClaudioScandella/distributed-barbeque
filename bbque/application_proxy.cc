@@ -271,10 +271,10 @@ ApplicationProxy::SyncP_PreChangeRecv(pcmdSn_t pcs,
 	// Wait for a response (if not yet available)
 	if (!pcs->pmsg) {
 		logger->Debug("APPs PRX: waiting for PreChange response, "
-				"Timeout: %d[ms]", BBQUE_DEFAULT_SYNCP_TIMEOUT);
+				"Timeout: %d[ms]", BBQUE_SYNCP_TIMEOUT);
 		ready = (pcs->resp_cv).wait_for(resp_ul,
 				std::chrono::milliseconds(
-					BBQUE_DEFAULT_SYNCP_TIMEOUT));
+					BBQUE_SYNCP_TIMEOUT));
 		if (ready == std::cv_status::timeout) {
 			logger->Warn("APPs PRX: PreChange response TIMEOUT");
 			pcs->pmsg = NULL;
@@ -388,7 +388,7 @@ ApplicationProxy::SyncP_PreChange_GetResult(pPreChangeRsp_t presp) {
 
 	// Wait for the promise being returned
 	ftrStatus = presp->pcs->resp_ftr.wait_for(std::chrono::milliseconds(
-				BBQUE_DEFAULT_SYNCP_TIMEOUT));
+				BBQUE_SYNCP_TIMEOUT));
 	if (!FutureTimedout(ftrStatus))
 		result = presp->pcs->resp_ftr.get();
 
@@ -458,10 +458,10 @@ ApplicationProxy::SyncP_SyncChangeRecv(pcmdSn_t pcs,
 	// Wait for a response (if not yet available)
 	if (!pcs->pmsg) {
 		logger->Debug("APPs PRX: waiting for SyncChange response, "
-				"Timeout: %d[ms]", BBQUE_DEFAULT_SYNCP_TIMEOUT);
+				"Timeout: %d[ms]", BBQUE_SYNCP_TIMEOUT);
 		ready = (pcs->resp_cv).wait_for(resp_ul,
 				std::chrono::milliseconds(
-					BBQUE_DEFAULT_SYNCP_TIMEOUT));
+					BBQUE_SYNCP_TIMEOUT));
 		if (ready == std::cv_status::timeout) {
 			logger->Warn("APPs PRX: SyncChange response TIMEOUT");
 			pcs->pmsg = NULL;
@@ -575,7 +575,7 @@ ApplicationProxy::SyncP_SyncChange_GetResult(pSyncChangeRsp_t presp) {
 
 	// Wait for the promise being returned
 	ftrStatus = presp->pcs->resp_ftr.wait_for(std::chrono::milliseconds(
-				BBQUE_DEFAULT_SYNCP_TIMEOUT));
+				BBQUE_SYNCP_TIMEOUT));
 	if (!FutureTimedout(ftrStatus))
 		result = presp->pcs->resp_ftr.get();
 
@@ -723,10 +723,10 @@ ApplicationProxy::SyncP_PostChangeRecv(pcmdSn_t pcs,
 	// Wait for a response (if not yet available)
 	if (!pcs->pmsg) {
 		logger->Debug("APPs PRX: waiting for PostChange response, "
-				"Timeout: %d[ms]", BBQUE_DEFAULT_SYNCP_TIMEOUT);
+				"Timeout: %d[ms]", BBQUE_SYNCP_TIMEOUT);
 		ready = (pcs->resp_cv).wait_for(resp_ul,
 				std::chrono::milliseconds(
-					BBQUE_DEFAULT_SYNCP_TIMEOUT));
+					BBQUE_SYNCP_TIMEOUT));
 		if (ready == std::cv_status::timeout) {
 			logger->Warn("APPs PRX: PostChange response TIMEOUT");
 			pcs->pmsg = NULL;
