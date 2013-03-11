@@ -77,6 +77,16 @@ public:
 	 */
 	void Start();
 
+
+	/**
+	 * @brief Notify the worker
+	 *
+	 * A call to this method notify the @see worker_status_cv conditional
+	 * variable thus, for example, returning from a blocking @see Wait
+	 * call
+	 */
+	void Notify();
+
 	/**
 	 * @brief Stop the worker processing
 	 *
@@ -128,6 +138,18 @@ protected:
 	 * @brief The Worker main code
 	 */
 	virtual void Task() = 0;
+
+	/*
+	 * @brief Wait for a notification
+	 *
+	 * A call to this method blocks until the @see worker_status_cv
+	 * conditional variable is notified. The notificaiton could be done by
+	 * using the @see Notify() method.
+	 *
+	 * @return true if the worker should continue, false is it must
+	 * terminate
+	 */
+	bool Wait();
 
 private:
 

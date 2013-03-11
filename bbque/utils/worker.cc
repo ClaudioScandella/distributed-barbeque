@@ -119,6 +119,14 @@ void Worker::Start() {
 
 }
 
+
+void Worker::Notify() {
+	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
+	logger->Debug("Worker[%s]: Notifying...", name);
+	// Notifying for an event
+	worker_status_cv.notify_all();
+}
+
 void Worker::Terminate() {
 	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
 	if (done == true)
@@ -134,6 +142,14 @@ void Worker::Terminate() {
 	assert(worker_tid != 0);
 	::kill(worker_tid, SIGUSR1);
 
+}
+
+bool Worker::Wait() {
+	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
+	logger->Debug("Worker[%s]: Waiting...", name);
+	// Waiting for an event
+	worker_status_cv.wait(worker_status_ul);
+	return !done;
 }
 
 } /*utils */
