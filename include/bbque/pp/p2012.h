@@ -184,12 +184,17 @@ private:
 	 * notification (i.e. change in the availability of resources, thermal
 	 * overheating, and so on...)
 	 */
-	void _Monitor();
+	void Monitor();
 
 	/**
 	 * Graceful disconnection from the platform
 	 */
 	void _Stop();
+
+	/**
+	 * Platform messages received processor
+	 */
+	void Task();
 
 /*******************************************************************************
  *  Class specific methods

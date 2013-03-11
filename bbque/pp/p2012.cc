@@ -348,7 +348,7 @@ P2012PP::ExitCode_t P2012PP::_MapResources(AppPtr_t papp,
 	return OK;
 }
 
-void P2012PP::_Monitor() {
+void P2012PP::Monitor() {
 	int p2012_result;
 	char buffer[P2012_MSG_SIZE];
 
@@ -383,6 +383,14 @@ void P2012PP::_Monitor() {
 				recv_msg->body.type);
 		break;
 	}
+}
+
+void P2012PP::Task() {
+	logger->Info("PLAT P2012: Monitoring thread STARTED");
+	while (!done) {
+		Monitor();
+	}
+	logger->Info("PLAT P2012: Monitoring thread ENDED");
 }
 
 void P2012PP::_Stop() {
