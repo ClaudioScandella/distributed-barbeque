@@ -361,11 +361,14 @@ void P2012PP::Monitor() {
 		(BBQ_message_t *) (buffer + sizeof(P2012_ReceiveMessageHdr_t));
 
 	// Wait for messages from P2012
+	// TODO: we should switch to the poll interface as soon as it is
+	// available
 	logger->Info("PLAT P2012: waiting for platform events...");
 	p2012_result = p2012_getNextMessage(buffer, P2012_MSG_SIZE);
 	if (p2012_result != 0) {
 		logger->Error("PLAT P2012: waiting platform event FAILED! "
 				"(Error: get next message failure)");
+		::usleep(500000);
 		return;
 	}
 
