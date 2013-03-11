@@ -73,18 +73,12 @@ void PlatformProxy::Refresh() {
 
 void PlatformProxy::Task() {
 #ifndef CONFIG_BBQUE_TEST_PLATFORM_DATA
-	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
 
 	logger->Info("PLAT PRX: Monitoring thread STARTED");
 
-	while (!done) {
-
-		// Waiting for an event from the platform
-		worker_status_cv.wait(worker_status_ul);
-
+	while (Wait()) {
 		logger->Info("PLAT PRX: Processing platform event");
 		RefreshPlatformData();
-
 	}
 
 	logger->Info("PLAT PRX: Monitoring thread ENDED");
