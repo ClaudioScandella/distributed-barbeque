@@ -109,7 +109,9 @@ typedef enum RTLIB_ProgrammingLanguage {
 	/** OpenCL coded EXC */
 	RTLIB_LANG_OPENCL,
 	/** P2012 Native Programming Model coded EXC */
-	RTLIB_LANG_NPL
+	RTLIB_LANG_NPM,
+
+	RTLIB_LANG_COUNT
 } RTLIB_ProgrammingLanguage_t;
 
 /**
