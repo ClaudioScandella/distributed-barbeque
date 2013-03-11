@@ -348,6 +348,10 @@ P2012PP::ExitCode_t P2012PP::_MapResources(AppPtr_t papp,
 	return OK;
 }
 
+void P2012PP::_Stop() {
+	NotifyPlatform(P2012_ALL, BBQ_STOP, 0);
+}
+
 void P2012PP::Monitor() {
 	int p2012_result;
 	char buffer[P2012_MSG_SIZE];
@@ -357,19 +361,23 @@ void P2012PP::Monitor() {
 		(BBQ_message_t *) (buffer + sizeof(P2012_ReceiveMessageHdr_t));
 
 	// Wait for messages from P2012
+	logger->Info("PLAT P2012: waiting for platform events...");
 	p2012_result = p2012_getNextMessage(buffer, P2012_MSG_SIZE);
 	if (p2012_result != 0) {
-		logger->Error("PLAT P2012: "
-				"Errors in receiving message from the platform");
+		logger->Error("PLAT P2012: waiting platform event FAILED! "
+				"(Error: get next message failure)");
 		return;
 	}
+
+	logger->Info("PLAT P2012: Processing platform event [0x%X]",
+			recv_msg->body.type);
 
 	// Process the event
 	switch (recv_msg->body.type) {
 
 	case P2012_EVENT:
 		// ... Manage events here ... //
-		logger->Info("PLAT P2012: Events signaled");
+		logger->Info("PLAT P2012: new platform event");
 		break;
 
 	case P2012_OFFLINE:
@@ -378,8 +386,7 @@ void P2012PP::Monitor() {
 		break;
 
 	default:
-		logger->Warn("PLAT 2012: "
-				"Unexpected message type (%d) received from the platform",
+		logger->Warn("PLAT 2012: unexpected platform event [0x%X]",
 				recv_msg->body.type);
 		break;
 	}
@@ -391,10 +398,6 @@ void P2012PP::Task() {
 		Monitor();
 	}
 	logger->Info("PLAT P2012: Monitoring thread ENDED");
-}
-
-void P2012PP::_Stop() {
-	NotifyPlatform(P2012_ALL, BBQ_STOP, 0);
 }
 
 int16_t P2012PP::InitExcConstraints(AppPtr_t papp) {
