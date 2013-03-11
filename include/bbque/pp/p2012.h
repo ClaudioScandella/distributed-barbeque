@@ -177,6 +177,11 @@ private:
 			RViewToken_t rvt, bool excl);
 
 	/**
+	 * Graceful disconnection from the platform
+	 */
+	void _Stop();
+
+	/**
 	 * @brief Waits for and processes events from the platform driver
 	 *
 	 * The method will keep itself waiting for new messages incoming
@@ -185,11 +190,6 @@ private:
 	 * overheating, and so on...)
 	 */
 	void Monitor();
-
-	/**
-	 * Graceful disconnection from the platform
-	 */
-	void _Stop();
 
 	/**
 	 * Platform messages received processor
