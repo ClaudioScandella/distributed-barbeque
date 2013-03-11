@@ -140,6 +140,8 @@ typedef struct rpc_msg_EXC_REGISTER {
 	char exc_name[RTLIB_EXC_NAME_LENGTH];
 	/** The name of the required recipe */
 	char recipe[RTLIB_RECIPE_NAME_LENGTH];
+	/** The code language class */
+	RTLIB_ProgrammingLanguage_t lang;
 } rpc_msg_EXC_REGISTER_t;
 
 /**
