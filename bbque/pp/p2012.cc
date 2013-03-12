@@ -364,6 +364,7 @@ void P2012PP::Monitor() {
 	// TODO: we should switch to the poll interface as soon as it is
 	// available
 	logger->Info("PLAT P2012: waiting for platform events...");
+#if 0
 	p2012_result = p2012_getNextMessage(buffer, P2012_MSG_SIZE);
 	if (p2012_result != 0) {
 		logger->Error("PLAT P2012: waiting platform event FAILED! "
@@ -371,6 +372,10 @@ void P2012PP::Monitor() {
 		::usleep(500000);
 		return;
 	}
+#else
+# warning "P2012: notification disabled"
+	Wait();
+#endif
 
 	logger->Info("PLAT P2012: Processing platform event [0x%X]",
 			recv_msg->body.type);
@@ -545,6 +550,7 @@ P2012PP::ExitCode_t P2012PP::NotifyPlatform(
 	msg.body          = {type, data};
 	memcpy(&buffer, &msg, sizeof(msg));
 
+#if 0
 	// Send
 	p2012_result = p2012_sendMessage(out_queue_id, &msg, sizeof(msg));
 	if (p2012_result != 0) {
@@ -552,6 +558,9 @@ P2012PP::ExitCode_t P2012PP::NotifyPlatform(
 				strerror(p2012_result));
 		return PLATFORM_COMM_ERROR;
 	}
+#else
+# warning "P2012: notification disabled"
+#endif
 
 	return OK;
 }
