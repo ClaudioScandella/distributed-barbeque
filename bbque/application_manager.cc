@@ -32,7 +32,6 @@
 
 #define RP_DIV1 "============================================================="
 #define RP_DIV2 "|------------------+------------+-------------+-------------|"
-#define RP_DIV3 "|..................+............+.............+.............|"
 #define RP_HEAD "|      APP:EXC     | STATE/SYNC |     CURRENT |        NEXT |"
 
 #define PRINT_NOTICE_IF_VERBOSE(verbose, text)\
@@ -647,8 +646,8 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 	AppPtr_t papp;
 	char line[66];
 	char state_str[10];
-	char curr_awm_bd[15];
-	char next_awm_bd[15];
+	char curr_awm_cl[15] = "-";
+	char next_awm_cl[15] = "-";
 	char b_set[MAX_R_ID_NUM];
 
 	PRINT_NOTICE_IF_VERBOSE(verbose, RP_DIV1);
@@ -674,10 +673,8 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 						ResourceIdentifier::TypeStr[ResourceIdentifier::CPU],
 						awm->BindingSet(
 							ResourceIdentifier::CPU).ToStringCG().c_str());
-			snprintf(curr_awm_bd, 12, "%02d:%s", awm->Id(), b_set);
+			snprintf(curr_awm_cl, 12, "%02d:%s", awm->Id(), b_set);
 		}
-		else
-			snprintf(curr_awm_bd, 12, "-");
 
 		// Next AWM
 		if (next_awm) {
@@ -685,15 +682,13 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 					ResourceIdentifier::TypeStr[ResourceIdentifier::CPU],
 					next_awm->BindingSet(
 						ResourceIdentifier::CPU).ToStringCG().c_str());
-			snprintf(next_awm_bd, 12, "%02d:%s", next_awm->Id(), b_set);
+			snprintf(next_awm_cl, 12, "%02d:%s", next_awm->Id(), b_set);
 		}
-		else
-			snprintf(next_awm_bd, 12, "-");
 
 		// State/Sync
 		BuildStateStr(papp, state_str);
 		snprintf(line, 66, "| %16s | %10s | %11s | %11s |",
-				papp->StrId(), state_str, curr_awm_bd, next_awm_bd);
+				papp->StrId(), state_str, curr_awm_cl, next_awm_cl);
 
 		// Print the row
 		PRINT_NOTICE_IF_VERBOSE(verbose, line);
