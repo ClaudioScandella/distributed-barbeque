@@ -30,9 +30,9 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 
-#define RP_DIV1 "============================================================="
-#define RP_DIV2 "|------------------+------------+-------------+-------------|"
-#define RP_HEAD "|      APP:EXC     | STATE/SYNC |     CURRENT |        NEXT |"
+#define RP_DIV1 "=========================================================================="
+#define RP_DIV2 "|------------------+------------+-------------+-------------|-------------|"
+#define RP_HEAD "|      APP:EXC     | STATE/SYNC |     CURRENT |        NEXT | AWM_NAME    |"
 
 #define PRINT_NOTICE_IF_VERBOSE(verbose, text)\
 	if (verbose)\
@@ -644,10 +644,11 @@ inline void BuildStateStr(AppPtr_t papp, char * state_str) {
 void ApplicationManager::PrintStatusReport(bool verbose) {
 	AppsUidMapIt app_it;
 	AppPtr_t papp;
-	char line[66];
+	char line[80];
 	char state_str[10];
 	char curr_awm_cl[15] = "-";
 	char next_awm_cl[15] = "-";
+	char curr_awm_str[12] = "-";
 	char b_set[MAX_R_ID_NUM];
 
 	PRINT_NOTICE_IF_VERBOSE(verbose, RP_DIV1);
@@ -673,7 +674,9 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 						ResourceIdentifier::TypeStr[ResourceIdentifier::CPU],
 						awm->BindingSet(
 							ResourceIdentifier::CPU).ToStringCG().c_str());
+
 			snprintf(curr_awm_cl, 12, "%02d:%s", awm->Id(), b_set);
+			snprintf(curr_awm_str, 12, "%s", awm->Name().c_str());
 		}
 
 		// Next AWM
@@ -687,8 +690,8 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 
 		// State/Sync
 		BuildStateStr(papp, state_str);
-		snprintf(line, 66, "| %16s | %10s | %11s | %11s |",
-				papp->StrId(), state_str, curr_awm_cl, next_awm_cl);
+		snprintf(line, 80, "| %16s | %10s | %11s | %11s | %-11s |",
+				papp->StrId(), state_str, curr_awm_cl, next_awm_cl, curr_awm_str);
 
 		// Print the row
 		PRINT_NOTICE_IF_VERBOSE(verbose, line);
