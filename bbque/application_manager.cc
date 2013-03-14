@@ -660,6 +660,10 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 		ba::AwmPtr_t const & awm = papp->CurrentAWM();
 		ba::AwmPtr_t const & next_awm = papp->NextAWM();
 
+		// Reset AWM name (default for EXCs not running)
+		curr_awm_str[0] = '-';
+		curr_awm_str[1] = 0;
+
 		// Current AWM
 		if (awm) {
 			// MIGRATE case => must see previous set of the same AWM
