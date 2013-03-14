@@ -1106,7 +1106,8 @@ ApplicationManager::SetGoalGapEXC(AppPtr_t papp, uint8_t gap) {
 	// configuration parameter or policy decision
 	// Check for the need of a new schedule request
 	if (gap > 20) {
-		logger->Warn("Re-schedule required");
+		logger->Warn("Re-schedule required for [%s], GoalGap [%2d]",
+				papp->StrId(), gap);
 		return AM_RESCHED_REQUIRED;
 	}
 
