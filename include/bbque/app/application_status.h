@@ -280,6 +280,11 @@ public:
 	virtual bool Active()= 0;
 
 	/**
+	 * @brief Check if this EXC is currently RUNNING
+	 */
+	virtual bool Running()= 0;
+
+	/**
 	 * @brief Check if this EXC is currently in SYNC state
 	 */
 	virtual bool Synching()= 0;

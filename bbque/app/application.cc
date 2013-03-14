@@ -241,6 +241,15 @@ bool Application::Active() {
 	return _Active();
 }
 
+bool Application::_Running() const {
+	return ((schedule.state == RUNNING));
+}
+
+bool Application::Running() {
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
+	return _Running();
+}
+
 bool Application::_Synching() const {
 	return (schedule.state == SYNC);
 }

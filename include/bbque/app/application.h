@@ -242,6 +242,11 @@ public:
 	/**
 	 * @see ApplicationStatuIF
 	 */
+	bool Running();
+
+	/**
+	 * @see ApplicationStatuIF
+	 */
 	bool Synching();
 
 	/**
@@ -541,6 +546,8 @@ private:
 	bool _Disabled() const;
 
 	bool _Active() const;
+
+	bool _Running() const;
 
 	bool _Synching() const;
 
