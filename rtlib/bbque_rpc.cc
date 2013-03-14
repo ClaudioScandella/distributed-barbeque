@@ -1453,6 +1453,15 @@ RTLIB_ExitCode_t BbqueRPC::GGap(
 		return RTLIB_EXC_NOT_REGISTERED;
 	}
 
+	// Check RR threshold constraints
+	result = CheckRRThresholds(prec);
+	if (result != RTLIB_OK) {
+		fprintf(stderr, FI("Set Gaol-Gap for EXC [%p] BLOCKED"
+				"(Error: overpassing RR threshold)\n"),
+				(void*)ech);
+		return result;
+	}
+
 	// Calling the low-level enable function
 	result = _GGap(prec, percent);
 	if (result != RTLIB_OK) {
@@ -2163,7 +2172,6 @@ void BbqueRPC::ForceCPS(pregExCtx_t prec) {
 	prec->cps_tstart = bbque_tmr.getElapsedTimeMs();
 }
 
-
 /*******************************************************************************
  *    Reconfiguration Rate (RR) Management  Support
  ******************************************************************************/
@@ -2213,6 +2221,24 @@ RTLIB_ExitCode_t BbqueRPC::SetRRThreshold(
 	prec->rr.user_threshold = threshold;
 	fprintf(stderr, FI("RR user threshold set to [%8.3f %%] for EXC [%p]\n"),
 		prec->rr.user_threshold, (void*)ech);
+	return RTLIB_OK;
+}
+
+RTLIB_ExitCode_t BbqueRPC::CheckRRThresholds(pregExCtx_t prec) {
+	double rr = prec->rr.pStats->get();
+
+	if (prec->rr.user_threshold != RTLIB_RR_THRESHOLD_DISABLE
+		&& prec->rr.user_threshold <= rr) {
+
+		DB(
+		fprintf(stderr,
+			FD("RR [%8.3f] over USER threshold [%8.3f] for EXC [%s]"),
+				rr, prec->rr.user_threshold,
+				prec->name.c_str());
+		)
+		return RTLIB_EXC_RR_USR_THRESHOLD;
+	}
+
 	return RTLIB_OK;
 }
 

@@ -917,6 +917,11 @@ private:
 	 */
 	pregExCtx_t getRegistered(uint8_t exc_id);
 
+/*******************************************************************************
+ * Reconfiguration Rate (RR) Management Support
+ ******************************************************************************/
+
+	RTLIB_ExitCode_t CheckRRThresholds(pregExCtx_t prec);
 
 /******************************************************************************
  * Performance Counters
