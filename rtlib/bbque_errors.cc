@@ -85,6 +85,12 @@ const char *RTLIB_errorStr[] = {
 	//RTLIB_EXC_GWM_BLOCKED
 	"EXC suspended (resources not available)",
 
+//---- Run-Time management support for an EXC
+	//RTLIB_EXC_RR_SYS_THRESHOLD,
+	"RR value overpass system threshold",
+	//RTLIB_EXC_RR_USR_THRESHOLD,
+	"RR value overpass user-defined threshold",
+
 //---- Internal values not exposed to applications
 
 	//RTLIB_EXC_SYNC_MODE

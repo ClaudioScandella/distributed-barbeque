@@ -188,6 +188,12 @@ typedef enum RTLIB_ExitCode {
 	/** EXC suspended (resources not available) */
 	RTLIB_EXC_GWM_BLOCKED,
 
+//---- Run-Time management support for an EXC
+	/** The current RR value is overpass the system threshold **/
+	RTLIB_EXC_RR_SYS_THRESHOLD,
+	/** The current RR value is overpass the user-defined threshold **/
+	RTLIB_EXC_RR_USR_THRESHOLD,
+
 //---- Internal values not exposed to applications
 
 	/** The EXC is in sync mode */
