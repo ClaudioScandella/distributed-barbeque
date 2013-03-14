@@ -56,7 +56,7 @@ Deferrable::~Deferrable() {
 void Deferrable::Schedule(milliseconds time) {
 	std::unique_lock<std::mutex> worker_status_ul(worker_status_mtx);
 	DeferredTime_t request_time = system_clock::now();
-	DeferredTime_t schedule_time;
+	DeferredTime_t schedule_time = request_time + time;
 
 	// Handle immediate scheduling
 	if (time == SCHEDULE_NOW) {
@@ -72,7 +72,6 @@ void Deferrable::Schedule(milliseconds time) {
 
 		logger->Debug("DF[%s] checking for future schedule...", Name());
 
-		schedule_time = request_time + time;
 		if (schedule_time >= next_time) {
 			logger->Debug("DF[%s] nearest then %d[ms] schedule pending",
 					Name(), time);
