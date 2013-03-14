@@ -691,7 +691,7 @@ typedef RTLIB_ExitCode_t (*RTLIB_CPS_CTimeUs)(
  */
 
 /**
- * @brief Read the actual Reconfiguration Ratio (RR)
+ * @brief Read the actual Reconfiguration Rate (RR)
  * @ingroup rtlib_sec03_plain_rr
  *
  * The RTLib provides the support to profile and report the Reconfiguration

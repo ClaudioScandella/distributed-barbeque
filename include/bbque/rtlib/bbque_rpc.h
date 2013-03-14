@@ -170,10 +170,10 @@ public:
  ******************************************************************************/
 
 	/**
-	 * @brief Get the actual Reconfiguration Ratio (RR)
+	 * @brief Get the actual Reconfiguration Rate (RR)
 	 *
-	 * This allows to get the current profiled Reconfiguration Ratio (RR)
-	 * which could be cenveniently used to support AS-RTM policies.
+	 * This allows to get the current profiled Reconfiguration Rate (RR)
+	 * which could be conveniently used to support AS-RTM policies.
 	 */
 	double GetRR(RTLIB_ExecutionContextHandler_t ech);
 
@@ -371,7 +371,7 @@ protected:
 		/** The time spend doing RTM during last cycle
 		 * (i.e. Monitor + Conffig) */
 		uint32_t time_rtm;
-		/** The (EMA defined) Reconfiguration Ratio (RR) */
+		/** The (EMA defined) Reconfiguration Rate (RR) */
 		pEma_t pStats;
 		ReconfigurationRate() :
 			time_running(0),

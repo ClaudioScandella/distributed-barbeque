@@ -373,7 +373,7 @@ public:
 /**
  * @brief Get the actual Reconfiguration Rate (RR) for this EXC
  *
- * The reconfiguration rate is defined as the ratio between the time spent in
+ * The reconfiguration rate is defined as the rate between the time spent in
  * doing "useful" processing (i.e. onRun) versus the time spent for Run-Time
  * Management activities (i.e. onMonitor, onConfigure, ...)
  * This metrics is estimanted by the RTLib and could be obtained by the
