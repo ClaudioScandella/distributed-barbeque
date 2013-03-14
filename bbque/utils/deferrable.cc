@@ -73,14 +73,15 @@ void Deferrable::Schedule(milliseconds time) {
 		logger->Debug("DF[%s] checking for future schedule...", Name());
 
 		if (schedule_time >= next_time) {
-			logger->Debug("DF[%s] nearest then %d[ms] schedule pending",
-					Name(), time);
+			DB(logger->Debug("DF[%s: %9.3f] nearest then %d[ms] schedule pending",
+					Name(), tmr.getElapsedTimeMs(), time));
 			return;
 		}
 	}
 
 	// Update for next nearest schedule time
-	logger->Debug("DF[%s] update nearest schedule to %d[ms]", Name(), time);
+	DB(logger->Debug("DF[%s: %9.3f] update nearest schedule to %d[ms]",
+			Name(), tmr.getElapsedTimeMs(), time));
 	next_time = schedule_time;
 	next_timeout = time;
 	worker_status_cv.notify_one();
