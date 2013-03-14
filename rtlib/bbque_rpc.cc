@@ -2187,6 +2187,35 @@ double BbqueRPC::GetRR(
 	return prec->rr.pStats->get();
 }
 
+RTLIB_ExitCode_t BbqueRPC::SetRRThreshold(
+	RTLIB_ExecutionContextHandler_t ech,
+	double threshold) {
+	pregExCtx_t prec;
+
+	assert(ech);
+
+	prec = getRegistered(ech);
+	if (!prec) {
+		fprintf(stderr, FE("Set RR user threshold for EXC [%p] FAILED "
+				"(EXC not registered)\n"), (void*)ech);
+		return RTLIB_EXC_NOT_REGISTERED;
+	}
+
+	assert(isRegistered(prec) == true);
+
+	if (unlikely(threshold < 0)) {
+		prec->rr.user_threshold = RTLIB_RR_THRESHOLD_DISABLE;
+		fprintf(stderr, FI("RR user threshold disabled for EXC [%p]\n"),
+			(void*)ech);
+		return RTLIB_OK;
+	}
+
+	prec->rr.user_threshold = threshold;
+	fprintf(stderr, FI("RR user threshold set to [%8.3f %%] for EXC [%p]\n"),
+		prec->rr.user_threshold, (void*)ech);
+	return RTLIB_OK;
+}
+
 /*******************************************************************************
  *    RTLib Notifiers Support
  ******************************************************************************/

@@ -328,6 +328,10 @@ double BbqueEXC::GetRR() {
 	return rtlib->RR.Get(exc_hdl);
 }
 
+RTLIB_ExitCode_t BbqueEXC::SetRRThreshold(double threshold) {
+	return rtlib->RR.SetThreshold(exc_hdl, threshold);
+}
+
 /*******************************************************************************
  *    Constraints Management
  ******************************************************************************/

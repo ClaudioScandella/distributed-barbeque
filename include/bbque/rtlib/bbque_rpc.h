@@ -177,6 +177,26 @@ public:
 	 */
 	double GetRR(RTLIB_ExecutionContextHandler_t ech);
 
+	/**
+	 * @brief Set the user-defined Reconfiguration Rate (RR) threshold
+	 *
+	 * This allows to set the current Reconfiguration Rate (RR) threshold
+	 * value which is used to filter GoalGap calls.
+	 * When this threshold is not zero and the actual RR estimated by the
+	 * RTLib is overpassing the threshold value, GaolGap calls are
+	 * blocked, i.e. not forwarded to the BarbequeRTRM.
+	 */
+	 RTLIB_ExitCode_t SetRRThreshold(RTLIB_ExecutionContextHandler_t ech,
+			 double threshold);
+
+	/**
+	 * @brief Clear the user-defined Reconfiguration Rate (RR) threshold
+	 *
+	 * After this call, all GoalGap which are compliant with the system
+	 * defined threshold are forwarded to the BarbequeRTRM.
+	 */
+	 RTLIB_ExitCode_t ClearRRThreshold(RTLIB_ExecutionContextHandler_t ech);
+
 /*******************************************************************************
  *    Performance Monitoring Support
  ******************************************************************************/
@@ -357,6 +377,8 @@ protected:
 			time_running(0),
 			time_rtm(0) {
 		}
+		/** A user-define RR threshold value **/
+		double user_threshold;
 	} ReconfigurationRate_t;
 
 
@@ -416,12 +438,9 @@ protected:
 		/** Reconfiguration Rate profiling support */
 		ReconfigurationRate_t rr;
 
-		double cps_tstart; // [ms] at the last cycle start time
-		float cps_max;     // [Hz] the requried maximum CPS
-		float cps_expect;  // [ms] the expected cycle time
-
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
 			name(_name), exc_id(id) {
+				rr.user_threshold = RTLIB_RR_THRESHOLD_DISABLE;
 		}
 
 		~RegisteredExecutionContext() {

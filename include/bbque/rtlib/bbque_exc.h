@@ -386,6 +386,52 @@ public:
 	double GetRR();
 
 /**
+ * @brief Set the user-defined threshold for the Reconfiguration Rate (RR)
+ *
+ * The reconfiguration rate is defined as the rate between the time spent in
+ * doing "useful" processing (i.e. onRun) versus the time spent for Run-Time
+ * Management activities (i.e. onMonitor, onConfigure, ...)
+ * This metrics is estimated by the RTLib and could be exploited by the
+ * application to set a GoalGap discarding level. When a threshold is
+ * configured, all the GoalGal calls triggered when the actual RR is over the
+ * threshold value are silently discarded, i.e. not forwarded to the
+ * BarbequeRTRM.
+ *
+ * @return the estimated actual reconfiguration rate.
+ *
+ * @ingroup rtlib_sec02_aem_utils
+ */
+	RTLIB_ExitCode_t SetRRThreshold(double threshold);
+
+
+/**
+ * @brief Set the user-defined Reconfiguration Rate (RR) percentage threshold
+ *
+ * @see SetRRThreshold
+ *
+ * @ingroup rtlib_sec02_aem_utils
+ */
+	RTLIB_ExitCode_t SetRRThresholdPercent(double percent) {
+		return SetRRThreshold(percent / 100);
+	}
+
+/**
+ * @brief Clear the user-defined Reconfiguration Rate (RR) threshold
+ *
+ * After a call of this method the user-defined threshold is not more
+ * confidered for the forwarding of GoalGap calls, i.e. if a GoalGap is
+ * compliant with respect to the system threshold it will be passed to the
+ * BarbequeRTRM.
+ *
+ * @see SetRRThreshold
+ *
+ * @ingroup rtlib_sec02_aem_utils
+ */
+	RTLIB_ExitCode_t ClearRRThreshold() {
+		return SetRRThreshold(RTLIB_RR_THRESHOLD_DISABLE);
+	}
+
+/**
  * @brief The number of completed cycles
  *
  * The RTLib keeps track of the completed processing cycles count.

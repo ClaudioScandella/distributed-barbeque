@@ -134,6 +134,11 @@ static double rtlib_rr_get(
 	return rpc->GetRR(ech);
 }
 
+static RTLIB_ExitCode_t rtlib_rr_set_threshold(
+		RTLIB_ExecutionContextHandler_t ech, double threshold) {
+	return rpc->SetRRThreshold(ech, threshold);
+}
+
 /*******************************************************************************
  *    Performance Monitoring Support
  ******************************************************************************/
@@ -250,6 +255,7 @@ RTLIB_ExitCode_t RTLIB_Init(const char *name, RTLIB_Services_t **rtlib) {
 
 	// Reconfiguration Rate interface
 	rtlib_services.RR.Get = rtlib_rr_get;
+	rtlib_services.RR.SetThreshold = rtlib_rr_set_threshold;
 
 	// Performance monitoring notifiers
 	rtlib_services.Notify.Setup = rtlib_notify_setup;

@@ -702,6 +702,27 @@ typedef RTLIB_ExitCode_t (*RTLIB_CPS_CTimeUs)(
 typedef double (*RTLIB_RR_Get)(
 		RTLIB_ExecutionContextHandler_t ech);
 
+/**
+ * @brief Set the user-defined threshold for the Reconfiguration Rate (RR)
+ * @ingroup rtlib_sec03_plain_rr
+ *
+ * The RTLib provides the support to profile and report the Reconfiguration
+ * Rate (RR) of an application. This function allows to define a threshold
+ * value for the RR which should be satisified in order to forward GoalGap
+ * calls to the BarbequeRTRM. At run-time, the RTLib monitors application
+ * behavioirs, measure its RR and silently block the forwarding of GoalGap
+ * calls in case the RR is higher than the configured RR threshold value.
+ *
+ * @param threshold the RR threshold value
+ *
+ * @param ech the handler of the EXC to configure
+ */
+typedef RTLIB_ExitCode_t (*RTLIB_RR_SetThreshold)(
+		RTLIB_ExecutionContextHandler_t ech,
+		double threshold);
+
+#define RTLIB_RR_THRESHOLD_DISABLE -1
+
 /**@}*/
 
 /*******************************************************************************
@@ -991,6 +1012,7 @@ struct RTLIB_Services {
 	/* Reconfiguration Ratio interface */
 	struct {
 		RTLIB_RR_Get Get;
+		RTLIB_RR_SetThreshold SetThreshold;
 	} RR;
 
 	/* Performance estimation and notification interface */
