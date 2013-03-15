@@ -1441,14 +1441,14 @@ RTLIB_ExitCode_t BbqueRPC::GGap(
 
 	// Enforce the Goal-Gap domain
 	if (unlikely(percent > 100)) {
-		fprintf(stderr, FE("Set Gaol-Gap for EXC [%p] "
+		fprintf(stderr, FE("Set Goal-Gap for EXC [%p] "
 				"(Error: out-of-bound)\n"), (void*)ech);
 		return RTLIB_ERROR;
 	}
 
 	prec = getRegistered(ech);
 	if (!prec) {
-		fprintf(stderr, FE("Set Gaol-Gap for EXC [%p] "
+		fprintf(stderr, FE("Set Goal-Gap for EXC [%p] "
 				"(Error: EXC not registered)\n"), (void*)ech);
 		return RTLIB_EXC_NOT_REGISTERED;
 	}
@@ -1456,9 +1456,9 @@ RTLIB_ExitCode_t BbqueRPC::GGap(
 	// Check RR threshold constraints
 	result = CheckRRThresholds(prec);
 	if (result != RTLIB_OK) {
-		fprintf(stderr, FI("Set Gaol-Gap for EXC [%p] BLOCKED"
+		fprintf(stderr, FI("Set Goal-Gap [%d %%] for EXC [%p] BLOCKED "
 				"(Error: overpassing RR threshold)\n"),
-				(void*)ech);
+				percent, (void*)ech);
 		return result;
 	}
 
@@ -2184,7 +2184,7 @@ double BbqueRPC::GetRR(
 
 	prec = getRegistered(ech);
 	if (!prec) {
-		fprintf(stderr, FE("Unregister EXC [%p] FAILED "
+		fprintf(stderr, FE("Get RR for EXC [%p] FAILED "
 				"(EXC not registered)\n"), (void*)ech);
 		return 0.0;
 	}
