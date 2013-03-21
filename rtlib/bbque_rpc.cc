@@ -1348,6 +1348,7 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PostChangeNotify(pregExCtx_t prec) {
 
 RTLIB_ExitCode_t BbqueRPC::SyncP_PostChangeNotify(
 		rpc_msg_BBQ_SYNCP_POSTCHANGE_t &msg) {
+	RTLIB_Constraint_t cstr = {0, CONSTRAINT_ADD, UPPER_BOUND};
 	RTLIB_ExitCode_t result;
 	pregExCtx_t prec;
 
@@ -1370,6 +1371,13 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PostChangeNotify(
 			msg.hdr.exc_id);
 
 	_SyncpPostChangeResp(msg.hdr.token, prec, result);
+
+	// If a new required AWM has been notified...
+	if (prec->event != RTLIB_EXC_GWM_BLOCKED) {
+		// ... set an upper bound on currently selected AWM
+		cstr.awm = prec->awm_id;
+		_Set(prec, &cstr, 1);
+	}
 
 	return RTLIB_OK;
 }
@@ -1437,6 +1445,7 @@ RTLIB_ExitCode_t BbqueRPC::Clear(
 RTLIB_ExitCode_t BbqueRPC::GGap(
 		const RTLIB_ExecutionContextHandler_t ech,
 		uint8_t percent) {
+	RTLIB_Constraint_t cstr = {0, CONSTRAINT_REMOVE, UPPER_BOUND};
 	RTLIB_ExitCode_t result;
 	pregExCtx_t prec;
 
@@ -1464,6 +1473,9 @@ RTLIB_ExitCode_t BbqueRPC::GGap(
 				percent, (void*)ech);
 		return result;
 	}
+
+	// Remove any eventually set Upper Bound Constraint
+	_Set(prec, &cstr, 1);
 
 	// Calling the low-level enable function
 	result = _GGap(prec, percent);
