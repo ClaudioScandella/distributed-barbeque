@@ -115,14 +115,6 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 	}
 	logger->Info("PLAT P2012: Message queues initialized");
 
-	// Notify the platform about BBQ starting
-	result = NotifyPlatform(P2012_ALL, BBQ_START, in_queue_id);
-	if (result != OK) {
-		logger->Error("PLAT P2012: Error occurred in platform start message");
-		return PLATFORM_COMM_ERROR;
-	}
-	logger->Info("PLAT P2012: Start notification sent");
-
 	// Initialize the shared memory buffer
 	p2012_result = p2012_BBQInit(&sh_mem);
 	if (p2012_result != 0) {
@@ -285,11 +277,6 @@ P2012PP::ExitCode_t P2012PP::_ReclaimResources(AppPtr_t papp) {
 	logger->Debug("PLAT P2012: EXC constraints count = %d",
 			pdev->pcons.count);
 
-	// Send a notify to the device about the resource reclaiming
-	result = NotifyPlatform(P2012_ALL, BBQ_UPDATE, xcs_id);
-	if (result != OK)
-		logger->Error("PLAT P2012: Unable to notify the platform");
-
 	return result;
 }
 
@@ -349,18 +336,9 @@ P2012PP::ExitCode_t P2012PP::_MapResources(AppPtr_t papp,
 }
 
 void P2012PP::_Stop() {
-	NotifyPlatform(P2012_ALL, BBQ_STOP, 0);
 }
 
 void P2012PP::Monitor() {
-	int p2012_result;
-	char buffer[P2012_MSG_SIZE];
-
-	// Init receiving message buffer
-	BBQ_message_t * recv_msg =
-		(BBQ_message_t *) (buffer + sizeof(P2012_ReceiveMessageHdr_t));
-
-	// Wait for messages from P2012
 	// TODO: we should switch to the poll interface as soon as it is
 	// available
 	logger->Info("PLAT P2012: waiting for platform events...");
@@ -376,28 +354,6 @@ void P2012PP::Monitor() {
 # warning "P2012: notification disabled"
 	Wait();
 #endif
-
-	logger->Info("PLAT P2012: Processing platform event [0x%X]",
-			recv_msg->body.type);
-
-	// Process the event
-	switch (recv_msg->body.type) {
-
-	case P2012_EVENT:
-		// ... Manage events here ... //
-		logger->Info("PLAT P2012: new platform event");
-		break;
-
-	case P2012_OFFLINE:
-		//done = true;
-		//trdStatus_cv.notify_one();
-		break;
-
-	default:
-		logger->Warn("PLAT 2012: unexpected platform event [0x%X]",
-				recv_msg->body.type);
-		break;
-	}
 }
 
 void P2012PP::Task() {
@@ -525,44 +481,11 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 		return PLATFORM_DATA_PARSING_ERROR;
 	}
 
-	// Send a notify to the device about the update
-	result = NotifyPlatform(P2012_ALL, BBQ_UPDATE, xcs_id);
-	if (result != OK)
-		logger->Error("PLAT P2012: Unable to notify the platform");
-
 	return result;
 }
 
 inline uint16_t P2012PP::GetPeFabricQuota(float const & pe_quota) {
 	return pe_quota / static_cast<float>(pe_fabric_quota_max) * 100.0;
-}
-
-P2012PP::ExitCode_t P2012PP::NotifyPlatform(
-		BBQ_p2012_target_t target,
-		BBQ_msg_type_t type,
-		uint32_t data) {
-	int p2012_result;
-	char buffer[P2012_MSG_SIZE];
-	BBQ_message_t msg;
-
-	// Fill the message
-	msg.header.target = target;
-	msg.body          = {type, data};
-	memcpy(&buffer, &msg, sizeof(msg));
-
-#if 0
-	// Send
-	p2012_result = p2012_sendMessage(out_queue_id, &msg, sizeof(msg));
-	if (p2012_result != 0) {
-		logger->Error("PLAT P2012: Error in sending notification (%s)",
-				strerror(p2012_result));
-		return PLATFORM_COMM_ERROR;
-	}
-#else
-# warning "P2012: notification disabled"
-#endif
-
-	return OK;
 }
 
 } // namespace bbque
