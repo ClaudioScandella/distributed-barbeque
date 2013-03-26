@@ -153,6 +153,16 @@ public:
 			float cps);
 
 	/**
+	 * @brief Get the measured Cycles Per Second (CPS) value
+	 *
+	 * This allows to retrive the actual measured CPS value the
+	 * application is achiving at run-time.
+	 *
+	 * @return the measured CPS value
+	 */
+	float GetCPS(RTLIB_ExecutionContextHandler_t ech);
+
+	/**
 	 * @brief Set the required Cycle time [us]
 	 *
 	 * This allows to define the required and expected cycle time. If at
@@ -434,12 +444,13 @@ protected:
 		double cps_tstart = 0; // [ms] at the last cycle start time
 		float cps_max = 0;     // [Hz] the requried maximum CPS
 		float cps_expect = 0;  // [ms] the expected cycle time
+		EMA cps_ctime;         // [ms] Cycle Time on-line estimation
 
 		/** Reconfiguration Rate profiling support */
 		ReconfigurationRate_t rr;
 
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
-			name(_name), exc_id(id) {
+			name(_name), exc_id(id), cps_ctime(5) {
 				rr.user_threshold = RTLIB_RR_THRESHOLD_DISABLE;
 		}
 

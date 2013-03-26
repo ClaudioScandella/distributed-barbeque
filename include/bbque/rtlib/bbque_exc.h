@@ -371,6 +371,48 @@ public:
 	RTLIB_ExitCode_t SetCTimeUs(uint32_t us);
 
 /**
+ * @brief Get the cycle rate for this EXC
+ *
+ * The AEM defined by this API runs a processing cycle which corresponds to a
+ * loop of \ref onRun and \ref onMonitor calls.
+ *
+ * This method allows to get the cycle time value, measured in milliseconds [ms],
+ * which the application is currently getting. This measure is obtained
+ * considering an Exponential Moving Average of the last 30 samples.
+ *
+ * @return the current measured CPS value
+ *
+ * @ingroup rtlib_sec02_aem_utils
+ */
+	float GetCPS();
+
+/**
+ * @brief Get the cycle time in [us]
+ *
+ * @see GetCPS
+ *
+ * @return the current measured Cycle Time [us]
+ *
+ * @ingroup rtlib_sec02_aem_utils
+ */
+	uint32_t GetCTimeUs() {
+		return 1e6 / GetCPS();
+	}
+
+/**
+ * @brief Get the cycle time in [ms]
+ *
+ * @see GetCPS
+ *
+ * @return the current measured Cycle Time [ms]
+ *
+ * @ingroup rtlib_sec02_aem_utils
+ */
+	uint32_t GetCTimeMs() {
+		return 1e3 / GetCPS();
+	}
+
+/**
  * @brief Get the actual Reconfiguration Rate (RR) for this EXC
  *
  * The reconfiguration rate is defined as the rate between the time spent in

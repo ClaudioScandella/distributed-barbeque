@@ -320,6 +320,13 @@ RTLIB_ExitCode_t BbqueEXC::SetCTimeUs(uint32_t us) {
 	return rtlib->CPS.SetCTimeUs(exc_hdl, us);
 }
 
+float BbqueEXC::GetCPS() {
+	float cps = rtlib->CPS.Get(exc_hdl);
+	DB(fprintf(stderr, FD("Get cycles-rate [%.3f] [Hz] for EXC [%s] (@%p)...\n"),
+			cps, exc_name.c_str(), (void*)exc_hdl));
+	return cps;
+}
+
 /*******************************************************************************
  *    Reconfiguration Rate (RR) Management Support
  ******************************************************************************/

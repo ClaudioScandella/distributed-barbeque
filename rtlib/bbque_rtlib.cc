@@ -119,6 +119,11 @@ static RTLIB_ExitCode_t rtlib_cps_set(
 	return rpc->SetCPS(ech, cps);
 }
 
+static float rtlib_cps_get(
+		RTLIB_ExecutionContextHandler_t ech) {
+	return rpc->GetCPS(ech);
+}
+
 static RTLIB_ExitCode_t rtlib_cps_set_ctime_us(
 		RTLIB_ExecutionContextHandler_t ech,
 		uint32_t us) {
@@ -251,6 +256,7 @@ RTLIB_ExitCode_t RTLIB_Init(const char *name, RTLIB_Services_t **rtlib) {
 
 	// Cycles Time Control interface
 	rtlib_services.CPS.Set = rtlib_cps_set;
+	rtlib_services.CPS.Get = rtlib_cps_get;
 	rtlib_services.CPS.SetCTimeUs = rtlib_cps_set_ctime_us;
 
 	// Reconfiguration Rate interface
