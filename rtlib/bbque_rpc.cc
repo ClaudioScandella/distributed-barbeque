@@ -2099,7 +2099,7 @@ AppUid_t BbqueRPC::GetUid(RTLIB_ExecutionContextHandler_t ech) {
 	assert(ech);
 	prec = getRegistered(ech);
 	if (!prec) {
-		fprintf(stderr, FE("Unregister EXC [%p] FAILED "
+		fprintf(stderr, FE("Set CPS for EXC [%p] FAILED "
 				"(EXC not registered)\n"), (void*)ech);
 		return RTLIB_EXC_NOT_REGISTERED;
 	}
@@ -2170,7 +2170,7 @@ float BbqueRPC::GetCPS(
 }
 
 void BbqueRPC::ForceCPS(pregExCtx_t prec) {
-	float delay_ms = 0; // [ms] delay to stick with the required FPS
+	float delay_ms = 0; // [ms] delay to stick with the required CPS
 	uint32_t sleep_us;
 	float cycle_time;
 	double tnow; // [s] at the call time
@@ -2184,17 +2184,16 @@ void BbqueRPC::ForceCPS(pregExCtx_t prec) {
 
 	// Compute last cycle run time
 	tnow = bbque_tmr.getElapsedTimeMs();
-	DB(fprintf(stderr, FD("TP: %.4f, TN: %.4f\n"),
-				prec->cps_tstart, tnow));
 	cycle_time = tnow - prec->cps_tstart;
+	DB(fprintf(stderr, FD("TP: %.3f[ms], TN: %.3f[ms] => TC: %.3f[ms]\n"),
+				prec->cps_tstart, tnow, cycle_time));
 	delay_ms = prec->cps_expect - cycle_time;
 
 	// Enforce CPS if needed
 	if (cycle_time < prec->cps_expect) {
 		sleep_us = 1e3 * static_cast<uint32_t>(delay_ms);
-		DB(fprintf(stderr, FD("Cycle Time: %3.3f[ms], ET: %3.3f[ms], "
-						"Sleep time %u [us]\n"),
-					cycle_time, prec->cps_expect, sleep_us));
+		DB(fprintf(stderr, FD("ET: %.3f[ms], ST: %u[us]\n"),
+					prec->cps_expect, sleep_us));
 		usleep(sleep_us);
 	}
 
