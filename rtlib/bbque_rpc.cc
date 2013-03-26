@@ -2187,11 +2187,11 @@ void BbqueRPC::ForceCPS(pregExCtx_t prec) {
 	cycle_time = tnow - prec->cps_tstart;
 	DB(fprintf(stderr, FD("TP: %.3f[ms], TN: %.3f[ms] => TC: %.3f[ms]\n"),
 				prec->cps_tstart, tnow, cycle_time));
-	delay_ms = prec->cps_expect - cycle_time;
 
 	// Enforce CPS if needed
 	if (cycle_time < prec->cps_expect) {
-		sleep_us = 1e3 * static_cast<uint32_t>(delay_ms);
+		delay_ms = prec->cps_expect - cycle_time;
+		sleep_us = static_cast<uint32_t>(delay_ms * 1e3);
 		DB(fprintf(stderr, FD("ET: %.3f[ms], ST: %u[us]\n"),
 					prec->cps_expect, sleep_us));
 		usleep(sleep_us);
