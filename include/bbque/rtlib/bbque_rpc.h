@@ -348,16 +348,22 @@ protected:
 	private:
 		double alpha;
 		double value;
+		uint8_t load;
 	public:
 		EMA(int samples = 6, double firstValue = 0) :
 			alpha(2.0 / (samples +1)),
-			value(firstValue) {
+			value(firstValue),
+			load(samples) {
 		}
 		double update(double newValue) {
 			value = ((alpha * newValue) + ((1 - alpha) * value));
+			if (unlikely(load > 0))
+				--load;
 			return value;
 		}
 		double get() const {
+			if (unlikely(load > 0))
+				return 0;
 			return value;
 		}
 	};
