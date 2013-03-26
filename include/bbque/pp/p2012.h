@@ -24,7 +24,6 @@
 #include "bbque/utils/attributes_container.h"
 
 #include "p2012_lnx_dd.h"
-#include "p2012_bbq_messages.h"
 #include "p2012_pil.h"
 
 
@@ -309,21 +308,6 @@ private:
 	 */
 	uint16_t GetPeFabricQuota(float const & pe_cluster_quota);
 
-	/**
-	 * @brief Send a message to the platform
-	 *
-	 * The method sends a message to the platform, exploiting the API provided
-	 * by the driver.
-	 *
-	 * @param target The destination programmin model target (All, OpenCL, NPM)
-	 * @param type The type of message
-	 * @param data Data for the message payload
-	 *
-	 * @return OK for success, PLATFORM_COMM_ERROR if the message has not been
-	 * sent correctly
-	 */
-	ExitCode_t NotifyPlatform(BBQ_p2012_target_t target, BBQ_msg_type_t type,
-			uint32_t data);
 };
 
 }
