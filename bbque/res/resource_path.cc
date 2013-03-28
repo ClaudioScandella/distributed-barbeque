@@ -46,7 +46,7 @@ ResourcePath::ResourcePath(std::string const & r_path):
 		// Append a new resource identifier to the list
 		result = Append(r_name, r_id);
 		if (result != OK) {
-			logger->Warn("RP{%s}: Cannot append type '%d'",
+			logger->Debug("RP{%s}: Cannot append type '%d'",
 					r_path.c_str(), result);
 			return;
 		}
@@ -123,7 +123,7 @@ ResourcePath::ExitCode_t ResourcePath::Append(
 
 	// Resource type checking
 	if (r_type >= ResourceIdentifier::TYPE_COUNT) {
-		logger->Warn("Append: resource type [%d] unexpected", r_type);
+		logger->Error("Append: resource type [%d] unexpected", r_type);
 		return ERR_UNKN_TYPE;
 	}
 
@@ -133,7 +133,7 @@ ResourcePath::ExitCode_t ResourcePath::Append(
 
 	// Set the info about resource type
 	if (types_bits.test(r_type)) {
-		logger->Warn("Append: resource type [%d] already in the path", r_type);
+		logger->Debug("Append: resource type [%d] already in the path", r_type);
 		return ERR_USED_TYPE;
 	}
 	types_bits.set(r_type);
