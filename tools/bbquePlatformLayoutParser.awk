@@ -44,6 +44,9 @@ BEGIN {
 	printf "}\n"
 	print  ""
 
+	# Initialize first node with ID 1, we keep ID 0 for the special HOST node
+	NODE_COUNT=1
+
 } # BBQ Root Container
 
 /^[# -]/ {

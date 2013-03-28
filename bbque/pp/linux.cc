@@ -219,7 +219,8 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 	uint64_t limit_in_bytes = atol(prlb->memb);
 
 	// Setup resource path
-	snprintf(resourcePath+8, 11, "%hu.mem0", prlb->socket_id);
+	snprintf(resourcePath+8, 11, "%hu.mem%hu",
+			prlb->socket_id, prlb->socket_id);
 
 	logger->Debug("PLAT LNX: %s [%s: %" PRIu64 " Bytes]...",
 			refreshMode ? "Refreshing" : "Registering",
@@ -317,6 +318,16 @@ LinuxPP::ParseNodeAttributes(struct cgroup_file_info &entry,
 	if (cg_result) {
 		logger->Error("PLAT LNX: Getting CPUs attribute FAILED! "
 				"(Error: 'cpuset.cpus' not configured or not readable)");
+		pp_result = PLATFORM_NODE_PARSING_FAILED;
+		goto parsing_failed;
+	}
+
+	// Getting the value for the "cpuset.mems" attribute
+	cg_result = cgroup_get_value_string(cg_controller, BBQUE_LINUXPP_MEMN_PARAM,
+			&(prlb->mems));
+	if (cg_result) {
+		logger->Error("PLAT LNX: Getting MEMs attribute FAILED! "
+				"(Error: 'cpuset.mems' not configured or not readable)");
 		pp_result = PLATFORM_NODE_PARSING_FAILED;
 		goto parsing_failed;
 	}
@@ -525,6 +536,7 @@ LinuxPP::ExitCode_t
 LinuxPP::GetResourceMapping(AppPtr_t papp, UsagesMapPtr_t pum,
 		RViewToken_t rvt, RLinuxBindingsPtr_t prlb) {
 	br::ResourceBitset socket_ids;
+	br::ResourceBitset node_ids;
 	ResourceAccounter & ra(ResourceAccounter::GetInstance());
 
 	// Reset CPUs and MEMORY cgroup attributes value
@@ -536,24 +548,21 @@ LinuxPP::GetResourceMapping(AppPtr_t papp, UsagesMapPtr_t pum,
 	prlb->amount_memb = ra.GetUsageAmount(pum, Resource::MEMORY);
 
 	// Sockets and nodes
-	socket_ids = papp->NextAWM()->BindingSet(Resource::CPU);
-	logger->Debug("PLAT LNX: CPUs mapping = {%s} ID[%d,%d] view:%d",
-			socket_ids.ToStringCG().c_str(),
-			socket_ids.FirstSet(), socket_ids.LastSet(), rvt);
+	socket_ids = papp->NextAWM()->BindingSet(Resource::SYSTEM);
+	node_ids = papp->NextAWM()->BindingSet(Resource::CPU);
 	prlb->socket_id = log(socket_ids.ToULong()) / log(2);
-	prlb->node_id   =
-		log(papp->NextAWM()->BindingSet(Resource::SYSTEM).ToULong()) / log(2);
+	prlb->node_id   = log(node_ids.ToULong())   / log(2);
+	logger->Debug("PLAT LNX: Map resources @ Machine Socket [%d], NUMA Node [%d]",
+			prlb->socket_id, prlb->node_id);
 
 	// CPUs and MEMORY cgroup new attributes value
-	BuildSocketCGAttr(prlb->cpus, pum, socket_ids, Resource::PROC_ELEMENT, papp, rvt);
-	BuildSocketCGAttr(prlb->mems, pum, socket_ids, Resource::MEMORY, papp, rvt);
-
-	logger->Debug("PLAT LNX: Map resources @ Node [%d], Socket [%d]",
-			prlb->node_id, prlb->socket_id);
-	logger->Debug("PLAT LNX: [%s] => {cpus [%s: %" PRIu64 " %], "
-			"mnode[%d: %" PRIu64 " Bytes]}",
-			papp->StrId(), prlb->cpus, prlb->amount_cpus,
-			prlb->socket_id, prlb->amount_memb);
+	BuildSocketCGAttr(prlb->cpus, pum, node_ids, Resource::PROC_ELEMENT, papp, rvt);
+	BuildSocketCGAttr(prlb->mems, pum, node_ids, Resource::MEMORY, papp, rvt);
+	logger->Debug("PLAT LNX: [%s] => {HwThreads [%s: %" PRIu64 " %], "
+			"NUMA nodes[%d: %" PRIu64 " Bytes]}",
+			papp->StrId(),
+			prlb->cpus, prlb->amount_cpus,
+			prlb->node_id, prlb->amount_memb);
 
 	return OK;
 
@@ -717,7 +726,6 @@ LinuxPP::ExitCode_t
 LinuxPP::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 		bool excl, bool move) {
 	char quota[] = "9223372036854775807";
-	char mnode[] = "\09"; // Empty memory node (by default)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0)
 	int64_t cpus_quota = -1; // NOTE: use "-1" for no quota assignement
 #endif
@@ -743,16 +751,15 @@ LinuxPP::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 			prlb->cpus ? prlb->cpus : "");
 	// Set the assigned memory NODE (only if we have at least one CPUS)
 	if (prlb->cpus[0]) {
-		snprintf(mnode, 3, "%d", prlb->node_id);
 		cgroup_set_value_string(pcgd->pc_cpuset,
-				BBQUE_LINUXPP_MEMN_PARAM, mnode);
+				BBQUE_LINUXPP_MEMN_PARAM, prlb->mems);
 
 		logger->Debug("PLAT LNX: Setup CPUSET for [%s]: "
 			"{cpus [%c: %s], mems[%s]}",
 			pcgd->papp->StrId(),
 			excl ? 'E' : 'S',
-			prlb->cpus ? prlb->cpus : "-",
-			mnode);
+			prlb->cpus ,
+			prlb->mems);
 	} else {
 
 		logger->Debug("PLAT LNX: Setup CPUSET for [%s]: "
