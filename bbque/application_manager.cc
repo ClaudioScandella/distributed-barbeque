@@ -663,6 +663,8 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 		// Reset AWM name (default for EXCs not running)
 		curr_awm_str[0] = '-';
 		curr_awm_str[1] = 0;
+		curr_awm_cl[0] = '-';
+		curr_awm_cl[1] = 0;
 
 		// Current AWM
 		if (awm) {
