@@ -493,6 +493,8 @@ YamsSchedPol::ExitCode_t YamsSchedPol::BindResources(SchedEntityPtr_t pschd) {
 
 bool YamsSchedPol::CompareEntities(SchedEntityPtr_t & se1,
 		SchedEntityPtr_t & se2) {
+	uint8_t gg1, gg2;
+
 	// Metrics (primary sorting key)
 	if (se1->metrics < se2->metrics)
 		return false;
@@ -500,9 +502,11 @@ bool YamsSchedPol::CompareEntities(SchedEntityPtr_t & se1,
 		return true;
 
 	// Apps asserting a NAP should be considered first
-	if ((se1->papp->GetGoalGap() > 0) && (se2->papp->GetGoalGap() == 0))
+	gg1 = se1->papp->GetGoalGap();
+	gg2 = se2->papp->GetGoalGap();
+	if ((gg1 > 0) && (gg1 >= gg2))
 		return true;
-	if ((se1->papp->GetGoalGap() == 0) && (se2->papp->GetGoalGap() > 0))
+	if ((gg2 > 0) && (gg2 >= gg1))
 		return false;
 
 	// Higher value AWM first
