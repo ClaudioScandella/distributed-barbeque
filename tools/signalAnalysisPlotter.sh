@@ -261,32 +261,12 @@ echo "$MIN_VALUE $MAX_VALUE $CPS $EMA_SCALE $GGTRLD" >$RNDCFG
 }
 
 
+
 ################################################################################
-# Initialization
+# Main plotting function
 ################################################################################
 
-MIN_Y=0
-MAX_Y=80
-
-emaInit  $EMA_SCALE
-rndSetup $MIN_VALUE $MAX_VALUE $CPS 5
-
-# Start data generator
-ggVarSource &
-
-# Start data plotters
-plotData $PLOT_GG 'Goal Gap (GG) Value' 'Goal Gap' - 949x246+-5+490
-plotData $PLOT_VF 'GG Variation and EMA' 'GG Variation' 20 949x233+-5-25
-
-
-# Clean-up all background threads on exit
-cleanup() {
-	kill $(jobs -p)
-	killall feedgnuplot
-	rm $RNDCFG $PLOT_GG $PLOT_VF
-}
-trap cleanup EXIT
-
+usage() {
 echo -e "\t\t***** Signal Test Analyzer *****"
 echo
 echo "Tuning command: <min> <max> <cps> <ema> <gtr>"
@@ -297,6 +277,50 @@ echo "  ema - set the number of samples for the Exponential Moving Average (EMA)
 echo "  gtr - set the GoalGap threshold"
 echo "Use '-' to keep the previous value"
 echo
+}
+
+plot() {
+# Tuning command memento
+usage
+
+# Start data generator
+ggVarSource &
+
+# Start data plotters
+plotData $PLOT_GG 'Goal Gap (GG) Value' 'Goal Gap' - 949x246+-5+490
+plotData $PLOT_VF 'GG Variation and EMA' 'GG Variation' 20 949x233+-5-25
+
+}
+
+
+################################################################################
+# Return if script is just sourced
+################################################################################
+
+[[ $_ != $0 ]] && return 2>/dev/null
+
+################################################################################
+# Initialization
+################################################################################
+
+MIN_Y=0
+MAX_Y=80
+
+emaInit  $EMA_SCALE
+rndSetup $MIN_VALUE $MAX_VALUE $CPS 5
+
+
+
+# Clean-up all background threads on exit
+cleanup() {
+	kill $(jobs -p)
+	killall feedgnuplot
+	rm $RNDCFG $PLOT_GG $PLOT_VF
+}
+trap cleanup EXIT
+
+# Main function
+plot
 
 # This is required to properly capture the trap previously defined
 while [ 1 ]; do
