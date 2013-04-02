@@ -147,19 +147,21 @@ $EMA
 # $1 - MIN value
 # $2 - MAX value
 # $3 - CPS value
+# $4 - RRT value
 rndSetup() {
 MIN=$1
 MAX=$(rpn "$2 $1 -")
 SLEEP=$(calc "1 / $3")
+GGTRLD=$4
 }
 
 rndUpdate() {
-rndSetup $1 $2 $3
+rndSetup $1 $2 $3 $5
 emaInit $4
 }
 
-CONF_FIFO=$(mktemp -u /tmp/bbqueSignalAlalyzer_XXXXXX)
-mkfifo $CONF_FIFO
+RNDCFG=$(mktemp -u /tmp/bbqueSignalAlalyzer_rndcfg_XXXXXX)
+mkfifo $RNDCFG
 
 rndGenerator() {
 while true; do
@@ -186,11 +188,12 @@ done
 # Command line processing
 ################################################################################
 tuneGenerator() {
-[ $1 != '-' ] && [ $1 -lt $MAX_VALUE ] && MIN_VALUE=$1
-[ $2 != '-' ] && [ $2 -gt $MIN_VALUE ] && MAX_VALUE=$2
+[ $1 != '-' ] && [ $1 -lt $MAX_VALUE -o $1 -lt $2 ] && MIN_VALUE=$1
+[ $2 != '-' ] && [ $2 -gt $MIN_VALUE -o $2 -gt $1 ] && MAX_VALUE=$2
 [ $3 != '-' ] && CPS=$3
 [ $4 != '-' ] && EMA_SCALE=$4
-echo "$MIN_VALUE $MAX_VALUE $CPS $EMA_SCALE" >$CONF_FIFO
+[ $5 != '-' ] && GGTRLD=$5
+echo "$MIN_VALUE $MAX_VALUE $CPS $EMA_SCALE $GGTRLD" >$RNDCFG
 }
 
 
@@ -202,7 +205,7 @@ MIN_Y=0
 MAX_Y=80
 
 emaInit  $EMA_SCALE
-rndSetup $MIN_VALUE $MAX_VALUE $CPS
+rndSetup $MIN_VALUE $MAX_VALUE $CPS 5
 
 #rndGenerator
 rndGenerator | \
@@ -221,22 +224,24 @@ rndGenerator | \
 cleanup() {
 	kill $(jobs -p)
 	killall feedgnuplot
-	rm $CONF_FIFO
+	rm $RNDCFG $PLOT_GG $PLOT_VF
 }
 trap cleanup EXIT
 
 echo -e "\t\t***** Signal Test Analyzer *****"
 echo
-echo "Tuning parameters:"
-echo "min <value> - set the minimum value for the random generator"
-echo "max <value> - set the maximum value for the random generator"
-echo "cps <value> - set the number of samples per seconds (CPS)"
-echo "ema <value> - set the number of samples for the Exponential Moving Average (EMA)"
-echo
+echo "Tuning command: <min> <max> <cps> <ema> <gtr>"
+echo "  min - set the minimum value for the random generator"
+echo "  max - set the maximum value for the random generator"
+echo "  cps - set the number of samples per seconds (CPS)"
+echo "  ema - set the number of samples for the Exponential Moving Average (EMA)"
+echo "  gtr - set the GoalGap threshold"
+echo "Use '-' to keep the previous value"
 echo
 
 # This is required to properly capture the trap previously defined
 while [ 1 ]; do
 	read -p "$> " CMD
-	tuneGenerator $CMD
+	[ "x$CMD" != "x" ] && tuneGenerator $CMD
 done
+
