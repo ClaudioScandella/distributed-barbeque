@@ -22,6 +22,11 @@ calc() {
 echo "scale=3; $1" | bc
 }
 
+round() {
+echo "scale=0; $1 / 1" | bc
+}
+
+
 echoerr() {
 echo -e "$@" 1>&2
 }
@@ -30,6 +35,86 @@ START=$(echo | ts %.s)
 getTime() {
 NOW=$(echo | ts %.s)
 TIME=$(calc "$NOW - $START")
+################################################################################
+# Distribution Generators
+################################################################################
+
+# Generate a uniform distributed number with defined
+# $1 - minimum
+# $2 - maximum
+uniform() {
+RN=$(random)
+calc "(($2 - $1) * $RN / 65536) + $1"
+}
+
+# Test the uniform distribution with the specified:
+# $1 - min
+# $2 - max
+# $3 - number of samples
+testUniform() {
+unset samples
+LOWER_BOUND=$(calc "")
+for i in `seq 1 $3`; do
+	SAMPLE=$(uniform $1 $2)
+	INDEX=$(round "1000 * $SAMPLE")
+	let samples[$INDEX]++
+done
+for o in ${!samples[*]}; do
+	SAMPLE=$(calc "$o / 1000")
+	printf "%.3f %5d\n" $SAMPLE ${samples[o]}
+done
+}
+
+testUniformPlot() {
+testUniform $1 $2 $3 | \
+	feedgnuplot \
+	--nolines --points \
+	--domain --nodataid \
+	--xlabel "Samples" \
+	--ylabel "Occurrences" \
+	--title "Uniform Distribution Samples"
+}
+
+# Get a normally distributed number with defined
+# $1 - mean
+# $2 - stddev
+# Ref: http://www.protonfish.com/random.shtml
+normal() {
+R1=$(uniform -1 1)
+R2=$(uniform -1 1)
+R3=$(uniform -1 1)
+N11=$(calc "3 + (($R1 * 2) - 1) + (($R2 * 2) - 1) + (($R3 * 2) - 1)")
+calc "$1 + ($N11 * $2)"
+}
+
+
+# Test the normal distribution with the specified:
+# $1 - mean
+# $2 - stddev
+# $3 - number of samples
+testNormal() {
+unset samples
+LOWER_BOUND=$(calc "")
+for i in `seq 1 $3`; do
+	SAMPLE=$(normal $1 $2)
+	INDEX=$(round "1000 * $SAMPLE")
+	let samples[$INDEX]++
+done
+for o in ${!samples[*]}; do
+	SAMPLE=$(calc "$o / 1000")
+	stdbuf -oL printf "%.3f %5d\n" $SAMPLE ${samples[o]}
+done
+}
+
+testNormalPlot() {
+testNormal $1 $2 $3 | \
+	feedgnuplot \
+	--nolines --points \
+	--domain --nodataid \
+	--stream \
+	--xlabel "Samples" \
+	--ylabel "Occurrences" \
+	--title "Normal Distribution Samples"
 }
 
 ################################################################################
