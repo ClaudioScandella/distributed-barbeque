@@ -34,7 +34,10 @@ echo -e "$@" 1>&2
 START=$(echo | ts %.s)
 getTime() {
 NOW=$(echo | ts %.s)
-TIME=$(calc "$NOW - $START")
+calc "$NOW - $START"
+}
+
+
 ################################################################################
 # Distribution Generators
 ################################################################################
@@ -163,25 +166,86 @@ emaInit $4
 RNDCFG=$(mktemp -u /tmp/bbqueSignalAlalyzer_rndcfg_XXXXXX)
 mkfifo $RNDCFG
 
-rndGenerator() {
+################################################################################
+# Custom Samplers for GoalGap Variance
+################################################################################
+
+PGG=0
+
+# Compute GG variation
+# $1 - the previous GG value
+# $2 - the current GG value
+# return: (Variation, PreviousGG)
+ggVarGenerator() {
+NGG=$(calc "$MIN + (($MAX * $2) / 65536)")
+VAR=$(calc "v=$1-$2; if (v<0) -v else v")
+echo "$VAR $2"
+}
+
+################################################################################
+# A Samples Generator
+################################################################################
+
+
+PLOT_GG=$(mktemp -u /tmp/bbqueSignalAlalyzer_plot_XXXXXX)
+mkfifo $PLOT_GG
+PLOT_VF=$(mktemp -u /tmp/bbqueSignalAlalyzer_plot_XXXXXX)
+mkfifo $PLOT_VF
+
+# A configurable source generator:
+# $1 - sampler used to generate numbers
+# $2 - samples name
+dataSource() {
 while true; do
-	# Get a new random number
-	RN=$(random)
-	getTime
 
-	# Compute new value
-	VALUE=$(rpn "$MAX $RN * 65536 / $MIN +")
+    # Compute a new random value
+    RN=$(random)
+    V1=$(rpn "$MAX $RN * 65536 / $MIN +")
 
-	# Update EMA
-	emaUpdate $VALUE
+    RESULT=($($1 $PGG $V1))
+    GGVAR=${RESULT[0]}
+    PGG=${RESULT[1]}
 
-	# Dump metrics
-	echo  "$TIME Signal $VALUE EMA $EMA"
+    # Get current time
+    TIME=$(getTime)
 
-	# Wait for next sample
-	#sleep $SLEEP;
-	read -t $SLEEP <>$CONF_FIFO SETTINGS && rndUpdate $SETTINGS
+    # Update EMA
+    emaUpdate $GGVAR
+
+    # Dump metrics
+    printf "%9.6f GoalGap %7.3f\n" $TIME $V1 >$PLOT_GG
+    printf "%9.6f GGTrld %7.3f $2 %7.3f EMA %7.3f\n" $TIME $GGTRLD $GGVAR $EMA >$PLOT_VF
+
+    # Wait for next sample
+    #sleep $SLEEP;
+    read -t $SLEEP <>$RNDCFG SETTINGS && rndUpdate $SETTINGS
+
 done
+}
+
+ggVarSource() {
+dataSource ggVarGenerator "GoalGapVariation"
+}
+
+# A configurable plotting function, where:
+# $1 - data source
+# $2 - Title
+# $3 - Y axis label
+# $4 - Y max (or - for autoscale)
+# $5 - Geometry
+plotData() {
+[ $4 != "-" ] && YMAX="--ymax=$4"
+tail -n0 -f "$1" | \
+	feedgnuplot \
+	--autolegend \
+	--lines --points \
+	--domain --dataid \
+	--xlabel "Time [s]" \
+	--ylabel "$3" $YMAX \
+	--title  "$2" \
+	--stream --xlen 60 \
+	--extracmd "$GPOPTS" \
+	--geometry "$5" &
 }
 
 ################################################################################
@@ -207,18 +271,13 @@ MAX_Y=80
 emaInit  $EMA_SCALE
 rndSetup $MIN_VALUE $MAX_VALUE $CPS 5
 
-#rndGenerator
-rndGenerator | \
-	feedgnuplot \
-	--autolegend \
-	--lines --points \
-	--domain --dataid \
-	--xlabel "Samples" \
-	--ylabel "Signal" \
-	--title "Test Signals Analysis" \
-	--stream --xlen 60 \
-	--extracmd "$GPOPTS" \
-	--geometry 949x233+-5-25 &
+# Start data generator
+ggVarSource &
+
+# Start data plotters
+plotData $PLOT_GG 'Goal Gap (GG) Value' 'Goal Gap' - 949x246+-5+490
+plotData $PLOT_VF 'GG Variation and EMA' 'GG Variation' 20 949x233+-5-25
+
 
 # Clean-up all background threads on exit
 cleanup() {
