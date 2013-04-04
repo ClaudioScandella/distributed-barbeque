@@ -161,6 +161,9 @@ S_UTME=500   # The [ms] from a switchUp reconfiguration
 S_DTME=10    # The [ms] from a switchDown reconfiguration
 S_PAWM=1     # Previous AWM
 S_CAWM=1     # Current  AWM
+S_SM_CAPP=0  # Application control: 0 stable, 1 unstable
+S_SM_CLIB=0  # RTLib control: 0 disabled, 1 enabled
+S_SM_CBBQ=0  # BBQ control: 0 disabled, 1 enabled
 # Model Metrics
 M_GGVAR=0    # GoalGap Variation
 M_GGEMA=0    # GoalGap EMA
@@ -175,6 +178,12 @@ M_RRTRD=5    # Reconfiguration Rate Threshold
 S_CPS_SLEEP=$(calc "1 / $S_CPS")
 S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
 S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
+
+# Simulation mode string representation
+S_SM_APP[0]="Stable"
+S_SM_APP[1]="Unstable"
+S_SM_CTR[0]="Disabled"
+S_SM_CTR[1]="Enabled"
 
 ################################################################################
 # Working Mode Management
@@ -200,8 +209,14 @@ CURR_GG=40
 cfgReport() {
 echo
 echo "*** Current configuration"
-echo "GoalGap($S_RND_GG_MIN,$S_RND_GG_MAX), EMA Samples: $S_GG_EMA_SMPLS"
-echo "CPS: $S_CPS"
+echo "GoalGap:"
+echo "  min............. $S_RND_GG_MIN"
+echo "  max............. $S_RND_GG_MAX"
+echo "  ema_samples..... $S_GG_EMA_SMPLS"
+echo "CPS............... $S_CPS"
+echo "App............... ${S_SM_APP[$S_SM_CAPP]}"
+echo "RTLib control..... ${S_SM_CTR[$S_SM_CLIB]}"
+echo "BBQ control....... ${S_SM_CTR[$S_SM_CBBQ]}"
 echo
 }
 
@@ -220,6 +235,12 @@ S_GG_EMA_ALPHA=$(emaInit  $4)
 1) # CPS Configuration
 S_CPS=$2
 S_CPS_SLEEP=$(calc "1 / $2")
+;;
+
+2) # Simulation Mode
+S_SM_CAPP=$2
+S_SM_CLIB=$3
+S_SM_CBBQ=$4
 ;;
 
 esac
@@ -325,7 +346,6 @@ updateRR
 
 }
 
-
 ################################################################################
 # A Samples Generator
 ################################################################################
@@ -403,6 +423,13 @@ echo "0 $S_RND_GG_MIN $S_RND_GG_MAX $S_GG_EMA_SMPLS" >$CFGFIFO
 echo "1 $S_CPS" >$CFGFIFO
 ;;
 
+"mode") # Model Mode
+[ $2 != '-' ] && S_SM_CAPP=$2
+[ $3 != '-' ] && S_SM_CLIB=$3
+[ $4 != '-' ] && S_SM_CBBQ=$4
+echo "2 $S_SM_CAPP $S_SM_CLIB $S_SM_CBBQ" >$CFGFIFO
+;;
+
 esac
 
 }
@@ -417,11 +444,16 @@ echo -e "\t\t***** Signal Test Analyzer *****"
 echo
 echo "Tuning commands:"
 echo " gg <min> <max> <ema>"
-echo "    min - set the minimum value for the GG random generator"
-echo "    max - set the maximum value for the GG random generator"
-echo "    ema - set the number of samples for the GG Exponential Moving Average (EMA)"
+echo "    min  - set the minimum value for the GG random generator"
+echo "    max  - set the maximum value for the GG random generator"
+echo "    ema  - set the number of samples for the GG Exponential Moving Average (EMA)"
 echo " cps <cps>"
-echo "    cps - set the number of samples per seconds (CPS)"
+echo "    cps  - set the number of samples per seconds (CPS)"
+echo " mode <app> <lib> <bbq>"
+echo "    app - Application control mode - 0: stable,   1: unstable"
+echo "    lib - RTLib control mode       - 0: disabled, 1: enabled"
+echo "    bbq - BBQ control mode         - 0: disabled, 1: enabled"
+echo
 echo "Use '-' to keep the previous value"
 echo
 }
