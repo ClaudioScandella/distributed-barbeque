@@ -148,7 +148,10 @@ S_GG_EMA_SMPLS=60  # GG EMA Samples number
 S_GG_EMA_ALPHA=0   # GG EMA Alpha value
 S_PTME=0     # Previous Cycle Time
 S_CTME=0     # Current Cycle Time
-S_CAWM=0     # Current AWM
+S_RTME=0     # Last Reconfiguration request Time
+S_UTME=500   # The [ms] from a switchUp reconfiguration
+S_DTME=10    # The [ms] from a switchDown reconfiguration
+S_CAWM=1     # Current AWM
 # Model Metrics
 M_GGVAR=0    # GoalGap Variation
 M_GGEMA=0    # GoalGap EMA
@@ -215,7 +218,7 @@ mkfifo $CFGFIFO
 # Compute GG variation
 # return: (CurrentGG, VariationGG)
 ggVarGenerator() {
-RND=$(random)
+[ -n "$1" ] && RND=$1 || RND=$(random)
 M_GGCUR=$(calc "$S_RND_GG_MIN + (($S_RND_GG_DLT * $RND) / 65536)")
 M_GGVAR=$(calc "v=$M_GGCUR-$M_GGPRV; if (v<0) -v else v")
 M_GGPRV=$M_GGCUR
@@ -225,15 +228,59 @@ M_GGPRV=$M_GGCUR
 # AWM Assignement Model
 ################################################################################
 
+updateReconfTime() {
+REC=$(calc "if ($S_RTME > 0) 0 else 1")
+[ $REC -eq 0 ] && return
+
+DTIME=$S_UTME
+[ $S_CAWM -eq 3 ] && DTIME=$S_DTME
+
+S_RTME=$(calc "$S_CTME + ($DTIME / 1000)")
+#printf "%9.6f Reconfigure scheduled @ $S_RTME\n" $S_CTME
+}
+
+# Check if the current AWM should be switched DOWN
+downAWM() {
+# => compute GG
+ggVarGenerator
+#  set reconfiguration time
+updateReconfTime
+}
+
+# Check if the current AWM should be switched UP
+upAWM() {
+# => GG = 0;
+ggVarGenerator 0
+# set reconfiguration time
+updateReconfTime
+}
+
+# Switch the current AWM, if required
+# This function simulate the BBQ policy
+switchAWM() {
+SWITCH_TIME=$(calc "if(($S_RTME>0) && ($S_RTME<=$S_CTME)) 1 else 0")
+[ $SWITCH_TIME -eq 0 ] && return
+
+NAWM=1
+[ $S_CAWM -eq 1 ] && NAWM=3
+
+#printf "%9.6f Switch AWM: $S_CAWM => $NAWM\n" $S_CTME
+S_CAWM=$NAWM
+S_RTME=0
+}
+
+
 # Update the current AWM model, where:
 updateAWM() {
 
-    #echo "Old AWM Status: $S_PTME, $S_CTME, $S_CAWM; Metrics: $M_GGEMA, $M_GGTRD, $M_RREMA, $M_RRTRD"
+# Check if current AWM must be changed
+switchAWM
 
-    # Compute new GG Variation
-    ggVarGenerator
+# Current AWM = High
+[ $S_CAWM -eq 3 ] && downAWM
 
-    #echo "New AWM Status: $S_PTME, $S_CTME, $S_CAWM; Metrics: $M_GGEMA, $M_GGTRD, $M_RREMA, $M_RRTRD"
+# Current AWM = Low
+[ $S_CAWM -eq 1 ] && upAWM
 
 }
 
