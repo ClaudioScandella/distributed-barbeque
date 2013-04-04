@@ -392,7 +392,8 @@ tail -n0 -f "$1" | \
 	--lines --points \
 	--domain --dataid \
 	--xlabel "Time [s]" \
-	--ylabel "$3" $YMAX \
+	--ylabel "$3" \
+	--ymin=0 $YMAX \
 	--title  "$2" \
 	--stream --xlen 90 \
 	--extracmd "$GPOPTS" \
@@ -462,10 +463,10 @@ plot() {
 usage
 cfgReport
 # Start data plotters
-plotData $PLOT_AWM 'Current AWM (GG) value' 'AWM Value' 4 949x233+-5+-8
-plotData $PLOT_GG 'Goal Gap (GG) Value' 'Goal Gap' - 949x233+-5+255
+plotData $PLOT_AWM 'Current AWM (GG) value' 'AWM Value' 6 949x233+-5+-8
+plotData $PLOT_GG 'Goal Gap (GG) Value' 'Goal Gap' 120 949x233+-5+255
 plotData $PLOT_VF 'Goal Gap Filter' 'GG Variation' 20 949x233+-5+517
-plotData $PLOT_RR 'Reconfiguration Rate Filter' 'RR Variation' 20 949x233+-5-25
+plotData $PLOT_RR 'Reconfiguration Rate Filter' 'RR Variation' 40 949x233+-5-25
 # Start data generator
 dataSource &
 }
