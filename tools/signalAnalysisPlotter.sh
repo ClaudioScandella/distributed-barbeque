@@ -270,48 +270,6 @@ M_GGPRV=$M_GGCUR
 # AWM Assignement Model
 ################################################################################
 
-updateReconfTime() {
-REC=$(calc "if ($S_RTME > 0) 0 else 1")
-[ $REC -eq 0 ] && return
-
-DTIME=$S_UTME
-[ $S_CAWM -eq 3 ] && DTIME=$S_DTME
-
-S_RTME=$(calc "$S_CTME + ($DTIME / 1000)")
-#printf "%9.6f Reconfigure scheduled @ $S_RTME\n" $S_CTME
-}
-
-# Check if the current AWM should be switched DOWN
-downAWM() {
-# => compute GG
-ggVarGenerator
-#  set reconfiguration time
-updateReconfTime
-}
-
-# Check if the current AWM should be switched UP
-upAWM() {
-# => GG = 0;
-ggVarGenerator 0
-# set reconfiguration time
-updateReconfTime
-}
-
-# Update the Run-Time Costs
-updateRR() {
-RT=$(normal "$S_RC_RUN_TIME" "$S_RC_RUN_STDV")
-MT=$(normal "$S_RC_MON_TIME" "$S_RC_MON_STDV")
-if [ $S_PAWM != $S_CAWM ]; then
-	CT=$(normal "$S_RC_RCF_TIME" "$S_RC_RCF_STDV")
-else
-	CT=0
-fi
-M_RRCUR=$(calc "(($MT + $CT)/1000) / ($RT/1000)")
-
-# Update RR EMA
-M_RREMA=$(emaUpdate $S_RR_EMA_ALPHA $M_RREMA $M_RRCUR)
-}
-
 # Switch the current AWM, if required
 # This function simulate the BBQ policy
 switchAWM() {
@@ -327,21 +285,58 @@ S_CAWM=$NAWM
 S_RTME=0
 }
 
+# Update the GoalGap metrics
+updateGG() {
+if [ $S_CAWM -eq 1 ]; then
+	# AWM Low => compute GG
+	ggVarGenerator
+else
+	# AWM High => GG = 0;
+	ggVarGenerator 0
+fi
+M_GGEMA=$(emaUpdate $S_GG_EMA_ALPHA $M_GGEMA $M_GGVAR)
+}
+
+# Update the time for an AWM reconfiguration
+setReconfigurationTime() {
+REC=$(calc "if ($S_RTME > 0) 0 else 1")
+[ $REC -eq 0 ] && return
+
+DTIME=$S_UTME
+[ $S_CAWM -eq 3 ] && DTIME=$S_DTME
+
+S_RTME=$(calc "$S_CTME + ($DTIME / 1000)")
+#printf "%9.6f Reconfigure scheduled @ $S_RTME\n" $S_CTME
+}
+
+# Update the Reconfiguration Rate metrics
+updateRR() {
+RT=$(normal "$S_RC_RUN_TIME" "$S_RC_RUN_STDV")
+MT=$(normal "$S_RC_MON_TIME" "$S_RC_MON_STDV")
+if [ $S_PAWM != $S_CAWM ]; then
+	CT=$(normal "$S_RC_RCF_TIME" "$S_RC_RCF_STDV")
+else
+	CT=0
+fi
+M_RRCUR=$(calc "(($MT + $CT)/1000) / ($RT/1000)")
+
+# Update RR EMA
+M_RREMA=$(emaUpdate $S_RR_EMA_ALPHA $M_RREMA $M_RRCUR)
+}
+
 # Update the current AWM model, where:
-updateAWM() {
+simulationCycle() {
 
 # Check if current AWM must be changed
 switchAWM
 
-# Current AWM = High
-[ $S_CAWM -eq 3 ] && downAWM
+#  set time of next reconfiguration
+setReconfigurationTime
 
-# Current AWM = Low
-[ $S_CAWM -eq 1 ] && upAWM
+# Update the GG model
+updateGG
 
-# Update EMA
-M_GGEMA=$(emaUpdate $S_GG_EMA_ALPHA $M_GGEMA $M_GGVAR)
-
+# Compute the RR metrics
 updateRR
 
 }
@@ -367,8 +362,8 @@ while true; do
     # Get current time
     S_CTME=$(getTime)
 
-    # Update AWM Model
-    updateAWM
+    # Do a new simulation cycle
+    simulationCycle
 
     # Dump metrics
     printf "%9.6f CurrAWM %2d\n" $S_CTME $S_CAWM >$PLOT_AWM
