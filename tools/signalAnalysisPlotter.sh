@@ -309,6 +309,9 @@ switchAWM
 # Current AWM = Low
 [ $S_CAWM -eq 1 ] && upAWM
 
+# Update EMA
+M_GGEMA=$(emaUpdate $S_GG_EMA_ALPHA $M_GGEMA $M_GGVAR)
+
 updateRR
 
 }
@@ -337,9 +340,6 @@ while true; do
 
     # Update AWM Model
     updateAWM
-
-    # Update EMA
-    M_GGEMA=$(emaUpdate $S_GG_EMA_ALPHA $M_GGEMA $M_GGVAR)
 
     # Dump metrics
     printf "%9.6f CurrAWM %2d\n" $S_CTME $S_CAWM >$PLOT_AWM
