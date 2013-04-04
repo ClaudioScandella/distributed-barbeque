@@ -198,9 +198,11 @@ CURR_GG=40
 
 # Report current configuration
 cfgReport() {
+echo
 echo "*** Current configuration"
 echo "GoalGap($S_RND_GG_MIN,$S_RND_GG_MAX), EMA Samples: $S_GG_EMA_SMPLS"
 echo "CPS: $S_CPS"
+echo
 }
 
 # Configure the random numbers generator
@@ -296,7 +298,6 @@ S_CAWM=$NAWM
 S_RTME=0
 }
 
-
 # Update the current AWM model, where:
 updateAWM() {
 
@@ -370,7 +371,7 @@ tail -n0 -f "$1" | \
 	--xlabel "Time [s]" \
 	--ylabel "$3" $YMAX \
 	--title  "$2" \
-	--stream --xlen 60 \
+	--stream --xlen 90 \
 	--extracmd "$GPOPTS" \
 	--geometry "$5" &
 }
@@ -445,5 +446,6 @@ plot
 while [ 1 ]; do
 	read -p "$> " CMD
 	[ "x$CMD" != "x" ] && tuneGenerator $CMD
+	sleep .2
 done
 
