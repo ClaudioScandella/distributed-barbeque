@@ -193,7 +193,7 @@ CURR_GG=40
 
 
 ################################################################################
-# Random Generator
+# Data Generator Configuration
 ################################################################################
 
 # Report current configuration
@@ -206,19 +206,27 @@ echo
 }
 
 # Configure the random numbers generator
-# $1 - GG MIN value
-# $2 - GG MAX value
-# $3 - GG EMA Samples
-# $3 - CPS value
 cfgUpdate() {
-S_RND_GG_MIN=$1
-S_RND_GG_MAX=$2
-S_RND_GG_DLT=$(calc "$2 - $1")
-S_GG_EMA_SMPLS=$3
-S_GG_EMA_ALPHA=$(emaInit  $3)
-S_CPS=$4
-S_CPS_SLEEP=$(calc "1 / $4")
+case $1 in
+
+0) # Goal Gap Configuration
+S_RND_GG_MIN=$2
+S_RND_GG_MAX=$3
+S_RND_GG_DLT=$(calc "$3 - $2")
+S_GG_EMA_SMPLS=$4
+S_GG_EMA_ALPHA=$(emaInit  $4)
+;;
+
+1) # CPS Configuration
+S_CPS=$2
+S_CPS_SLEEP=$(calc "1 / $2")
+;;
+
+esac
+
+# Dump current configuration
 cfgReport
+
 }
 
 CFGFIFO=$(mktemp -u /tmp/bbqueSignalAlalyzer_rndcfg_XXXXXX)
@@ -381,11 +389,22 @@ tail -n0 -f "$1" | \
 ################################################################################
 
 tuneGenerator() {
-[ $1 != '-' ] && [ $1 -lt $S_RND_GG_MAX -o $1 -lt $2 ] && S_RND_GG_MIN=$1
-[ $2 != '-' ] && [ $2 -gt $S_RND_GG_MIN -o $2 -gt $1 ] && S_RND_GG_MAX=$2
-[ $3 != '-' ] && S_GG_EMA_SMPLS=$3
-[ $4 != '-' ] && S_CPS=$4
-echo "$S_RND_GG_MIN $S_RND_GG_MAX $S_GG_EMA_SMPLS $S_CPS" >$CFGFIFO
+case $1 in
+
+"gg") # Goal Gap Configuration
+[ $2 != '-' ] && [ $2 -lt $S_RND_GG_MAX -o $2 -lt $3 ] && S_RND_GG_MIN=$2
+[ $3 != '-' ] && [ $3 -gt $S_RND_GG_MIN -o $3 -gt $2 ] && S_RND_GG_MAX=$3
+[ $4 != '-' ] && S_GG_EMA_SMPLS=$4
+echo "0 $S_RND_GG_MIN $S_RND_GG_MAX $S_GG_EMA_SMPLS" >$CFGFIFO
+;;
+
+"cps") # CPS Configuration
+[ $2 != '-' ] && S_CPS=$2
+echo "1 $S_CPS" >$CFGFIFO
+;;
+
+esac
+
 }
 
 
@@ -396,11 +415,13 @@ echo "$S_RND_GG_MIN $S_RND_GG_MAX $S_GG_EMA_SMPLS $S_CPS" >$CFGFIFO
 usage() {
 echo -e "\t\t***** Signal Test Analyzer *****"
 echo
-echo "Tuning command: <gg_min> <gg_max> <gg_ema> <cps>"
-echo "  gg_min - set the minimum value for the GG random generator"
-echo "  gg_max - set the maximum value for the GG random generator"
-echo "  gg_ema - set the number of samples for the GG Exponential Moving Average (EMA)"
-echo "  cps    - set the number of samples per seconds (CPS)"
+echo "Tuning commands:"
+echo " gg <min> <max> <ema>"
+echo "    min - set the minimum value for the GG random generator"
+echo "    max - set the maximum value for the GG random generator"
+echo "    ema - set the number of samples for the GG Exponential Moving Average (EMA)"
+echo " cps <cps>"
+echo "    cps - set the number of samples per seconds (CPS)"
 echo "Use '-' to keep the previous value"
 echo
 }
