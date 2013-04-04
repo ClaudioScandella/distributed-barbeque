@@ -425,6 +425,10 @@ echo "1 $S_CPS" >$CFGFIFO
 echo "2 $S_SM_CAPP $S_SM_CLIB $S_SM_CBBQ" >$CFGFIFO
 ;;
 
+*) # Unsopported command
+echo "Unsupported command: $1"
+;;
+
 esac
 
 }
