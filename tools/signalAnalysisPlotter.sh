@@ -273,6 +273,7 @@ M_GGPRV=$M_GGCUR
 # Switch the current AWM, if required
 # This function simulate the BBQ policy
 switchAWM() {
+S_PAWM=$S_CAWM
 SWITCH_TIME=$(calc "if(($S_RTME>0) && ($S_RTME<=$S_CTME)) 1 else 0")
 [ $SWITCH_TIME -eq 0 ] && return
 
@@ -280,7 +281,6 @@ NAWM=1
 [ $S_CAWM -eq 1 ] && NAWM=3
 
 #printf "%9.6f Switch AWM: $S_CAWM => $NAWM\n" $S_CTME
-S_PAWM=$S_CAWM
 S_CAWM=$NAWM
 S_RTME=0
 }
