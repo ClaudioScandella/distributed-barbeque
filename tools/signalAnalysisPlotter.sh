@@ -146,24 +146,35 @@ S_RND_GG_MAX=60    # GG Random Generator Maximum
 S_RND_GG_DLT=40    # GG Random Generator Delta, i.e. Min-Max
 S_GG_EMA_SMPLS=60  # GG EMA Samples number
 S_GG_EMA_ALPHA=0   # GG EMA Alpha value
+S_RC_RUN_TIME=20   # The [ms] AVERAGE for onRun
+S_RC_RUN_STDV=2    # The [ms] STDDEV  for onRun
+S_RC_MON_TIME=5    # The [ms] AVERAGE for onMonitor
+S_RC_MON_STDV=1    # The [ms] STDDEV  for onMonitor
+S_RC_RCF_TIME=300  # The [ms] AVERAGE for onConfigure
+S_RC_RCF_STDV=50   # The [ms] STDDEV  for onConfigure
+S_RR_EMA_SMPLS=60  # RR EMA Samples number
+S_RR_EMA_ALPHA=0   # RR EMA Alpha value
 S_PTME=0     # Previous Cycle Time
 S_CTME=0     # Current Cycle Time
 S_RTME=0     # Last Reconfiguration request Time
 S_UTME=500   # The [ms] from a switchUp reconfiguration
 S_DTME=10    # The [ms] from a switchDown reconfiguration
-S_CAWM=1     # Current AWM
+S_PAWM=1     # Previous AWM
+S_CAWM=1     # Current  AWM
 # Model Metrics
 M_GGVAR=0    # GoalGap Variation
 M_GGEMA=0    # GoalGap EMA
 M_GGTRD=5    # GoalGap Threshold
 M_GGPRV=0    # GoalGap Previous
 M_GGCUR=3    # GoalGap Previous
+M_RRCUR=0    # Reconfiguration Rate Current
 M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold
 
 # Model initialization
 S_CPS_SLEEP=$(calc "1 / $S_CPS")
 S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
+S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
 
 ################################################################################
 # Working Mode Management
@@ -255,6 +266,21 @@ ggVarGenerator 0
 updateReconfTime
 }
 
+# Update the Run-Time Costs
+updateRR() {
+RT=$(normal "$S_RC_RUN_TIME" "$S_RC_RUN_STDV")
+MT=$(normal "$S_RC_MON_TIME" "$S_RC_MON_STDV")
+if [ $S_PAWM != $S_CAWM ]; then
+	CT=$(normal "$S_RC_RCF_TIME" "$S_RC_RCF_STDV")
+else
+	CT=0
+fi
+M_RRCUR=$(calc "(($MT + $CT)/1000) / ($RT/1000)")
+
+# Update RR EMA
+M_RREMA=$(emaUpdate $S_RR_EMA_ALPHA $M_RREMA $M_RRCUR)
+}
+
 # Switch the current AWM, if required
 # This function simulate the BBQ policy
 switchAWM() {
@@ -265,6 +291,7 @@ NAWM=1
 [ $S_CAWM -eq 1 ] && NAWM=3
 
 #printf "%9.6f Switch AWM: $S_CAWM => $NAWM\n" $S_CTME
+S_PAWM=$S_CAWM
 S_CAWM=$NAWM
 S_RTME=0
 }
@@ -282,6 +309,8 @@ switchAWM
 # Current AWM = Low
 [ $S_CAWM -eq 1 ] && upAWM
 
+updateRR
+
 }
 
 
@@ -296,6 +325,8 @@ PLOT_GG=$(mktemp -u /tmp/bbqueSignalAlalyzer_plotGG_XXXXXX)
 mkfifo $PLOT_GG
 PLOT_VF=$(mktemp -u /tmp/bbqueSignalAlalyzer_plotGGFilter_XXXXXX)
 mkfifo $PLOT_VF
+PLOT_RR=$(mktemp -u /tmp/bbqueSignalAlalyzer_plotRRFilter_XXXXXX)
+mkfifo $PLOT_RR
 
 # The data generator
 dataSource() {
@@ -314,6 +345,7 @@ while true; do
     printf "%9.6f CurrAWM %2d\n" $S_CTME $S_CAWM >$PLOT_AWM
     printf "%9.6f GoalGap %7.3f\n" $S_CTME $M_GGCUR >$PLOT_GG
     printf "%9.6f GG_Thr %7.3f GG_Var %7.3f GG_EMA %7.3f\n" $S_CTME $M_GGTRD $M_GGVAR $M_GGEMA >$PLOT_VF
+    printf "%9.6f RR_Thr %7.3f RR_Cur %7.3f RR_EMA %7.3f\n" $S_CTME $M_RRTRD $M_RRCUR $M_RREMA >$PLOT_RR
 
     # Wait for next sample, or update the configuration
     read -t $S_CPS_SLEEP <>$CFGFIFO SETTINGS && cfgUpdate $SETTINGS
@@ -377,9 +409,10 @@ plot() {
 usage
 cfgReport
 # Start data plotters
-plotData $PLOT_AWM 'Current AWM (GG) value' 'AWM Value' 4 949x259+-5+193
-plotData $PLOT_GG 'Goal Gap (GG) Value' 'Goal Gap' - 949x246+-5+490
-plotData $PLOT_VF 'GG Variation and EMA' 'GG Variation' 20 949x233+-5-25
+plotData $PLOT_AWM 'Current AWM (GG) value' 'AWM Value' 4 949x233+-5+-8
+plotData $PLOT_GG 'Goal Gap (GG) Value' 'Goal Gap' - 949x233+-5+255
+plotData $PLOT_VF 'Goal Gap Filter' 'GG Variation' 20 949x233+-5+517
+plotData $PLOT_RR 'Reconfiguration Rate Filter' 'RR Variation' 20 949x233+-5-25
 # Start data generator
 dataSource &
 }
@@ -396,7 +429,7 @@ dataSource &
 cleanup() {
 	kill $(jobs -p)
 	killall feedgnuplot
-	rm $CFGFIFO $PLOT_GG $PLOT_VF
+	rm $CFGFIFO $PLOT_GG $PLOT_VF $PLOT_RR
 }
 trap cleanup EXIT
 
