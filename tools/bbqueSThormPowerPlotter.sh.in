@@ -1,0 +1,439 @@
+#!/bin/bash
+
+# The BarbequeRTRM command FIFO, when deployed on an Android/SThorm device
+BBQ_CMD_FIFO=@CONFIG_BOSP_RUNTIME_RWPATH@/bbque_cmds
+
+# The SThorm PIL Power-related command
+CMD_PWR='bq.pp.sthorm.read_mw'    # args: <value> <ms>
+CMD_BDF='bq.pp.sthorm.budget_mw'  # args: <mW>
+CMD_CSM='bq.pp.sthorm.sample_ms'  # args: <ms>
+CMD_CPL='bq.pp.sthorm.check_s'    # args: <s>
+
+# The location of ".dat" files
+OUT=${1:-"."}
+
+# GNUPlot Line Styles
+GPLINE_SMP="set style line 1 lt 2 lc rgb \"blue\" lw 1 pt 13 ps 1"
+GPLINE_AVG="set style line 2 lt 2 lc rgb \"orange\" lw 2"
+GPLINE_BDG="set style line 3 lt 2 lc rgb \"red\" lw 2"
+GPLINE_AVL="set style line 4 lt 2 lc rgb \"green\" lw 2"
+
+# GNUPlot terminal configuration for on-line plotting
+GPOPTS_X11="\
+set terminal x11 1 \
+title \"SThorm Power Budget Control Policy\" \
+enhanced font \"arial,7\" \
+noraise; \
+set key outside below; \
+$GPLINE_SMP; \
+$GPLINE_AVG; \
+$GPLINE_BDG; \
+$GPLINE_AVL; \
+"
+
+# GNUPlot terminal configuration for iamges production
+GPOPTS_PNG="\
+set terminal png \
+nocrop enhanced \
+font verdana 10 \
+size 950,230 \
+"
+GPOPTS_EPS="\
+set terminal postscript \
+eps enhanced color \
+font \"Times-Roman\" 10 \
+size 8,2 \
+"
+
+################################################################################
+# Utility Functions
+################################################################################
+
+# Get a new random number
+random() {
+od -A n -t d -N 2 /dev/urandom
+}
+
+calc() {
+echo "scale=3; $1" | bc
+}
+
+round() {
+echo "scale=0; $1 / 1" | bc
+}
+
+START=$(echo | ts %.s)
+getTime() {
+NOW=$(echo | ts %.s)
+calc "$NOW - $START"
+}
+
+
+################################################################################
+# Distribution Generators
+################################################################################
+
+# Generate a uniform distributed number with defined
+# $1 - minimum
+# $2 - maximum
+uniform() {
+RN=$(random)
+round "(($2 - $1) * $RN / 65536) + $1"
+}
+
+# Test the uniform distribution with the specified:
+# $1 - min
+# $2 - max
+# $3 - number of samples
+testUniform() {
+unset samples
+LOWER_BOUND=$(calc "")
+for i in `seq 1 $3`; do
+	SAMPLE=$(uniform $1 $2)
+	INDEX=$(round "1000 * $SAMPLE")
+	let samples[$INDEX]++
+done
+for o in ${!samples[*]}; do
+	SAMPLE=$(calc "$o / 1000")
+	printf "%.3f %5d\n" $SAMPLE ${samples[o]}
+done
+}
+
+testUniformPlot() {
+testUniform $1 $2 $3 | \
+	@CMAKE_INSTALL_PREFIX@/bin/feedgnuplot \
+	--nolines --points \
+	--domain --nodataid \
+	--xlabel "Samples" \
+	--ylabel "Occurrences" \
+	--title "Uniform Distribution Samples"
+}
+
+# Get a normally distributed number with defined
+# $1 - mean
+# $2 - stddev
+# Ref: http://www.protonfish.com/random.shtml
+normal() {
+R1=$(uniform -1 1)
+R2=$(uniform -1 1)
+R3=$(uniform -1 1)
+N11=$(calc "3 + (($R1 * 2) - 1) + (($R2 * 2) - 1) + (($R3 * 2) - 1)")
+calc "$1 + ($N11 * $2)"
+}
+
+
+# Test the normal distribution with the specified:
+# $1 - mean
+# $2 - stddev
+# $3 - number of samples
+testNormal() {
+unset samples
+LOWER_BOUND=$(calc "")
+for i in `seq 1 $3`; do
+	SAMPLE=$(normal $1 $2)
+	INDEX=$(round "1000 * $SAMPLE")
+	let samples[$INDEX]++
+done
+for o in ${!samples[*]}; do
+	SAMPLE=$(calc "$o / 1000")
+	stdbuf -oL printf "%.3f %5d\n" $SAMPLE ${samples[o]}
+done
+}
+
+testNormalPlot() {
+testNormal $1 $2 $3 | \
+	@CMAKE_INSTALL_PREFIX@/bin/feedgnuplot \
+	--nolines --points \
+	--domain --nodataid \
+	--stream \
+	--xlabel "Samples" \
+	--ylabel "Occurrences" \
+	--title "Normal Distribution Samples"
+}
+
+################################################################################
+# Simulation Model Status and Metrics
+################################################################################
+
+# Model and Plots Configuration
+C_PLOT_PWR_YMAX=2200
+
+# Model Status
+S_PWR_BDG=2000      # The configured Power Budget
+S_PWR_HZ=5          # The frequency of Power Updates
+S_PWR_S=0           # The period of Power Updates
+S_PWR_RND_MIN=280   # The minimum value for Power samples
+S_PWR_RND_MAX=320   # The maximum value for Power samples
+S_PWR_RND_DLT=0     # The maximum delta for Power samples
+S_PWR_SMP_MS=200    # The period of Power Readings (BBQ PIL side)
+S_PWR_CHK_S=10      # The period of Power Policy Runs (BBQ PIL side)
+
+# Model Metrics
+M_CTME=0            # The last update timestamp
+M_CPWR=0            # The last Power sample
+
+# Model initialization
+S_PWR_S=$(calc "1 / $S_PWR_HZ")
+S_PWR_RND_DLT=$(calc "$S_PWR_RND_MAX - $S_PWR_RND_MIN")
+
+################################################################################
+# Data Generator Configuration
+################################################################################
+
+# Report current configuration
+cfgReport() {
+clear
+usage
+echo
+echo "Current configuration"
+echo "Power Samples generation:"
+echo "  min [mW ........ $S_PWR_RND_MIN"
+echo "  max [mW] ....... $S_PWR_RND_MAX"
+echo "  freq [Hz] ...... $S_PWR_HZ"
+echo "Power Budget:"
+echo "  max [mW] ....... $S_PWR_BDG"
+echo "Power Control Policy:"
+echo "  Sampling [ms] .. $S_PWR_SMP_MS"
+echo "  Checking [s] ... $S_PWR_CHK_S"
+echo
+}
+
+# Configure the random numbers generator
+cfgUpdate() {
+case $1 in
+
+0) # Power samples generation
+S_PWR_RND_MIN=$2
+S_PWR_RND_MAX=$3
+S_PWR_RND_DLT=$(calc "$3 - $2")
+S_PWR_HZ=$4
+S_PWR_S=$(calc "1 / $4")
+;;
+
+1) # Power budget configuration
+S_PWR_BDG=$2
+adb shell "echo \"$CMD_BDF $S_PWR_BDG\" > $BBQ_CMD_FIFO"
+;;
+
+2) # Power control policy
+S_PWR_SMP_MS=$2
+S_PWR_CHK_S=$3
+adb shell "echo \"$CMD_CSM $S_PWR_SMP_MS\" > $BBQ_CMD_FIFO"
+adb shell "echo \"$CMD_CPL $S_PWR_CHK_S\" > $BBQ_CMD_FIFO"
+;;
+
+esac
+
+cfgReport
+
+}
+
+CFGFIFO=$(mktemp -u /tmp/bbqueSThormPowerAnalysis_cfgfifo_XXXXXX)
+mkfifo $CFGFIFO
+
+PLOT_PWR_NAME='bbqueSThormPowerAnalysis_plotPWR'
+PLOT_PWR=$(mktemp -u ${OUT}/${PLOT_PWR_NAME}_XXXXXX)
+mkfifo $PLOT_PWR
+
+# Clean-up previously generated .dat files
+rm -f ${OUT}/bbqueSThormPowerAnalysis_plot*.dat
+
+################################################################################
+# Power Samples Generator
+################################################################################
+
+pwrGenerator() {
+[ -n "$1" ] && RND=$1 || RND=$(random)
+M_CPWR=$(calc "$S_PWR_RND_MIN + (($S_PWR_RND_DLT * $RND) / 65536)")
+}
+
+# The data generator
+dataSource() {
+while true; do
+
+    # Get current time
+    M_CTME=$(getTime)
+
+    # Get a new Power Sample
+    pwrGenerator
+
+    # Set new power reading
+    adb shell "echo \"$CMD_PWR $M_CPWR $M_CTME\" > $BBQ_CMD_FIFO"
+
+    # Wait for next sample, or update the configuration
+    read -t $S_PWR_S <>$CFGFIFO SETTINGS && cfgUpdate $SETTINGS
+
+done
+}
+
+# A configurable plotting function, where:
+# $1 - data source
+# $2 - Title
+# $3 - Y axis label
+# $4 - Y max (or - for autoscale)
+# $5 - Geometry
+plotData() {
+YMAX=""
+[ $4 != "-" ] && YMAX="--ymax=$4"
+adb logcat -v threadtime | \
+	stdbuf -oL @CMAKE_INSTALL_PREFIX@/sbin/bbque-logparser-sthorm | \
+	stdbuf -oL tee ${OUT}/${PLOT_PWR_NAME}.dat | \
+	@CMAKE_INSTALL_PREFIX@/bin/feedgnuplot \
+	--autolegend \
+	--domain --dataid \
+	--xlabel "Time [s]" \
+	--ylabel "$3" \
+	--ymin=0 $YMAX \
+	--title  "$2" \
+	--stream --xlen 90 \
+	--extracmd "$GPOPTS_X11" \
+	--curvestyle Sampled   "with points ls 1" \
+	--curvestyle Average   "with line ls 2" \
+	--curvestyle Budget    "with line ls 3" \
+	--curvestyle Available "with line ls 4" \
+	--geometry "$5" &
+}
+
+cat >bbqueSThormPowerAnalysisPrinter.sh <<EOF
+#!/bin/bash
+# \$1: Image Format (png|eps)
+FMT=\${1:-"png"}
+
+GPOPTS_PNG='$GPOPTS_PNG'
+GPOPTS_EPS='$GPOPTS_EPS'
+
+GPOPTS=\$GPOPTS_PNG
+[ \$FMT == "eps" ] && GPOPTS=\$GPOPTS_EPS
+
+# Plot previously collected data, where:
+# \$1 - data source
+# \$2 - Title
+# \$3 - Y axis label
+# \$4 - Y max (or - for autoscale)
+# \$5 - the output filename (without extension)
+printData() {
+YMAX=""
+[ \$4 != "-" ] && YMAX="--ymax=\$4"
+cat "\$1" | \
+	@CMAKE_INSTALL_PREFIX@/bin/feedgnuplot \
+	--autolegend \
+	--domain --dataid \
+	--xlabel "Time [s]" \
+	--ylabel "\$3" \
+	--ymin=0 \$YMAX \
+	--title  "\$2" \
+	--extracmd "\$GPOPTS" \
+	--curvestyle Sampled   "with points ls 1" \
+	--curvestyle Average   "with line ls 2" \
+	--curvestyle Budget    "with line ls 3" \
+	--curvestyle Available "with line ls 4" \
+	--hardcopy "\$5".\$FMT
+}
+
+EOF
+chmod a+x bbqueSThormPowerAnalysisPrinter.sh
+
+################################################################################
+# Command line processing
+################################################################################
+
+tuneGenerator() {
+case $1 in
+
+"power") # Power Readings Simulation
+[ $2 != '-' ] && [ $2 -lt $S_PWR_RND_MAX -o $2 -lt $3 ] && S_PWR_RND_MIN=$2
+[ $3 != '-' ] && [ $3 -gt $S_PWR_RND_MIN -o $3 -gt $2 ] && S_PWR_RND_MAX=$3
+[ $3 == 0 ] && S_PWR_RND_MIN=0 && S_PWR_RND_MAX=0
+[ $4 != '-' ] && S_PWR_HZ=$4
+echo "0 $S_PWR_RND_MIN $S_PWR_RND_MAX $S_PWR_HZ" >$CFGFIFO
+;;
+
+"budget") # Power Budget Configuration
+[ $2 != '-' ] && S_PWR_BDG=$2
+echo "1 $S_PWR_BDG" >$CFGFIFO
+;;
+
+"conf") # Power Policy Configuration
+[ $2 != '-' ] && S_PWR_SMP_MS=$2
+[ $3 != '-' ] && S_PWR_CHK_S=$3
+echo "2 $S_PWR_SMP_MS $S_PWR_CHK_S" >$CFGFIFO
+;;
+
+*) # Unsopported command
+echo "Unsupported command: $1"
+;;
+
+esac
+
+}
+
+
+################################################################################
+# Main plotting function
+################################################################################
+
+usage() {
+echo -e "\t\t***** BarbequeRTRM SThorm Power Policy Analyzer *****"
+echo
+echo "Using BBQ Command FIFO: $BBQ_CMD_FIFO"
+echo "Tuning commands:"
+echo " power <min_mw> <max_nw> <hz>"
+echo "    min_mw       - minimum value for Power samples [mW]"
+echo "    max_mw       - maximum value for Power samples [mW]"
+echo "    hz           - frequency [Hz] of Power samples"
+echo " budget <mw>"
+echo "    mw           - required Power Budget [mW]"
+echo " conf <sampling_ms> <policy_s>"
+echo "    sampling_ms  - period [ms] of Power Readings (BBQ PIL side)"
+echo "    policy_s     - period [s] of Power Policy Runs (BBQ PIL side)"
+echo
+echo "NOTE: all fiels are _mandatory_"
+echo
+}
+
+plot() {
+# Tuning command memento and current configuration dump
+cfgReport
+# Start data plotters
+plotData $PLOT_PWR 'BarbequeRTRM SThorm Power Policy Analyzer' 'Power Metrics' $C_PLOT_PWR_YMAX 949x233+-5+-8
+# Start data generator
+dataSource &
+}
+
+cat >>bbqueSThormPowerAnalysisPrinter.sh <<EOF
+printData ${OUT}/${PLOT_PWR_NAME}.dat \
+	'BarbequeRTRM SThorm Power Policy Analyzer' \
+	'Power Metrics' \
+	$C_PLOT_PWR_YMAX \
+	${OUT}/${PLOT_PWR_NAME}
+EOF
+
+################################################################################
+# Return on script sourcing or Ctrl+C
+################################################################################
+
+# Return if the script has been sources
+[[ $_ != $0 ]] && return 2>/dev/null
+
+# Return on Ctrl-+ by cleaning-up all background threads
+cleanup() {
+	kill $(jobs -p)
+	killall feedgnuplot
+	rm $CFGFIFO $PLOT_PWR
+}
+trap cleanup EXIT
+
+
+################################################################################
+# Initialization
+################################################################################
+
+# Main function
+plot
+
+# This is required to properly capture the trap previously defined
+while [ 1 ]; do
+	read -p "$> " CMD
+	[ "x$CMD" != "x" ] && tuneGenerator $CMD
+	sleep .2
+done
