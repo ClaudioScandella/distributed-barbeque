@@ -16,7 +16,9 @@
  */
 
 #include <cstring>
+#include <cstdlib>
 
+#include "bbque/resource_manager.h"
 #include "bbque/app/working_mode.h"
 #include "bbque/res/resource_utils.h"
 #include "bbque/res/resource_path.h"
@@ -30,15 +32,51 @@ namespace bbque {
 
 P2012PP::P2012PP() :
 	PlatformProxy(),
+	pwr_sample_dfr("pp.pwr_sample", std::bind(&P2012PP::PowerSample, this)),
 	out_queue_id(P2012_INVALID_QUEUE_ID),
 	in_queue_id(P2012_INVALID_QUEUE_ID) {
 
-	logger->Info("PLAT P2012: Built Platform Proxy");
+	// Init power management information
+	power = {
+		FABRIC_POWER_FULL_MW,
+		DEFAULT_POWER_SAMPLE_T_MS,
+		DEFAULT_POWER_CHECK_T_S,
+		DEFAULT_POWER_CHECK_T_S * 1000 / DEFAULT_POWER_SAMPLE_T_MS,
+		DEFAULT_POWER_GUARD_THR,
+		0, 0, 0
+	};
+	logger->Info("PLAT P2012: Power [B:%d mW, Tp:%d ms, Tc:%d s, #S:%d]",
+			power.budget_mw, power.sample_period, power.check_period,
+			power.n_samples);
+
 	// Register a command dispatcher
 	CommandManager &cm = CommandManager::GetInstance();
+	cm.RegisterCommand(MODULE_NAMESPACE ".budget_mw",
+			static_cast<CommandHandler*>(this),
+			"Set the budget of power consumption for the fabric [mW]");
+
+	cm.RegisterCommand(MODULE_NAMESPACE ".sample_ms",
+			static_cast<CommandHandler*>(this),
+			"The period of power consumption polling [ms]");
+
+	cm.RegisterCommand(MODULE_NAMESPACE ".check_s",
+			static_cast<CommandHandler*>(this),
+			"The period of power budget checking [s]");
+
+	cm.RegisterCommand(MODULE_NAMESPACE ".read_mw",
+			static_cast<CommandHandler*>(this),
+			"FAKE power consumption read [mW]");
+
+	p2012_ts = p2012_mw = 0;
+	pwr_sample_ema = pEma_t(new EMA(power.n_samples, 0));
+
+	// Instance the power polling deferrable with default period
+	pwr_sample_dfr.SetPeriodic(milliseconds(power.sample_period));
+
 
 	// NOTE: Could we move this at the end of LoadPlatformData?
 	SetPilInitialized();
+	logger->Info("PLAT P2012: Built Platform Proxy");
 }
 
 P2012PP::~P2012PP() {
@@ -162,6 +200,10 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	pe_fabric_quota_max =
 		pdev->pdesc.clusters_count * pdev->pdesc.pes_count * 100;
 	logger->Debug("PLAT P2012: Maximum fabric quota = %d", pe_fabric_quota_max);
+
+	// Register the max power consumption of the fabric
+	ra_result = ra.RegisterResource(
+			FABRIC_POWER_RESOURCE, "", FABRIC_POWER_FULL_MW);
 
 	// Cluster level resources
 	for (uint16_t i = 0; i < pdev->pdesc.clusters_count; ++i) {
@@ -489,7 +531,159 @@ inline uint16_t P2012PP::GetPeFabricQuota(float const & pe_quota) {
 	return pe_quota / static_cast<float>(pe_fabric_quota_max) * 100.0;
 }
 
+void P2012PP::PowerSample() {
+	ResourceAccounter & ra(ResourceAccounter::GetInstance());
+	uint32_t power_unres;
+
+	// Is there an update value?
+	if (p2012_ts == power.curr_ts)
+		return;
+
+	// Yes: Read current power consumption and update EMA
+	power_unres   = ra.Unreserved(FABRIC_POWER_RESOURCE);
+	power.curr_ts = p2012_ts;
+	power.count_s++;
+	pwr_sample_ema->update(p2012_mw);
+	logger->Info("STHORM: Power consumption sample: %d mW [ts:%d #S:%d]",
+			p2012_mw, p2012_ts, power.count_s);
+	logger->Info("PWR_STATS: %d %4.0f %d %d",
+			p2012_mw,
+			pwr_sample_ema->get(),
+			power.budget_mw,
+			power_unres);
+
+	// Number of samples reached?
+	if (power.count_s < power.n_samples)
+		return;
+
+	// Get the EMA value of power consumption, reset the count
+	power.curr_mw = pwr_sample_ema->get();
+	power.count_s = 0;
+	logger->Info("STHORM: Call power policy [EMA: %d mW]", power.curr_mw);
+
+	// Call the power management policy
+	PowerPolicy();
+}
+
+void P2012PP::PowerPolicy() {
+	ResourceManager   & rm(ResourceManager::GetInstance());
+	ResourceAccounter & ra(ResourceAccounter::GetInstance());
+	ResourceAccounter::ExitCode_t ra_result;
+	int32_t  budget_new;
+	int32_t  budget_diff;
+	uint32_t consumption;
+	uint32_t power_unres;
+
+	// Total amount of power resource (unreserved)
+	power_unres = ra.Unreserved(FABRIC_POWER_RESOURCE);
+
+	// Consumption (+ guard threshold)
+	consumption = power.curr_mw +
+			(power.curr_mw * static_cast<float>(power.guard_margin) / 100);
+	// Check the budget
+	budget_diff = power.budget_mw - consumption;
+	if ((budget_diff >= 0) &&
+		(power.budget_mw <= power_unres)) {
+		logger->Info("STHORM: Power budget OK [B:%d mW  D:%d mW]",
+				power.budget_mw, budget_diff);
+		return;
+	}
+	// Power budget overpassed => budget_diff negative)
+	if (budget_diff < 0) {
+		logger->Warn("STHORM: Power budget overpassed [B:%d mW  D:%d mW]",
+				power.budget_mw, budget_diff);
+	}
+
+	// Change the amount of power resource
+	budget_new = power_unres + budget_diff;
+	budget_new = std::max<int32_t>(budget_new, FABRIC_POWER_IDLE_MW);
+	budget_new = std::min<int32_t>(budget_new, FABRIC_POWER_FULL_MW);
+	if (budget_new == power_unres) {
+		logger->Debug("STHORM: No need to update power resource (BN:%d mW)",
+				budget_new);
+		return;
+	}
+
+	// Update the total amount of power resource (unreserved)
+	ra_result  = ra.UpdateResource(FABRIC_POWER_RESOURCE, "", budget_new);
+	if (ra_result == ResourceAccounter::RA_SUCCESS) {
+		logger->Warn("STHORM: [%s] updated to % " PRIu64 " mW",
+				FABRIC_POWER_RESOURCE,
+				ra.Unreserved(FABRIC_POWER_RESOURCE));
+	}
+
+	// Trigger a new optimization
+	rm.NotifyEvent(ResourceManager::BBQ_OPTS);
+}
+
+void P2012PP::PowerConfig(PowerSetting_t pwr_sett, uint32_t value) {
+	// Select the setting to configure
+	switch (pwr_sett) {
+	// Config sampling period
+	case BUDGET_MW:
+		power.budget_mw = value;
+		break;
+	// Config sampling period
+	case SAMPLING_PERIOD:
+		power.sample_period = value;
+		power.n_samples = power.check_period * 1000 / power.sample_period;
+		break;
+	// Config checking/policy period
+	case CHECKING_PERIOD:
+		power.check_period = value;
+		power.n_samples  = power.check_period * 1000 / power.sample_period;
+		break;
+	// Config guard margin on the power consumption read
+	case GUARD_MARGIN:
+		power.guard_margin = value;
+		break;
+	}
+}
+
 int P2012PP::CommandsCb(int argc, char *argv[]) {
+	uint8_t cmd_offset = ::strlen(MODULE_NAMESPACE) + 1;
+
+	logger->Debug("STHORM: Processing command [%s]", argv[0] + cmd_offset);
+	switch (argv[0][cmd_offset]) {
+	// Power budget
+	case 'b':
+		if ((atoi(argv[1]) <= FABRIC_POWER_FULL_MW) &&
+			(atoi(argv[1]) >= FABRIC_POWER_IDLE_MW)) {
+			PowerConfig(BUDGET_MW, atoi(argv[1]));
+			logger->Info("STHORM: Power budget set to %d mW", power.budget_mw);
+		}
+		else
+			logger->Warn("STHORM: Power budget (%d mW) out of range [%d, %d] mW",
+					atoi(argv[1]),FABRIC_POWER_IDLE_MW, FABRIC_POWER_FULL_MW);
+		break;
+	// Polling period
+	case 's':
+		PowerConfig(SAMPLING_PERIOD, atoi(argv[1]));
+		logger->Info("STHORM: Power polling period set to %d ms [#S:%d]",
+				power.sample_period, power.n_samples);
+		goto restart_polling;
+	// Checking period
+	case 'c':
+		PowerConfig(CHECKING_PERIOD, atoi(argv[1]));
+		logger->Info("STHORM: Power checking period set to %d s [#S:%d]",
+				power.check_period, power.n_samples);
+		goto restart_polling;
+	// Fake power consumption read
+	case 'r':
+		p2012_mw = atoi(argv[1]);
+		p2012_ts = atoi(argv[2]);
+		break;
+
+	default:
+		logger->Warn("STHORM: Unknown command [%s], ignored...", argv[0]);
+	}
+
+	return 0;
+
+restart_polling:
+	pwr_sample_ema->reset(power.n_samples, power.curr_mw);
+	pwr_sample_dfr.SetPeriodic(milliseconds(power.sample_period));
+
 	return 0;
 }
 
