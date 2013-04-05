@@ -34,6 +34,8 @@ P2012PP::P2012PP() :
 	in_queue_id(P2012_INVALID_QUEUE_ID) {
 
 	logger->Info("PLAT P2012: Built Platform Proxy");
+	// Register a command dispatcher
+	CommandManager &cm = CommandManager::GetInstance();
 
 	// NOTE: Could we move this at the end of LoadPlatformData?
 	SetPilInitialized();
@@ -486,5 +488,10 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 inline uint16_t P2012PP::GetPeFabricQuota(float const & pe_quota) {
 	return pe_quota / static_cast<float>(pe_fabric_quota_max) * 100.0;
 }
+
+int P2012PP::CommandsCb(int argc, char *argv[]) {
+	return 0;
+}
+
 
 } // namespace bbque
