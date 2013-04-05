@@ -178,6 +178,7 @@ M_GGEMA=0    # GoalGap EMA
 M_GGTRD=5    # GoalGap Threshold
 M_GGPRV=0    # GoalGap Previous
 M_GGCUR=3    # GoalGap Previous
+M_GGSTB=1    # GoalGap Stability Flag: >0 stable, 0: unstable
 M_RRCUR=0    # Reconfiguration Rate Current
 M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold
@@ -186,6 +187,7 @@ M_RRTRD=5    # Reconfiguration Rate Threshold
 S_CPS_SLEEP=$(calc "1 / $S_CPS")
 S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
 S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
+M_GGSTB=$C_PLOT_GGV_YMAX
 
 # Simulation mode string representation
 S_SM_APP[0]="Stable"
@@ -276,6 +278,20 @@ M_GGPRV=$M_GGCUR
 }
 
 ################################################################################
+# Control Model
+################################################################################
+
+# Check the stability of the GG metrics
+# return: 1 stable, 0: unstable
+checkGGStability() {
+# Consider GG always stable if RTLib control is disabled
+[ $S_SM_CLIB -eq 0 ] && return 1
+# GG stability condition:
+M_GGSTB=$(calc "if($M_GGEMA < $M_GGTRD) $C_PLOT_GGV_YMAX else 0")
+return $M_GGSTB
+}
+
+################################################################################
 # AWM Assignement Model
 ################################################################################
 
@@ -308,8 +324,13 @@ M_GGEMA=$(emaUpdate $S_GG_EMA_ALPHA $M_GGEMA $M_GGVAR)
 
 # Update the time for an AWM reconfiguration
 setReconfigurationTime() {
+
+# Setup just one reconf per time
 REC=$(calc "if ($S_RTME > 0) 0 else 1")
 [ $REC -eq 0 ] && return
+
+# Avoid reconfs if GG is not stable
+checkGGStability && return
 
 DTIME=$S_UTME
 [ $S_CAWM -eq 3 ] && DTIME=$S_DTME
