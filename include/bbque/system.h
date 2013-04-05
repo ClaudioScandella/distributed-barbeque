@@ -204,6 +204,22 @@ public:
 		return ra.Used(rsrc_list, vtok);
 	}
 
+
+	/**
+	 * @see ResourceAccounterStatusIF::Unreserved()
+	 */
+	inline uint64_t ResourceUnreserved(std::string const & path) const {
+		return ra.Unreserved(path);
+	}
+
+	inline uint64_t ResourceUnreserved(ResourcePathPtr_t ppath) const {
+		return ra.Unreserved(ppath, ResourceAccounter::UNDEFINED);
+	}
+
+	inline uint64_t ResourceUnreserved(ResourcePtrList_t & rsrc_list) const {
+		return ra.Unreserved(rsrc_list);
+	}
+
 	/**
 	 * @see ResourceAccounterStatusIF::Count()
 	 */
