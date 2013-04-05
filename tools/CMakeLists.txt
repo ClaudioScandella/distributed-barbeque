@@ -75,7 +75,6 @@ install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/bbqueStabilityAnalysisPlotter.sh"
 	COMPONENT BarbequeUTILS
 	RENAME bbque-stability-analysis)
 
-
 #----- Deploy the Plugin development script
 configure_file (
 	"${PROJECT_SOURCE_DIR}/tools/development/bbquePluginDev.sh.in"
@@ -110,3 +109,18 @@ install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/pysched/modules/barbeque_utils.py"
 	DESTINATION ${BBQUE_PATH_BBQ}/pysched/modules/
 )
 
+#----- Deploy the BBQ Power Budget control scripts for the SThorm platform
+install(PROGRAMS "${PROJECT_SOURCE_DIR}/tools/bbqueSThormPowerLogParser.awk"
+	DESTINATION ${BBQUE_PATH_BBQ}
+	COMPONENT BarbequeUTILS
+	RENAME bbque-logparser-sthorm)
+
+configure_file (
+	"${PROJECT_SOURCE_DIR}/tools/bbqueSThormPowerPlotter.sh.in"
+	"${PROJECT_BINARY_DIR}/tools/bbqueSThormPowerPlotter.sh"
+	@ONLY
+)
+install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/bbqueSThormPowerPlotter.sh"
+	DESTINATION ${BBQUE_PATH_BBQ}
+	COMPONENT BarbequeUTILS
+	RENAME bbque-plotpower-sthorm)
