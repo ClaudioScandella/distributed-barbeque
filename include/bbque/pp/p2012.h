@@ -52,6 +52,52 @@ public:
 private:
 
 	/**
+	 * @brief Exponential Moving Average accumulator
+	 *
+	 * This class provides a simple accumulator for on-line computation of an
+	 * Exponential Moving Average, with an exponential factor @see alpha.
+	 *
+	 * The alpha factor is expressed in terms of N samples, where alpha =
+	 * 2/(N+1). For example, N = 19 is equivalent to alpha = 0.1.
+	 * The half-life of the weights (the interval over which the
+	 * weights decrease by a factor of two) is approximately N/2.8854
+	 * (within 1% if N > 5).
+	 */
+	class EMA {
+	private:
+		double alpha;
+		double value;
+		uint8_t load;
+	public:
+		EMA(int samples = 6, double firstValue = 0) :
+			alpha(2.0 / (samples +1)),
+			value(firstValue),
+			load(samples) {
+		}
+		double update(double newValue) {
+			value = ((alpha * newValue) + ((1 - alpha) * value));
+			if (unlikely(load > 0))
+				--load;
+			return value;
+		}
+		void reset(int samples, double firstValue) {
+			alpha = 2.0 / (samples +1);
+			value = firstValue;
+			load  = samples;
+		}
+		double get() const {
+			if (unlikely(load > 0))
+				return 0;
+			return value;
+		}
+	};
+
+	/**
+	 * @brief A pointer to an EMA-defined accounter
+	 */
+	typedef std::shared_ptr<EMA> pEma_t;
+
+	/**
 	 * @brief This summarize data needed for resource mapping
 	 */
 	struct PlatformResourceBinding_t {
