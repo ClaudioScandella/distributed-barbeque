@@ -29,12 +29,6 @@
 
 #define PLATFORM_ID         		"com.st.sthorm"
 
-// Resources template path
-#define PLATFORM_FABRIC_MEM 		"sys.acc.mem"     	// L2 memory
-#define PLATFORM_CLUSTER    		"sys.acc.grp"
-#define PLATFORM_CLUSTER_PE 		"sys.acc.grp.pe"
-#define PLATFORM_CLUSTER_MEM 		"sys.acc.grp.mem" 	// L1 memory
-#define PLATFORM_CLUSTER_DMA 		"sys.acc.io"
 
 namespace br = bbque::res;
 
@@ -43,18 +37,6 @@ namespace bbque {
 class P2012PP: public PlatformProxy {
 
 public:
-
-	/**
-	 * @brief Platform resource types
-	 */
-	enum PlatformResourceType_t {
-		RESOURCE_TYPE_L2_MEM = 0,
-		RESOURCE_TYPE_L1_MEM,
-		RESOURCE_TYPE_PE,
-		RESOURCE_TYPE_DMA,
-
-		RESOURCE_TYPE_ERR
-	};
 
 	/**
 	 * @brief Constructor
