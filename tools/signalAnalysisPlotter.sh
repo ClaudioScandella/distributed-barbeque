@@ -470,6 +470,7 @@ case $1 in
 "gg") # Goal Gap Configuration
 [ $2 != '-' ] && [ $2 -lt $S_RND_GG_MAX -o $2 -lt $3 ] && S_RND_GG_MIN=$2
 [ $3 != '-' ] && [ $3 -gt $S_RND_GG_MIN -o $3 -gt $2 ] && S_RND_GG_MAX=$3
+[ $3 == 0 ] && S_RND_GG_MIN=0 && S_RND_GG_MAX=0
 [ $4 != '-' ] && S_GG_EMA_SMPLS=$4
 echo "0 $S_RND_GG_MIN $S_RND_GG_MAX $S_GG_EMA_SMPLS" >$CFGFIFO
 ;;
