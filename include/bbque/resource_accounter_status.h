@@ -135,19 +135,6 @@ public:
 			PathClass_t rpc = EXACT) const = 0;
 
 	/**
-	 * @brief Total amount of not reserved resources
-	 *
-	 * This is used when the only available information is the resource path
-	 * (wheter template or specific). Just the amout of resources not
-	 * reserved is returned.
-	 *
-	 * @param path Resource path
-	 *
-	 * @return The total amount of not reserved resource
-	 */
-	virtual uint64_t Unreserved(std::string const & path) const = 0;
-
-	/**
 	 * @brief Total amount of resource
 	 *
 	 * This is a slighty more efficient version of method Total(), to invoke
@@ -166,6 +153,19 @@ public:
 	virtual uint64_t Total(ResourcePtrList_t & rsrc_list) const = 0;
 
 	/**
+	 * @brief Total amount of not reserved resources
+	 *
+	 * This is used when the only available information is the resource path
+	 * (wheter template or specific). Just the amout of resources not
+	 * reserved is returned.
+	 *
+	 * @param path Resource path
+	 *
+	 * @return The total amount of not reserved resource
+	 */
+	virtual uint64_t Unreserved(std::string const & path) const = 0;
+
+	/**
 	 * @brief Total amount of not reserved resource
 	 *
 	 * This is a slighty more efficient version of method Unreserved(), to invoke
@@ -177,6 +177,9 @@ public:
 	 * @return The total amount of not reserved resource
 	 */
 	virtual uint64_t Unreserved(ResourcePtrList_t & rsrc_list) const = 0;
+
+	virtual uint64_t Unreserved(ResourcePathPtr_t ppath,
+			PathClass_t rpc = EXACT) const = 0;
 
 	/**
 	 * @brief Amount of resource available
