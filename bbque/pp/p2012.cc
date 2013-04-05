@@ -23,6 +23,7 @@
 #include "bbque/res/usage.h"
 #include "bbque/pp/p2012.h"
 
+#define MODULE_NAMESPACE PLATFORM_PROXY_NAMESPACE ".sthorm"
 
 namespace bbque {
 
