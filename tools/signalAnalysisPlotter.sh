@@ -215,8 +215,10 @@ CURR_GG=40
 
 # Report current configuration
 cfgReport() {
+clear
+usage
 echo
-echo "*** Current configuration"
+echo "Current configuration"
 echo "GoalGap:"
 echo "  min............. $S_RND_GG_MIN"
 echo "  max............. $S_RND_GG_MAX"
@@ -253,7 +255,6 @@ S_SM_CBBQ=$4
 
 esac
 
-# Dump current configuration
 cfgReport
 
 }
@@ -519,7 +520,6 @@ echo
 
 plot() {
 # Tuning command memento and current configuration dump
-usage
 cfgReport
 # Start data plotters
 plotData $PLOT_AWM 'Current AWM (GG) value' 'AWM Value' $C_PLOT_AWM_YMAX 949x233+-5+-8
