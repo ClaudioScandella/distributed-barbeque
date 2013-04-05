@@ -88,7 +88,7 @@ void SchedContrib::GetResourceThresholds(
 		ResourceThresholds_t & rl) {
 
 	// Total amount of resource
-	rl.total = sv->ResourceTotal(r_path);
+	rl.total = sv->ResourceUnreserved(r_path);
 
 	// Get the max saturation level of this type of resource
 	rl.saturate = rl.total * msl_params[r_path->Type()];
