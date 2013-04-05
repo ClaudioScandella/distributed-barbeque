@@ -85,7 +85,6 @@ P2012PP::ExitCode_t P2012PP::_LoadPlatformData() {
 }
 
 P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
-	ExitCode_t result;
 	int p2012_result;
 	int fabric_addr;
 
@@ -476,9 +475,8 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 		break;
 
 	default:
-		logger->Error("PLAT P2012: Resource type {%s} unmanaged",
-				ResourceIdentifier::StringFromType(pbind->type));
-		return PLATFORM_DATA_PARSING_ERROR;
+		logger->Debug("PLAT P2012: No action implemented for resource '%s'",
+				pbind->type);
 	}
 
 	return result;
