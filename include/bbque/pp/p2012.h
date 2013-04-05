@@ -23,6 +23,7 @@
 #include "bbque/platform_proxy.h"
 #include "bbque/resource_accounter.h"
 #include "bbque/utils/attributes_container.h"
+#include "bbque/utils/deferrable.h"
 
 #include "p2012_lnx_dd.h"
 #include "p2012_pil.h"
@@ -30,6 +31,13 @@
 
 #define PLATFORM_ID         		"com.st.sthorm"
 
+#define FABRIC_POWER_RESOURCE   "sys0.acc0.pwr0"
+#define FABRIC_POWER_IDLE_MW     300
+#define FABRIC_POWER_FULL_MW     2000
+
+#define DEFAULT_POWER_SAMPLE_T_MS  500  // milliseconds
+#define DEFAULT_POWER_CHECK_T_S    10   // seconds
+#define DEFAULT_POWER_GUARD_THR    5    // percentage
 
 namespace br = bbque::res;
 
@@ -108,6 +116,50 @@ private:
 		/** Resource type */
 		ResourceIdentifier::Type_t type;
 	};
+
+	/***************************************************
+	 *            Power management support             *
+	 ***************************************************/
+
+	enum PowerSetting_t {
+		BUDGET_MW = 0   ,
+		SAMPLING_PERIOD ,
+		CHECKING_PERIOD ,
+		GUARD_MARGIN
+	};
+
+	struct PowerManagement_t {
+		/** Nominal power budget set */
+		uint32_t budget_mw;
+		/** Period of power consumption polling */
+		uint32_t sample_period;
+		/** Period of power checking */
+		uint32_t check_period;
+		/** Num of samples for the EMA */
+		uint32_t n_samples;
+		/** Guard threshold for the power checking */
+		uint32_t guard_margin;
+		/** Current power consumption (EMA)*/
+		uint32_t curr_mw;
+		/** Current power read timestamp */
+		uint32_t curr_ts;
+		/** Sample counter */
+		uint32_t count_s;
+	} power;
+
+	/** Deferrable power sampling **/
+	Deferrable pwr_sample_dfr;
+
+	/** Moving Exponential Average for the power consumption sampling */
+	pEma_t pwr_sample_ema;
+
+	/** Placeholder variables
+	 * TODO: Remove once STHORM PIL updated **/
+	uint32_t p2012_ts;
+	uint32_t p2012_mw;
+
+	/**************************************************/
+
 
 	/**
 	 * @brief Shared pointer to struct PlatformResourceBinding_t
@@ -337,10 +389,17 @@ private:
 	 */
 	uint16_t GetPeFabricQuota(float const & pe_cluster_quota);
 
+	void PowerSample();
+
+	void PowerPolicy();
+
+	void PowerConfig(PowerSetting_t pwr_sett, uint32_t value);
+
 	/**
 	 * @brief Command handler
 	 */
 	int CommandsCb(int argc, char *argv[]);
+
 };
 
 }
