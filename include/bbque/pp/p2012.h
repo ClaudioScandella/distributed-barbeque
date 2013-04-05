@@ -18,6 +18,7 @@
 #ifndef BBQUE_P2012_PP_H_
 #define BBQUE_P2012_PP_H_
 
+#include "bbque/command_manager.h"
 #include "bbque/config.h"
 #include "bbque/platform_proxy.h"
 #include "bbque/resource_accounter.h"
@@ -34,7 +35,7 @@ namespace br = bbque::res;
 
 namespace bbque {
 
-class P2012PP: public PlatformProxy {
+class P2012PP: public PlatformProxy, public CommandHandler {
 
 public:
 
@@ -290,6 +291,10 @@ private:
 	 */
 	uint16_t GetPeFabricQuota(float const & pe_cluster_quota);
 
+	/**
+	 * @brief Command handler
+	 */
+	int CommandsCb(int argc, char *argv[]);
 };
 
 }
