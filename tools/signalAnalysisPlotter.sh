@@ -340,7 +340,7 @@ simulationCycle() {
 switchAWM
 
 #  set time of next reconfiguration
-setReconfigurationTime
+[ $S_SM_CAPP -eq 1 ] && setReconfigurationTime
 
 # Update the GG model
 updateGG
