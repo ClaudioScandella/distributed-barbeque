@@ -75,6 +75,7 @@ public:
 		MEMORY       ,
 		INTERCONNECT ,
 		IO           ,
+		POWER        ,
 
 		TYPE_COUNT
 	};
