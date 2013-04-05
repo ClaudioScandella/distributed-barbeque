@@ -7,6 +7,8 @@ EMA_SCALE=20
 
 OUT=${1:-"."}
 GPOPTS_X11="set terminal x11 1 title \"Signal Plot Analysis\" enhanced font \"arial,6\" noraise"
+GPOPTS_PNG="set terminal png nocrop enhanced font verdana 10 size 950,230"
+GPOPTS_EPS="set terminal postscript eps enhanced color \"Times-Roman\" 10 size 8,2"
 
 
 # Get a new random number
@@ -421,6 +423,42 @@ tail -n0 -f "$1" | \
 	--geometry "$5" &
 }
 
+cat >signalAnalysisPrinter.sh <<EOF
+#!/bin/bash
+# \$1: Image Format (png|eps)
+FMT=\${1:-"png"}
+
+GPOPTS_PNG='$GPOPTS_PNG'
+GPOPTS_EPS='$GPOPTS_EPS'
+
+GPOPTS=\$GPOPTS_PNG
+[ \$FMT == "eps" ] && GPOPTS=\$GPOPTS_EPS
+
+# Plot previously collected data, where:
+# \$1 - data source
+# \$2 - Title
+# \$3 - Y axis label
+# \$4 - Y max (or - for autoscale)
+# \$5 - the output filename (without extension)
+printData() {
+YMAX=""
+[ \$4 != "-" ] && YMAX="--ymax=\$4"
+cat "\$1" | \
+	feedgnuplot \
+	--autolegend \
+	--lines --points \
+	--domain --dataid \
+	--xlabel "Time [s]" \
+	--ylabel "\$3" \
+	--ymin=0 \$YMAX \
+	--title  "\$2" \
+	--extracmd "\$GPOPTS" \
+	--hardcopy "\$5".\$FMT
+}
+
+EOF
+chmod a+x signalAnalysisPrinter.sh
+
 ################################################################################
 # Command line processing
 ################################################################################
@@ -492,6 +530,28 @@ plotData $PLOT_RR 'Reconfiguration Rate Filter' 'RR Variation' $C_PLOT_RRF_YMAX 
 dataSource &
 }
 
+cat >>signalAnalysisPrinter.sh <<EOF
+printData ${OUT}/${PLOT_AWM_NAME}.dat \
+	'Current AWM (GG) value' \
+	'AWM Value' \
+	$C_PLOT_AWM_YMAX \
+	${OUT}/${PLOT_AWM_NAME}
+printData ${OUT}/${PLOT_GG_NAME}.dat \
+	'Goal Gap (GG) Value' \
+	'Goal Gap' \
+	$C_PLOT_GGV_YMAX \
+	${OUT}/${PLOT_GG_NAME}
+printData ${OUT}/${PLOT_VF_NAME}.dat \
+	'Goal Gap Filter' \
+	'GG Variation' \
+	$C_PLOT_GGF_YMAX \
+	${OUT}/${PLOT_VF_NAME}
+printData ${OUT}/${PLOT_RR_NAME}.dat \
+	'Reconfiguration Rate Filter' \
+	'RR Variation' \
+	$C_PLOT_RRF_YMAX \
+	${OUT}/${PLOT_RR_NAME}
+EOF
 
 ################################################################################
 # Return on script sourcing or Ctrl+C
