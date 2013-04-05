@@ -5,7 +5,8 @@ MIN_VALUE=20
 MAX_VALUE=60
 EMA_SCALE=20
 
-GPOPTS="set terminal x11 1 title \"Signal Plot Analysis\" enhanced font \"arial,6\" noraise"
+OUT=${1:-"."}
+GPOPTS_X11="set terminal x11 1 title \"Signal Plot Analysis\" enhanced font \"arial,6\" noraise"
 
 
 # Get a new random number
@@ -138,6 +139,11 @@ calc "($ALPHA * $NEW) + ((1 - $ALPHA) * $EMA)"
 ################################################################################
 # Simulation Model Status and Metrics
 ################################################################################
+# Model and Plots Configuration
+C_PLOT_AWM_YMAX=6
+C_PLOT_GGV_YMAX=120
+C_PLOT_GGF_YMAX=20
+C_PLOT_RRF_YMAX=40
 # Model Status
 S_CPS=20
 S_CPS_SLEEP=0      # Sleep time for configured CPS
@@ -346,14 +352,21 @@ updateRR
 ################################################################################
 
 
-PLOT_AWM=$(mktemp -u /tmp/bbqueSignalAlalyzer_plotAWM_XXXXXX)
+PLOT_AWM_NAME=bbqueSignalAlalyzer_plotAWM
+PLOT_AWM=$(mktemp -u /tmp/${PLOT_AWM_NAME}_XXXXXX)
 mkfifo $PLOT_AWM
-PLOT_GG=$(mktemp -u /tmp/bbqueSignalAlalyzer_plotGG_XXXXXX)
+PLOT_GG_NAME=bbqueSignalAlalyzer_plotGG
+PLOT_GG=$(mktemp -u /tmp/${PLOT_GG_NAME}_XXXXXX)
 mkfifo $PLOT_GG
-PLOT_VF=$(mktemp -u /tmp/bbqueSignalAlalyzer_plotGGFilter_XXXXXX)
+PLOT_VF_NAME=bbqueSignalAlalyzer_plotGGFilter
+PLOT_VF=$(mktemp -u /tmp/${PLOT_VF_NAME}_XXXXXX)
 mkfifo $PLOT_VF
-PLOT_RR=$(mktemp -u /tmp/bbqueSignalAlalyzer_plotRRFilter_XXXXXX)
+PLOT_RR_NAME=bbqueSignalAlalyzer_plotRRFilter
+PLOT_RR=$(mktemp -u /tmp/${PLOT_RR_NAME}_XXXXXX)
 mkfifo $PLOT_RR
+
+# Clean-up previously generated .dat files
+rm -f ${OUT}/bbqueSignalAlalyzer_plot*.dat
 
 # The data generator
 dataSource() {
@@ -366,10 +379,18 @@ while true; do
     simulationCycle
 
     # Dump metrics
-    printf "%9.6f CurrAWM %2d\n" $S_CTME $S_CAWM >$PLOT_AWM
-    printf "%9.6f GoalGap %7.3f\n" $S_CTME $M_GGCUR >$PLOT_GG
-    printf "%9.6f GG_Thr %7.3f GG_Var %7.3f GG_EMA %7.3f\n" $S_CTME $M_GGTRD $M_GGVAR $M_GGEMA >$PLOT_VF
-    printf "%9.6f RR_Thr %7.3f RR_Cur %7.3f RR_EMA %7.3f\n" $S_CTME $M_RRTRD $M_RRCUR $M_RREMA >$PLOT_RR
+    printf "%9.6f CurrAWM %2d\n" $S_CTME $S_CAWM | \
+	    stdbuf -oL tee -a ${OUT}/${PLOT_AWM_NAME}.dat \
+	    >$PLOT_AWM
+    printf "%9.6f GoalGap %7.3f Stability %3d\n" $S_CTME $M_GGCUR $M_GGSTB | \
+	    stdbuf -oL tee -a ${OUT}/${PLOT_GG_NAME}.dat \
+	    >$PLOT_GG
+    printf "%9.6f GG_Thr %7.3f GG_Var %7.3f GG_EMA %7.3f\n" $S_CTME $M_GGTRD $M_GGVAR $M_GGEMA | \
+	    stdbuf -oL tee -a ${OUT}/${PLOT_VF_NAME}.dat \
+	    >$PLOT_VF
+    printf "%9.6f RR_Thr %7.3f RR_Cur %7.3f RR_EMA %7.3f\n" $S_CTME $M_RRTRD $M_RRCUR $M_RREMA | \
+	    stdbuf -oL tee -a ${OUT}/${PLOT_RR_NAME}.dat \
+	    >$PLOT_RR
 
     # Wait for next sample, or update the configuration
     read -t $S_CPS_SLEEP <>$CFGFIFO SETTINGS && cfgUpdate $SETTINGS
@@ -396,7 +417,7 @@ tail -n0 -f "$1" | \
 	--ymin=0 $YMAX \
 	--title  "$2" \
 	--stream --xlen 90 \
-	--extracmd "$GPOPTS" \
+	--extracmd "$GPOPTS_X11" \
 	--geometry "$5" &
 }
 
@@ -463,10 +484,10 @@ plot() {
 usage
 cfgReport
 # Start data plotters
-plotData $PLOT_AWM 'Current AWM (GG) value' 'AWM Value' 6 949x233+-5+-8
-plotData $PLOT_GG 'Goal Gap (GG) Value' 'Goal Gap' 120 949x233+-5+255
-plotData $PLOT_VF 'Goal Gap Filter' 'GG Variation' 20 949x233+-5+517
-plotData $PLOT_RR 'Reconfiguration Rate Filter' 'RR Variation' 40 949x233+-5-25
+plotData $PLOT_AWM 'Current AWM (GG) value' 'AWM Value' $C_PLOT_AWM_YMAX 949x233+-5+-8
+plotData $PLOT_GG 'Goal Gap (GG) Value' 'Goal Gap' $C_PLOT_GGV_YMAX 949x233+-5+255
+plotData $PLOT_VF 'Goal Gap Filter' 'GG Variation' $C_PLOT_GGF_YMAX 949x233+-5+517
+plotData $PLOT_RR 'Reconfiguration Rate Filter' 'RR Variation' $C_PLOT_RRF_YMAX 949x233+-5-25
 # Start data generator
 dataSource &
 }
