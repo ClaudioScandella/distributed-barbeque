@@ -68,7 +68,7 @@ P2012PP::P2012PP() :
 			"FAKE power consumption read [mW]");
 
 	p2012_ts = p2012_mw = 0;
-	pwr_sample_ema = pEma_t(new EMA(power.n_samples, 0));
+	pwr_sample_ema = pEma_t(new EMA(POWER_EMA_SAMPLES, 0));
 
 	// Instance the power polling deferrable with default period
 	pwr_sample_dfr.SetPeriodic(milliseconds(power.sample_period));
@@ -675,7 +675,6 @@ int P2012PP::CommandsCb(int argc, char *argv[]) {
 	return 0;
 
 restart_polling:
-	pwr_sample_ema->reset(power.n_samples, power.curr_mw);
 	pwr_sample_dfr.SetPeriodic(milliseconds(power.sample_period));
 
 	return 0;

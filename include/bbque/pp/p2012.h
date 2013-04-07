@@ -39,6 +39,8 @@
 #define DEFAULT_POWER_CHECK_T_S    10   // seconds
 #define DEFAULT_POWER_GUARD_THR    5    // percentage
 
+#define POWER_EMA_SAMPLES   5
+
 namespace br = bbque::res;
 
 namespace bbque {
