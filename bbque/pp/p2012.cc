@@ -47,7 +47,7 @@ P2012PP::P2012PP() :
 	};
 	logger->Info("PLAT P2012: Power [B:%d mW, Tp:%d ms, Tc:%d s, #S:%d]",
 			power.budget_mw, power.sample_period, power.check_period,
-			power.n_samples);
+			power.check_samples);
 
 	// Register a command dispatcher
 	CommandManager &cm = CommandManager::GetInstance();
@@ -551,7 +551,7 @@ void P2012PP::PowerSample() {
 			power.unreserved);
 
 	// Number of samples reached?
-	if (power.count_s < power.n_samples)
+	if (power.count_s < power.check_samples)
 		return;
 
 	// Get the EMA value of power consumption, reset the count
@@ -620,12 +620,12 @@ void P2012PP::PowerConfig(PowerSetting_t pwr_sett, uint32_t value) {
 	// Config sampling period
 	case SAMPLING_PERIOD:
 		power.sample_period = value;
-		power.n_samples = power.check_period * 1000 / power.sample_period;
+		power.check_samples = power.check_period * 1000 / power.sample_period;
 		break;
 	// Config checking/policy period
 	case CHECKING_PERIOD:
 		power.check_period = value;
-		power.n_samples  = power.check_period * 1000 / power.sample_period;
+		power.check_samples = power.check_period * 1000 / power.sample_period;
 		break;
 	// Config guard margin on the power consumption read
 	case GUARD_MARGIN:
@@ -654,13 +654,13 @@ int P2012PP::CommandsCb(int argc, char *argv[]) {
 	case 's':
 		PowerConfig(SAMPLING_PERIOD, atoi(argv[1]));
 		logger->Info("STHORM: Power polling period set to %d ms [#S:%d]",
-				power.sample_period, power.n_samples);
+				power.sample_period, power.check_samples);
 		goto restart_polling;
 	// Checking period
 	case 'c':
 		PowerConfig(CHECKING_PERIOD, atoi(argv[1]));
 		logger->Info("STHORM: Power checking period set to %d s [#S:%d]",
-				power.check_period, power.n_samples);
+				power.check_period, power.check_samples);
 		goto restart_polling;
 	// Fake power consumption read
 	case 'r':

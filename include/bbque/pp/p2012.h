@@ -137,10 +137,11 @@ private:
 		uint32_t sample_period;
 		/** Period of power checking */
 		uint32_t check_period;
-		/** Num of samples for the EMA */
-		uint32_t n_samples;
+		/** After how may samples the policy is called */
+		uint32_t check_samples;
 		/** Guard threshold for the power checking */
 		uint32_t guard_margin;
+
 		/** Current power consumption (EMA)*/
 		uint32_t curr_mw;
 		/** Current power read timestamp */
