@@ -202,8 +202,9 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	logger->Debug("PLAT P2012: Maximum fabric quota = %d", pe_fabric_quota_max);
 
 	// Register the max power consumption of the fabric
+	power.unreserved = FABRIC_POWER_FULL_MW;
 	ra_result = ra.RegisterResource(
-			FABRIC_POWER_RESOURCE, "", FABRIC_POWER_FULL_MW);
+			FABRIC_POWER_RESOURCE, "", power.unreserved);
 
 	// Cluster level resources
 	for (uint16_t i = 0; i < pdev->pdesc.clusters_count; ++i) {
@@ -532,15 +533,12 @@ inline uint16_t P2012PP::GetPeFabricQuota(float const & pe_quota) {
 }
 
 void P2012PP::PowerSample() {
-	ResourceAccounter & ra(ResourceAccounter::GetInstance());
-	uint32_t power_unres;
 
 	// Is there an update value?
 	if (p2012_ts == power.curr_ts)
 		return;
 
 	// Yes: Read current power consumption and update EMA
-	power_unres   = ra.Unreserved(FABRIC_POWER_RESOURCE);
 	power.curr_ts = p2012_ts;
 	power.count_s++;
 	pwr_sample_ema->update(p2012_mw);
@@ -550,7 +548,7 @@ void P2012PP::PowerSample() {
 			p2012_mw,
 			pwr_sample_ema->get(),
 			power.budget_mw,
-			power_unres);
+			power.unreserved);
 
 	// Number of samples reached?
 	if (power.count_s < power.n_samples)
@@ -572,10 +570,6 @@ void P2012PP::PowerPolicy() {
 	int32_t  budget_new;
 	int32_t  budget_diff;
 	uint32_t consumption;
-	uint32_t power_unres;
-
-	// Total amount of power resource (unreserved)
-	power_unres = ra.Unreserved(FABRIC_POWER_RESOURCE);
 
 	// Consumption (+ guard threshold)
 	consumption = power.curr_mw +
@@ -583,7 +577,7 @@ void P2012PP::PowerPolicy() {
 	// Check the budget
 	budget_diff = power.budget_mw - consumption;
 	if ((budget_diff >= 0) &&
-		(power.budget_mw <= power_unres)) {
+		(power.budget_mw <= power.unreserved)) {
 		logger->Info("STHORM: Power budget OK [B:%d mW  D:%d mW]",
 				power.budget_mw, budget_diff);
 		return;
@@ -595,10 +589,10 @@ void P2012PP::PowerPolicy() {
 	}
 
 	// Change the amount of power resource
-	budget_new = power_unres + budget_diff;
+	budget_new = power.unreserved + budget_diff;
 	budget_new = std::max<int32_t>(budget_new, FABRIC_POWER_IDLE_MW);
 	budget_new = std::min<int32_t>(budget_new, FABRIC_POWER_FULL_MW);
-	if (budget_new == power_unres) {
+	if (static_cast<uint32_t>(budget_new) == power.unreserved) {
 		logger->Debug("STHORM: No need to update power resource (BN:%d mW)",
 				budget_new);
 		return;
@@ -607,9 +601,9 @@ void P2012PP::PowerPolicy() {
 	// Update the total amount of power resource (unreserved)
 	ra_result  = ra.UpdateResource(FABRIC_POWER_RESOURCE, "", budget_new);
 	if (ra_result == ResourceAccounter::RA_SUCCESS) {
+		power.unreserved = ra.Unreserved(FABRIC_POWER_RESOURCE);
 		logger->Warn("STHORM: [%s] updated to % " PRIu64 " mW",
-				FABRIC_POWER_RESOURCE,
-				ra.Unreserved(FABRIC_POWER_RESOURCE));
+				FABRIC_POWER_RESOURCE, power.unreserved);
 	}
 
 	// Trigger a new optimization
