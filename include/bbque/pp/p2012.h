@@ -145,6 +145,8 @@ private:
 		uint32_t curr_ts;
 		/** Sample counter */
 		uint32_t count_s;
+		/** Current amount of total unreserved power resource */
+		uint32_t unreserved;
 	} power;
 
 	/** Deferrable power sampling **/
