@@ -619,12 +619,16 @@ void P2012PP::PowerConfig(PowerSetting_t pwr_sett, uint32_t value) {
 		break;
 	// Config sampling period
 	case SAMPLING_PERIOD:
+		if (value > power.check_period * 1000)
+			return;
 		power.sample_period = value;
 		power.check_samples = power.check_period * 1000 / power.sample_period;
 		break;
 	// Config checking/policy period
 	case CHECKING_PERIOD:
-		power.check_period = value;
+		if (value < power.sample_period / 1000)
+			return;
+		power.check_period  = value;
 		power.check_samples = power.check_period * 1000 / power.sample_period;
 		break;
 	// Config guard margin on the power consumption read
