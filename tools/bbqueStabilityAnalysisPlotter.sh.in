@@ -38,6 +38,69 @@ enhanced color \
 size 8,2 \
 "
 
+################################################################################
+# Terminal Coloring Suppport
+################################################################################
+
+DULL=0
+BRIGHT=1
+
+FG_BLACK=30
+FG_RED=31
+FG_GREEN=32
+FG_YELLOW=33
+FG_BLUE=34
+FG_VIOLET=35
+FG_CYAN=36
+FG_WHITE=37
+
+FG_NULL=00
+
+BG_BLACK=40
+BG_RED=41
+BG_GREEN=42
+BG_YELLOW=43
+BG_BLUE=44
+BG_VIOLET=45
+BG_CYAN=46
+BG_WHITE=47
+
+BG_NULL=00
+
+##
+# ANSI Escape Commands
+##
+ESC="\033"
+NORMAL="\E[m\]"
+RESET="\E[${DULL};${FG_WHITE};${BG_NULL}m"
+
+##
+# Shortcuts for Colored Text ( Bright and FG Only )
+##
+
+# DULL TEXT
+BLACK="\E[${DULL};${FG_BLACK}m"
+RED="\E[${DULL};${FG_RED}m"
+GREEN="\E[${DULL};${FG_GREEN}m"
+YELLOW="\E[${DULL};${FG_YELLOW}m"
+BLUE="\E[${DULL};${FG_BLUE}m"
+VIOLET="\E[${DULL};${FG_VIOLET}m"
+CYAN="\E[${DULL};${FG_CYAN}m"
+WHITE="\E[${DULL};${FG_WHITE}m"
+
+# BRIGHT TEXT
+BRIGHT_BLACK="\E[${BRIGHT};${FG_BLACK}m"
+BRIGHT_RED="\E[${BRIGHT};${FG_RED}m"
+BRIGHT_GREEN="\E[${BRIGHT};${FG_GREEN}m"
+BRIGHT_YELLOW="\E[${BRIGHT};${FG_YELLOW}m"
+BRIGHT_BLUE="\E[${BRIGHT};${FG_BLUE}m"
+BRIGHT_VIOLET="\E[${BRIGHT};${FG_VIOLET}m"
+BRIGHT_CYAN="\E[${BRIGHT};${FG_CYAN}m"
+BRIGHT_WHITE="\E[${BRIGHT};${FG_WHITE}m"
+
+################################################################################
+# A set of utility functions
+################################################################################
 
 # Get a new random number
 random() {
@@ -218,10 +281,10 @@ M_AWSTB=$C_PLOT_AWM_YMAX
 M_GGSTB=$C_PLOT_GGV_YMAX
 
 # Simulation mode string representation
-S_SM_APP[0]="Stable"
-S_SM_APP[1]="Unstable"
-S_SM_CTR[0]="Disabled"
-S_SM_CTR[1]="Enabled"
+S_SM_APP[0]="${GREEN}Stable${RESET}"
+S_SM_APP[1]="${YELLOW}Unstable${RESET}"
+S_SM_CTR[0]="${RED}Disabled${RESET}"
+S_SM_CTR[1]="${GREEN}Enabled${RESET}"
 
 ################################################################################
 # Working Mode Management
@@ -248,15 +311,15 @@ cfgReport() {
 clear
 usage
 echo
-echo "Current configuration"
-echo "GoalGap:"
-echo "  min............. $S_RND_GG_MIN"
-echo "  max............. $S_RND_GG_MAX"
-echo "  ema_samples..... $S_GG_EMA_SMPLS"
-echo "CPS............... $S_CPS"
-echo "App............... ${S_SM_APP[$S_SM_CAPP]}"
-echo "GG control........ ${S_SM_CTR[$S_SM_CGGT]}"
-echo "RR control........ ${S_SM_CTR[$S_SM_CRRT]}"
+echo -e "Current configuration"
+echo -e "GoalGap:"
+echo -e "  min............. $S_RND_GG_MIN"
+echo -e "  max............. $S_RND_GG_MAX"
+echo -e "  ema_samples..... $S_GG_EMA_SMPLS"
+echo -e "CPS............... $S_CPS"
+echo -e "App............... ${S_SM_APP[$S_SM_CAPP]}"
+echo -e "GG control........ ${S_SM_CTR[$S_SM_CGGT]}"
+echo -e "RR control........ ${S_SM_CTR[$S_SM_CRRT]}"
 echo
 }
 
@@ -567,7 +630,8 @@ esac
 ################################################################################
 
 usage() {
-echo -e "\t\t***** Signal Test Analyzer *****"
+echo -e "${LGRAY}\n\n"
+echo "***** Signal Test Analyzer *****"
 echo
 echo "Tuning commands:"
 echo " gg <min> <max> <ema>"
