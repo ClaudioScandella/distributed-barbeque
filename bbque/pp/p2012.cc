@@ -659,13 +659,14 @@ int P2012PP::CommandsCb(int argc, char *argv[]) {
 		PowerConfig(SAMPLING_PERIOD, atoi(argv[1]));
 		logger->Info("STHORM: Power polling period set to %d ms [#S:%d]",
 				power.sample_period, power.check_samples);
-		goto restart_polling;
+		pwr_sample_dfr.SetPeriodic(milliseconds(power.sample_period));
+		break;
 	// Checking period
 	case 'c':
 		PowerConfig(CHECKING_PERIOD, atoi(argv[1]));
 		logger->Info("STHORM: Power checking period set to %d s [#S:%d]",
 				power.check_period, power.check_samples);
-		goto restart_polling;
+		break;
 	// Fake power consumption read
 	case 'r':
 		p2012_mw = atoi(argv[1]);
@@ -675,11 +676,6 @@ int P2012PP::CommandsCb(int argc, char *argv[]) {
 	default:
 		logger->Warn("STHORM: Unknown command [%s], ignored...", argv[0]);
 	}
-
-	return 0;
-
-restart_polling:
-	pwr_sample_dfr.SetPeriodic(milliseconds(power.sample_period));
 
 	return 0;
 }
