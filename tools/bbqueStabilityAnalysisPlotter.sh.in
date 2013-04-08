@@ -199,6 +199,7 @@ S_SM_CAPP=0  # Application control: 0 stable, 1 unstable
 S_SM_CLIB=0  # RTLib control: 0 disabled, 1 enabled
 S_SM_CBBQ=0  # BBQ control: 0 disabled, 1 enabled
 # Model Metrics
+M_AWSTB=1    # Application Working Mode Stability Flag: >0 stable, 0: unstable
 M_GGVAR=0    # GoalGap Variation
 M_GGEMA=0    # GoalGap EMA
 M_GGTRD=5    # GoalGap Threshold
@@ -213,6 +214,7 @@ M_RRTRD=5    # Reconfiguration Rate Threshold
 S_CPS_SLEEP=$(calc "1 / $S_CPS")
 S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
 S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
+M_AWSTB=$C_PLOT_AWM_YMAX
 M_GGSTB=$C_PLOT_GGV_YMAX
 
 # Simulation mode string representation
@@ -307,6 +309,17 @@ M_GGPRV=$M_GGCUR
 # Control Model
 ################################################################################
 
+
+# Check the stability of the Application Working mode
+# return: 1 stable, 0: unstable
+checkAWStability() {
+# Consider AW always stable if RTLib control is disabled
+[ $S_SM_CLIB -eq 0 ] && return 1
+# AW stability condition:
+M_AWSTB=$(calc "if($M_RREMA < $M_RRTRD) $C_PLOT_AWM_YMAX else 0")
+return $M_AWSTB
+}
+
 # Check the stability of the GG metrics
 # return: 1 stable, 0: unstable
 checkGGStability() {
@@ -395,6 +408,9 @@ updateGG
 # Compute the RR metrics
 updateRR
 
+# Compute the AW stability flag
+checkAWStability
+
 }
 
 ################################################################################
@@ -429,7 +445,7 @@ while true; do
     simulationCycle
 
     # Dump metrics
-    printf "%9.6f CurrAWM %2d\n" $S_CTME $S_CAWM | \
+    printf "%9.6f AWM %2d Stability %3d\n" $S_CTME $S_CAWM $M_AWSTB| \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_AWM_NAME}.dat \
 	    >$PLOT_AWM
     printf "%9.6f GoalGap %7.3f Stability %3d\n" $S_CTME $M_GGCUR $M_GGSTB | \
