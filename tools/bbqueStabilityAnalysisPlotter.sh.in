@@ -569,10 +569,9 @@ tail -n0 -f "$1" | $PLOTTER \
 	--stream --xlen 90 \
 	--extracmd "$GPOPTS_X11" \
 	--curvestyle Value "ls 1" \
-	--curvestyle Stability "with point ls 2" \
-	--curvestyle GoalGap "with point ls 1" \
 	--curvestyle EMA "ls 2" \
 	--curvestyle Threshold "ls 3" \
+	--curvestyle Stability "with point ls 2" \
 	--geometry "$5" &
 }
 
