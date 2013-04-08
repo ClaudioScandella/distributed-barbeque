@@ -241,8 +241,10 @@ S_CPS_SLEEP=0      # Sleep time for configured CPS
 S_RND_GG_MIN=0     # GG Random Generator Mimimum
 S_RND_GG_MAX=0     # GG Random Generator Maximum
 S_RND_GG_DLT=0     # GG Random Generator Delta, i.e. Min-Max
-S_GV_EMA_SMPLS=60  # GG EMA Samples number
-S_GV_EMA_ALPHA=0   # GG EMA Alpha value
+S_GG_EMA_SMPLS=60  # GG EMA Samples number
+S_GG_EMA_ALPHA=0   # GG EMA Alpha value
+S_GV_EMA_SMPLS=60  # GV EMA Samples number
+S_GV_EMA_ALPHA=0   # GV EMA Alpha value
 S_RC_RUN_TIME=20   # The [ms] AVERAGE for onRun
 S_RC_RUN_STDV=2    # The [ms] STDDEV  for onRun
 S_RC_MON_TIME=5    # The [ms] AVERAGE for onMonitor
@@ -265,6 +267,8 @@ S_SM_CRRT=0  # BBQ control: 0 disabled, 1 enabled
 M_AWSTB=1    # Application Working Mode Stability Flag: >0 stable, 0: unstable
 M_GGPRV=0    # GoalGap Value Previous
 M_GGCUR=3    # GoalGap Value Current
+M_GGEMA=0    # GoalGap Value EMA
+M_GGTRD=5    # GoalGap Value Threshold
 M_GGVAR=0    # GoalGap Variation
 M_GVEMA=0    # GoalGap Variation EMA
 M_GVTRD=5    # GoalGap Variation Threshold
@@ -275,6 +279,7 @@ M_RRTRD=5    # Reconfiguration Rate Threshold
 
 # Model initialization
 S_CPS_SLEEP=$(calc "1 / $S_CPS")
+S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
 S_GV_EMA_ALPHA=$(emaInit  $S_GV_EMA_SMPLS)
 S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
 M_AWSTB=$C_PLOT_AWM_YMAX
@@ -318,6 +323,7 @@ echo -e "  behavior........ ${S_SM_APP[$S_SM_CAPP]}"
 echo -e "GoalGap:"
 echo -e "  min............. $S_RND_GG_MIN"
 echo -e "  max............. $S_RND_GG_MAX"
+echo -e "  ema_samples..... $S_GG_EMA_SMPLS"
 echo
 echo -e "GoalGap Filter:"
 echo -e "  ema_samples..... $S_GV_EMA_SMPLS"
@@ -342,6 +348,8 @@ S_CPS_SLEEP=$(calc "1 / $2")
 S_RND_GG_MIN=$2
 S_RND_GG_MAX=$3
 S_RND_GG_DLT=$(calc "$3 - $2")
+S_GG_EMA_SMPLS=$4
+S_GG_EMA_ALPHA=$(emaInit  $4)
 ;;
 
 2) # Goal Gap Variation Configuration
@@ -430,6 +438,7 @@ else
 	# AWM High => GG = 0;
 	ggVarGenerator 0
 fi
+M_GGEMA=$(emaUpdate $S_GG_EMA_ALPHA $M_GGEMA $M_GGCUR)
 M_GVEMA=$(emaUpdate $S_GV_EMA_ALPHA $M_GVEMA $M_GGVAR)
 }
 
@@ -520,7 +529,8 @@ while true; do
     printf "%9.6f Value %2d Stability %3d\n" $S_CTME $S_CAWM $M_AWSTB| \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_AWM_NAME}.dat \
 	    >$PLOT_AWM
-    printf "%9.6f Value %7.3f Stability %3d\n" $S_CTME $M_GGCUR $M_GVSTB | \
+    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f Stability %3d\n" \
+		$S_CTME $M_GGTRD $M_GGCUR $M_GGEMA $M_GVSTB | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_GG_NAME}.dat \
 	    >$PLOT_GG
     printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" $S_CTME $M_GVTRD $M_GGVAR $M_GVEMA | \
@@ -614,7 +624,8 @@ echo "0 $S_CPS" >$CFGFIFO
 [ $2 != '-' ] && [ $2 -lt $S_RND_GG_MAX -o $2 -lt $3 ] && S_RND_GG_MIN=$2
 [ $3 != '-' ] && [ $3 -gt $S_RND_GG_MIN -o $3 -gt $2 ] && S_RND_GG_MAX=$3
 [ $3 == 0 ] && S_RND_GG_MIN=0 && S_RND_GG_MAX=0
-echo "1 $S_RND_GG_MIN $S_RND_GG_MAX" >$CFGFIFO
+[ $4 != '-' ] && S_GG_EMA_SMPLS=$4
+echo "1 $S_RND_GG_MIN $S_RND_GG_MAX $S_GG_EMA_SMPLS" >$CFGFIFO
 ;;
 
 "gv") # Goal Gap Variation Configuration
@@ -654,6 +665,7 @@ echo " gg <min> <max> <ema>"
 echo "    tune the application generated GoalGap values, where:"
 echo "    min  - set the minimum value for the GG random generator"
 echo "    max  - set the maximum value for the GG random generator"
+echo "    ema  - set the number of samples for the GG Exponential Moving Average (EMA)"
 echo " gv <ema>"
 echo "    tune the GoalGap Variation Filter, where:"
 echo "    ema  - set the number of samples for the GV Exponential Moving Average (EMA)"
