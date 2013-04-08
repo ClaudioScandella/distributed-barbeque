@@ -241,8 +241,8 @@ S_CPS_SLEEP=0      # Sleep time for configured CPS
 S_RND_GG_MIN=0     # GG Random Generator Mimimum
 S_RND_GG_MAX=0     # GG Random Generator Maximum
 S_RND_GG_DLT=0     # GG Random Generator Delta, i.e. Min-Max
-S_GG_EMA_SMPLS=60  # GG EMA Samples number
-S_GG_EMA_ALPHA=0   # GG EMA Alpha value
+S_GV_EMA_SMPLS=60  # GG EMA Samples number
+S_GV_EMA_ALPHA=0   # GG EMA Alpha value
 S_RC_RUN_TIME=20   # The [ms] AVERAGE for onRun
 S_RC_RUN_STDV=2    # The [ms] STDDEV  for onRun
 S_RC_MON_TIME=5    # The [ms] AVERAGE for onMonitor
@@ -263,22 +263,22 @@ S_SM_CGGT=0  # GG Threshold control: 0 disabled, 1 enabled
 S_SM_CRRT=0  # BBQ control: 0 disabled, 1 enabled
 # Model Metrics
 M_AWSTB=1    # Application Working Mode Stability Flag: >0 stable, 0: unstable
+M_GGPRV=0    # GoalGap Value Previous
+M_GGCUR=3    # GoalGap Value Current
 M_GGVAR=0    # GoalGap Variation
-M_GGEMA=0    # GoalGap EMA
-M_GGTRD=5    # GoalGap Threshold
-M_GGPRV=0    # GoalGap Previous
-M_GGCUR=3    # GoalGap Previous
-M_GGSTB=1    # GoalGap Stability Flag: >0 stable, 0: unstable
+M_GVEMA=0    # GoalGap Variation EMA
+M_GVTRD=5    # GoalGap Variation Threshold
+M_GVSTB=1    # GoalGap Variation Stability Flag: >0 stable, 0: unstable
 M_RRCUR=0    # Reconfiguration Rate Current
 M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold
 
 # Model initialization
 S_CPS_SLEEP=$(calc "1 / $S_CPS")
-S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
+S_GV_EMA_ALPHA=$(emaInit  $S_GV_EMA_SMPLS)
 S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
 M_AWSTB=$C_PLOT_AWM_YMAX
-M_GGSTB=$C_PLOT_GGV_YMAX
+M_GVSTB=$C_PLOT_GGV_YMAX
 
 # Simulation mode string representation
 S_SM_APP[0]="${GREEN}Stable${RESET}"
@@ -315,7 +315,7 @@ echo -e "Current configuration"
 echo -e "GoalGap:"
 echo -e "  min............. $S_RND_GG_MIN"
 echo -e "  max............. $S_RND_GG_MAX"
-echo -e "  ema_samples..... $S_GG_EMA_SMPLS"
+echo -e "  ema_samples..... $S_GV_EMA_SMPLS"
 echo -e "CPS............... $S_CPS"
 echo -e "App............... ${S_SM_APP[$S_SM_CAPP]}"
 echo -e "GG control........ ${S_SM_CTR[$S_SM_CGGT]}"
@@ -331,8 +331,8 @@ case $1 in
 S_RND_GG_MIN=$2
 S_RND_GG_MAX=$3
 S_RND_GG_DLT=$(calc "$3 - $2")
-S_GG_EMA_SMPLS=$4
-S_GG_EMA_ALPHA=$(emaInit  $4)
+S_GV_EMA_SMPLS=$4
+S_GV_EMA_ALPHA=$(emaInit  $4)
 ;;
 
 1) # CPS Configuration
@@ -389,8 +389,8 @@ checkGGStability() {
 # Consider GG always stable if RTLib control is disabled
 [ $S_SM_CGGT -eq 0 ] && return 1
 # GG stability condition:
-M_GGSTB=$(calc "if($M_GGEMA < $M_GGTRD) $C_PLOT_GGV_YMAX else 0")
-return $M_GGSTB
+M_GVSTB=$(calc "if($M_GVEMA < $M_GVTRD) $C_PLOT_GGV_YMAX else 0")
+return $M_GVSTB
 }
 
 ################################################################################
@@ -421,7 +421,7 @@ else
 	# AWM High => GG = 0;
 	ggVarGenerator 0
 fi
-M_GGEMA=$(emaUpdate $S_GG_EMA_ALPHA $M_GGEMA $M_GGVAR)
+M_GVEMA=$(emaUpdate $S_GV_EMA_ALPHA $M_GVEMA $M_GGVAR)
 }
 
 # Update the time for an AWM reconfiguration
@@ -487,9 +487,9 @@ mkfifo $PLOT_AWM
 PLOT_GG_NAME=bbqueSignalAlalyzer_plotGG
 PLOT_GG=$(mktemp -u /tmp/${PLOT_GG_NAME}_XXXXXX)
 mkfifo $PLOT_GG
-PLOT_VF_NAME=bbqueSignalAlalyzer_plotGGFilter
-PLOT_VF=$(mktemp -u /tmp/${PLOT_VF_NAME}_XXXXXX)
-mkfifo $PLOT_VF
+PLOT_GV_NAME=bbqueSignalAlalyzer_plotGGFilter
+PLOT_GV=$(mktemp -u /tmp/${PLOT_GV_NAME}_XXXXXX)
+mkfifo $PLOT_GV
 PLOT_RR_NAME=bbqueSignalAlalyzer_plotRRFilter
 PLOT_RR=$(mktemp -u /tmp/${PLOT_RR_NAME}_XXXXXX)
 mkfifo $PLOT_RR
@@ -511,12 +511,12 @@ while true; do
     printf "%9.6f Value %2d Stability %3d\n" $S_CTME $S_CAWM $M_AWSTB| \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_AWM_NAME}.dat \
 	    >$PLOT_AWM
-    printf "%9.6f Value %7.3f Stability %3d\n" $S_CTME $M_GGCUR $M_GGSTB | \
+    printf "%9.6f Value %7.3f Stability %3d\n" $S_CTME $M_GGCUR $M_GVSTB | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_GG_NAME}.dat \
 	    >$PLOT_GG
-    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" $S_CTME $M_GGTRD $M_GGVAR $M_GGEMA | \
-	    stdbuf -oL tee -a ${OUT}/${PLOT_VF_NAME}.dat \
-	    >$PLOT_VF
+    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" $S_CTME $M_GVTRD $M_GGVAR $M_GVEMA | \
+	    stdbuf -oL tee -a ${OUT}/${PLOT_GV_NAME}.dat \
+	    >$PLOT_GV
     printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" $S_CTME $M_RRTRD $M_RRCUR $M_RREMA | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_RR_NAME}.dat \
 	    >$PLOT_RR
@@ -600,8 +600,8 @@ case $1 in
 [ $2 != '-' ] && [ $2 -lt $S_RND_GG_MAX -o $2 -lt $3 ] && S_RND_GG_MIN=$2
 [ $3 != '-' ] && [ $3 -gt $S_RND_GG_MIN -o $3 -gt $2 ] && S_RND_GG_MAX=$3
 [ $3 == 0 ] && S_RND_GG_MIN=0 && S_RND_GG_MAX=0
-[ $4 != '-' ] && S_GG_EMA_SMPLS=$4
-echo "0 $S_RND_GG_MIN $S_RND_GG_MAX $S_GG_EMA_SMPLS" >$CFGFIFO
+[ $4 != '-' ] && S_GV_EMA_SMPLS=$4
+echo "0 $S_RND_GG_MIN $S_RND_GG_MAX $S_GV_EMA_SMPLS" >$CFGFIFO
 ;;
 
 "cps") # CPS Configuration
@@ -655,7 +655,7 @@ cfgReport
 # Start data plotters
 plotData $PLOT_AWM 'Application Working Mode (AWM) Metrics' '' $C_PLOT_AWM_YMAX 949x233+-5+-8
 plotData $PLOT_GG 'Goal Gap (GG) Metrics' '' $C_PLOT_GGV_YMAX 949x233+-5+255
-plotData $PLOT_VF 'Goal Gap (GG) Filter' '' $C_PLOT_GGF_YMAX 949x233+-5+517
+plotData $PLOT_GV 'Goal Gap (GG) Filter' '' $C_PLOT_GGF_YMAX 949x233+-5+517
 plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter' '' $C_PLOT_RRF_YMAX 949x233+-5-25
 # Start data generator
 dataSource &
@@ -672,11 +672,11 @@ printData ${OUT}/${PLOT_GG_NAME}.dat \
 	'' \
 	$C_PLOT_GGV_YMAX \
 	${OUT}/${PLOT_GG_NAME}
-printData ${OUT}/${PLOT_VF_NAME}.dat \
+printData ${OUT}/${PLOT_GV_NAME}.dat \
 	'Goal Gap (GG) Filter' \
 	'' \
 	$C_PLOT_GGF_YMAX \
-	${OUT}/${PLOT_VF_NAME}
+	${OUT}/${PLOT_GV_NAME}
 printData ${OUT}/${PLOT_RR_NAME}.dat \
 	'Reconfiguration Rate (RR) Filter' \
 	'' \
@@ -695,7 +695,7 @@ EOF
 cleanup() {
 	kill $(jobs -p)
 	killall feedgnuplot
-	rm $CFGFIFO $PLOT_GG $PLOT_VF $PLOT_RR
+	rm $CFGFIFO $PLOT_GG $PLOT_GV $PLOT_RR
 }
 trap cleanup EXIT
 
