@@ -445,16 +445,16 @@ while true; do
     simulationCycle
 
     # Dump metrics
-    printf "%9.6f AWM %2d Stability %3d\n" $S_CTME $S_CAWM $M_AWSTB| \
+    printf "%9.6f Value %2d Stability %3d\n" $S_CTME $S_CAWM $M_AWSTB| \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_AWM_NAME}.dat \
 	    >$PLOT_AWM
-    printf "%9.6f GoalGap %7.3f Stability %3d\n" $S_CTME $M_GGCUR $M_GGSTB | \
+    printf "%9.6f Value %7.3f Stability %3d\n" $S_CTME $M_GGCUR $M_GGSTB | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_GG_NAME}.dat \
 	    >$PLOT_GG
-    printf "%9.6f GG_Thr %7.3f GG_Var %7.3f GG_EMA %7.3f\n" $S_CTME $M_GGTRD $M_GGVAR $M_GGEMA | \
+    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" $S_CTME $M_GGTRD $M_GGVAR $M_GGEMA | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_VF_NAME}.dat \
 	    >$PLOT_VF
-    printf "%9.6f RR_Thr %7.3f RR_Cur %7.3f RR_EMA %7.3f\n" $S_CTME $M_RRTRD $M_RRCUR $M_RREMA | \
+    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" $S_CTME $M_RRTRD $M_RRCUR $M_RREMA | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_RR_NAME}.dat \
 	    >$PLOT_RR
 
@@ -483,15 +483,11 @@ tail -n0 -f "$1" | $PLOTTER \
 	--title  "$2" \
 	--stream --xlen 90 \
 	--extracmd "$GPOPTS_X11" \
-	--curvestyle CurrAWM "ls 1" \
-	--curvestyle GoalGap "with point ls 1" \
+	--curvestyle Value "ls 1" \
 	--curvestyle Stability "with point ls 2" \
-	--curvestyle GG_Var "with point ls 1" \
-	--curvestyle GG_EMA "ls 2" \
-	--curvestyle GG_Thr "ls 3" \
-	--curvestyle RR_Cur "with points ls 1" \
-	--curvestyle RR_EMA "ls 2" \
-	--curvestyle RR_Thr "ls 3" \
+	--curvestyle GoalGap "with point ls 1" \
+	--curvestyle EMA "ls 2" \
+	--curvestyle Threshold "ls 3" \
 	--geometry "$5" &
 }
 
@@ -593,33 +589,33 @@ plot() {
 # Tuning command memento and current configuration dump
 cfgReport
 # Start data plotters
-plotData $PLOT_AWM 'Current AWM (GG) value' 'AWM Value' $C_PLOT_AWM_YMAX 949x233+-5+-8
-plotData $PLOT_GG 'Goal Gap (GG) Value' 'Goal Gap' $C_PLOT_GGV_YMAX 949x233+-5+255
-plotData $PLOT_VF 'Goal Gap Filter' 'GG Variation' $C_PLOT_GGF_YMAX 949x233+-5+517
-plotData $PLOT_RR 'Reconfiguration Rate Filter' 'RR Variation' $C_PLOT_RRF_YMAX 949x233+-5-25
+plotData $PLOT_AWM 'Application Working Mode (AWM) Metrics' '' $C_PLOT_AWM_YMAX 949x233+-5+-8
+plotData $PLOT_GG 'Goal Gap (GG) Metrics' '' $C_PLOT_GGV_YMAX 949x233+-5+255
+plotData $PLOT_VF 'Goal Gap (GG) Filter' '' $C_PLOT_GGF_YMAX 949x233+-5+517
+plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter' '' $C_PLOT_RRF_YMAX 949x233+-5-25
 # Start data generator
 dataSource &
 }
 
 cat >>signalAnalysisPrinter.sh <<EOF
 printData ${OUT}/${PLOT_AWM_NAME}.dat \
-	'Current AWM (GG) value' \
-	'AWM Value' \
+	'Application Working Mode (AWM) Metrics' \
+	'' \
 	$C_PLOT_AWM_YMAX \
 	${OUT}/${PLOT_AWM_NAME}
 printData ${OUT}/${PLOT_GG_NAME}.dat \
-	'Goal Gap (GG) Value' \
-	'Goal Gap' \
+	'Goal Gap (GG) Metrics' \
+	'' \
 	$C_PLOT_GGV_YMAX \
 	${OUT}/${PLOT_GG_NAME}
 printData ${OUT}/${PLOT_VF_NAME}.dat \
-	'Goal Gap Filter' \
-	'GG Variation' \
+	'Goal Gap (GG) Filter' \
+	'' \
 	$C_PLOT_GGF_YMAX \
 	${OUT}/${PLOT_VF_NAME}
 printData ${OUT}/${PLOT_RR_NAME}.dat \
-	'Reconfiguration Rate Filter' \
-	'RR Variation' \
+	'Reconfiguration Rate (RR) Filter' \
+	'' \
 	$C_PLOT_RRF_YMAX \
 	${OUT}/${PLOT_RR_NAME}
 EOF
