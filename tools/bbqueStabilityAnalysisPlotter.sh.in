@@ -365,6 +365,7 @@ S_SM_CRRT=$4
 
 esac
 
+# Dump current configuration
 cfgReport
 
 }
@@ -498,7 +499,6 @@ checkAWStability
 # A Samples Generator
 ################################################################################
 
-
 PLOT_AWM_NAME=bbqueSignalAlalyzer_plotAWM
 PLOT_AWM=$(mktemp -u /tmp/${PLOT_AWM_NAME}_XXXXXX)
 mkfifo $PLOT_AWM
@@ -526,17 +526,20 @@ while true; do
     simulationCycle
 
     # Dump metrics
-    printf "%9.6f Value %2d Stability %3d\n" $S_CTME $S_CAWM $M_AWSTB| \
+    printf "%9.6f Value %2d Stability %3d\n" \
+		$S_CTME $S_CAWM $M_AWSTB| \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_AWM_NAME}.dat \
 	    >$PLOT_AWM
     printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f Stability %3d\n" \
 		$S_CTME $M_GGTRD $M_GGCUR $M_GGEMA $M_GVSTB | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_GG_NAME}.dat \
 	    >$PLOT_GG
-    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" $S_CTME $M_GVTRD $M_GGVAR $M_GVEMA | \
+    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" \
+		$S_CTME $M_GVTRD $M_GGVAR $M_GVEMA | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_GV_NAME}.dat \
 	    >$PLOT_GV
-    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" $S_CTME $M_RRTRD $M_RRCUR $M_RREMA | \
+    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" \
+		$S_CTME $M_RRTRD $M_RRCUR $M_RREMA | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_RR_NAME}.dat \
 	    >$PLOT_RR
 
