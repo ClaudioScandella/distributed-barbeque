@@ -312,14 +312,20 @@ clear
 usage
 echo
 echo -e "Current configuration"
+echo -e "Application:"
+echo -e "  cps............. $S_CPS"
+echo -e "  behavior........ ${S_SM_APP[$S_SM_CAPP]}"
 echo -e "GoalGap:"
 echo -e "  min............. $S_RND_GG_MIN"
 echo -e "  max............. $S_RND_GG_MAX"
+echo
+echo -e "GoalGap Filter:"
 echo -e "  ema_samples..... $S_GV_EMA_SMPLS"
-echo -e "CPS............... $S_CPS"
-echo -e "App............... ${S_SM_APP[$S_SM_CAPP]}"
-echo -e "GG control........ ${S_SM_CTR[$S_SM_CGGT]}"
-echo -e "RR control........ ${S_SM_CTR[$S_SM_CRRT]}"
+echo -e "  control......... ${S_SM_CTR[$S_SM_CGGT]}"
+echo
+echo -e "Reconfiguration Rate Filter:"
+echo -e "  ema_samples..... $S_RR_EMA_SMPLS"
+echo -e "  control......... ${S_SM_CTR[$S_SM_CRRT]}"
 echo
 }
 
@@ -327,20 +333,23 @@ echo
 cfgUpdate() {
 case $1 in
 
-0) # Goal Gap Configuration
-S_RND_GG_MIN=$2
-S_RND_GG_MAX=$3
-S_RND_GG_DLT=$(calc "$3 - $2")
-S_GV_EMA_SMPLS=$4
-S_GV_EMA_ALPHA=$(emaInit  $4)
-;;
-
-1) # CPS Configuration
+0) # CPS Configuration
 S_CPS=$2
 S_CPS_SLEEP=$(calc "1 / $2")
 ;;
 
-2) # Simulation Mode
+1) # Goal Gap Configuration
+S_RND_GG_MIN=$2
+S_RND_GG_MAX=$3
+S_RND_GG_DLT=$(calc "$3 - $2")
+;;
+
+2) # Goal Gap Variation Configuration
+S_GV_EMA_SMPLS=$2
+S_GV_EMA_ALPHA=$(emaInit  $2)
+;;
+
+3) # Simulation Mode
 S_SM_CAPP=$2
 S_SM_CGGT=$3
 S_SM_CRRT=$4
@@ -596,24 +605,28 @@ chmod a+x signalAnalysisPrinter.sh
 tuneGenerator() {
 case $1 in
 
+"cps") # CPS Configuration
+[ $2 != '-' ] && S_CPS=$2
+echo "0 $S_CPS" >$CFGFIFO
+;;
+
 "gg") # Goal Gap Configuration
 [ $2 != '-' ] && [ $2 -lt $S_RND_GG_MAX -o $2 -lt $3 ] && S_RND_GG_MIN=$2
 [ $3 != '-' ] && [ $3 -gt $S_RND_GG_MIN -o $3 -gt $2 ] && S_RND_GG_MAX=$3
 [ $3 == 0 ] && S_RND_GG_MIN=0 && S_RND_GG_MAX=0
-[ $4 != '-' ] && S_GV_EMA_SMPLS=$4
-echo "0 $S_RND_GG_MIN $S_RND_GG_MAX $S_GV_EMA_SMPLS" >$CFGFIFO
+echo "1 $S_RND_GG_MIN $S_RND_GG_MAX" >$CFGFIFO
 ;;
 
-"cps") # CPS Configuration
-[ $2 != '-' ] && S_CPS=$2
-echo "1 $S_CPS" >$CFGFIFO
+"gv") # Goal Gap Variation Configuration
+[ $2 != '-' ] && S_GV_EMA_SMPLS=$2
+echo "2 $S_GV_EMA_SMPLS" >$CFGFIFO
 ;;
 
 "mode") # Model Mode
 [ $2 != '-' ] && S_SM_CAPP=$2
 [ $3 != '-' ] && S_SM_CGGT=$3
 [ $4 != '-' ] && S_SM_CRRT=$4
-echo "2 $S_SM_CAPP $S_SM_CGGT $S_SM_CRRT" >$CFGFIFO
+echo "3 $S_SM_CAPP $S_SM_CGGT $S_SM_CRRT" >$CFGFIFO
 ;;
 
 *) # Unsopported command
@@ -634,16 +647,21 @@ echo -e "${LGRAY}\n\n"
 echo "***** Signal Test Analyzer *****"
 echo
 echo "Tuning commands:"
+echo " cps <cps>"
+echo "    tune the application behaviors, where:"
+echo "    cps  - set the number of samples per seconds (CPS)"
 echo " gg <min> <max> <ema>"
+echo "    tune the application generated GoalGap values, where:"
 echo "    min  - set the minimum value for the GG random generator"
 echo "    max  - set the maximum value for the GG random generator"
-echo "    ema  - set the number of samples for the GG Exponential Moving Average (EMA)"
-echo " cps <cps>"
-echo "    cps  - set the number of samples per seconds (CPS)"
+echo " gv <ema>"
+echo "    tune the GoalGap Variation Filter, where:"
+echo "    ema  - set the number of samples for the GV Exponential Moving Average (EMA)"
 echo " mode <app> <ggc> <rrc>"
-echo "    app - Application stability mode         0: stable,   1: unstable"
-echo "    ggc - GoalGap control mode               0: disabled, 1: enabled"
-echo "    rrc - Reconfiguration Rate control mode  0: disabled, 1: enabled"
+echo "    tune the system behaviors and control mechanisms, where:"
+echo "    app  - Application behaviors              0: stable,   1: unstable"
+echo "    ggc  - GoalGap control mode               0: disabled, 1: enabled"
+echo "    rrc  - Reconfiguration Rate control mode  0: disabled, 1: enabled"
 echo
 echo "Use '-' to keep the previous value"
 echo
