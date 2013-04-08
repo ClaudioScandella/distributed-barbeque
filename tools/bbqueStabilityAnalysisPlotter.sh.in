@@ -196,8 +196,8 @@ S_DTME=10    # The [ms] from a switchDown reconfiguration
 S_PAWM=1     # Previous AWM
 S_CAWM=1     # Current  AWM
 S_SM_CAPP=0  # Application control: 0 stable, 1 unstable
-S_SM_CLIB=0  # RTLib control: 0 disabled, 1 enabled
-S_SM_CBBQ=0  # BBQ control: 0 disabled, 1 enabled
+S_SM_CGGT=0  # GG Threshold control: 0 disabled, 1 enabled
+S_SM_CRRT=0  # BBQ control: 0 disabled, 1 enabled
 # Model Metrics
 M_AWSTB=1    # Application Working Mode Stability Flag: >0 stable, 0: unstable
 M_GGVAR=0    # GoalGap Variation
@@ -255,8 +255,8 @@ echo "  max............. $S_RND_GG_MAX"
 echo "  ema_samples..... $S_GG_EMA_SMPLS"
 echo "CPS............... $S_CPS"
 echo "App............... ${S_SM_APP[$S_SM_CAPP]}"
-echo "RTLib control..... ${S_SM_CTR[$S_SM_CLIB]}"
-echo "BBQ control....... ${S_SM_CTR[$S_SM_CBBQ]}"
+echo "GG control........ ${S_SM_CTR[$S_SM_CGGT]}"
+echo "RR control........ ${S_SM_CTR[$S_SM_CRRT]}"
 echo
 }
 
@@ -279,8 +279,8 @@ S_CPS_SLEEP=$(calc "1 / $2")
 
 2) # Simulation Mode
 S_SM_CAPP=$2
-S_SM_CLIB=$3
-S_SM_CBBQ=$4
+S_SM_CGGT=$3
+S_SM_CRRT=$4
 ;;
 
 esac
@@ -314,7 +314,7 @@ M_GGPRV=$M_GGCUR
 # return: 1 stable, 0: unstable
 checkAWStability() {
 # Consider AW always stable if RTLib control is disabled
-[ $S_SM_CLIB -eq 0 ] && return 1
+[ $S_SM_CGGT -eq 0 ] && return 1
 # AW stability condition:
 M_AWSTB=$(calc "if($M_RREMA < $M_RRTRD) $C_PLOT_AWM_YMAX else 0")
 return $M_AWSTB
@@ -324,7 +324,7 @@ return $M_AWSTB
 # return: 1 stable, 0: unstable
 checkGGStability() {
 # Consider GG always stable if RTLib control is disabled
-[ $S_SM_CLIB -eq 0 ] && return 1
+[ $S_SM_CGGT -eq 0 ] && return 1
 # GG stability condition:
 M_GGSTB=$(calc "if($M_GGEMA < $M_GGTRD) $C_PLOT_GGV_YMAX else 0")
 return $M_GGSTB
@@ -548,9 +548,9 @@ echo "1 $S_CPS" >$CFGFIFO
 
 "mode") # Model Mode
 [ $2 != '-' ] && S_SM_CAPP=$2
-[ $3 != '-' ] && S_SM_CLIB=$3
-[ $4 != '-' ] && S_SM_CBBQ=$4
-echo "2 $S_SM_CAPP $S_SM_CLIB $S_SM_CBBQ" >$CFGFIFO
+[ $3 != '-' ] && S_SM_CGGT=$3
+[ $4 != '-' ] && S_SM_CRRT=$4
+echo "2 $S_SM_CAPP $S_SM_CGGT $S_SM_CRRT" >$CFGFIFO
 ;;
 
 *) # Unsopported command
@@ -576,10 +576,10 @@ echo "    max  - set the maximum value for the GG random generator"
 echo "    ema  - set the number of samples for the GG Exponential Moving Average (EMA)"
 echo " cps <cps>"
 echo "    cps  - set the number of samples per seconds (CPS)"
-echo " mode <app> <lib> <bbq>"
-echo "    app - Application control mode - 0: stable,   1: unstable"
-echo "    lib - RTLib control mode       - 0: disabled, 1: enabled"
-echo "    bbq - BBQ control mode         - 0: disabled, 1: enabled"
+echo " mode <app> <ggc> <rrc>"
+echo "    app - Application stability mode         0: stable,   1: unstable"
+echo "    ggc - GoalGap control mode               0: disabled, 1: enabled"
+echo "    rrc - Reconfiguration Rate control mode  0: disabled, 1: enabled"
 echo
 echo "Use '-' to keep the previous value"
 echo
