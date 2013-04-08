@@ -63,3 +63,14 @@ install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/bbqueLogPlots.sh"
 	DESTINATION ${BBQUE_PATH_BBQ}
 	COMPONENT BarbequeUTILS
 	RENAME bbque-logplots)
+
+#----- Deploy the BBQ Signal Stability Analysis script
+configure_file (
+	"${PROJECT_SOURCE_DIR}/tools/bbqueStabilityAnalysisPlotter.sh.in"
+	"${PROJECT_BINARY_DIR}/tools/bbqueStabilityAnalysisPlotter.sh"
+	@ONLY
+)
+install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/bbqueStabilityAnalysisPlotter.sh"
+	DESTINATION ${BBQUE_PATH_BBQ}
+	COMPONENT BarbequeUTILS
+	RENAME bbque-stability-analysis)
