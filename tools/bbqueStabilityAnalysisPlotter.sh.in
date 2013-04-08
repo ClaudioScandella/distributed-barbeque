@@ -18,6 +18,8 @@ set terminal x11 1 \
 title \"Signal Plot Analysis\" \
 enhanced font \"arial,6\" \
 noraise; \
+set key horizontal; \
+set key left top; \
 $GPLINE_SIG; \
 $GPLINE_AVG; \
 $GPLINE_FIL; \
