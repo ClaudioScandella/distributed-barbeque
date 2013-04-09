@@ -339,12 +339,12 @@ echo
 cfgUpdate() {
 case $1 in
 
-0) # CPS Configuration
+"cps") # CPS Configuration
 S_CPS=$2
 S_CPS_SLEEP=$(calc "1 / $2")
 ;;
 
-1) # Goal Gap Configuration
+"gg") # Goal Gap Configuration
 S_RND_GG_MIN=$2
 S_RND_GG_MAX=$3
 S_RND_GG_DLT=$(calc "$3 - $2")
@@ -352,12 +352,12 @@ S_GG_EMA_SMPLS=$4
 S_GG_EMA_ALPHA=$(emaInit  $4)
 ;;
 
-2) # Goal Gap Variation Configuration
+"gv") # Goal Gap Variation Configuration
 S_GV_EMA_SMPLS=$2
 S_GV_EMA_ALPHA=$(emaInit  $2)
 ;;
 
-3) # Simulation Mode
+"mode") # Simulation Mode
 S_SM_CAPP=$2
 S_SM_CGGT=$3
 S_SM_CRRT=$4
@@ -619,7 +619,7 @@ case $1 in
 
 "cps") # CPS Configuration
 [ $2 != '-' ] && S_CPS=$2
-echo "0 $S_CPS" >$CFGFIFO
+echo "$1 $S_CPS" >$CFGFIFO
 ;;
 
 "gg") # Goal Gap Configuration
@@ -627,19 +627,19 @@ echo "0 $S_CPS" >$CFGFIFO
 [ $3 != '-' ] && [ $3 -gt $S_RND_GG_MIN -o $3 -gt $2 ] && S_RND_GG_MAX=$3
 [ $3 == 0 ] && S_RND_GG_MIN=0 && S_RND_GG_MAX=0
 [ $4 != '-' ] && S_GG_EMA_SMPLS=$4
-echo "1 $S_RND_GG_MIN $S_RND_GG_MAX $S_GG_EMA_SMPLS" >$CFGFIFO
+echo "$1 $S_RND_GG_MIN $S_RND_GG_MAX $S_GG_EMA_SMPLS" >$CFGFIFO
 ;;
 
 "gv") # Goal Gap Variation Configuration
 [ $2 != '-' ] && S_GV_EMA_SMPLS=$2
-echo "2 $S_GV_EMA_SMPLS" >$CFGFIFO
+echo "$1 $S_GV_EMA_SMPLS" >$CFGFIFO
 ;;
 
 "mode") # Model Mode
 [ $2 != '-' ] && S_SM_CAPP=$2
 [ $3 != '-' ] && S_SM_CGGT=$3
 [ $4 != '-' ] && S_SM_CRRT=$4
-echo "3 $S_SM_CAPP $S_SM_CGGT $S_SM_CRRT" >$CFGFIFO
+echo "$1 $S_SM_CAPP $S_SM_CGGT $S_SM_CRRT" >$CFGFIFO
 ;;
 
 *) # Unsopported command
