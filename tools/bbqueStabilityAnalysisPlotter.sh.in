@@ -308,10 +308,10 @@ M_GGPRV=0    # GoalGap Value Previous
 M_GGCUR=0    # GoalGap Value Current
 M_GGEMA=0    # GoalGap Value EMA
 M_GGTRD=0    # GoalGap Value Threshold
+M_GGSTB=1    # GoalGap Value Stability Flag: >0 stable, 0: unstable
 M_GGVAR=0    # GoalGap Variation
 M_GVEMA=0    # GoalGap Variation EMA
 M_GVTRD=5    # GoalGap Variation Threshold
-M_GVSTB=1    # GoalGap Variation Stability Flag: >0 stable, 0: unstable
 M_RRCUR=0    # Reconfiguration Rate Current
 M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold
@@ -325,7 +325,7 @@ S_GV_EMA_ALPHA=$(emaInit  $S_GV_EMA_SMPLS)
 S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
 M_AWSTB=$C_PLOT_AWM_YMAX
 M_GGTRD=$(ggFilterGGThreshold $M_RREMA)
-M_GVSTB=$C_PLOT_GGV_YMAX
+M_GGSTB=$C_PLOT_GGV_YMAX
 
 # Simulation mode string representation
 S_SM_APP[0]="${GREEN}Stable${RESET}"
@@ -458,11 +458,11 @@ return $M_AWSTB
 # Check the stability of the GG metrics
 # return: 1 stable, 0: unstable
 checkGGStability() {
-# Consider GG always stable if RTLib control is disabled
+# Consider GG always stable if GG control is disabled
 [ $S_SM_CGGT -eq 0 ] && return 1
 # GG stability condition:
-M_GVSTB=$(calc "if($M_GVEMA < $M_GVTRD) $C_PLOT_GGV_YMAX else 0")
-return $M_GVSTB
+M_GGSTB=$(calc "if($M_GVEMA < $M_GVTRD) $C_PLOT_GGV_YMAX else 0")
+return $M_GGSTB
 }
 
 ################################################################################
@@ -586,7 +586,7 @@ while true; do
 	    stdbuf -oL tee -a ${OUT}/${PLOT_AWM_NAME}.dat \
 	    >$PLOT_AWM
     printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f Stability %3d\n" \
-		$S_CTME $M_GGTRD $M_GGCUR $M_GGEMA $M_GVSTB | \
+		$S_CTME $M_GGTRD $M_GGCUR $M_GGEMA $M_GGSTB | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_GG_NAME}.dat \
 	    >$PLOT_GG
     printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" \
