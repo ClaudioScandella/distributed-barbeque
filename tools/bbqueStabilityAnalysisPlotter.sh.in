@@ -330,6 +330,7 @@ M_GGSTB=1    # GoalGap Value Stability Flag: >0 stable, 0: unstable
 M_GGVAR=0    # GoalGap Variation
 M_GVEMA=0    # GoalGap Variation EMA
 M_GVTRD=5    # GoalGap Variation Threshold
+M_GGFWD=1    # GoalGap Forward Flag: >0 forwarded, 0: stopped
 M_RRCUR=0    # Reconfiguration Rate Current
 M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold
@@ -344,6 +345,7 @@ S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
 M_AWSTB=$C_PLOT_AWM_YMAX
 M_GGTRD=$(ggFilterGGThreshold $M_RREMA)
 M_GGSTB=$C_PLOT_GGV_YMAX
+M_GGFWD=$C_PLOT_RRF_YMAX
 
 # Simulation mode string representation
 S_SM_APP[0]="${GREEN}Stable${RESET}"
@@ -483,6 +485,17 @@ M_GGSTB=$(calc "if($M_GVEMA < $M_GVTRD) $C_PLOT_GGV_YMAX else 0")
 return $M_GGSTB
 }
 
+# Check the ability to issue GG
+# return: >0 enabled, 0: disabled
+checkGGForwarding() {
+# Consider GG always enabled if RR control is disabled
+[ $S_SM_CRRT -eq 0 ] && return 1
+# GG enable condition:
+M_GGFWD=$(calc "if($M_GGTRD < $M_GGEMA) $C_PLOT_RRF_YMAX else 0")
+return $M_GGFWD
+}
+
+
 ################################################################################
 # AWM Assignement Model
 ################################################################################
@@ -525,6 +538,12 @@ REC=$(calc "if ($S_RTME > 0) 0 else 1")
 
 # Avoid reconfs if GG is not stable
 checkGGStability && return
+
+# If we are in the Lower AWM...
+if [ $S_CAWM -eq 1 ]; then
+	# Avoid reconfs if GG forwarding is not enabled
+	checkGGForwarding && return
+fi
 
 DTIME=$S_UTME
 [ $S_CAWM -eq 3 ] && DTIME=$S_DTME
