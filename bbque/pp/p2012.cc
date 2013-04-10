@@ -190,6 +190,13 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	ResourceAccounter::ExitCode_t ra_result;
 	char rsrc_path[MAX_LEN_RPATH_STR];
 
+	// If the #Cluster or #PEs is zero return a fatal error
+	if ((pdev->pdesc.clusters_count <= 0) ||
+		(pdev->pdesc.pes_count <= 0)) {
+		logger->Fatal("STHORM: Unavailable resources! [C:%d, PEs:%d]",
+				pdev->pdesc.clusters_count,	pdev->pdesc.pes_count);
+		return PLATFORM_ENUMERATION_FAILED;
+	}
 
 	logger->Info("STHORM: -----------------------------");
 	logger->Info("STHORM: Clusters .............. %3d",
