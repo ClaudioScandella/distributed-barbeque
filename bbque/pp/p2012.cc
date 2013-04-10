@@ -190,11 +190,22 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	ResourceAccounter::ExitCode_t ra_result;
 	char rsrc_path[MAX_LEN_RPATH_STR];
 
-	logger->Debug("PLAT P2012: # Clusters = %-3d [MAX: %3d]",
-			pdev->pdesc.clusters_count, PLATFORM_CLUSTERS_MAX);
-	logger->Debug("PLAT P2012: # PEs      = %-3d [MAX: %3d]",
-			pdev->pdesc.pes_count, CLUSTER_PES_MAX);
-	logger->Debug("PLAT P2012: # Apps MAX = %-3d", EXCS_MAX);
+
+	logger->Info("STHORM: -----------------------------");
+	logger->Info("STHORM: Clusters .............. %3d",
+			pdev->pdesc.clusters_count);
+	logger->Info("STHORM: Processing elements ... %3d",
+			pdev->pdesc.pes_count);
+	logger->Info("STHORM: DMAs per cluster ...... %3d",
+			CLUSTER_DMAS_MAX);
+	logger->Info("STHORM: Simultaneous EXCs ..... %3d",
+			EXCS_MAX);
+	logger->Info("STHORM: TCDM .................. %3dKB",
+			pdev->pdesc.cluster[0].dmem_kb);
+	logger->Info("STHORM: -----------------------------");
+
+	logger->Debug("STHORM: ExcConstraints @[%x]",
+			(uint32_t) &pdev->pcons - (uint32_t) pdev);
 
 	// PE fabric quota max (=1 if the maximum number of cluster is available)
 	pe_fabric_quota_max =
@@ -363,8 +374,10 @@ P2012PP::ExitCode_t P2012PP::_MapResources(AppPtr_t papp,
 			pusage->GetAmount(),
 			r_path->Type()
 		};
-		logger->Debug("PLAT P2012: Resource [%s] mapped into cluster %d",
-				r_path->ToString().c_str(), pbind->cluster_id);
+		if (pbind->cluster_id != R_ID_NONE) {
+			logger->Debug("STHORM: Resource [%s] mapped into cluster %d",
+					r_path->ToString().c_str(), pbind->cluster_id);
+		}
 
 		// Update EXC constraint into the device descriptor
 		result = UpdateExcConstraints(papp, xcs_id, pbind);
@@ -590,7 +603,7 @@ void P2012PP::PowerPolicy() {
 	budget_new = power.unreserved + budget_diff;
 	budget_new = std::max<int32_t>(budget_new, FABRIC_POWER_IDLE_MW);
 	budget_new = std::min<int32_t>(budget_new, FABRIC_POWER_FULL_MW);
-	if (static_cast<uint32_t>(budget_new) == power.unreserved) {
+	if (static_cast<uint64_t>(budget_new) == power.unreserved) {
 		logger->Debug("STHORM: No need to update power resource (BN:%d mW)",
 				budget_new);
 		return;
