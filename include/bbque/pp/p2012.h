@@ -29,7 +29,8 @@
 #include "p2012_pil.h"
 
 
-#define PLATFORM_ID         		"com.st.sthorm"
+#define PLATFORM_ID         	"com.st.sthorm"
+#define PLATFORM_NAME        	"STHORM"
 
 #define FABRIC_POWER_RESOURCE   "sys0.acc0.pwr0"
 #define FABRIC_POWER_IDLE_MW     300
