@@ -477,7 +477,7 @@ return $M_AWSTB
 }
 
 # Check the stability of the GG metrics
-# return: 1 stable, 0: unstable
+# return: >0 stable, 0: unstable
 checkGGStability() {
 # Consider GG always stable if GG control is disabled
 [ $S_SM_CGGT -eq 0 ] && return 1
