@@ -32,9 +32,7 @@ namespace bbque {
 
 P2012PP::P2012PP() :
 	PlatformProxy(),
-	pwr_sample_dfr("pp.pwr_sample", std::bind(&P2012PP::PowerSample, this)),
-	out_queue_id(P2012_INVALID_QUEUE_ID),
-	in_queue_id(P2012_INVALID_QUEUE_ID) {
+	pwr_sample_dfr("pp.pwr_sample", std::bind(&P2012PP::PowerSample, this)) {
 
 	// Init power management information
 	power = {
@@ -83,10 +81,6 @@ P2012PP::~P2012PP() {
 	int p2012_result;
 	logger->Info("STHORM: Destroying Platform Proxy...");
 
-	// Destroy message queues
-	p2012_deleteMsgQueue(out_queue_id);
-	p2012_deleteMsgQueue(in_queue_id);
-
 	//TODO: Move outside
 	_Stop();
 	logger->Debug("STHORM: Stop signal sent to platform");
@@ -127,7 +121,6 @@ P2012PP::ExitCode_t P2012PP::_LoadPlatformData() {
 
 P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 	int p2012_result;
-	int fabric_addr;
 
 	// Init p2012 user library
 	p2012_result = p2012_initUsrLib();
@@ -135,25 +128,6 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 		logger->Fatal("STHORM: Initialization failed...");
 		return PLATFORM_INIT_FAILED;
 	}
-
-	// Create output messages queue
-	p2012_result = p2012_createMsgQueue(NULL, P2012_QUEUE_HOST,
-			P2012_QUEUE_FC, NULL, &out_queue_id, &fabric_addr);
-	if (p2012_result != 0) {
-		logger->Fatal("STHORM: Can't create output message queue (%s)",
-				strerror(p2012_result));
-		return PLATFORM_INIT_FAILED;
-	}
-
-	// Create input messages queue
-	p2012_result = p2012_createMsgQueue(NULL, P2012_QUEUE_FC,
-			P2012_QUEUE_HOST, NULL, &in_queue_id, &fabric_addr);
-	if (p2012_result != 0) {
-		logger->Fatal("STHORM: Can't create input message queue (%s)",
-				strerror(p2012_result));
-		return PLATFORM_INIT_FAILED;
-	}
-	logger->Info("STHORM: Message queues initialized");
 
 	// Initialize the shared memory buffer
 	p2012_result = p2012_BBQInit(&sh_mem);
@@ -405,18 +379,7 @@ void P2012PP::Monitor() {
 	// TODO: we should switch to the poll interface as soon as it is
 	// available
 	logger->Info("STHORM: waiting for platform events...");
-#if 0
-	p2012_result = p2012_getNextMessage(buffer, P2012_MSG_SIZE);
-	if (p2012_result != 0) {
-		logger->Error("STHORM: waiting platform event FAILED! "
-				"(Error: get next message failure)");
-		::usleep(500000);
-		return;
-	}
-#else
-# warning "P2012: notification disabled"
 	Wait();
-#endif
 }
 
 void P2012PP::Task() {

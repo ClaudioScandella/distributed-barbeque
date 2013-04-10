@@ -180,20 +180,6 @@ private:
 	 */
 	 P2012_buffer_mem_t sh_mem;
 
-	 /**
-	  * @brief The output message queue ID
-	  *
-	  * The queue into which to send messages to the platform
-	  */
-	 P2012_queue_id_t out_queue_id;
-
-	 /**
-	  * @brief The input message queue ID
-	  *
-	  * The queue from which to fetch messages coming from the platform
-	  */
-	 P2012_queue_id_t in_queue_id;
-
 	/**
 	 * @brief P2012 device descriptor
 	 *
