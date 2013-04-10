@@ -283,14 +283,15 @@ calc "if ($1 < $S_GG_TRD_RR1) $S_GG_TRD_GG1 else (($S_GG_TRD_ALPHA * $1) + $S_GG
 # Simulation Model Status and Metrics
 ################################################################################
 # Model and Plots Configuration
+C_STEP_SLEEP=1     # Time of a single simulation step [s]
 C_PLOT_ALL=0       # Signale to Plot: 1: all, 0: only enabled filters
 C_PLOT_AWM_YMAX=6
 C_PLOT_GGV_YMAX=120
 C_PLOT_GGF_YMAX=20
 C_PLOT_RRF_YMAX=40
 # Model Status
-S_CPS=20
-S_CPS_SLEEP=0      # Sleep time for configured CPS
+S_CPS=10           # Cycles Per Second [Hz]
+S_CPS_TIME=0       # Cycle Period [s]
 S_RND_GG_MIN=0     # GG Random Generator Mimimum
 S_RND_GG_MAX=0     # GG Random Generator Maximum
 S_RND_GG_DLT=0     # GG Random Generator Delta, i.e. Min-Max
@@ -311,17 +312,20 @@ S_RC_RCF_TIME=300  # The [ms] AVERAGE for onConfigure
 S_RC_RCF_STDV=50   # The [ms] STDDEV  for onConfigure
 S_RR_EMA_SMPLS=60  # RR EMA Samples number
 S_RR_EMA_ALPHA=0   # RR EMA Alpha value
-S_PTME=0     # Previous Cycle Time
 S_CTME=0     # Current Cycle Time
+S_NTME=0     # Next Cycle Time
 S_RTME=0     # Last Reconfiguration request Time
 S_UTME=500   # The [ms] from a switchUp reconfiguration
-S_DTME=10    # The [ms] from a switchDown reconfiguration
+S_DTME=100   # The [ms] from a switchDown reconfiguration
 S_PAWM=1     # Previous AWM
 S_CAWM=1     # Current  AWM
 S_SM_CAPP=0  # Application control: 0 stable, 1 unstable
 S_SM_CGGT=0  # GG Threshold control: 0 disabled, 1 enabled
 S_SM_CRRT=0  # BBQ control: 0 disabled, 1 enabled
 # Model Metrics
+M_RC_RTME=0  # The last onRun time
+M_RC_MTME=0  # The last onMonitor time
+M_RC_CTME=0  # The last onConfigure time
 M_AWSTB=1    # Application Working Mode Stability Flag: >0 stable, 0: unstable
 M_GGPRV=0    # GoalGap Value Previous
 M_GGCUR=0    # GoalGap Value Current
@@ -337,7 +341,7 @@ M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold
 
 # Model initialization
-S_CPS_SLEEP=$(calc "1 / $S_CPS")
+S_CPS_TIME=$(calc "1 / $S_CPS")
 S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
 S_GG_TRD_ALPHA=$(ggFilterAlpha)
 S_GG_TRD_BETA=$(ggFilterBeta)
@@ -407,7 +411,7 @@ case $1 in
 
 "cps") # CPS Configuration
 S_CPS=$2
-S_CPS_SLEEP=$(calc "1 / $2")
+S_CPS_TIME=$(calc "1 / $2")
 ;;
 
 "gg") # Goal Gap Configuration
@@ -550,20 +554,21 @@ fi
 DTIME=$S_UTME
 [ $S_CAWM -eq 3 ] && DTIME=$S_DTME
 
-S_RTME=$(calc "$S_CTME + ($DTIME / 1000)")
+PTME=$(calc "($M_RC_RTME + $M_RC_MTME + $M_RC_CTME) / 1000")
+S_RTME=$(calc "$S_CTME + $PTME + ($DTIME / 1000)")
 #printf "%9.6f Reconfigure scheduled @ $S_RTME\n" $S_CTME
 }
 
 # Update the Reconfiguration Rate metrics
 updateRR() {
-RT=$(normal "$S_RC_RUN_TIME" "$S_RC_RUN_STDV")
-MT=$(normal "$S_RC_MON_TIME" "$S_RC_MON_STDV")
+M_RC_RTME=$(normal "$S_RC_RUN_TIME" "$S_RC_RUN_STDV")
+M_RC_MTME=$(normal "$S_RC_MON_TIME" "$S_RC_MON_STDV")
 if [ $S_PAWM != $S_CAWM ]; then
-	CT=$(normal "$S_RC_RCF_TIME" "$S_RC_RCF_STDV")
+	M_RC_CTME=$(normal "$S_RC_RCF_TIME" "$S_RC_RCF_STDV")
 else
-	CT=0
+	M_RC_CTME=0
 fi
-M_RRCUR=$(calc "(($MT + $CT)/1000) / ($RT/1000)")
+M_RRCUR=$(calc "(($M_RC_MTME + $M_RC_CTME)/1000) / ($M_RC_RTME/1000)")
 
 # Update RR EMA
 GT=$(calc "if ($M_RREMA < $M_RRCUR) 0 else 1")
@@ -572,6 +577,9 @@ if [ $GT -eq 1 ]; then
 else
 	M_RREMA=$M_RRCUR
 fi
+
+# Update next Simulation Time
+S_NTME=$(calc "st=(($M_RC_RTME + $M_RC_MTME + $M_RC_CTME)/1000); if (st < $S_CPS_TIME) ($S_CTME + $S_CPS_TIME) else ($S_CTME + st)")
 }
 
 # Update the current AWM model, where:
@@ -579,9 +587,6 @@ simulationCycle() {
 
 # Check if current AWM must be changed
 switchAWM
-
-#  set time of next reconfiguration
-[ $S_SM_CAPP -eq 1 ] && setReconfigurationTime
 
 # Update the GG model
 updateGG
@@ -591,6 +596,9 @@ updateRR
 
 # Compute the AW stability flag
 checkAWStability
+
+#  set time of next reconfiguration
+[ $S_SM_CAPP -eq 1 ] && setReconfigurationTime
 
 }
 
@@ -641,12 +649,15 @@ mkfifo $PLOT_RR
 # Clean-up previously generated .dat files
 rm -f ${OUT}/bbqueSignalAlalyzer_plot*.dat
 
-# The data generator
-dataSource() {
-while true; do
+# A simulation step correspond to the simulation of all events happening
+# in a timeframe of abount 1[s]
+simulationStep() {
+STME=$(calc "$S_CTME + $C_STEP_SLEEP")
+RUN=1
+while [ $RUN -eq 1 ]; do
 
     # Get current time
-    S_CTME=$(getTime)
+    S_CTME=$S_NTME
 
     # Do a new simulation cycle
     simulationCycle
@@ -672,9 +683,24 @@ while true; do
 	    stdbuf -oL tee -a ${OUT}/${PLOT_RR_NAME}.dat \
 	    >$PLOT_RR
 
-    # Wait for next sample, or update the configuration
-    read -t $S_CPS_SLEEP <>$CFGFIFO SETTINGS && cfgUpdate $SETTINGS
+    # Check simulation step completion
+    RUN=$(calc "if ($S_CTME < $STME) 1 else 0")
+done
+}
 
+
+# The data generator
+dataSource() {
+while true; do
+	# Do a simulation step
+	T1=$(getTime)
+	simulationStep
+	T2=$(getTime)
+
+	SLEEP_TIME=$(calc "t=($C_STEP_TIME - ($T2 - $T1)); if (t>0) t else .001;")
+
+	# Wait for next sample, or update the configuration
+	read -t $SLEEP_TIME <>$CFGFIFO SETTINGS && cfgUpdate $SETTINGS
 done
 }
 
