@@ -283,6 +283,7 @@ calc "if ($1 < $S_GG_TRD_RR1) $S_GG_TRD_GG1 else (($S_GG_TRD_ALPHA * $1) + $S_GG
 # Simulation Model Status and Metrics
 ################################################################################
 # Model and Plots Configuration
+C_PLOT_ALL=0       # Signale to Plot: 1: all, 0: only enabled filters
 C_PLOT_AWM_YMAX=6
 C_PLOT_GGV_YMAX=120
 C_PLOT_GGF_YMAX=20
@@ -593,6 +594,33 @@ checkAWStability
 
 }
 
+setupPlotValue() {
+P_GGTRD=$M_GGTRD
+P_GGCUR=$M_GGCUR
+P_GGEMA=$M_GGEMA
+P_GGSTB=$M_GGSTB
+P_GGFWD=$M_GGFWD
+P_GGVAR=$M_GGVAR
+P_GVTRD=$M_GVTRD
+P_GVEMA=$M_GVEMA
+P_RRTRD=$M_RRTRD
+P_RRCUR=$M_RRCUR
+P_RREMA=$M_RREMA
+
+[ $C_PLOT_ALL -eq 1 ] && return
+
+# Forcely reset GG plots on GG filter disabled
+[ $S_SM_CGGT -eq 0 ] \
+	&& P_GVTRD=0
+
+# Forcely reset RR plots on RR filter disabled
+[ $S_SM_CRRT -eq 0 ] \
+	&& P_RRTRD=0 \
+	&& P_RREMA=0 \
+	&& P_GGTRD=0
+
+}
+
 ################################################################################
 # A Samples Generator
 ################################################################################
@@ -623,21 +651,24 @@ while true; do
     # Do a new simulation cycle
     simulationCycle
 
+    # Setup the values to plot based on filters enabled
+    setupPlotValue
+
     # Dump metrics
     printf "%9.6f Value %2d Stability %3d\n" \
 		$S_CTME $S_CAWM $M_AWSTB| \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_AWM_NAME}.dat \
 	    >$PLOT_AWM
     printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f Stability %3d\n" \
-		$S_CTME $M_GGTRD $M_GGCUR $M_GGEMA $M_GGSTB | \
+		$S_CTME $P_GGTRD $P_GGCUR $P_GGEMA $P_GGSTB | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_GG_NAME}.dat \
 	    >$PLOT_GG
     printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" \
-		$S_CTME $M_GVTRD $M_GGVAR $M_GVEMA | \
+		$S_CTME $P_GVTRD $P_GGVAR $P_GVEMA | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_GV_NAME}.dat \
 	    >$PLOT_GV
     printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f Forwarding %3d\n" \
-		$S_CTME $M_RRTRD $M_RRCUR $M_RREMA $M_GGFWD | \
+		$S_CTME $P_RRTRD $P_RRCUR $P_RREMA $P_GGFWD | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_RR_NAME}.dat \
 	    >$PLOT_RR
 
