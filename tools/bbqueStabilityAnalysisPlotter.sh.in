@@ -149,7 +149,6 @@ NOW=$(echo | ts %.s)
 calc "$NOW - $START"
 }
 
-
 ################################################################################
 # Distribution Generators
 ################################################################################
@@ -284,7 +283,7 @@ calc "if ($1 < $S_GG_TRD_RR1) $S_GG_TRD_GG1 else (($S_GG_TRD_ALPHA * $1) + $S_GG
 ################################################################################
 # Model and Plots Configuration
 C_STEP_SLEEP=1     # Time of a single simulation step [s]
-C_PLOT_ALL=0       # Signale to Plot: 1: all, 0: only enabled filters
+C_PLOT_ALL=0       # Signal to Plot: 1: all, 0: only enabled filters
 C_PLOT_AWM_YMAX=6
 C_PLOT_GGV_YMAX=120
 C_PLOT_GGF_YMAX=20
@@ -685,6 +684,7 @@ while [ $RUN -eq 1 ]; do
 
     # Check simulation step completion
     RUN=$(calc "if ($S_CTME < $STME) 1 else 0")
+
 done
 }
 
