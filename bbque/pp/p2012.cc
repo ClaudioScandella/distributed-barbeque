@@ -45,7 +45,7 @@ P2012PP::P2012PP() :
 		DEFAULT_POWER_GUARD_THR,
 		0, 0, 0
 	};
-	logger->Info("PLAT P2012: Power [B:%d mW, Tp:%d ms, Tc:%d s, #S:%d]",
+	logger->Info("STHORM: Power [B:%d mW, Tp:%d ms, Tc:%d s, #S:%d]",
 			power.budget_mw, power.sample_period, power.check_period,
 			power.check_samples);
 
@@ -76,12 +76,12 @@ P2012PP::P2012PP() :
 
 	// NOTE: Could we move this at the end of LoadPlatformData?
 	SetPilInitialized();
-	logger->Info("PLAT P2012: Built Platform Proxy");
+	logger->Info("STHORM: Built Platform Proxy");
 }
 
 P2012PP::~P2012PP() {
 	int p2012_result;
-	logger->Info("PLAT P2012: Destroying Platform Proxy...");
+	logger->Info("STHORM: Destroying Platform Proxy...");
 
 	// Destroy message queues
 	p2012_deleteMsgQueue(out_queue_id);
@@ -89,38 +89,38 @@ P2012PP::~P2012PP() {
 
 	//TODO: Move outside
 	_Stop();
-	logger->Debug("PLAT P2012: Stop signal sent to platform");
+	logger->Debug("STHORM: Stop signal sent to platform");
 
 	// Unmap shared memory buffer
 	p2012_result = p2012_unmapMemBuf(&sh_mem);
 	if (p2012_result) {
-		logger->Error("PLAT P2012: Error in unmapping device descriptor (%s)",
+		logger->Error("STHORM: Error in unmapping device descriptor (%s)",
 				strerror(p2012_result));
 		return;
 	}
-	logger->Debug("PLAT P2012: Bye!");
+	logger->Debug("STHORM: Bye!");
 }
 
 P2012PP::ExitCode_t P2012PP::_LoadPlatformData() {
 	ExitCode_t result;
-	logger->Info("PLAT P2012: ... Loading platform data ...");
+	logger->Info("STHORM: ... Loading platform data ...");
 
 	// Initialise message queues and shared memory buffer (hence the device
 	// descriptor)
 	result = InitPlatformComm();
 	if (result != OK) {
-		logger->Fatal("PLAT P2012: Platform initialization failed.");
+		logger->Fatal("STHORM: Platform initialization failed.");
 		return PLATFORM_INIT_FAILED;
 	}
-	logger->Info("PLAT P2012: Platform initialization performed");
+	logger->Info("STHORM: Platform initialization performed");
 
 	// Register the resources
 	result = InitResources();
 	if (result != OK) {
-		logger->Fatal("PLAT P2012: Platform enumeration failed.");
+		logger->Fatal("STHORM: Platform enumeration failed.");
 		return PLATFORM_ENUMERATION_FAILED;
 	}
-	logger->Info("PLAT P2012: Platform is ready");
+	logger->Info("STHORM: Platform is ready");
 
 	return OK;
 }
@@ -132,7 +132,7 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 	// Init p2012 user library
 	p2012_result = p2012_initUsrLib();
 	if (p2012_result != 0) {
-		logger->Fatal("PLAT P2012: Initialization failed...");
+		logger->Fatal("STHORM: Initialization failed...");
 		return PLATFORM_INIT_FAILED;
 	}
 
@@ -140,7 +140,7 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 	p2012_result = p2012_createMsgQueue(NULL, P2012_QUEUE_HOST,
 			P2012_QUEUE_FC, NULL, &out_queue_id, &fabric_addr);
 	if (p2012_result != 0) {
-		logger->Fatal("PLAT P2012: Can't create output message queue (%s)",
+		logger->Fatal("STHORM: Can't create output message queue (%s)",
 				strerror(p2012_result));
 		return PLATFORM_INIT_FAILED;
 	}
@@ -149,28 +149,28 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 	p2012_result = p2012_createMsgQueue(NULL, P2012_QUEUE_FC,
 			P2012_QUEUE_HOST, NULL, &in_queue_id, &fabric_addr);
 	if (p2012_result != 0) {
-		logger->Fatal("PLAT P2012: Can't create input message queue (%s)",
+		logger->Fatal("STHORM: Can't create input message queue (%s)",
 				strerror(p2012_result));
 		return PLATFORM_INIT_FAILED;
 	}
-	logger->Info("PLAT P2012: Message queues initialized");
+	logger->Info("STHORM: Message queues initialized");
 
 	// Initialize the shared memory buffer
 	p2012_result = p2012_BBQInit(&sh_mem);
 	if (p2012_result != 0) {
-		logger->Fatal("PLAT P2012: Driver initialization failed (%s)",
+		logger->Fatal("STHORM: Driver initialization failed (%s)",
 				strerror(p2012_result));
 		return PLATFORM_INIT_FAILED;
 	}
-	logger->Info("PLAT P2012: Driver initialized");
+	logger->Info("STHORM: Driver initialized");
 
 	// Map the memory buffer (device descriptor) into userland
 	pdev = (ManagedDevice_t *) p2012_mapMemBuf(&sh_mem);
 	if (!pdev) {
-		logger->Fatal("PLAT P2012: Unable to map device descriptor");
+		logger->Fatal("STHORM: Unable to map device descriptor");
 		return PLATFORM_INIT_FAILED;
 	}
-	logger->Info("PLAT P2012: Device descriptor mapped in [%x]", pdev);
+	logger->Info("STHORM: Device descriptor mapped in [%x]", pdev);
 
 	// Clear the EXCs constraints vector
 	ClearExcConstraints();
@@ -199,7 +199,7 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 	// PE fabric quota max (=1 if the maximum number of cluster is available)
 	pe_fabric_quota_max =
 		pdev->pdesc.clusters_count * pdev->pdesc.pes_count * 100;
-	logger->Debug("PLAT P2012: Maximum fabric quota = %d", pe_fabric_quota_max);
+	logger->Debug("STHORM: Maximum fabric quota = %d", pe_fabric_quota_max);
 
 	// Register the max power consumption of the fabric
 	power.unreserved = FABRIC_POWER_FULL_MW;
@@ -211,14 +211,14 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 		// L1 memory: Resource path
 		snprintf(rsrc_path, MAX_LEN_RPATH_STR, "sys0.acc0.grp%d.mem0", i);
 
-		logger->Debug("PLAT P2012: C[%d] L1 mem = %-3d Kb",
+		logger->Debug("STHORM: C[%d] TCDM mem = %-3d Kb",
 				i, pdev->pdesc.cluster[i].dmem_kb);
 
 		// L1 memory: Register the resource
 		ra_result =	ra.RegisterResource(rsrc_path, "Kb",
 				pdev->pdesc.cluster[i].dmem_kb);
 		if (ra_result != ResourceAccounter::RA_SUCCESS) {
-			logger->Fatal("PLAT P2012: Unable to register '%s'", rsrc_path);
+			logger->Fatal("STHORM: Unable to register '%s'", rsrc_path);
 			return PLATFORM_ENUMERATION_FAILED;
 		}
 
@@ -258,7 +258,7 @@ inline P2012PP::ExitCode_t P2012PP::RegisterClusterPE(
 	// PE: Register the resource
 	ra_result = ra.RegisterResource(rsrc_path, "", pe_tot);
 	if (ra_result != ResourceAccounter::RA_SUCCESS) {
-		logger->Fatal("PLAT P2012: Unable to register '%s'", rsrc_path);
+		logger->Fatal("STHORM: Unable to register '%s'", rsrc_path);
 		return PLATFORM_ENUMERATION_FAILED;
 	}
 
@@ -280,8 +280,7 @@ inline P2012PP::ExitCode_t P2012PP::RegisterClusterDMA(
 	ra_result = ra.RegisterResource(rsrc_path, "Gbps",
 			pdev->pdesc.cluster[0].dma[0].bandwidth.max);
 	if (ra_result != ResourceAccounter::RA_SUCCESS) {
-		logger->Fatal("PLAT P2012: "
-				"Unable to register DMA channel: %s", rsrc_path);
+		logger->Fatal("STHORM: Unable to register DMA channel: %s", rsrc_path);
 		return PLATFORM_ENUMERATION_FAILED;
 	}
 
@@ -304,13 +303,13 @@ P2012PP::ExitCode_t P2012PP::_Release(AppPtr_t papp) {
 P2012PP::ExitCode_t P2012PP::_ReclaimResources(AppPtr_t papp) {
 	ExitCode_t result = OK;
 	int16_t xcs_id;
-	logger->Debug("PLAT P2012: Resource reclaiming for [%s]",
+	logger->Debug("STHORM: Resource reclaiming for [%s]",
 			papp->StrId());
 
 	// Retrieve the EXC constraints descriptor and clear
 	xcs_id = GetExcConstraints(papp);
 	if (xcs_id < 0) {
-		logger->Warn("PLAT P2012: "
+		logger->Warn("STHORM: "
 				"No EXC constraints descriptor for [%s]",
 				papp->StrId());
 		return PLATFORM_DATA_NOT_FOUND;
@@ -319,7 +318,7 @@ P2012PP::ExitCode_t P2012PP::_ReclaimResources(AppPtr_t papp) {
 
 	// Decrement the count of EXCs constraints
 	pdev->pcons.count--;
-	logger->Debug("PLAT P2012: EXC constraints count = %d",
+	logger->Debug("STHORM: EXC constraints count = %d",
 			pdev->pcons.count);
 
 	return result;
@@ -342,14 +341,14 @@ P2012PP::ExitCode_t P2012PP::_MapResources(AppPtr_t papp,
 	// Get a clean EXC constraints
 	xcs_id = InitExcConstraints(papp);
 	if (xcs_id < 0) {
-		logger->Error("PLAT P2012: "
+		logger->Error("STHORM: "
 				"cannot retrieve an EXC constraints descriptor");
 		return MAPPING_FAILED;
 	}
 
 	// Increment the count of EXCs constraints
 	pdev->pcons.count++;
-	logger->Debug("PLAT P2012: EXC constraints count = %02d",
+	logger->Debug("STHORM: EXC constraints count = %02d",
 			pdev->pcons.count);
 
 	// Current AWM resource usages
@@ -370,8 +369,7 @@ P2012PP::ExitCode_t P2012PP::_MapResources(AppPtr_t papp,
 		// Update EXC constraint into the device descriptor
 		result = UpdateExcConstraints(papp, xcs_id, pbind);
 		if (result != OK) {
-			logger->Error("PLAT P2012: "
-					"Unable to update assignment [%s] (%llu) to [%s]",
+			logger->Error("STHORM: Unable to update assignment [%s]" PRIu64	"to [%s]",
 					r_path->ToString().c_str(), pbind->amount, papp->StrId());
 			return MAPPING_FAILED;
 		}
@@ -386,11 +384,11 @@ void P2012PP::_Stop() {
 void P2012PP::Monitor() {
 	// TODO: we should switch to the poll interface as soon as it is
 	// available
-	logger->Info("PLAT P2012: waiting for platform events...");
+	logger->Info("STHORM: waiting for platform events...");
 #if 0
 	p2012_result = p2012_getNextMessage(buffer, P2012_MSG_SIZE);
 	if (p2012_result != 0) {
-		logger->Error("PLAT P2012: waiting platform event FAILED! "
+		logger->Error("STHORM: waiting platform event FAILED! "
 				"(Error: get next message failure)");
 		::usleep(500000);
 		return;
@@ -402,11 +400,11 @@ void P2012PP::Monitor() {
 }
 
 void P2012PP::Task() {
-	logger->Info("PLAT P2012: Monitoring thread STARTED");
+	logger->Info("STHORM: Monitoring thread STARTED");
 	while (!done) {
 		Monitor();
 	}
-	logger->Info("PLAT P2012: Monitoring thread ENDED");
+	logger->Info("STHORM: Monitoring thread ENDED");
 }
 
 int16_t P2012PP::InitExcConstraints(AppPtr_t papp) {
@@ -424,7 +422,7 @@ int16_t P2012PP::InitExcConstraints(AppPtr_t papp) {
 
 	// Null check
 	if (xcs_id < 0) {
-		logger->Error("PLAT P2012: "
+		logger->Error("STHORM: "
 				"EXC constraints descriptors unavailable");
 		return xcs_id;
 	}
@@ -442,7 +440,7 @@ int16_t P2012PP::InitExcConstraints(AppPtr_t papp) {
 }
 
 int16_t P2012PP::GetExcConstraints(AppPtr_t papp) {
-	logger->Debug("PLAT P2012: "
+	logger->Debug("STHORM: "
 			"Getting a EXC constraints descriptor previously allocated");
 
 	// EXC constraints descriptors array
@@ -460,7 +458,7 @@ int16_t P2012PP::GetExcConstraints(AppPtr_t papp) {
 int16_t P2012PP::GetExcConstraintsFree() {
 	ApplicationManager &am(ApplicationManager::GetInstance());
 	AppPtr_t prev_papp;
-	logger->Debug("PLAT P2012: Getting a free EXC constraints descriptor");
+	logger->Debug("STHORM: Getting a free EXC constraints descriptor");
 
 	// EXC constraints descriptors array
 	for (int i = 0; i < EXCS_MAX; ++i) {
@@ -496,7 +494,7 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 	ExitCode_t result = OK;
 
 	// Set the proper descriptor's fields according to the resource type
-	logger->Debug("PLAT P2012: Update: Resource type '%s'",
+	logger->Debug("STHORM: Update: Resource type '%s'",
 			ResourceIdentifier::StringFromType(pbind->type));
 	switch (pbind->type) {
 	case Resource::PROC_ELEMENT:
@@ -504,24 +502,24 @@ P2012PP::ExitCode_t P2012PP::UpdateExcConstraints(
 		// decimals, e.g. 75.20% = 7520
 		pdev->pcons.exc[xcs_id].u.ocl.fabric_quota +=
 			GetPeFabricQuota(pbind->amount) * 100.0;
-		logger->Info("PLAT P2012: %s X[%d] allowed to use %3.2f percent of the fabric",
+		logger->Info("STHORM: %s X[%d] allowed to use %3.2f %% of the fabric",
 				papp->StrId(), xcs_id,
 				(float) pdev->pcons.exc[xcs_id].u.ocl.fabric_quota / 100.0);
 		break;
 
 	case Resource::MEMORY:
 		pdev->pcons.exc[xcs_id].u.generic.dmem.L2_KB = pbind->amount / 1024;
-		logger->Info("PLAT P2012: %s X[%d] booked %02d Kb from L2 memory",
+		logger->Info("STHORM: %s X[%d] booked %02d Kb from L2 memory",
 				papp->StrId(), xcs_id,
 				pdev->pcons.exc[xcs_id].u.generic.dmem.L2_KB);
 		break;
 
 	case Resource::IO:
-		logger->Warn("PLAT P2012: DMA currently unmanaged");
+		logger->Warn("STHORM: DMA currently unmanaged");
 		break;
 
 	default:
-		logger->Debug("PLAT P2012: No action implemented for resource '%s'",
+		logger->Debug("STHORM: No control implemented for resource '%s'",
 				pbind->type);
 	}
 
