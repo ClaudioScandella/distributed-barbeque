@@ -179,7 +179,7 @@ P2012PP::ExitCode_t P2012PP::InitPlatformComm() {
 }
 
 inline const char* P2012PP::_GetPlatformID() {
-	if (!strcmp(pdev->descr.name, "STHORM"))
+	if (!strcmp(pdev->descr.name, PLATFORM_NAME))
 		return PLATFORM_ID;
 	return "unknown";
 }
