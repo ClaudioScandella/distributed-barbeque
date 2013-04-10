@@ -8,10 +8,14 @@ EMA_SCALE=20
 OUT=${1:-"."}
 PLOTTER="@CMAKE_INSTALL_PREFIX@/bin/feedgnuplot"
 
-GPLINE_SIG="set style line 1 lt 2 lc rgb \"blue\" lw 1 ps 1"
-GPLINE_AVG="set style line 2 lt 2 lc rgb \"orange\" lw 2"
-GPLINE_FIL="set style line 3 lt 2 lc rgb \"red\" lw 2"
-GPLINE_TRD="set style line 4 lt 2 lc rgb \"green\" lw 2"
+GPLINE_SIG="set style line 1 lt 2 lc rgb \"#251BE0\" lw 1 ps 1"
+GPLINE_AVG="set style line 2 lt 2 lc rgb \"#E0A51B\" lw 2"
+GPLINE_FIL="set style line 3 lt 2 lc rgb \"#E3070A\" lw 2"
+GPLINE_TRD="set style line 4 lt 2 lc rgb \"#0C6E20\" lw 2"
+GPLINE_SIG_PS="set style line 1 lt 2 lc rgb \"#251BE0\" lw 1 ps 1"
+GPLINE_AVG_PS="set style line 2 lt 2 lc rgb \"#E0A51B\" lw 2"
+GPLINE_FIL_PS="set style line 3 lt 2 lc rgb \"#E3070A\" lw 2"
+GPLINE_TRD_PS="set style line 4 lt 2 lc rgb \"#0C6E20\" lw 2"
 
 GPOPTS_X11="\
 set terminal x11 1 \
@@ -25,17 +29,31 @@ $GPLINE_AVG; \
 $GPLINE_FIL; \
 $GPLINE_TRD; \
 "
+
 GPOPTS_PNG="\
 set terminal png \
 nocrop enhanced \
 font verdana 10 \
-size 950,230 \
+size 950,230; \
+set key horizontal; \
+set key left top; \
+$GPLINE_SIG_PS; \
+$GPLINE_AVG_PS; \
+$GPLINE_FIL_PS; \
+$GPLINE_TRD_PS; \
 "
+
 GPOPTS_EPS="\
 set terminal postscript eps \
 enhanced color \
 \"Times-Roman\" 10 \
-size 8,2 \
+size 8,2; \
+set key horizontal; \
+set key left top; \
+$GPLINE_SIG_PS; \
+$GPLINE_AVG_PS; \
+$GPLINE_FIL_PS; \
+$GPLINE_TRD_PS; \
 "
 
 ################################################################################
@@ -593,8 +611,8 @@ while true; do
 		$S_CTME $M_GVTRD $M_GGVAR $M_GVEMA | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_GV_NAME}.dat \
 	    >$PLOT_GV
-    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f\n" \
-		$S_CTME $M_RRTRD $M_RRCUR $M_RREMA | \
+    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f Forwarding %3d\n" \
+		$S_CTME $M_RRTRD $M_RRCUR $M_RREMA $M_GGFWD | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_RR_NAME}.dat \
 	    >$PLOT_RR
 
@@ -627,10 +645,11 @@ tail -n0 -f "$1" | $PLOTTER \
 	--curvestyle EMA "ls 2" \
 	--curvestyle Threshold "ls 3" \
 	--curvestyle Stability "with point ls 2" \
+	--curvestyle Forwarding "with point ls 2" \
 	--geometry "$5" &
 }
 
-cat >signalAnalysisPrinter.sh <<EOF
+cat >bbqueStabilityAnalysisPrinter.sh <<EOF
 #!/bin/bash
 # \$1: Image Format (png|eps)
 FMT=\${1:-"png"}
@@ -652,18 +671,23 @@ YMAX=""
 [ \$4 != "-" ] && YMAX="--ymax=\$4"
 cat "\$1" | $PLOTTER \
 	--autolegend \
-	--lines --points \
+	--lines \
 	--domain --dataid \
 	--xlabel "Time [s]" \
 	--ylabel "\$3" \
 	--ymin=0 \$YMAX \
 	--title  "\$2" \
 	--extracmd "\$GPOPTS" \
+	--curvestyle Value "ls 1" \
+	--curvestyle EMA "ls 2" \
+	--curvestyle Threshold "ls 3" \
+	--curvestyle Stability "with point ls 2" \
+	--curvestyle Forwarding "with point ls 2" \
 	--hardcopy "\$5".\$FMT
 }
 
 EOF
-chmod a+x signalAnalysisPrinter.sh
+chmod a+x bbqueStabilityAnalysisPrinter.sh
 
 ################################################################################
 # Command line processing
@@ -763,7 +787,7 @@ plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter' '' $C_PLOT_RRF_YMAX 949x233
 dataSource &
 }
 
-cat >>signalAnalysisPrinter.sh <<EOF
+cat >>bbqueStabilityAnalysisPrinter.sh <<EOF
 printData ${OUT}/${PLOT_AWM_NAME}.dat \
 	'Application Working Mode (AWM) Metrics' \
 	'' \
