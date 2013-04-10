@@ -14,6 +14,23 @@ config BBQUE_TEST_PLATFORM_DATA
   application development and integration, without worry about daemon
   setup or requiring to run the daemon as root.
 
+config BBQUE_TEST_POWER_DATA
+  bool "Use Test Power Data"
+  default y if TARGET_NATIVE_LINUX
+  default n
+  ---help---
+  Enable a test mode injection of data about the power status of the platform.
+
+  This option can be enabled to test the power management implementation in
+  the Platform Proxy, whenever the physical platform is not available, or the
+  low-level platform run-time layer does not provide information about power
+  status.
+
+  In such a cases, the Platform Proxy can exploit an alternative source from
+  where to read data regarding a "simulated power status". To this purpose,
+  the Command Manager provides a useful interface to register commands through
+  which inject data.
+
 
 comment "Plugins Management"
 
@@ -31,7 +48,6 @@ choice
     Use the FIFO based RPC channel
 
 endchoice
-
 
 comment "RTLib Configuration"
 

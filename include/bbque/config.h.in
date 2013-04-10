@@ -109,6 +109,9 @@
 /** Use Test Platform Data */
 #cmakedefine CONFIG_BBQUE_TEST_PLATFORM_DATA
 
+/** Use Test Power Data */
+#cmakedefine CONFIG_BBQUE_TEST_POWER_DATA
+
 /** Performance Counters Support */
 #cmakedefine CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 
