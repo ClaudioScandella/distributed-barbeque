@@ -565,7 +565,12 @@ fi
 M_RRCUR=$(calc "(($MT + $CT)/1000) / ($RT/1000)")
 
 # Update RR EMA
-M_RREMA=$(emaUpdate $S_RR_EMA_ALPHA $M_RREMA $M_RRCUR)
+GT=$(calc "if ($M_RREMA < $M_RRCUR) 0 else 1")
+if [ $GT -eq 1 ]; then
+	M_RREMA=$(emaUpdate $S_RR_EMA_ALPHA $M_RREMA $M_RRCUR)
+else
+	M_RREMA=$M_RRCUR
+fi
 }
 
 # Update the current AWM model, where:
