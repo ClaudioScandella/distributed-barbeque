@@ -424,6 +424,7 @@ S_GV_EMA_ALPHA=$(emaInit  $2)
 
 "rr") # Reconfiguration Rate Configuration
 S_RR_EMA_SMPLS=$2
+S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
 S_GG_TRD_RR1=$3
 S_GG_TRD_GG1=$4
 S_GG_TRD_GG2=$5
