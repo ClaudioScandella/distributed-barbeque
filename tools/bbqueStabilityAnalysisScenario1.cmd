@@ -1,6 +1,5 @@
 #!/bin/bash
 
-TSLOT=${1:-20}
 
 print_title() {
 clear 1>&2
@@ -13,33 +12,37 @@ read KEY
 }
 
 scnearyStep() {
+TSLOT=${1:-10}
 sleep $TSLOT
 #press_to_continue
 }
 
-sleep 5
-scnearyStep
+scnearyStep 10
 
 print_title "Make the application unstable with coarse grained GG"
 echo gg 20 60 -
 echo mode 1 - -
-scnearyStep
+scnearyStep 30
 
-print_title "Enabled RTLib control"
+print_title "Enabled GG stability control"
 echo mode - 1 -
-scnearyStep
+scnearyStep 30
 
 print_title "Refine GoalGap assertions"
-echo gg 55 60 -
-scnearyStep
+echo gg 20 25 -
+scnearyStep 30
 
-print_title "Refine GoalGap assertions"
-echo gg 55 80 -
-scnearyStep
+print_title "Enable RR stability control"
+echo mode - - 1
+scnearyStep 30
 
-print_title "Refine GoalGap Variation Filter"
-echo gv - - 120
-scnearyStep
+print_title "Shrink RR stability window"
+echo rr 20 - - -
+scnearyStep 30
+
+print_title "Redefine GoalGap assertions"
+echo gg 75 80 -
+scnearyStep 30
 
 print_title "Make the application stable"
 echo gg 0 0 -
