@@ -97,6 +97,21 @@ public:
 		return bit_set[pos];
 	}
 
+	ResourceBitset operator|= (const ResourceBitset & rbs) {
+		bit_set |= rbs.bit_set;
+		return *this;
+	}
+
+	ResourceBitset operator&= (const ResourceBitset & rbs) {
+		bit_set &= rbs.bit_set;
+		return *this;
+	}
+
+	ResourceBitset operator^= (const ResourceBitset & rbs) {
+		bit_set ^= rbs.bit_set;
+		return *this;
+	}
+
 private:
 
 	std::bitset<MAX_R_ID_NUM> bit_set;
