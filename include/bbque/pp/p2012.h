@@ -36,8 +36,8 @@
 #define FABRIC_POWER_IDLE_MW     300
 #define FABRIC_POWER_FULL_MW     2000
 
-#define DEFAULT_POWER_SAMPLE_T_MS  500  // milliseconds
-#define DEFAULT_POWER_CHECK_T_S    10   // seconds
+#define DEFAULT_POWER_SAMPLE_T_MS  200  // milliseconds
+#define DEFAULT_POWER_CHECK_T_S    2    // seconds
 #define DEFAULT_POWER_GUARD_THR    5    // percentage
 
 #define POWER_EMA_SAMPLES   5
@@ -143,26 +143,34 @@ private:
 		/** Guard threshold for the power checking */
 		uint32_t guard_margin;
 
-		/** Current power consumption (EMA)*/
-		uint32_t curr_mw;
-		/** Current power read timestamp */
-		uint32_t curr_ts;
+		/** Sample data */
+		struct {
+			/** Time window */
+			int64_t time;
+			/** Energy consumption sample */
+			uint64_t n_joule;
+			/** Power consumption (sample average) */
+			uint64_t m_watt;
+		} sample;
+
+		/** Status information */
+		struct {
+			/** Power consumption (EMA) to evaluate */
+			uint64_t m_watt;
+			/** Optional time information (used in Test Power Data mode) */
+			int64_t time;
+			/** Exponential moving average of the power consumption */
+			pEma_t ema;
+		} status;
+
 		/** Sample counter */
-		uint32_t count_s;
+		uint32_t sample_count;
 		/** Current amount of total unreserved power resource */
 		uint32_t unreserved;
 	} power;
 
 	/** Deferrable power sampling **/
 	Deferrable pwr_sample_dfr;
-
-	/** Moving Exponential Average for the power consumption sampling */
-	pEma_t pwr_sample_ema;
-
-	/** Placeholder variables
-	 * TODO: Remove once STHORM PIL updated **/
-	uint32_t p2012_ts;
-	uint32_t p2012_mw;
 
 	/**************************************************/
 
