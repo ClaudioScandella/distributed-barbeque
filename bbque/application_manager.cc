@@ -387,6 +387,12 @@ bool ApplicationManager::HasApplications (
 	return !(sync_vec[state].empty());
 }
 
+bool ApplicationManager::HasApplications (
+		RTLIB_ProgrammingLanguage_t lang) {
+	assert(lang < RTLIB_LANG_COUNT);
+	return !(lang_vec[lang].empty());
+}
+
 uint16_t ApplicationManager::AppsCount (
 		AppPrio_t prio) const {
 	assert(prio < BBQUE_APP_PRIO_LEVELS);
@@ -403,6 +409,12 @@ uint16_t ApplicationManager::AppsCount (
 		ApplicationStatusIF::SyncState_t state) const {
 	assert(state < Application::SYNC_STATE_COUNT);
 	return sync_vec[state].size();
+}
+
+uint16_t ApplicationManager::AppsCount (
+		RTLIB_ProgrammingLanguage_t lang) const {
+	assert(lang < RTLIB_LANG_COUNT);
+	return lang_vec[lang].size();
 }
 
 AppPtr_t ApplicationManager::HighestPrio(

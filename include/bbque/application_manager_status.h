@@ -298,6 +298,11 @@ public:
 	virtual bool HasApplications (ApplicationStatusIF::SyncState_t state) = 0;
 
 	/**
+	 * @brief Check if the specified language queue has applications
+	 */
+	virtual bool HasApplications (RTLIB_ProgrammingLanguage_t lang) = 0;
+
+	/**
 	 * @brief The number of applications having the given PRIORITY
 	 */
 	virtual uint16_t AppsCount (AppPrio_t prio) const = 0;
@@ -311,6 +316,11 @@ public:
 	 * @brief The number of applications in the specified SYNC_STATE
 	 */
 	uint16_t AppsCount (ApplicationStatusIF::SyncState_t state) const;
+
+	/**
+	 * @brief The number of applications of the specified language type
+	 */
+	uint16_t AppsCount (RTLIB_ProgrammingLanguage_t lang) const;
 
 	/**
 	 * @brief One of the highest PRIORITY applications in the the

@@ -220,6 +220,11 @@ public:
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
+	bool HasApplications (RTLIB_ProgrammingLanguage_t lang);
+
+	/**
+	 * @see ApplicationManagerStatusIF
+	 */
 	uint16_t AppsCount (AppPrio_t prio) const;
 
 	/**
@@ -231,6 +236,11 @@ public:
 	 * @see ApplicationManagerStatusIF
 	 */
 	uint16_t AppsCount (ApplicationStatusIF::SyncState_t state) const;
+
+	/**
+	 * @see ApplicationManagerStatusIF
+	 */
+	uint16_t AppsCount (RTLIB_ProgrammingLanguage_t lang) const;
 
 	/**
 	 * @see ApplicationManagerStatusIF
