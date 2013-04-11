@@ -158,6 +158,35 @@ calc "$NOW - $START"
 }
 
 ################################################################################
+# Calculator process
+################################################################################
+
+BC_FIFO_IN_NAME=bbqueSignalAlalyzer_bc_in
+BC_FIFO_IN=$(mktemp -u /tmp/${BC_FIFO_IN_NAME}_XXXXXX)
+mkfifo $BC_FIFO_IN  2>/dev/null
+BC_FIFO_OUT_NAME=bbqueSignalAlalyzer_bc_out
+BC_FIFO_OUT=$(mktemp -u /tmp/${BC_FIFO_OUT_NAME}_XXXXXX)
+mkfifo $BC_FIFO_OUT 2>/dev/null
+
+# Start a BC computation server (BCS)
+runCalculator() {
+# Keep output pipe open, without reading it...
+$(while sleep 7d; do :; done < $BC_FIFO_OUT) &
+# Open input pipe and attach it to BC... with put results in output pipe
+$(stdbuf -oL tail -f $BC_FIFO_IN | bc > $BC_FIFO_OUT) &
+}
+
+# Run the specified computation using the BC server (BCS)
+# $1 - the BC code to execute
+# return: set the RESULTS array
+doComputation() {
+#echo -e "BC Code:\n$1"
+echo -e "$1" > $BC_FIFO_IN
+RESULTS=(`read R < $BC_FIFO_OUT; echo $R`)
+#echo -e "Results:\n${RESULTS[@]}"
+}
+
+################################################################################
 # Distribution Generators
 ################################################################################
 
@@ -873,6 +902,8 @@ plotData $PLOT_AWM 'Application Working Mode (AWM) Metrics' '' $C_PLOT_AWM_YMAX 
 plotData $PLOT_GG 'Goal Gap (GG) Metrics' '' $C_PLOT_GGV_YMAX 949x233+-5+255
 plotData $PLOT_GV 'Goal Gap (GG) Filter' '' $C_PLOT_GGF_YMAX 949x233+-5+517
 plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter' '' $C_PLOT_RRF_YMAX 949x233+-5-25
+# Start the calculator process
+runCalculator
 # Start data generator
 dataSource &
 }
@@ -912,6 +943,7 @@ cleanup() {
 	kill $(jobs -p)
 	killall feedgnuplot
 	rm $CFGFIFO $PLOT_GG $PLOT_GV $PLOT_RR
+	rm $BC_FIFO_IN $BC_FIFO_OUT
 	cfgReport
 }
 trap cleanup EXIT
