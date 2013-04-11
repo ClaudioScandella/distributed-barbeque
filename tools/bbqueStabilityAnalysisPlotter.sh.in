@@ -597,25 +597,52 @@ S_RTME=$(calc "$S_CTME + $PTME + ($DTIME / 1000)")
 
 # Update the Reconfiguration Rate metrics
 updateRR() {
-M_RC_RTME=$(normal "$S_RC_RUN_TIME" "$S_RC_RUN_STDV")
-M_RC_MTME=$(normal "$S_RC_MON_TIME" "$S_RC_MON_STDV")
-if [ $S_PAWM != $S_CAWM ]; then
-	M_RC_CTME=$(normal "$S_RC_RCF_TIME" "$S_RC_RCF_STDV")
-else
-	M_RC_CTME=0
-fi
-M_RRCUR=$(calc "(($M_RC_MTME + $M_RC_CTME)/1000) / ($M_RC_RTME/1000)")
-
-# Update RR EMA
-GT=$(calc "if ($M_RREMA < $M_RRCUR) 0 else 1")
-if [ $GT -eq 1 ]; then
-	M_RREMA=$(emaUpdate $S_RR_EMA_ALPHA $M_RREMA $M_RRCUR)
-else
-	M_RREMA=$M_RRCUR
-fi
-
-# Update next Simulation Time
-S_NTME=$(calc "st=(($M_RC_RTME + $M_RC_MTME + $M_RC_CTME)/1000); if (st < $S_CPS_TIME) ($S_CTME + $S_CPS_TIME) else ($S_CTME + st)")
+# Generate the 3x3 random we need for the model
+getRandoms 9
+# Setup RR computation code
+CODE="\
+# Get 3 triplets of Uniform distributed [-1;1] numbers				\n\
+u11 = (2 * ${RND[0]} / 65536) + 1; 						\n\
+u12 = (2 * ${RND[1]} / 65536) + 1; 						\n\
+u13 = (2 * ${RND[2]} / 65536) + 1; 						\n\
+u21 = (2 * ${RND[3]} / 65536) + 1; 						\n\
+u22 = (2 * ${RND[4]} / 65536) + 1; 						\n\
+u23 = (2 * ${RND[5]} / 65536) + 1; 						\n\
+u31 = (2 * ${RND[6]} / 65536) + 1; 						\n\
+u32 = (2 * ${RND[7]} / 65536) + 1; 						\n\
+u33 = (2 * ${RND[8]} / 65536) + 1; 						\n\
+# Get 3 normal distrbuted numbers						\n\
+n11 = 3 + ((u11 * 2) - 1) + ((u12 * 2) - 1) + ((u13 * 2) - 1); 			\n\
+n12 = 3 + ((u21 * 2) - 1) + ((u22 * 2) - 1) + ((u23 * 2) - 1); 			\n\
+n13 = 3 + ((u31 * 2) - 1) + ((u32 * 2) - 1) + ((u33 * 2) - 1); 			\n\
+# Compute onRun, onMonitor and onConfigure time with Normal Distribution	\n\
+m_rc_rtme = $S_RC_RUN_TIME + (n11 * $S_RC_RUN_STDV); 				\n\
+m_rc_mtme = $S_RC_MON_TIME + (n12 * $S_RC_MON_STDV); 				\n\
+m_rc_ctme = 0; 									\n\
+if ($S_PAWM != $S_CAWM) 							\n\
+  m_rc_ctme = $S_RC_RCF_TIME + (n13 * $S_RC_RCF_STDV); 				\n\
+# Compute current RR and update its EMA value					\n\
+m_rrcur = (m_rc_mtme + m_rc_ctme) / (m_rc_rtme); 				\n\
+m_rrema = m_rrcur; 								\n\
+if ($M_RREMA < m_rrcur) 							\n\
+  m_rrema = ($S_RR_EMA_ALPHA * m_rrcur) + ((1 - $S_RR_EMA_ALPHA) * $M_RREMA);	\n\
+# Compute next simulation 15:49							\n\
+step_time_s = (m_rc_rtme + m_rc_mtme + m_rc_ctme) / 1000; 			\n\
+if (step_time_s < $S_CPS_TIME) {						\n\
+  s_ntme = ($S_CTME + $S_CPS_TIME) 						\n\
+} else {									\n\
+  s_ntme = ($S_CTME + step_time_s)						\n\
+}										\n\
+print m_rc_rtme, \" \", m_rc_mtme, \" \", m_rc_ctme, \" \", m_rrcur, \" \", m_rrema, \" \", s_ntme, \"\\\n\" \n\
+"
+# Run code on BCS
+doComputation "$CODE"
+M_RC_RTME=${RESULTS[0]};
+M_RC_MTME=${RESULTS[1]};
+M_RC_CTME=${RESULTS[2]};
+M_RRCUR=${RESULTS[3]};
+M_RREMA=${RESULTS[4]};
+S_NTME=${RESULTS[5]};
 }
 
 # Update the current AWM model, where:
