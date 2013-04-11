@@ -807,16 +807,15 @@ AppPtr_t ApplicationManager::CreateEXC(
 	uids.insert(UidsMapEntry_t(papp->Uid(), papp));
 	uids_ul.unlock();
 
+	// Priority vector
 	prio_ul.lock();
-	prio_vec[papp->Priority()].insert(
-			UidsMapEntry_t(papp->Uid(), papp));
+	prio_vec[papp->Priority()].insert(UidsMapEntry_t(papp->Uid(), papp));
 	prio_ul.unlock();
 
-	// All new EXC are initially disabled
+	// Status vector (all new EXC are initially disabled)
 	assert(papp->State() == Application::DISABLED);
 	status_ul.lock();
-	status_vec[papp->State()].insert(
-			UidsMapEntry_t(papp->Uid(), papp));
+	status_vec[papp->State()].insert(UidsMapEntry_t(papp->Uid(), papp));
 	status_ul.unlock();
 
 	// Language vector
