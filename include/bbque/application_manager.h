@@ -79,6 +79,7 @@ public:
 	 AppPtr_t CreateEXC(
 			std::string const & name, AppPid_t pid, uint8_t exc_id,
 			std::string const & recipe,
+			RTLIB_ProgrammingLanguage_t lang = RTLIB_LANG_COUNT,
 			AppPrio_t prio = BBQUE_APP_PRIO_LEVELS-1,
 			bool weak_load = false);
 
@@ -428,6 +429,17 @@ private:
 	 */
 	AppsUidMapItRetainer_t status_ret[ApplicationStatusIF::STATE_COUNT];
 
+	/**
+	 * Array grouping the applications by programming language (@see
+	 * RTLIB_ProgrammingLanguage_t). Each position points to a set of maps
+	 * pointing applications
+	 */
+	AppsUidMap_t lang_vec[RTLIB_LANG_COUNT];
+
+	/**
+	 * Array of mutexes protecting the programming language queue
+	 */
+	std::mutex lang_mtx[RTLIB_LANG_COUNT];
 
 	/**
 	 * @brief Applications grouping based on next state to be scheduled.
