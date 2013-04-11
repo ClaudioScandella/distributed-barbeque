@@ -123,6 +123,12 @@ config BBQUE_APP_PRIO_LEVELS
 
   Recipies define the priority of the corresponding Application.
 
+config BBQUE_RPC_TIMEOUT
+  int "RPC channel timeout [ms]"
+  default 1000
+  ---help---
+  The time after which a not responding application should be considered DISABLED.
+
 config BBQUE_BUILD_TESTS
   bool "Build the TEST suite"
   default n

@@ -85,10 +85,10 @@
 #define BBQUE_PATH_VAR "${CONFIG_BOSP_RUNTIME_RWPATH}"
 
 /** The RPC channel TIMEOUT */
-#define BBQUE_RPC_TIMEOUT ${BBQUE_RPC_TIMEOUT}
+#define BBQUE_RPC_TIMEOUT ${CONFIG_BBQUE_RPC_TIMEOUT}
 
 /** The Sync protocol TIMEOUT */
-#define BBQUE_SYNCP_TIMEOUT ${BBQUE_RPC_TIMEOUT}
+#define BBQUE_SYNCP_TIMEOUT ${CONFIG_BBQUE_RPC_TIMEOUT}
 
 /*******************************************************************************
  * BarbequeRTRM Supported Features
