@@ -405,11 +405,13 @@ RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_Register(pregExCtx_t prec) {
 			RTLIB_EXC_NAME_LENGTH);
 	::strncpy(rf_EXC_REGISTER.pyl.recipe, prec->exc_params.recipe,
 			RTLIB_EXC_NAME_LENGTH);
+	rf_EXC_REGISTER.pyl.lang = prec->exc_params.language;
 
-	DB(fprintf(stderr, FD("Registering EXC [%d:%d:%s]...\n"),
+	DB(fprintf(stderr, FD("Registering EXC [%d:%d:%s:%d]...\n"),
 				rf_EXC_REGISTER.pyl.hdr.app_pid,
 				rf_EXC_REGISTER.pyl.hdr.exc_id,
-				rf_EXC_REGISTER.pyl.exc_name));
+				rf_EXC_REGISTER.pyl.exc_name,
+				rf_EXC_REGISTER.pyl.lang));
 
 	// Sending RPC Request
 	RPC_FIFO_SEND(EXC_REGISTER);
