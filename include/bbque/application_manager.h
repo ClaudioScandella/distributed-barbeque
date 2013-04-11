@@ -442,6 +442,12 @@ private:
 	std::mutex lang_mtx[RTLIB_LANG_COUNT];
 
 	/**
+	 * Array of iterator retainers for "in loop erase" support on STATUS
+	 * queues
+	 */
+	AppsUidMapItRetainer_t lang_ret[RTLIB_LANG_COUNT];
+
+	/**
 	 * @brief Applications grouping based on next state to be scheduled.
 	 *
 	 * Array grouping the applicaitons by the value of theis next_sched.state
@@ -482,6 +488,11 @@ private:
 	 * Remove the specified application from the priority maps
 	 */
 	ExitCode_t PriorityRemove(AppPtr_t papp);
+
+	/**
+	 * Remove the specified application from the language map
+	 */
+	ExitCode_t LangRemove(AppPtr_t papp);
 
 	/**
 	 * Remove the specified application from the status maps

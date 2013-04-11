@@ -861,6 +861,20 @@ ApplicationManager::StatusRemove(AppPtr_t papp) {
 }
 
 ApplicationManager::ExitCode_t
+ApplicationManager::LangRemove(AppPtr_t papp) {
+	std::unique_lock<std::mutex> lang_ul(
+			lang_mtx[papp->Language()]);
+
+	logger->Debug("Releasing [%s] EXCs from LANGUAGE map...",
+			papp->StrId());
+
+	UpdateIterators(lang_ret[papp->Language()], papp);
+	lang_vec[papp->Language()].erase(papp->Uid());
+
+	return AM_SUCCESS;
+}
+
+ApplicationManager::ExitCode_t
 ApplicationManager::AppsRemove(AppPtr_t papp) {
 	std::unique_lock<std::mutex> apps_ul(apps_mtx);
 	std::pair<AppsMap_t::iterator, AppsMap_t::iterator> range;
@@ -953,6 +967,10 @@ ApplicationManager::DestroyEXC(AppPtr_t papp) {
 
 	// Remove execution context form priority and apps maps
 	result = PriorityRemove(papp);
+	if (result != AM_SUCCESS)
+		return result;
+
+	result = LangRemove(papp);
 	if (result != AM_SUCCESS)
 		return result;
 
