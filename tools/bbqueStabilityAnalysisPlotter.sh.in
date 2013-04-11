@@ -376,18 +376,6 @@ M_RRCUR=0    # Reconfiguration Rate Current
 M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold
 
-# Model initialization
-S_CPS_TIME=$(calc "1 / $S_CPS")
-S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
-S_GG_TRD_ALPHA=$(ggFilterAlpha)
-S_GG_TRD_BETA=$(ggFilterBeta)
-S_GV_EMA_ALPHA=$(emaInit  $S_GV_EMA_SMPLS)
-S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
-M_AWSTB=$C_PLOT_AWM_YMAX
-M_GGTRD=$(ggFilterGGThreshold $M_RREMA)
-M_GGSTB=$C_PLOT_GGV_YMAX
-M_GGFWD=$C_PLOT_RRF_YMAX
-
 # Simulation mode string representation
 S_SM_APP[0]="${GREEN}Stable${RESET}"
 S_SM_APP[1]="${YELLOW}Unstable${RESET}"
@@ -929,8 +917,6 @@ plotData $PLOT_AWM 'Application Working Mode (AWM) Metrics' '' $C_PLOT_AWM_YMAX 
 plotData $PLOT_GG 'Goal Gap (GG) Metrics' '' $C_PLOT_GGV_YMAX 949x233+-5+255
 plotData $PLOT_GV 'Goal Gap (GG) Filter' '' $C_PLOT_GGF_YMAX 949x233+-5+517
 plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter' '' $C_PLOT_RRF_YMAX 949x233+-5-25
-# Start the calculator process
-runCalculator
 # Start data generator
 dataSource &
 }
@@ -979,6 +965,21 @@ trap cleanup EXIT
 ################################################################################
 # Initialization
 ################################################################################
+
+# Start the calculator process
+runCalculator
+
+# Model initialization
+S_CPS_TIME=$(calc "1 / $S_CPS")
+S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
+S_GG_TRD_ALPHA=$(ggFilterAlpha)
+S_GG_TRD_BETA=$(ggFilterBeta)
+S_GV_EMA_ALPHA=$(emaInit  $S_GV_EMA_SMPLS)
+S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
+M_AWSTB=$C_PLOT_AWM_YMAX
+M_GGTRD=$(ggFilterGGThreshold $M_RREMA)
+M_GGSTB=$C_PLOT_GGV_YMAX
+M_GGFWD=$C_PLOT_RRF_YMAX
 
 # Main function
 plot
