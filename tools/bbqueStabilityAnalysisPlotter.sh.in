@@ -125,6 +125,14 @@ random() {
 od -A n -t d -N 2 /dev/urandom
 }
 
+# Generate a vector of random numbers
+# $1 - the count of random numbers to return
+# return: set the RND vector
+getRandoms() {
+RND=(`od -A n -t d2 -N $(($1*2)) /dev/urandom`)
+#echo "Get randoms: ${RND[@]}"
+}
+
 # Compute an RPN expression
 rpn() {
 echo "3k $1 p" | dc
