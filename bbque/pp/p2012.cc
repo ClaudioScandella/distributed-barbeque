@@ -41,8 +41,9 @@ P2012PP::P2012PP() :
 		DEFAULT_POWER_CHECK_T_S,
 		DEFAULT_POWER_CHECK_T_S * 1000 / DEFAULT_POWER_SAMPLE_T_MS,
 		DEFAULT_POWER_GUARD_THR,
-		0, 0, 0
+		{0,0,0}, {0,0, nullptr}, 0
 	};
+	power.status.ema = pEma_t(new EMA(POWER_EMA_SAMPLES, 0));
 	logger->Info("STHORM: Power [B:%d mW, Tp:%d ms, Tc:%d s, #S:%d]",
 			power.budget_mw, power.sample_period, power.check_period,
 			power.check_samples);
@@ -61,16 +62,17 @@ P2012PP::P2012PP() :
 			static_cast<CommandHandler*>(this),
 			"The period of power budget checking [s]");
 
+#ifdef CONFIG_BBQUE_TEST_POWER_DATA
 	cm.RegisterCommand(MODULE_NAMESPACE ".read_mw",
 			static_cast<CommandHandler*>(this),
 			"FAKE power consumption read [mW]");
 
-	p2012_ts = p2012_mw = 0;
-	pwr_sample_ema = pEma_t(new EMA(POWER_EMA_SAMPLES, 0));
+# warning "STHORM: Using Test Power Data"
+	logger->Warn("STHORM: Using Test Power Data");
+#endif
 
 	// Instance the power polling deferrable with default period
 	pwr_sample_dfr.SetPeriodic(milliseconds(power.sample_period));
-
 
 	// NOTE: Could we move this at the end of LoadPlatformData?
 	SetPilInitialized();
@@ -228,6 +230,11 @@ P2012PP::ExitCode_t P2012PP::InitResources() {
 				return PLATFORM_ENUMERATION_FAILED;
 		}
 	}
+
+#ifndef CONFIG_BBQUE_TEST_POWER_DATA
+	// Notify the platform: ready for power status reading
+	pdev->pdesc.hostReady = 1;
+#endif
 
 	return OK;
 }
@@ -514,33 +521,50 @@ inline uint16_t P2012PP::GetPeFabricQuota(float const & pe_quota) {
 }
 
 void P2012PP::PowerSample() {
-
-	// Is there an update value?
-	if (p2012_ts == power.curr_ts)
+	if (!pdev)
+		return;
+#ifndef CONFIG_BBQUE_TEST_POWER_DATA
+	// Read information from the platform
+	if ((pdev->pdesc.fabricUpdate == 0) &&
+		(power.status.time <= pdev->pdesc.timestamp))
 		return;
 
-	// Yes: Read current power consumption and update EMA
-	power.curr_ts = p2012_ts;
-	power.count_s++;
-	pwr_sample_ema->update(p2012_mw);
-	logger->Info("STHORM: Power consumption sample: %d mW [ts:%d #S:%d]",
-			p2012_mw, p2012_ts, power.count_s);
+	// Energy consumption
+	power.sample.n_joule =
+		(pdev->pdesc.totalEnergy & UINT32_MAX) -
+		(pdev->pdesc.totalEnergy >> 32);
+
+	// Elapsed time and power consumption
+	power.sample.time   = pdev->pdesc.timestamp - power.status.time;
+	power.status.time   = pdev->pdesc.timestamp;
+	power.sample.m_watt = power.sample.n_joule / power.sample.time;
+
+	// Reset for platform run-time synchronization
+	pdev->pdesc.fabricUpdate = 0;
+	pdev->pdesc.hostReady    = 1;
+#else
+	if (power.sample.time == power.status.time)
+		return;
+	power.status.time = power.sample.time;
+#endif
+
+	// Update current status information
+	power.sample_count++;
+	logger->Info("STHORM: Power sample %3d: E=%llunJ, T=%lluus, P=%llumW",
+			power.sample_count, power.sample.n_joule,
+			power.sample.time, power.sample.m_watt);
+
+	power.status.ema->update(power.sample.m_watt);
 	logger->Info("PWR_STATS: %d %4.0f %d %d",
-			p2012_mw,
-			pwr_sample_ema->get(),
-			power.budget_mw,
-			power.unreserved);
+			power.sample.m_watt, power.status.ema->get(),
+			power.budget_mw, power.unreserved);
 
-	// Number of samples reached?
-	if (power.count_s < power.check_samples)
+	// Is it time to call the policy?
+	if (power.sample_count < power.check_samples)
 		return;
-
-	// Get the EMA value of power consumption, reset the count
-	power.curr_mw = pwr_sample_ema->get();
-	power.count_s = 0;
-	logger->Info("STHORM: Call power policy [EMA: %d mW]", power.curr_mw);
-
-	// Call the power management policy
+	power.status.m_watt = power.status.ema->get();
+	power.sample_count  = 0;
+	logger->Info("STHORM: Call power policy [EMA: %d mW]", power.status.m_watt);
 	PowerPolicy();
 }
 
@@ -553,8 +577,8 @@ void P2012PP::PowerPolicy() {
 	uint32_t consumption;
 
 	// Consumption (+ guard threshold)
-	consumption = power.curr_mw +
-			(power.curr_mw * static_cast<float>(power.guard_margin) / 100);
+	consumption = power.status.m_watt +
+			(power.status.m_watt * static_cast<float>(power.guard_margin) / 100);
 	// Check the budget
 	budget_diff = power.budget_mw - consumption;
 	if ((budget_diff >= 0) &&
@@ -648,12 +672,13 @@ int P2012PP::CommandsCb(int argc, char *argv[]) {
 		logger->Info("STHORM: Power checking period set to %d s [#S:%d]",
 				power.check_period, power.check_samples);
 		break;
+#ifdef CONFIG_BBQUE_TEST_POWER_DATA
 	// Fake power consumption read
 	case 'r':
-		p2012_mw = atoi(argv[1]);
-		p2012_ts = atoi(argv[2]);
+		power.sample.m_watt = atoi(argv[1]);
+		power.sample.time   = atoi(argv[2]);
 		break;
-
+#endif
 	default:
 		logger->Warn("STHORM: Unknown command [%s], ignored...", argv[0]);
 	}
