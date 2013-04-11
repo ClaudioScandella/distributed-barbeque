@@ -23,9 +23,6 @@ set (BBQUE_DAEMON_PIDFILE  "var/run/bbqued.pid")
 set (BBQUE_DAEMON_LOGFILE  "var/bbque.log")
 set (BBQUE_DAEMON_RUNDIR   "")
 
-# Barbeque RPC configuration
-set (BBQUE_RPC_TIMEOUT     1000)
-
 # Barbeque installation paths
 set (BBQUE_PATH_BBQ        "sbin")
 set (BBQUE_PATH_INIT       "etc/init.d")
