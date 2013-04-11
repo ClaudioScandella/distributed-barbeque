@@ -958,7 +958,7 @@ void ApplicationProxy::RpcExcRegister(prqsSn_t prqs) {
 
 	// Register the EXC with the ApplicationManager
 	papp  = am.CreateEXC(pmsg_pyl->exc_name, pcon->app_pid,
-			pmsg_hdr->exc_id, pmsg_pyl->recipe);
+			pmsg_hdr->exc_id, pmsg_pyl->recipe, pmsg_pyl->lang);
 	if (!papp) {
 		logger->Error("APPs PRX: EXC " EXC_STRID ", name [%s] "
 			"registration FAILED "
