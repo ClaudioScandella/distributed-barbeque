@@ -205,7 +205,7 @@ echo $RESULT
 # $2 - maximum
 uniform() {
 RN=$(random)
-calc "(($2 - $1) * $RN / 65536) + $1"
+bcsCalc "res = ((($2 - $1) * $RN / 65536) + $1);"
 }
 
 # Test the uniform distribution with the specified:
@@ -240,11 +240,16 @@ testUniform $1 $2 $3 | $PLOTTER \
 # $2 - stddev
 # Ref: http://www.protonfish.com/random.shtml
 normal() {
-R1=$(uniform -1 1)
-R2=$(uniform -1 1)
-R3=$(uniform -1 1)
-N11=$(calc "3 + (($R1 * 2) - 1) + (($R2 * 2) - 1) + (($R3 * 2) - 1)")
-calc "$1 + ($N11 * $2)"
+# Generate the 3 random we need for the model
+getRandoms 3
+CODE="\
+u1 = (2 * ${RND[0]} / 65536) -1; \
+u2 = (2 * ${RND[1]} / 65536) -1; \
+u3 = (2 * ${RND[2]} / 65536) -1; \
+n11 = 3 + ((u1*2) - 1) + ((u2*2) - 1) + ((u3*2) - 1); \
+res = ($1 + (n11 * $2)); \
+"
+bcsCalc "$CODE"
 }
 
 
@@ -281,14 +286,14 @@ testNormal $1 $2 $3 | $PLOTTER \
 ################################################################################
 emaInit() {
 SAMPLES=$1
-calc "2.0 / ($SAMPLES + 1)"
+bcsCalc "res = (2.0 / ($SAMPLES + 1));"
 }
 
 emaUpdate() {
 ALPHA=$1
 EMA=$2
 NEW=$3
-calc "($ALPHA * $NEW) + ((1 - $ALPHA) * $EMA)"
+bcsCalc "res = (($ALPHA * $NEW) + ((1 - $ALPHA) * $EMA));"
 }
 
 ################################################################################
@@ -313,16 +318,16 @@ calc "($ALPHA * $NEW) + ((1 - $ALPHA) * $EMA)"
 #             RR1  2*RR1
 
 ggFilterAlpha() {
-calc  "($S_GG_TRD_GG2 - $S_GG_TRD_GG1) / ($S_GG_TRD_RR1)"
+bcsCalc  "res = (($S_GG_TRD_GG2 - $S_GG_TRD_GG1) / ($S_GG_TRD_RR1));"
 }
 
 ggFilterBeta() {
-calc "(2 * $S_GG_TRD_GG1) - $S_GG_TRD_GG2"
+bcsCalc "res = ((2 * $S_GG_TRD_GG1) - $S_GG_TRD_GG2);"
 }
 # Compute the GG value for the specified RR value:
 # $1 - The RR of interest
 ggFilterGGThreshold() {
-calc "if ($1 < $S_GG_TRD_RR1) $S_GG_TRD_GG1 else (($S_GG_TRD_ALPHA * $1) + $S_GG_TRD_BETA)"
+bcsCalc "if ($1 < $S_GG_TRD_RR1) res = $S_GG_TRD_GG1 else res = (($S_GG_TRD_ALPHA * $1) + $S_GG_TRD_BETA);"
 }
 
 ################################################################################
@@ -483,8 +488,17 @@ mkfifo $CFGFIFO
 # return: (CurrentGG, VariationGG)
 ggVarGenerator() {
 [ -n "$1" ] && RND=$1 || RND=$(random)
-M_GGCUR=$(calc "$S_RND_GG_MIN + (($S_RND_GG_DLT * $RND) / 65536)")
-M_GGVAR=$(calc "v=$M_GGCUR-$M_GGPRV; if (v<0) -v else v")
+CODE="\
+m_ggcur = ($S_RND_GG_MIN + (($S_RND_GG_DLT * $RND) / 65536));	\n\
+m_ggvar = (m_ggcur - $M_GGPRV);					\n\
+if (m_ggvar < 0) {						\n\
+  m_ggvar = -m_ggvar						\n\
+};								\n\
+print m_ggcur, \" \", m_ggvar, \"\\\n\"				\n\
+"
+bcsComputation "$CODE"
+M_GGCUR=${RESULTS[0]}
+M_GGVAR=${RESULTS[1]}
 M_GGPRV=$M_GGCUR
 }
 
@@ -499,7 +513,7 @@ checkAWStability() {
 # Consider AW always stable if RTLib control is disabled
 [ $S_SM_CGGT -eq 0 ] && return 1
 # AW stability condition:
-M_AWSTB=$(calc "if($M_RREMA < $M_RRTRD) $C_PLOT_AWM_YMAX else 0")
+M_AWSTB=$(bcsCalc "if ($M_RREMA < $M_RRTRD) res = $C_PLOT_AWM_YMAX else res = 0;")
 return $M_AWSTB
 }
 
@@ -509,7 +523,7 @@ checkGGStability() {
 # Consider GG always stable if GG control is disabled
 [ $S_SM_CGGT -eq 0 ] && return 1
 # GG stability condition:
-M_GGSTB=$(calc "if($M_GVEMA < $M_GVTRD) $C_PLOT_GGV_YMAX else 0")
+M_GGSTB=$(bcsCalc "if ($M_GVEMA < $M_GVTRD) res = $C_PLOT_GGV_YMAX else res = 0;")
 return $M_GGSTB
 }
 
@@ -519,7 +533,7 @@ checkGGForwarding() {
 # Consider GG always enabled if RR control is disabled
 [ $S_SM_CRRT -eq 0 ] && return 1
 # GG enable condition:
-M_GGFWD=$(calc "if($M_GGTRD < $M_GGEMA) $C_PLOT_RRF_YMAX else 0")
+M_GGFWD=$(bcsCalc "if ($M_GGTRD < $M_GGEMA) res = $C_PLOT_RRF_YMAX else res = 0;")
 return $M_GGFWD
 }
 
@@ -701,7 +715,7 @@ rm -f ${OUT}/bbqueSignalAlalyzer_plot*.dat
 # A simulation step correspond to the simulation of all events happening
 # in a timeframe of abount 1[s]
 simulationStep() {
-STME=$(calc "$S_CTME + $C_STEP_SLEEP")
+STME=$(bcsCalc "res = ($S_CTME + $C_STEP_TIME);")
 RUN=1
 while [ $RUN -eq 1 ]; do
 
@@ -733,7 +747,7 @@ while [ $RUN -eq 1 ]; do
 	    >$PLOT_RR
 
     # Check simulation step completion
-    RUN=$(calc "if ($S_CTME < $STME) 1 else 0")
+    RUN=$(bcsCalc "res=0; if ($S_CTME < $STME) res=1;")
 
 done
 }
@@ -747,7 +761,7 @@ while true; do
 	simulationStep
 	T2=$(getTime)
 
-	SLEEP_TIME=$(calc "t=($C_STEP_TIME - ($T2 - $T1)); if (t>0) t else .001;")
+	SLEEP_TIME=$(bcsCalc "res = ($C_STEP_TIME - ($T2 - $T1)); if (res <= 0) res = .001;")
 
 	# Wait for next sample, or update the configuration
 	read -t $SLEEP_TIME <>$CFGFIFO SETTINGS && cfgUpdate $SETTINGS
@@ -968,7 +982,7 @@ trap cleanup EXIT
 runCalculator
 
 # Model initialization
-S_CPS_TIME=$(calc "1 / $S_CPS")
+S_CPS_TIME=$(bcsCalc "res = (1 / $S_CPS);")
 S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
 S_GG_TRD_ALPHA=$(ggFilterAlpha)
 S_GG_TRD_BETA=$(ggFilterBeta)
