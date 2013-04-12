@@ -968,6 +968,7 @@ cleanup() {
 	kill $(jobs -p)
 	killall feedgnuplot
 	rm $CFGFIFO $PLOT_GG $PLOT_GV $PLOT_RR
+	rm $PLOT_AWM $PLOT_GG $PLOT_GV $PLOT_RR
 	rm $BC_FIFO_IN $BC_FIFO_OUT
 	cfgReport
 }
