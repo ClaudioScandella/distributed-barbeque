@@ -340,7 +340,7 @@ C_PLOT_ALL=0       # Signal to Plot: 1: all, 0: only enabled filters
 C_PLOT_AWM_YMAX=6
 C_PLOT_GGV_YMAX=120
 C_PLOT_GGF_YMAX=20
-C_PLOT_RRF_YMAX=40
+C_PLOT_RRF_YMAX=100
 
 # Model Status
 S_CPS=10           # Cycles Per Second [Hz]
@@ -772,27 +772,33 @@ done
 # $1 - data source
 # $2 - Title
 # $3 - Y axis label
-# $4 - Y max (or - for autoscale)
-# $5 - Geometry
+# $4 - Y min (or - for 0)
+# $5 - Y max (or - for autoscale)
+# $6 - extra plot options (or - for none)
+# $7 - Geometry
 plotData() {
+YMIN="--ymin=0"
 YMAX=""
-[ $4 != "-" ] && YMAX="--ymax=$4"
+OPTS=""
+[  $4  != "-" ] && YMIN="--ymin=$4"
+[  $5  != "-" ] && YMAX="--ymax=$5"
+[ "$6" != "-" ] && OPTS="$6"
 tail -n0 -f "$1" | $PLOTTER \
 	--autolegend \
 	--lines \
 	--domain --dataid \
 	--xlabel "Time [s]" \
 	--ylabel "$3" \
-	--ymin=0 $YMAX \
+	  $YMIN  $YMAX \
 	--title  "$2" \
 	--stream --xlen 90 \
-	--extracmd "$GPOPTS_X11" \
+	--extracmd "$GPOPTS_X11 $OPTS" \
 	--curvestyle Value "ls 1" \
 	--curvestyle EMA "ls 2" \
 	--curvestyle Threshold "ls 3" \
 	--curvestyle Stability "with point ls 2" \
 	--curvestyle Forwarding "with point ls 2" \
-	--geometry "$5" &
+	--geometry "$7" &
 }
 
 cat >bbqueStabilityAnalysisPrinter.sh <<EOF
@@ -809,27 +815,32 @@ GPOPTS=\$GPOPTS_PNG
 # Plot previously collected data, where:
 # \$1 - data source
 # \$2 - Title
-# \$3 - Y axis label
-# \$4 - Y max (or - for autoscale)
-# \$5 - the output filename (without extension)
+# \$4 - Y min (or - for 0)
+# \$5 - Y max (or - for autoscale)
+# \$6 - extra plot options (or - for none)
+# \$7 - the output filename (without extension)
 printData() {
+YMIN="--ymin=0"
 YMAX=""
-[ \$4 != "-" ] && YMAX="--ymax=\$4"
+OPTS=""
+[  \$4  != "-" ] && YMIN="--ymin=\$4"
+[  \$5  != "-" ] && YMAX="--ymax=\$5"
+[ "\$6" != "-" ] && OPTS="\$6"
 cat "\$1" | $PLOTTER \
 	--autolegend \
 	--lines \
 	--domain --dataid \
 	--xlabel "Time [s]" \
 	--ylabel "\$3" \
-	--ymin=0 \$YMAX \
+	  \$YMIN  \$YMAX \
 	--title  "\$2" \
-	--extracmd "\$GPOPTS" \
+	--extracmd "\$GPOPTS \$OPTS" \
 	--curvestyle Value "ls 1" \
 	--curvestyle EMA "ls 2" \
 	--curvestyle Threshold "ls 3" \
 	--curvestyle Stability "with point ls 2" \
 	--curvestyle Forwarding "with point ls 2" \
-	--hardcopy "\$5".\$FMT
+	--hardcopy "\$7".\$FMT
 }
 
 EOF
@@ -925,10 +936,10 @@ plot() {
 # Tuning command memento and current configuration dump
 cfgReport
 # Start data plotters
-plotData $PLOT_AWM 'Application Working Mode (AWM) Metrics' '' $C_PLOT_AWM_YMAX 949x233+-5+-8
-plotData $PLOT_GG 'Goal Gap (GG) Metrics' '' $C_PLOT_GGV_YMAX 949x233+-5+255
-plotData $PLOT_GV 'Goal Gap (GG) Filter' '' $C_PLOT_GGF_YMAX 949x233+-5+517
-plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter' '' $C_PLOT_RRF_YMAX 949x233+-5-25
+plotData $PLOT_AWM 'Application Working Mode (AWM) Metrics' '' 0 $C_PLOT_AWM_YMAX '' 949x233+-5+-8
+plotData $PLOT_GG 'Goal Gap (GG) Metrics' '' 0 $C_PLOT_GGV_YMAX '' 949x233+-5+255
+plotData $PLOT_GV 'Goal Gap (GG) Filter' '' 0 $C_PLOT_GGF_YMAX '' 949x233+-5+517
+plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter (log)' '' 0.01 $C_PLOT_RRF_YMAX 'set logscale y;' 949x233+-5-25
 # Start data generator
 dataSource &
 }
@@ -937,22 +948,26 @@ cat >>bbqueStabilityAnalysisPrinter.sh <<EOF
 printData ${OUT}/${PLOT_AWM_NAME}.dat \
 	'Application Working Mode (AWM) Metrics' \
 	'' \
-	$C_PLOT_AWM_YMAX \
+	0 $C_PLOT_AWM_YMAX \
+	'' \
 	${OUT}/${PLOT_AWM_NAME}
 printData ${OUT}/${PLOT_GG_NAME}.dat \
 	'Goal Gap (GG) Metrics' \
 	'' \
-	$C_PLOT_GGV_YMAX \
+	0 $C_PLOT_GGV_YMAX \
+	'' \
 	${OUT}/${PLOT_GG_NAME}
 printData ${OUT}/${PLOT_GV_NAME}.dat \
 	'Goal Gap (GG) Filter' \
 	'' \
-	$C_PLOT_GGF_YMAX \
+	0 $C_PLOT_GGF_YMAX \
+	'' \
 	${OUT}/${PLOT_GV_NAME}
 printData ${OUT}/${PLOT_RR_NAME}.dat \
 	'Reconfiguration Rate (RR) Filter' \
 	'' \
-	$C_PLOT_RRF_YMAX \
+	0.01 $C_PLOT_RRF_YMAX \
+	'set logscale y;' \
 	${OUT}/${PLOT_RR_NAME}
 EOF
 
