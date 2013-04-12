@@ -335,7 +335,7 @@ bcsCalc "if ($1 < $S_GG_TRD_RR1) res = $S_GG_TRD_GG1 else res = (($S_GG_TRD_ALPH
 ################################################################################
 
 # Model and Plots Configuration
-C_STEP_SLEEP=1     # Time of a single simulation step [s]
+C_STEP_TIME=1     # Time of a single simulation step [s]
 C_PLOT_ALL=0       # Signal to Plot: 1: all, 0: only enabled filters
 C_PLOT_AWM_YMAX=6
 C_PLOT_GGV_YMAX=120
