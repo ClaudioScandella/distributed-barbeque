@@ -350,7 +350,7 @@ S_RND_GG_MAX=0     # GG Random Generator Maximum
 S_RND_GG_DLT=0     # GG Random Generator Delta, i.e. Min-Max
 S_GG_EMA_SMPLS=60  # GG EMA Samples number
 S_GG_EMA_ALPHA=0   # GG EMA Alpha value
-S_GG_TRD_RR1=4     # GG Filter: RR1 value
+S_GG_TRD_RR1=4     # GG Filter: RR1 value [%]
 S_GG_TRD_GG1=5     # GG Filter: GG1 value
 S_GG_TRD_GG2=80    # GG Filter: GG2 value
 S_GG_TRD_ALPHA=0   # GG Filter: Alpha value
@@ -392,7 +392,7 @@ M_GVTRD=5    # GoalGap Variation Threshold
 M_GGFWD=1    # GoalGap Forward Flag: >0 forwarded, 0: stopped
 M_RRCUR=0    # Reconfiguration Rate Current
 M_RREMA=0    # Reconfiguration Rate EMA
-M_RRTRD=5    # Reconfiguration Rate Threshold
+M_RRTRD=5    # Reconfiguration Rate Threshold [%]
 
 # Simulation mode string representation
 S_SM_APP[0]="${GREEN}Stable${RESET}"
@@ -425,9 +425,9 @@ echo -e "  control......... ${S_SM_CTR[$S_SM_CGGT]}"
 echo
 echo -e "Reconfiguration Rate Filter:"
 printf  "  ema_samples..... %3d\n" $S_RR_EMA_SMPLS
-printf  "  RR1 threshold... %3d\n" $S_GG_TRD_RR1
-printf  "  GG1 threshold... %3d (@ 1x%3d RR)\n" $S_GG_TRD_GG1 $S_GG_TRD_RR1
-printf  "  GG2 threshold... %3d (@ 2x%3d RR)\n" $S_GG_TRD_GG2 $S_GG_TRD_RR1
+printf  "  RR1 threshold... %5.1f [%%]\n" $(bcsCalc "res = (100 * $S_GG_TRD_RR1);")
+printf  "  GG1 threshold... %3d   (@ 1xRR1)\n" $S_GG_TRD_GG1
+printf  "  GG2 threshold... %3d   (@ 2xRR1)\n" $S_GG_TRD_GG2
 echo -e "  control......... ${S_SM_CTR[$S_SM_CRRT]}"
 echo
 }
@@ -457,7 +457,7 @@ S_GV_EMA_ALPHA=$(emaInit  $2)
 "rr") # Reconfiguration Rate Configuration
 S_RR_EMA_SMPLS=$2
 S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
-S_GG_TRD_RR1=$3
+S_GG_TRD_RR1=$(bcsCalc "res = ($3 / 100);")
 S_GG_TRD_GG1=$4
 S_GG_TRD_GG2=$5
 S_GG_TRD_ALPHA=$(ggFilterAlpha)
@@ -987,12 +987,14 @@ S_CPS_TIME=$(bcsCalc "res = (1 / $S_CPS);")
 S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
 S_GG_TRD_ALPHA=$(ggFilterAlpha)
 S_GG_TRD_BETA=$(ggFilterBeta)
+S_GG_TRD_RR1=$(bcsCalc "res = ($S_GG_TRD_RR1 / 100);")
 S_GV_EMA_ALPHA=$(emaInit  $S_GV_EMA_SMPLS)
 S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
 M_AWSTB=$C_PLOT_AWM_YMAX
 M_GGTRD=$(ggFilterGGThreshold $M_RREMA)
 M_GGSTB=$C_PLOT_GGV_YMAX
 M_GGFWD=$C_PLOT_RRF_YMAX
+M_RRTRD=$(bcsCalc "res = ($M_RRTRD / 100);")
 
 # Main function
 plot
