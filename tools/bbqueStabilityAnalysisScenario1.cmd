@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Enable interactive mode, i.e. press ENTER to advance a step
+ITV=${1:-0}
 
 print_title() {
 clear 1>&2
@@ -12,9 +14,14 @@ read KEY
 }
 
 scnearyStep() {
-TSLOT=${1:-10}
-sleep $TSLOT
-#press_to_continue
+TSLOT=$1
+sleep 2
+echo "STEP: $2" 1>&2
+if [ $ITV -eq 1 ]; then
+  press_to_continue
+else
+  sleep $((TSLOT-2))
+fi
 }
 
 scnearyStep 10
