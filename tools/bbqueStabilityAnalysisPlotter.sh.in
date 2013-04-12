@@ -798,7 +798,7 @@ tail -n0 -f "$1" | $PLOTTER \
 	--title  "$2" \
 	--stream --xlen 90 \
 	--extracmd "$GPOPTS_X11 $OPTS" \
-	--curvestyle Value "ls 1" \
+	--curvestyle Value "with point ls 1" \
 	--curvestyle EMA "ls 2" \
 	--curvestyle Threshold "ls 3" \
 	--curvestyle Stability "with point ls 2" \
@@ -840,7 +840,7 @@ cat "\$1" | $PLOTTER \
 	  \$YMIN  \$YMAX \
 	--title  "\$2" \
 	--extracmd "\$GPOPTS \$OPTS" \
-	--curvestyle Value "ls 1" \
+	--curvestyle Value "with point ls 1" \
 	--curvestyle EMA "ls 2" \
 	--curvestyle Threshold "ls 3" \
 	--curvestyle Stability "with point ls 2" \
