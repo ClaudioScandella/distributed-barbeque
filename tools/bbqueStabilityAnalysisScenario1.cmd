@@ -24,34 +24,31 @@ else
 fi
 }
 
-scnearyStep 10
+scnearyStep 4 "Application is initially stable"
 
-print_title "Make the application unstable with coarse grained GG"
 echo gg 20 60 -
 echo mode 1 - -
-scnearyStep 30
+scnearyStep 30 "Application is now unstable with coarse grained GG"
 
-print_title "Enabled GG stability control"
 echo mode - 1 -
-scnearyStep 30
+scnearyStep 30 "Enabled GG stability control"
 
-print_title "Refine GoalGap assertions"
 echo gg 20 25 -
-scnearyStep 30
+scnearyStep 30 "Refined GoalGap assertions to be in range [20,25]"
 
-print_title "Enable RR stability control"
 echo mode - - 1
-scnearyStep 30
+scnearyStep 30 "Enabled RR stability control"
 
-print_title "Shrink RR stability window"
 echo rr 20 - - -
-scnearyStep 30
+scnearyStep 30 "Reduced RR stability window to 20 samples"
 
-print_title "Redefine GoalGap assertions"
+echo rr - - - 20
+scnearyStep 30 "Reduce RR stability for higer GG"
+
 echo gg 75 80 -
-scnearyStep 30
+scnearyStep 30 "Redefined GoalGap assertions to be in range [75,80]"
 
-print_title "Make the application stable"
 echo gg 0 0 -
 echo mode 0 - -
-scnearyStep
+scnearyStep 30 "Application is now stable again"
+
