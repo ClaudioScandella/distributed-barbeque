@@ -13,15 +13,17 @@ echo -e "\nPress a key to continue" 1>&2
 read KEY
 }
 
+STEP=0
 scnearyStep() {
 TSLOT=$1
 sleep 2
-echo "STEP: $2" 1>&2
+printf "STEP %02d: %s" $STEP "$2" 1>&2
 if [ $ITV -eq 1 ]; then
   press_to_continue
 else
   sleep $((TSLOT-2))
 fi
+$((STEP++))
 }
 
 scnearyStep 4 "Application is initially stable"
