@@ -1,10 +1,5 @@
 #!/bin/bash
 
-CPS=30
-MIN_VALUE=20
-MAX_VALUE=60
-EMA_SCALE=20
-
 OUT=${1:-"."}
 PLOTTER="@CMAKE_INSTALL_PREFIX@/bin/feedgnuplot"
 
@@ -251,7 +246,6 @@ res = ($1 + (n11 * $2)); \
 "
 bcsCalc "$CODE"
 }
-
 
 # Test the normal distribution with the specified:
 # $1 - mean
