@@ -179,11 +179,21 @@ $(stdbuf -oL tail -f $BC_FIFO_IN | bc > $BC_FIFO_OUT) &
 # Run the specified computation using the BC server (BCS)
 # $1 - the BC code to execute
 # return: set the RESULTS array
-doComputation() {
+bcsComputation() {
 #echo -e "BC Code:\n$1"
-echo -e "$1" > $BC_FIFO_IN
+echo -e "scale=3; $1" > $BC_FIFO_IN
 RESULTS=(`read R < $BC_FIFO_OUT; echo $R`)
 #echo -e "Results:\n${RESULTS[@]}"
+}
+
+# Run the specified computation using the BC server (BCS)
+# $1 - the BC code to execute
+# return: a single value
+bcsCalc() {
+#echo -e "BC Code:\nscale=3; $1"
+echo -e "scale=3; $1 print res, \"\\\n\";" > $BC_FIFO_IN
+read RESULT < $BC_FIFO_OUT
+echo $RESULT
 }
 
 ################################################################################
@@ -316,8 +326,9 @@ calc "if ($1 < $S_GG_TRD_RR1) $S_GG_TRD_GG1 else (($S_GG_TRD_ALPHA * $1) + $S_GG
 }
 
 ################################################################################
-# Simulation Model Status and Metrics
+# Simulation Model Configuration, Status and Metrics
 ################################################################################
+
 # Model and Plots Configuration
 C_STEP_SLEEP=1     # Time of a single simulation step [s]
 C_PLOT_ALL=0       # Signal to Plot: 1: all, 0: only enabled filters
@@ -325,6 +336,7 @@ C_PLOT_AWM_YMAX=6
 C_PLOT_GGV_YMAX=120
 C_PLOT_GGF_YMAX=20
 C_PLOT_RRF_YMAX=40
+
 # Model Status
 S_CPS=10           # Cycles Per Second [Hz]
 S_CPS_TIME=0       # Cycle Period [s]
@@ -358,6 +370,7 @@ S_CAWM=1     # Current  AWM
 S_SM_CAPP=0  # Application control: 0 stable, 1 unstable
 S_SM_CGGT=0  # GG Threshold control: 0 disabled, 1 enabled
 S_SM_CRRT=0  # BBQ control: 0 disabled, 1 enabled
+
 # Model Metrics
 M_RC_RTME=0  # The last onRun time
 M_RC_MTME=0  # The last onMonitor time
@@ -381,21 +394,6 @@ S_SM_APP[0]="${GREEN}Stable${RESET}"
 S_SM_APP[1]="${YELLOW}Unstable${RESET}"
 S_SM_CTR[0]="${RED}Disabled${RESET}"
 S_SM_CTR[1]="${GREEN}Enabled${RESET}"
-
-################################################################################
-# Working Mode Management
-################################################################################
-
-CURR_AWM=1
-CURR_GG=0
-
-setLowAWM() {
-CURR_AWM=0
-}
-setHighAWM() {
-CURR_AWM=1
-CURR_GG=40
-}
 
 
 ################################################################################
@@ -620,11 +618,11 @@ if (step_time_s < $S_CPS_TIME) {						\n\
   s_ntme = ($S_CTME + $S_CPS_TIME) 						\n\
 } else {									\n\
   s_ntme = ($S_CTME + step_time_s)						\n\
-}										\n\
-print m_rc_rtme, \" \", m_rc_mtme, \" \", m_rc_ctme, \" \", m_rrcur, \" \", m_rrema, \" \", s_ntme, \"\\\n\" \n\
+};										\n\
+print m_rc_rtme, \" \", m_rc_mtme, \" \", m_rc_ctme, \" \", m_rrcur, \" \", m_rrema, \" \", s_ntme, \"\n\" \
 "
 # Run code on BCS
-doComputation "$CODE"
+bcsComputation "$CODE"
 M_RC_RTME=${RESULTS[0]};
 M_RC_MTME=${RESULTS[1]};
 M_RC_CTME=${RESULTS[2]};
