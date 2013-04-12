@@ -457,7 +457,7 @@ S_GV_EMA_ALPHA=$(emaInit  $2)
 "rr") # Reconfiguration Rate Configuration
 S_RR_EMA_SMPLS=$2
 S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
-S_GG_TRD_RR1=$(bcsCalc "res = ($3 / 100);")
+S_GG_TRD_RR1=$3
 S_GG_TRD_GG1=$4
 S_GG_TRD_GG2=$5
 S_GG_TRD_ALPHA=$(ggFilterAlpha)
@@ -873,7 +873,7 @@ echo "$1 $S_GV_EMA_SMPLS" >$CFGFIFO
 
 "rr") # Reconfiguration Rate Configuration
 [ $2 != '-' ] && S_RR_EMA_SMPLS=$2
-[ $3 != '-' ] && S_GG_TRD_RR1=$3
+[ $3 != '-' ] && S_GG_TRD_RR1=$(bcsCalc "res = ($3 / 100);")
 [ $4 != '-' ] && S_GG_TRD_GG1=$4
 [ $5 != '-' ] && S_GG_TRD_GG2=$5
 echo "$1 $S_RR_EMA_SMPLS $S_GG_TRD_RR1 $S_GG_TRD_GG1 $S_GG_TRD_GG2" >$CFGFIFO
@@ -1000,9 +1000,9 @@ runCalculator
 # Model initialization
 S_CPS_TIME=$(bcsCalc "res = (1 / $S_CPS);")
 S_GG_EMA_ALPHA=$(emaInit  $S_GG_EMA_SMPLS)
+S_GG_TRD_RR1=$(bcsCalc "res = ($S_GG_TRD_RR1 / 100);")
 S_GG_TRD_ALPHA=$(ggFilterAlpha)
 S_GG_TRD_BETA=$(ggFilterBeta)
-S_GG_TRD_RR1=$(bcsCalc "res = ($S_GG_TRD_RR1 / 100);")
 S_GV_EMA_ALPHA=$(emaInit  $S_GV_EMA_SMPLS)
 S_RR_EMA_ALPHA=$(emaInit  $S_RR_EMA_SMPLS)
 M_AWSTB=$C_PLOT_AWM_YMAX
