@@ -624,7 +624,7 @@ if ($S_PAWM != $S_CAWM) 							\n\
 # Compute current RR and update its EMA value					\n\
 m_rrcur = (m_rc_mtme + m_rc_ctme) / (m_rc_rtme); 				\n\
 m_rrema = m_rrcur; 								\n\
-if ($M_RREMA < m_rrcur) 							\n\
+if (m_rrcur <= $M_RREMA) 							\n\
   m_rrema = ($S_RR_EMA_ALPHA * m_rrcur) + ((1 - $S_RR_EMA_ALPHA) * $M_RREMA);	\n\
 # Compute next simulation 15:49							\n\
 step_time_s = (m_rc_rtme + m_rc_mtme + m_rc_ctme) / 1000; 			\n\
