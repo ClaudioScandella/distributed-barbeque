@@ -803,7 +803,11 @@ tail -n0 -f "$1" | $PLOTTER \
 cat >bbqueStabilityAnalysisPrinter.sh <<EOF
 #!/bin/bash
 # \$1: Image Format (png|eps)
+# \$2: Start plto time (or 0 for none)
+# \$3: End plot time (or 0 for none)
 FMT=\${1:-"png"}
+START=\${2:--1}
+END=\${3:--1}
 
 GPOPTS_PNG='$GPOPTS_PNG'
 GPOPTS_EPS='$GPOPTS_EPS'
@@ -825,7 +829,9 @@ OPTS=""
 [  \$4  != "-" ] && YMIN="--ymin=\$4"
 [  \$5  != "-" ] && YMAX="--ymax=\$5"
 [ "\$6" != "-" ] && OPTS="\$6"
-cat "\$1" | $PLOTTER \
+cat "\$1" | \
+	awk "{if(\\\$1<\$START || (\$END>0 && \\\$1>\$END)) next; else print \\\$0}" | \
+	$PLOTTER \
 	--autolegend \
 	--lines \
 	--domain --dataid \
@@ -841,6 +847,9 @@ cat "\$1" | $PLOTTER \
 	--curvestyle Forwarding "with point ls 2" \
 	--hardcopy "\$7".\$FMT
 }
+
+[ \$START -ne -1 ] && TIMEFRAME="_\${START}"
+[ \$START -ne -1 ] && [ \$END -ne -1 ] && TIMEFRAME="\${TIMEFRAME}-\$END"
 
 EOF
 chmod a+x bbqueStabilityAnalysisPrinter.sh
@@ -949,25 +958,25 @@ printData ${OUT}/${PLOT_AWM_NAME}.dat \
 	'' \
 	0 $C_PLOT_AWM_YMAX \
 	'' \
-	${OUT}/${PLOT_AWM_NAME}
+	${OUT}/${PLOT_AWM_NAME}\${TIMEFRAME}
 printData ${OUT}/${PLOT_GG_NAME}.dat \
 	'Goal Gap (GG) Metrics' \
 	'' \
 	0 $C_PLOT_GGV_YMAX \
 	'' \
-	${OUT}/${PLOT_GG_NAME}
+	${OUT}/${PLOT_GG_NAME}\${TIMEFRAME}
 printData ${OUT}/${PLOT_GV_NAME}.dat \
 	'Goal Gap (GG) Filter' \
 	'' \
 	0 $C_PLOT_GGF_YMAX \
 	'' \
-	${OUT}/${PLOT_GV_NAME}
+	${OUT}/${PLOT_GV_NAME}\${TIMEFRAME}
 printData ${OUT}/${PLOT_RR_NAME}.dat \
 	'Reconfiguration Rate (RR) Filter' \
 	'' \
 	0.01 $C_PLOT_RRF_YMAX \
 	'set logscale y;' \
-	${OUT}/${PLOT_RR_NAME}
+	${OUT}/${PLOT_RR_NAME}\${TIMEFRAME}
 EOF
 
 ################################################################################
