@@ -194,15 +194,13 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 		if (result != RTLIB_OK)
 			continue;
 
+// Pre-Change completion (just if asynchronous)
 #ifdef CONFIG_BBQUE_YP_SASB_ASYNC
 		// Mapping the response future for responses collection
 		rsp_map.insert(RspMapEntry_t(papp, presp));
-#endif
 
 	}
 
-// Pre-Change completion (just if asynchronous)
-#ifdef CONFIG_BBQUE_YP_SASB_ASYNC
 	// Collecting EXC responses
 	for (resp_it = rsp_map.begin();
 			resp_it != rsp_map.end();
@@ -210,28 +208,27 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 
 		papp  = (*resp_it).first;
 		presp = (*resp_it).second;
+#endif
 
 		// Jumping meanwhile disabled applications
 		if (papp->Disabled()) {
 			logger->Debug("STEP 1: ignoring disabled EXC [%s]",
 					papp->StrId());
-			// Remove the respose future
-			rsp_map.erase(resp_it);
-			continue;
+			goto error_continue;
 		}
 
+// Pre-Change completion (just if asynchronous)
+#ifdef CONFIG_BBQUE_YP_SASB_ASYNC
 		logger->Debug("STEP 1: .... (wait) .... [%s]", papp->StrId());
 		result = ap.SyncP_PreChange_GetResult(presp);
-
+#endif
 
 		if (result == RTLIB_BBQUE_CHANNEL_TIMEOUT) {
 			logger->Warn("STEP 1: <---- TIMEOUT -- [%s]",
 					papp->StrId());
 			// Disabling not responding applications
 			papp->Disable();
-			// Remove the respose future
-			rsp_map.erase(resp_it);
-			continue;
+			goto error_continue;
 		}
 
 		if (result == RTLIB_BBQUE_CHANNEL_WRITE_FAILED) {
@@ -239,9 +236,7 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 					papp->StrId());
 			// TODO: disappeared applications could be killed
 			papp->Disable();
-			// Remove the respose future
-			rsp_map.erase(resp_it);
-			continue;
+			goto error_continue;
 		}
 
 		if (result != RTLIB_OK) {
@@ -260,10 +255,18 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 		syncp_result = policy->CheckLatency(papp, presp->syncLatency);
 		// TODO: check the POLICY required action
 
+error_continue:
+
+// Pre-Change completion (just if asynchronous)
+#ifdef CONFIG_BBQUE_YP_SASB_ASYNC
 		// Remove the respose future
 		rsp_map.erase(resp_it);
-	}
 #endif // CONFIG_BBQUE_YP_SASB_ASYNC
+
+		// This is required just for clean compilation
+		continue;
+
+	}
 
 	// Collecing execution metrics
 	SM_GET_TIMING_SYNCSTATE(metrics, SM_SYNCP_TIME_PRECHANGE,
@@ -312,15 +315,13 @@ SynchronizationManager::Sync_SyncChange(
 		if (result != RTLIB_OK)
 			continue;
 
+// Sync-Change completion (just if asynchronous)
 #ifdef CONFIG_BBQUE_YP_SASB_ASYNC
 		// Mapping the response future for responses collection
 		rsp_map.insert(RspMapEntry_t(papp, presp));
-#endif
 
 	}
 
-// Sync-Change completion (just if asynchronous)
-#ifdef CONFIG_BBQUE_YP_SASB_ASYNC
 	// Collecting EXC responses
 	for (resp_it = rsp_map.begin();
 			resp_it != rsp_map.end();
@@ -328,30 +329,29 @@ SynchronizationManager::Sync_SyncChange(
 
 		papp  = (*resp_it).first;
 		presp = (*resp_it).second;
+#endif
 
 		// Jumping meanwhile disabled applications
 		if (papp->Disabled()) {
 			logger->Debug("STEP 2: ignoring disabled EXC [%s]",
 					papp->StrId());
-			// Remove the respose future
-			rsp_map.erase(resp_it);
-			continue;
+			goto error_continue;
 		}
 
+// Sync-Change completion (just if asynchronous)
+#ifdef CONFIG_BBQUE_YP_SASB_ASYNC
 		logger->Debug("STEP 2: .... (wait) .... [%s]", papp->StrId());
 		result = ap.SyncP_SyncChange_GetResult(presp);
+#endif
 
 		if (result == RTLIB_BBQUE_CHANNEL_TIMEOUT) {
 			logger->Warn("STEP 2: <---- TIMEOUT -- [%s]",
 					papp->StrId());
 			// Disabling not responding applications
 			papp->Disable();
-			// Remove the respose future
-			rsp_map.erase(resp_it);
-
 			// Accounting for syncpoints missed
 			SM_COUNT_EVENT(metrics, SM_SYNCP_SYNC_MISS);
-			continue;
+			goto error_continue;
 		}
 
 		if (result == RTLIB_BBQUE_CHANNEL_WRITE_FAILED) {
@@ -359,12 +359,9 @@ SynchronizationManager::Sync_SyncChange(
 					papp->StrId());
 			// TODO: disappeared applications could be killed
 			papp->Disable();
-			// Remove the respose future
-			rsp_map.erase(resp_it);
-
 			// Accounting for syncpoints missed
 			SM_COUNT_EVENT(metrics, SM_SYNCP_SYNC_MISS);
-			continue;
+			goto error_continue;
 		}
 
 
@@ -385,10 +382,18 @@ SynchronizationManager::Sync_SyncChange(
 
 		logger->Info("STEP 2: <--------- OK -- [%s]", papp->StrId());
 
+error_continue:
+
+// Sync-Change completion (just if asynchronous)
+#ifdef CONFIG_BBQUE_YP_SASB_ASYNC
 		// Remove the respose future
 		rsp_map.erase(resp_it);
+#endif // CONFIG_BBQUE_YP_SASB_ASYNC
+
+		// This is required just for clean compilation
+		continue;
+
 	}
-#endif
 
 	// Collecing execution metrics
 	SM_GET_TIMING_SYNCSTATE(metrics, SM_SYNCP_TIME_SYNCCHANGE,
