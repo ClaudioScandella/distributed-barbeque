@@ -2082,7 +2082,23 @@ void BbqueRPC::NotifyPreConfigure(
 
 void BbqueRPC::NotifyPostConfigure(
 	RTLIB_ExecutionContextHandler_t ech) {
+	pregExCtx_t prec;
+
+	assert(ech);
+	prec = getRegistered(ech);
+	if (!prec) {
+		fprintf(stderr, FE("NotifyPostConfigure EXC [%p] FAILED "
+				"(EXC not registered)\n"), (void*)ech);
+		return;
+	}
+	assert(isRegistered(prec) == true);
+
 	DB(fprintf(stderr, FD("<=== NotifyConfigure\n")));
+
+	// CPS Enforcing initialization
+	if ((prec->cps_expect != 0) || (prec->cps_tstart == 0))
+		prec->cps_tstart = bbque_tmr.getElapsedTimeMs();
+
 	(void)ech;
 }
 
