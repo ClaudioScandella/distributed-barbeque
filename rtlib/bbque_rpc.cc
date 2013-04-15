@@ -2060,7 +2060,7 @@ void BbqueRPC::NotifyExit(
 
 	prec = getRegistered(ech);
 	if (!prec) {
-		fprintf(stderr, FE("Unregister EXC [%p] FAILED "
+		fprintf(stderr, FE("NotifyExit EXC [%p] FAILED "
 				"(EXC not registered)\n"), (void*)ech);
 		return;
 	}
@@ -2110,7 +2110,7 @@ void BbqueRPC::NotifyPreRun(
 
 	prec = getRegistered(ech);
 	if (!prec) {
-		fprintf(stderr, FE("Unregister EXC [%p] FAILED "
+		fprintf(stderr, FE("NotifyPreRun EXC [%p] FAILED "
 				"(EXC not registered)\n"), (void*)ech);
 		return;
 	}
@@ -2137,7 +2137,7 @@ void BbqueRPC::NotifyPostRun(
 
 	prec = getRegistered(ech);
 	if (!prec) {
-		fprintf(stderr, FE("Unregister EXC [%p] FAILED "
+		fprintf(stderr, FE("NotifyPostRun EXC [%p] FAILED "
 				"(EXC not registered)\n"), (void*)ech);
 		return;
 	}
@@ -2170,7 +2170,7 @@ void BbqueRPC::NotifyPostMonitor(
 	assert(ech);
 	prec = getRegistered(ech);
 	if (!prec) {
-		fprintf(stderr, FE("Unregister EXC [%p] FAILED "
+		fprintf(stderr, FE("NotifyPostMonitor EXC [%p] FAILED "
 				"(EXC not registered)\n"), (void*)ech);
 		return;
 	}
