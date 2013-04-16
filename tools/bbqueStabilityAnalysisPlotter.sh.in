@@ -343,6 +343,7 @@ C_PLOT_GGF_YMAX=20
 C_PLOT_RRF_YMAX=100
 C_PLOT_RAF_YMAX=4
 C_PLOT_RAV_YMAX=4
+C_PLOT_SEV_YMAX=2
 C_RA_R2U_MIN=5
 C_RA_R2U_MAX=5
 C_RA_R2D_MIN=0
@@ -375,6 +376,9 @@ S_RC_RCF_TIME=300  # The [ms] AVERAGE for onConfigure
 S_RC_RCF_STDV=50   # The [ms] STDDEV  for onConfigure
 S_RR_EMA_SMPLS=60  # RR EMA Samples number
 S_RR_EMA_ALPHA=0   # RR EMA Alpha value
+S_SE_RUN_TIME=500  # The [ms] AVERAGE for a Scheduling Event
+S_SE_RUN_STDV=200  # The [ms] STDDEV  for a Scheduling Event
+S_SE_TIME=0        # The time [s] the last Scheduling Event complete
 S_CTME=0     # Current Cycle Time
 S_NTME=0     # Next Cycle Time
 S_RTME=0     # Last Reconfiguration request Time
@@ -405,6 +409,8 @@ M_GGFWD=1    # GoalGap Forward Flag: >0 forwarded, 0: stopped
 M_RRCUR=0    # Reconfiguration Rate Current
 M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold [%]
+M_SECUR=0    # Scheduling Event
+M_RAPRV=0    # Resources Availability Previous
 M_RACUR=0    # Resources Availability Current
 M_RAEMA=0    # Resources Availability EMA
 M_RATRD=2    # Resources Availability Threshold [%]
@@ -456,6 +462,10 @@ echo -e "  control......... ${S_SM_CTR[$S_SM_CRRT]}"
 
 else
 # Resources mode
+echo -e "Scheduling Events Model:"
+printf  "  avg time [ms]...... %3d\n" $S_SE_RUN_TIME
+printf  "  std time [ms]...... %3d\n" $S_SE_RUN_STDV
+echo
 echo -e "Resource Availability Filter:"
 printf  "  ema_samples........ %3d\n" $S_RA_EMA_SMPLS
 echo
@@ -509,6 +519,11 @@ S_GG_TRD_BETA=$(ggFilterBeta)
 S_SM_CAPP=$2
 S_SM_CGGT=$3
 S_SM_CRRT=$4
+;;
+
+"se") # Scheduling Event Model
+S_SE_RUN_TIME=$2
+S_SE_RUN_STDV=$3
 ;;
 
 "ra") # Resources Availability Filter
@@ -769,6 +784,7 @@ P_RRTRD=$M_RRTRD
 P_RRCUR=$M_RRCUR
 P_RREMA=$M_RREMA
 
+P_SECUR=$M_SECUR
 P_RATRD=$M_RATRD
 P_RACUR=$M_RACUR
 P_RAEMA=$M_RAEMA
@@ -874,6 +890,7 @@ if (r3t > $M_RA_R3U)
 	r3a=0;
 res = (1+r2a+r3a);
 "
+M_RAPRV=$M_RACUR
 M_RACUR=$(bcsCalc "$CODE")
 M_RAEMA=$(emaUpdate $S_RA_EMA_ALPHA $M_RAEMA $M_RACUR)
 
@@ -881,13 +898,46 @@ M_RAEMA=$(emaUpdate $S_RA_EMA_ALPHA $M_RAEMA $M_RACUR)
 S_NTME=$(bcsCalc "res = ($S_CTME+0.1);")
 }
 
+updateSE() {
+# Start Scheduler if availability has changed
+if [ $M_RAPRV -ne $M_RACUR ]; then
+  # Generate the 3 random we need for the model
+  getRandoms 3
+  CODE="\
+# Get a triplets of Uniform distributed [-1;1] numbers				\n\
+u11 = (2 * ${RND[0]} / 65536) + 1; 						\n\
+u12 = (2 * ${RND[1]} / 65536) + 1; 						\n\
+u13 = (2 * ${RND[2]} / 65536) + 1; 						\n\
+# Get a normal distrbuted numbers						\n\
+n11 = 3 + ((u11 * 2) - 1) + ((u12 * 2) - 1) + ((u13 * 2) - 1); 			\n\
+# Compute Scheduling Event time with Normal Distribution			\n\
+m_se_time = $S_SE_RUN_TIME + (n11 * $S_SE_RUN_STDV); 				\n\
+res = ((m_se_time / 1000) + $S_CTME); 						\n\
+"
+  S_SE_TIME=$(bcsCalc "$CODE")
+fi
+
+# Set scheduler NOT running (by default)
+M_SECUR=0
+
+# Set scheduler completed, when done
+SE_RUN=$(bcsCalc "res = 0; if ($S_CTME <= $S_SE_TIME) res = 1;")
+[ $SE_RUN -eq 1 ] && M_SECUR=1
+}
+
 simulationCycleR() {
 
 # Compute the RA metrics
 updateRA
 
+# Update scheduling events
+updateSE
+
 }
 
+PLOT_SE_NAME=bbqueSignalAlalyzer_plotSE
+PLOT_SE=$(mktemp -u /tmp/${PLOT_SE_NAME}_XXXXXX)
+mkfifo $PLOT_SE
 PLOT_RA_NAME=bbqueSignalAlalyzer_plotRAFilter
 PLOT_RA=$(mktemp -u /tmp/${PLOT_RA_NAME}_XXXXXX)
 mkfifo $PLOT_RA
@@ -907,6 +957,10 @@ while [ $RUN -eq 1 ]; do
     setupPlotValue
 
     # Dump metrics
+    printf "%9.6f Running %d\n" \
+		$S_CTME $P_SECUR | \
+	    stdbuf -oL tee -a ${OUT}/${PLOT_SE_NAME}.dat \
+	    >$PLOT_SE
     printf "%9.6f Availability %7.3f EMA %7.3f Forwarding %3d\n" \
 		$S_CTME $P_RACUR $P_RAEMA $P_RAFWD | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_RA_NAME}.dat \
@@ -962,6 +1016,7 @@ tail -n0 -f "$1" | $PLOTTER \
 	--title  "$2" \
 	--stream --xlen 90 \
 	--extracmd "$GPOPTS_X11 $OPTS" \
+	--curvestyle Running "ls 1" \
 	--curvestyle Availability "with point ls 1" \
 	--curvestyle Value "with point ls 1" \
 	--curvestyle EMA "ls 2" \
@@ -1065,6 +1120,12 @@ echo "$1 $S_RR_EMA_SMPLS $S_GG_TRD_RR1 $S_GG_TRD_GG1 $S_GG_TRD_GG2" >$CFGFIFO
 echo "$1 $S_SM_CAPP $S_SM_CGGT $S_SM_CRRT" >$CFGFIFO
 ;;
 
+"se") # Scheduling Event Model
+[ $2 != '-' ] && S_SE_RUN_TIME=$2
+[ $3 != '-' ] && S_SE_RUN_STDV=$3
+echo "$1 $S_SE_RUN_TIME $S_SE_RUN_STDV" >$CFGFIFO
+;;
+
 "ra") # Resources Availability Filter
 [ $2 != '-' ] && S_RA_EMA_SMPLS=$2
 echo "$1 $S_RA_EMA_SMPLS" >$CFGFIFO
@@ -1153,6 +1214,11 @@ echo "    rrc  - Reconfiguration Rate control mode  0: disabled, 1: enabled"
 
 else
 # Resources mode
+echo " se <avg> <std>"
+echo "    tune the Scheduling Event model, where:"
+echo "    avg  - [ms] of AVERAGE exeution time for a scheduling event"
+echo "    std  - [ms] of STDDEV for a scheduling event exeution time"
+echo "    "
 echo " ra <ema>"
 echo "    tune the Resources Availability Filter, where:"
 echo "    ema  - set the number of samples for the RA Exponential Moving Average (EMA)"
@@ -1199,6 +1265,7 @@ plotData $PLOT_GG 'Goal Gap (GG) Metrics' '' 0 $C_PLOT_GGV_YMAX '' 949x233+-5+25
 plotData $PLOT_GV 'Goal Gap (GG) Filter' '' 0 $C_PLOT_GGF_YMAX '' 949x233+-5+517
 plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter (log)' '' 0.01 $C_PLOT_RRF_YMAX 'set logscale y;' 949x233+-5-25
 else
+plotData $PLOT_SE 'Scheduling Events (SE)' '' 0 $C_PLOT_SEV_YMAX '' 949x233+-5+255
 plotData $PLOT_RA 'Resources Availability (RA)' '' 0 $C_PLOT_RAV_YMAX '' 949x233+-5-25
 fi
 # Start data generator
@@ -1244,7 +1311,7 @@ cleanup() {
 	kill $(jobs -p)
 	killall feedgnuplot
 	rm $CFGFIFO $PLOT_GG $PLOT_GV $PLOT_RR
-	rm $PLOT_AWM $PLOT_GG $PLOT_GV $PLOT_RR $PLOT_RA
+	rm $PLOT_AWM $PLOT_GG $PLOT_GV $PLOT_RR $SPLOT_SE $PLOT_RA
 	rm $BC_FIFO_IN $BC_FIFO_OUT
 	cfgReport
 }
