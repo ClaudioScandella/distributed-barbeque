@@ -545,7 +545,7 @@ return $M_GGFWD
 # This function simulate the BBQ policy
 switchAWM() {
 S_PAWM=$S_CAWM
-SWITCH_TIME=$(calc "if(($S_RTME>0) && ($S_RTME<=$S_CTME)) 1 else 0")
+SWITCH_TIME=$(bcsCalc "if (($S_RTME>0) && ($S_RTME<=$S_CTME)) res = 1 else res = 0;")
 [ $SWITCH_TIME -eq 0 ] && return
 
 NAWM=1
@@ -574,7 +574,7 @@ M_GVEMA=$(emaUpdate $S_GV_EMA_ALPHA $M_GVEMA $M_GGVAR)
 setReconfigurationTime() {
 
 # Setup just one reconf per time
-REC=$(calc "if ($S_RTME > 0) 0 else 1")
+REC=$(bcsCalc "if ($S_RTME > 0) res = 0 else res = 1;")
 [ $REC -eq 0 ] && return
 
 # Avoid reconfs if GG is not stable
@@ -589,8 +589,8 @@ fi
 DTIME=$S_UTME
 [ $S_CAWM -eq 3 ] && DTIME=$S_DTME
 
-PTME=$(calc "($M_RC_RTME + $M_RC_MTME + $M_RC_CTME) / 1000")
-S_RTME=$(calc "$S_CTME + $PTME + ($DTIME / 1000)")
+PTME=$(bcsCalc "res = (($M_RC_RTME + $M_RC_MTME + $M_RC_CTME) / 1000);")
+S_RTME=$(bcsCalc "res = ($S_CTME + $PTME + ($DTIME / 1000));")
 #printf "%9.6f Reconfigure scheduled @ $S_RTME\n" $S_CTME
 }
 
