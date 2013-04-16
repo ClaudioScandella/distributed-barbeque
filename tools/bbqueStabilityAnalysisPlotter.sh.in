@@ -342,6 +342,7 @@ C_PLOT_GGV_YMAX=120
 C_PLOT_GGF_YMAX=20
 C_PLOT_RRF_YMAX=100
 C_PLOT_RAF_YMAX=4
+C_PLOT_RAV_YMAX=4
 C_RA_R2U_MIN=5
 C_RA_R2U_MAX=5
 C_RA_R2D_MIN=0
@@ -906,8 +907,8 @@ while [ $RUN -eq 1 ]; do
     setupPlotValue
 
     # Dump metrics
-    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f Forwarding %3d\n" \
-		$S_CTME $P_RATRD $P_RACUR $P_RAEMA $P_RAFWD | \
+    printf "%9.6f Availability %7.3f EMA %7.3f Forwarding %3d\n" \
+		$S_CTME $P_RACUR $P_RAEMA $P_RAFWD | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_RA_NAME}.dat \
 	    >$PLOT_RA
 
@@ -961,6 +962,7 @@ tail -n0 -f "$1" | $PLOTTER \
 	--title  "$2" \
 	--stream --xlen 90 \
 	--extracmd "$GPOPTS_X11 $OPTS" \
+	--curvestyle Availability "with point ls 1" \
 	--curvestyle Value "with point ls 1" \
 	--curvestyle EMA "ls 2" \
 	--curvestyle Threshold "ls 3" \
@@ -1197,7 +1199,7 @@ plotData $PLOT_GG 'Goal Gap (GG) Metrics' '' 0 $C_PLOT_GGV_YMAX '' 949x233+-5+25
 plotData $PLOT_GV 'Goal Gap (GG) Filter' '' 0 $C_PLOT_GGF_YMAX '' 949x233+-5+517
 plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter (log)' '' 0.01 $C_PLOT_RRF_YMAX 'set logscale y;' 949x233+-5-25
 else
-plotData $PLOT_RA 'Resources Availability (RA) Filter' '' 0 $C_PLOT_RAF_YMAX '' 949x233+-5-25
+plotData $PLOT_RA 'Resources Availability (RA)' '' 0 $C_PLOT_RAV_YMAX '' 949x233+-5-25
 fi
 # Start data generator
 dataSource &
