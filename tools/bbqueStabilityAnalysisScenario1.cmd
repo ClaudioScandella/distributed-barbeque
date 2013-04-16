@@ -13,6 +13,11 @@ echo -e "\nPress a key to continue" 1>&2
 read KEY
 }
 
+press_to_terminate() {
+sleep 2
+echo -e "\n\nScenary completed, press CTRL+C to terminate" 1>&2
+}
+
 STEP=0
 scnearyStep() {
 TSLOT=$1
@@ -23,7 +28,7 @@ if [ $ITV -eq 1 ]; then
 else
   sleep $((TSLOT-2))
 fi
-$((STEP++))
+let STEP=STEP+1
 }
 
 scnearyStep 4 "Application is initially stable"
@@ -53,4 +58,6 @@ scnearyStep 30 "Redefined GoalGap assertions to be in range [75,80]"
 echo gg 0 0 -
 echo mode 0 - -
 scnearyStep 30 "Application is now stable again"
+
+press_to_terminate
 
