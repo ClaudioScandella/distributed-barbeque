@@ -1,7 +1,10 @@
 #!/bin/bash
 
-OUT=${1:-"."}
 PLOTTER="@CMAKE_INSTALL_PREFIX@/bin/feedgnuplot"
+# $1 - Simulation Mode: Applications vs Resources
+MODE_APP=1          # Applications simulation mode
+MODE=$MODE_APP      # By default run Applications simulation
+OUT=${2:-"."}
 
 GPLINE_SIG="set style line 1 lt 2 lc rgb \"#251BE0\" lw 1 ps 1"
 GPLINE_AVG="set style line 2 lt 2 lc rgb \"#E0A51B\" lw 2"
@@ -329,6 +332,7 @@ bcsCalc "if ($1 < $S_GG_TRD_RR1) res = $S_GG_TRD_GG1 else res = (($S_GG_TRD_ALPH
 ################################################################################
 
 # Model and Plots Configuration
+C_MODE=$MODE        # Simulation mode: 1: applications, 0: resources
 C_STEP_TIME=1     # Time of a single simulation step [s]
 C_PLOT_ALL=0       # Signal to Plot: 1: all, 0: only enabled filters
 C_PLOT_AWM_YMAX=6
@@ -405,6 +409,9 @@ clear
 usage
 echo
 echo -e "Current configuration"
+
+if [ $C_MODE -eq $MODE_APP ]; then
+# Applications mode
 echo -e "Application:"
 printf  "  cps............. %3d\n" $S_CPS
 echo -e "  behavior........ ${S_SM_APP[$S_SM_CAPP]}"
@@ -423,6 +430,8 @@ printf  "  RR1 threshold... %5.1f [%%]\n" $(bcsCalc "res = (100 * $S_GG_TRD_RR1)
 printf  "  GG1 threshold... %3d   (@ 1xRR1)\n" $S_GG_TRD_GG1
 printf  "  GG2 threshold... %3d   (@ 2xRR1)\n" $S_GG_TRD_GG2
 echo -e "  control......... ${S_SM_CTR[$S_SM_CRRT]}"
+
+fi
 echo
 }
 
@@ -713,7 +722,7 @@ rm -f ${OUT}/bbqueSignalAlalyzer_plot*.dat
 
 # A simulation step correspond to the simulation of all events happening
 # in a timeframe of abount 1[s]
-simulationStep() {
+simulationStepA() {
 STME=$(bcsCalc "res = ($S_CTME + $C_STEP_TIME);")
 RUN=1
 while [ $RUN -eq 1 ]; do
@@ -757,7 +766,7 @@ dataSource() {
 while true; do
 	# Do a simulation step
 	T1=$(getTime)
-	simulationStep
+	[ $C_MODE -eq $MODE_APP ] && simulationStepA
 	T2=$(getTime)
 
 	SLEEP_TIME=$(bcsCalc "res = ($C_STEP_TIME - ($T2 - $T1)); if (res <= 0) res = .001;")
@@ -912,6 +921,9 @@ echo -e "${LGRAY}\n\n"
 echo "***** Signal Test Analyzer *****"
 echo
 echo "Tuning commands:"
+
+if [ $C_MODE -eq $MODE_APP ]; then
+# Applications mode
 echo " cps <cps>"
 echo "    tune the application behaviors, where:"
 echo "    cps  - set the number of samples per seconds (CPS)"
@@ -935,6 +947,9 @@ echo "    tune the system behaviors and control mechanisms, where:"
 echo "    app  - Application behaviors              0: stable,   1: unstable"
 echo "    ggc  - GoalGap control mode               0: disabled, 1: enabled"
 echo "    rrc  - Reconfiguration Rate control mode  0: disabled, 1: enabled"
+
+fi
+
 echo
 echo "Use '-' to keep the previous value"
 echo
@@ -944,10 +959,12 @@ plot() {
 # Tuning command memento and current configuration dump
 cfgReport
 # Start data plotters
+if [ $C_MODE -eq $MODE_APP ]; then
 plotData $PLOT_AWM 'Application Working Mode (AWM) Metrics' '' 0 $C_PLOT_AWM_YMAX '' 949x233+-5+-8
 plotData $PLOT_GG 'Goal Gap (GG) Metrics' '' 0 $C_PLOT_GGV_YMAX '' 949x233+-5+255
 plotData $PLOT_GV 'Goal Gap (GG) Filter' '' 0 $C_PLOT_GGF_YMAX '' 949x233+-5+517
 plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter (log)' '' 0.01 $C_PLOT_RRF_YMAX 'set logscale y;' 949x233+-5-25
+fi
 # Start data generator
 dataSource &
 }
