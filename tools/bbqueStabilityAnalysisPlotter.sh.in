@@ -3,7 +3,9 @@
 PLOTTER="@CMAKE_INSTALL_PREFIX@/bin/feedgnuplot"
 # $1 - Simulation Mode: Applications vs Resources
 MODE_APP=1          # Applications simulation mode
+MODE_RES=0          # Resources simulation mode
 MODE=$MODE_APP      # By default run Applications simulation
+[ ${1:-"app"} == "res" ] && MODE=$MODE_RES
 OUT=${2:-"."}
 
 GPLINE_SIG="set style line 1 lt 2 lc rgb \"#251BE0\" lw 1 ps 1"
@@ -339,6 +341,15 @@ C_PLOT_AWM_YMAX=6
 C_PLOT_GGV_YMAX=120
 C_PLOT_GGF_YMAX=20
 C_PLOT_RRF_YMAX=100
+C_PLOT_RAF_YMAX=4
+C_RA_R2U_MIN=2
+C_RA_R2U_MAX=4
+C_RA_R2D_MIN=2
+C_RA_R2D_MAX=4
+C_RA_R3U_MIN=1
+C_RA_R3U_MAX=2
+C_RA_R3D_MIN=2
+C_RA_R3D_MAX=4
 
 # Model Status
 S_CPS=10           # Cycles Per Second [Hz]
@@ -373,6 +384,8 @@ S_CAWM=1     # Current  AWM
 S_SM_CAPP=0  # Application control: 0 stable, 1 unstable
 S_SM_CGGT=0  # GG Threshold control: 0 disabled, 1 enabled
 S_SM_CRRT=0  # BBQ control: 0 disabled, 1 enabled
+S_RA_EMA_SMPLS=50  # RA EMA Samples number
+S_RA_EMA_ALPHA=0   # RA EMA Alpha value
 
 # Model Metrics
 M_RC_RTME=0  # The last onRun time
@@ -391,6 +404,15 @@ M_GGFWD=1    # GoalGap Forward Flag: >0 forwarded, 0: stopped
 M_RRCUR=0    # Reconfiguration Rate Current
 M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold [%]
+M_RACUR=0    # Resources Availability Current
+M_RAEMA=0    # Resources Availability EMA
+M_RATRD=2    # Resources Availability Threshold [%]
+M_RA_R2U=0   # Resource 2 Up Time [s]
+M_RA_R2D=0   # Resource 2 Down Time [s]
+M_RA_R3U=0   # Resource 3 Up Time [s]
+M_RA_R3D=0   # Resource 3 Down Time [s]
+M_RA_R2T=0   # Resource 2 Model Period [s]
+M_RA_R3T=0   # Resource 3 Model Period [s]
 
 # Simulation mode string representation
 S_SM_APP[0]="${GREEN}Stable${RESET}"
@@ -430,6 +452,21 @@ printf  "  RR1 threshold... %5.1f [%%]\n" $(bcsCalc "res = (100 * $S_GG_TRD_RR1)
 printf  "  GG1 threshold... %3d   (@ 1xRR1)\n" $S_GG_TRD_GG1
 printf  "  GG2 threshold... %3d   (@ 2xRR1)\n" $S_GG_TRD_GG2
 echo -e "  control......... ${S_SM_CTR[$S_SM_CRRT]}"
+
+else
+# Resources mode
+echo -e "Resource Availability Filter:"
+printf  "  ema_samples........ %3d\n" $S_RA_EMA_SMPLS
+echo
+echo -e "Resource 2 model:"
+printf  "  up   (min,max)..... (%d,%d)\n" $C_RA_R2U_MIN $C_RA_R2U_MAX
+printf  "  down (min,max)..... (%d,%d)\n" $C_RA_R2D_MIN $C_RA_R2D_MAX
+printf  "  T    (up, down).... %5.1f (%5.1f,%5.1f)\n" $M_RA_R2T $M_RA_R2U $M_RA_R2D
+echo
+echo -e "Resource 3 model:"
+printf  "  up   (min,max)..... (%d,%d)\n" $C_RA_R3U_MIN $C_RA_R3U_MAX
+printf  "  down (min,max)..... (%d,%d)\n" $C_RA_R3D_MIN $C_RA_R3D_MAX
+printf  "  T    (up, down).... %5.1f (%5.1f,%5.1f)\n" $M_RA_R3T $M_RA_R3U $M_RA_R3D
 
 fi
 echo
@@ -471,6 +508,51 @@ S_GG_TRD_BETA=$(ggFilterBeta)
 S_SM_CAPP=$2
 S_SM_CGGT=$3
 S_SM_CRRT=$4
+;;
+
+"ra") # Resources Availability Filter
+S_RA_EMA_SMPLS=$2
+S_RA_EMA_ALPHA=$(emaInit  $S_RA_EMA_SMPLS)
+;;
+
+"r2m") # Resource 2 Random Model
+C_RA_R2U_MIN=$2
+C_RA_R2U_MAX=$3
+C_RA_R2D_MIN=$4
+C_RA_R2D_MAX=$5
+M_RA_R2U=$(uniform $C_RA_R2U_MIN $C_RA_R2U_MAX)
+M_RA_R2D=$(uniform $C_RA_R2D_MIN $C_RA_R2D_MAX)
+M_RA_R2T=$(bcsCalc "res = ($M_RA_R2U + $M_RA_R2D);")
+;;
+
+"r3m") # Resource 2 Random Model
+C_RA_R3U_MIN=$2
+C_RA_R3U_MAX=$3
+C_RA_R3D_MIN=$4
+C_RA_R3D_MAX=$5
+M_RA_R3U=$(uniform $C_RA_R3U_MIN $C_RA_R3U_MAX)
+M_RA_R3D=$(uniform $C_RA_R3D_MIN $C_RA_R3D_MAX)
+M_RA_R3T=$(bcsCalc "res = ($M_RA_R3U + $M_RA_R3D);")
+;;
+
+"r2p") # Resource 2 Params Model
+C_RA_R2U_MIN=$2
+C_RA_R2U_MAX=$2
+C_RA_R2D_MIN=$3
+C_RA_R2D_MAX=$3
+M_RA_R2U=$2
+M_RA_R2D=$3
+M_RA_R2T=$(bcsCalc "res = ($M_RA_R2U + $M_RA_R2D);")
+;;
+
+"r3p") # Resource 3 Params Model
+C_RA_R3U_MIN=$2
+C_RA_R3U_MAX=$2
+C_RA_R3D_MIN=$3
+C_RA_R3D_MAX=$3
+M_RA_R3U=$2
+M_RA_R3D=$3
+M_RA_R3T=$(bcsCalc "res = ($M_RA_R3U + $M_RA_R3D);")
 ;;
 
 esac
@@ -686,6 +768,10 @@ P_RRTRD=$M_RRTRD
 P_RRCUR=$M_RRCUR
 P_RREMA=$M_RREMA
 
+P_RATRD=$M_RATRD
+P_RACUR=$M_RACUR
+P_RAEMA=$M_RAEMA
+
 [ $C_PLOT_ALL -eq 1 ] && return
 
 # Forcely reset GG plots on GG filter disabled
@@ -761,12 +847,86 @@ done
 }
 
 
+################################################################################
+# Resources Simulation
+################################################################################
+
+setupRA() {
+M_RA_R2U=$(uniform $C_RA_R2U_MIN $C_RA_R2U_MAX)
+M_RA_R2D=$(uniform $C_RA_R2D_MIN $C_RA_R2D_MAX)
+M_RA_R3U=$(uniform $C_RA_R3U_MIN $C_RA_R3U_MAX)
+M_RA_R3D=$(uniform $C_RA_R3D_MIN $C_RA_R3D_MAX)
+M_RA_R2T=$(bcsCalc "res = ($M_RA_R2U + $M_RA_R2D);")
+M_RA_R3T=$(bcsCalc "res = ($M_RA_R3U + $M_RA_R3D);")
+S_RA_EMA_ALPHA=$(emaInit  $S_RA_EMA_SMPLS)
+}
+
+updateRA() {
+CODE="\
+scale=0;
+r2t=($S_CTME % $M_RA_R2T);
+r3t=($S_CTME % $M_RA_R3T);
+r2a=1; r3a=1;
+if (r2t > $M_RA_R2U)
+	r2a=0;
+if (r3t > $M_RA_R3U)
+	r3a=0;
+res = (1+r2a+r3a);
+"
+M_RACUR=$(bcsCalc "$CODE")
+M_RAEMA=$(emaUpdate $S_RA_EMA_ALPHA $M_RAEMA $M_RACUR)
+
+# Update next sampling time
+S_NTME=$(bcsCalc "res = ($S_CTME+0.1);")
+}
+
+simulationCycleR() {
+
+# Compute the RA metrics
+updateRA
+
+}
+
+PLOT_RA_NAME=bbqueSignalAlalyzer_plotRAFilter
+PLOT_RA=$(mktemp -u /tmp/${PLOT_RA_NAME}_XXXXXX)
+mkfifo $PLOT_RA
+
+simulationStepR() {
+STME=$(bcsCalc "res = ($S_CTME + $C_STEP_TIME);")
+RUN=1
+while [ $RUN -eq 1 ]; do
+
+    # Get current time
+    S_CTME=$S_NTME
+
+    # Do a new simulation cycle
+    simulationCycleR
+
+    # Setup the values to plot based on filters enabled
+    setupPlotValue
+
+    # Dump metrics
+    printf "%9.6f Threshold %7.3f Value %7.3f EMA %7.3f Forwarding %3d\n" \
+		$S_CTME $P_RATRD $P_RACUR $P_RAEMA $P_RAFWD | \
+	    stdbuf -oL tee -a ${OUT}/${PLOT_RA_NAME}.dat \
+	    >$PLOT_RA
+
+    # Check simulation step completion
+    RUN=$(bcsCalc "res=0; if ($S_CTME < $STME) res=1;")
+
+done
+}
+
+################################################################################
+
+
 # The data generator
 dataSource() {
 while true; do
 	# Do a simulation step
 	T1=$(getTime)
 	[ $C_MODE -eq $MODE_APP ] && simulationStepA
+	[ $C_MODE -eq $MODE_RES ] && simulationStepR
 	T2=$(getTime)
 
 	SLEEP_TIME=$(bcsCalc "res = ($C_STEP_TIME - ($T2 - $T1)); if (res <= 0) res = .001;")
@@ -903,6 +1063,47 @@ echo "$1 $S_RR_EMA_SMPLS $S_GG_TRD_RR1 $S_GG_TRD_GG1 $S_GG_TRD_GG2" >$CFGFIFO
 echo "$1 $S_SM_CAPP $S_SM_CGGT $S_SM_CRRT" >$CFGFIFO
 ;;
 
+"ra") # Resources Availability Filter
+[ $2 != '-' ] && S_RA_EMA_SMPLS=$2
+echo "$1 $S_RA_EMA_SMPLS" >$CFGFIFO
+;;
+
+"r2m") # Resource 2 Model
+[ $2 != '-' ] && C_RA_R2U_MIN=$2
+[ $3 != '-' ] && C_RA_R2U_MAX=$3
+[ $4 != '-' ] && C_RA_R2D_MIN=$4
+[ $5 != '-' ] && C_RA_R2D_MAX=$5
+echo "$1 $C_RA_R2U_MIN $C_RA_R2U_MAX $C_RA_R2D_MIN $C_RA_R2D_MAX" >$CFGFIFO
+;;
+
+"r3m") # Resource 2 Model
+[ $2 != '-' ] && C_RA_R3U_MIN=$2
+[ $3 != '-' ] && C_RA_R3U_MAX=$3
+[ $4 != '-' ] && C_RA_R3D_MIN=$4
+[ $5 != '-' ] && C_RA_R3D_MAX=$5
+echo "$1 $C_RA_R3U_MIN $C_RA_R3U_MAX $C_RA_R3D_MIN $C_RA_R3D_MAX" >$CFGFIFO
+;;
+
+"r2p") # Resource 2 Params Model
+[ $2 != '-' ] && C_RA_R2U_MIN=$2
+[ $2 != '-' ] && C_RA_R2U_MAX=$2
+[ $3 != '-' ] && C_RA_R2D_MIN=$3
+[ $3 != '-' ] && C_RA_R2D_MAX=$3
+[ $2 != '-' ] && M_RA_R2U=$2
+[ $2 != '-' ] && M_RA_R2D=$3
+echo "$1 $M_RA_R2U $M_RA_R2D" >$CFGFIFO
+;;
+
+"r3p") # Resource 3 Params Model
+[ $2 != '-' ] && C_RA_R3U_MIN=$2
+[ $2 != '-' ] && C_RA_R3U_MAX=$2
+[ $3 != '-' ] && C_RA_R3D_MIN=$3
+[ $3 != '-' ] && C_RA_R3D_MAX=$3
+[ $3 != '-' ] && M_RA_R3U=$2
+[ $3 != '-' ] && M_RA_R3D=$3
+echo "$1 $M_RA_R3U $M_RA_R3D" >$CFGFIFO
+;;
+
 *) # Unsopported command
 echo "Unsupported command: $1"
 ;;
@@ -948,6 +1149,37 @@ echo "    app  - Application behaviors              0: stable,   1: unstable"
 echo "    ggc  - GoalGap control mode               0: disabled, 1: enabled"
 echo "    rrc  - Reconfiguration Rate control mode  0: disabled, 1: enabled"
 
+else
+# Resources mode
+echo " ra <ema>"
+echo "    tune the Resources Availability Filter, where:"
+echo "    ema  - set the number of samples for the RA Exponential Moving Average (EMA)"
+echo "    "
+echo " r2m <u_min> <u_max> <d_min> <d_max>"
+echo "    tune the Resource 2 (random) model, where:"
+echo "    u_min - Minimum resource 2 \"Up Time\" [s]"
+echo "    u_max - Maximum resource 2 \"Up Time\" [s]"
+echo "    d_min - Minimum resource 2 \"Down Time\" [s]"
+echo "    d_max - Maximum resource 2 \"Down Time\" [s]"
+echo "    "
+echo " r3m <u_min> <u_max> <d_min> <d_max>"
+echo "    tune the Resource 3 (random) model, where:"
+echo "    u_min - Minimum resource 3 \"Up Time\" [s]"
+echo "    u_max - Maximum resource 3 \"Up Time\" [s]"
+echo "    d_min - Minimum resource 3 \"Down Time\" [s]"
+echo "    d_max - Maximum resource 3 \"Down Time\" [s]"
+echo "    "
+echo " r2p <u_time> <d_time>"
+echo "    tune the Resource 2 (parametric) model, where:"
+echo "    u_time - Resource 2 \"Up Time\" [s]"
+echo "    d_time - Resource 2 \"Down Time\" [s]"
+echo "    "
+echo " r3p <u_time> <d_time>"
+echo "    tune the Resource 3 (parametric) model, where:"
+echo "    u_time - Resource 3 \"Up Time\" [s]"
+echo "    d_time - Resource 3 \"Down Time\" [s]"
+echo "    "
+
 fi
 
 echo
@@ -964,6 +1196,8 @@ plotData $PLOT_AWM 'Application Working Mode (AWM) Metrics' '' 0 $C_PLOT_AWM_YMA
 plotData $PLOT_GG 'Goal Gap (GG) Metrics' '' 0 $C_PLOT_GGV_YMAX '' 949x233+-5+255
 plotData $PLOT_GV 'Goal Gap (GG) Filter' '' 0 $C_PLOT_GGF_YMAX '' 949x233+-5+517
 plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter (log)' '' 0.01 $C_PLOT_RRF_YMAX 'set logscale y;' 949x233+-5-25
+else
+plotData $PLOT_RA 'Resources Availability (RA) Filter' '' 0 $C_PLOT_RAF_YMAX '' 949x233+-5-25
 fi
 # Start data generator
 dataSource &
@@ -1008,7 +1242,7 @@ cleanup() {
 	kill $(jobs -p)
 	killall feedgnuplot
 	rm $CFGFIFO $PLOT_GG $PLOT_GV $PLOT_RR
-	rm $PLOT_AWM $PLOT_GG $PLOT_GV $PLOT_RR
+	rm $PLOT_AWM $PLOT_GG $PLOT_GV $PLOT_RR $PLOT_RA
 	rm $BC_FIFO_IN $BC_FIFO_OUT
 	cfgReport
 }
@@ -1035,6 +1269,9 @@ M_GGTRD=$(ggFilterGGThreshold $M_RREMA)
 M_GGSTB=$C_PLOT_GGV_YMAX
 M_GGFWD=$C_PLOT_RRF_YMAX
 M_RRTRD=$(bcsCalc "res = ($M_RRTRD / 100);")
+
+# Setup Resources Availability Model
+[ $C_MODE -eq $MODE_RES ] && setupRA
 
 # Main function
 plot
