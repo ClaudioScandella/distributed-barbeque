@@ -925,12 +925,11 @@ M_RAEMA=$(emaUpdate $S_RA_EMA_ALPHA $M_RAEMA $M_RACUR)
 S_NTME=$(bcsCalc "res = ($S_CTME+0.1);")
 }
 
-updateSE() {
-# Start Scheduler if availability has changed
-if [ $M_RAPRV -ne $M_RACUR ]; then
-  # Generate the 3 random we need for the model
-  getRandoms 3
-  CODE="\
+# Start a new Scheduling event
+startSE() {
+# Generate the 3 random we need for the model
+getRandoms 3
+CODE="\
 # Get a triplets of Uniform distributed [-1;1] numbers				\n\
 u11 = (2 * ${RND[0]} / 65536) + 1; 						\n\
 u12 = (2 * ${RND[1]} / 65536) + 1; 						\n\
@@ -941,8 +940,16 @@ n11 = 3 + ((u11 * 2) - 1) + ((u12 * 2) - 1) + ((u13 * 2) - 1); 			\n\
 m_se_time = $S_SE_RUN_TIME + (n11 * $S_SE_RUN_STDV); 				\n\
 res = ((m_se_time / 1000) + $S_CTME); 						\n\
 "
-  S_SE_TIME=$(bcsCalc "$CODE")
-fi
+S_SE_TIME=$(bcsCalc "$CODE")
+}
+
+
+# Update the Scheduling event status
+updateSE() {
+
+# Start Scheduler if availability has changed
+[ $S_SM_CRAF -eq 0 -a $M_RAPRV -ne $M_RACUR ] && startSE
+[ $S_SM_CRAF -eq 1 -a $M_RF_EAPRV -ne $M_RF_EACUR ] && startSE
 
 # Set scheduler NOT running (by default)
 M_SECUR=0
