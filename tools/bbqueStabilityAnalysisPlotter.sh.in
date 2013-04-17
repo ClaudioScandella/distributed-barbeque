@@ -418,7 +418,8 @@ M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold [%]
 M_SECUR=0    # Scheduling Event
 M_RF_MA=3    # Resource Filter - Maximum Availability (MA)
-M_RF_EA=3    # Resource Filter - Effective Availability (EA)
+M_RF_EAPRV=3 # Resource Filter - Effective Availability (EA) Prev
+M_RF_EACUR=3    # Resource Filter - Effective Availability (EA) Current
 M_RF_RF=0    # Resource Filter - Recovery Factor (RF)
 M_RF_RT=0    # Resource Filter - Recovery Threshold (RT)
 M_RF_RM=0.8  # Resource Filter - Recovery Margin (RM) [%]
@@ -809,7 +810,7 @@ P_SECUR=$M_SECUR
 P_RATRD=$M_RATRD
 P_RACUR=$M_RACUR
 P_RAEMA=$M_RAEMA
-P_RF_EA=$M_RF_EA
+P_RF_EACUR=$M_RF_EACUR
 P_RF_RT=$M_RF_RT
 P_RF_RF=$M_RF_RF
 P_RF_EMA=$M_RF_EMA
@@ -953,9 +954,12 @@ SE_RUN=$(bcsCalc "res = 0; if ($S_CTME <= $S_SE_TIME) res = 1;")
 
 updateRF() {
 
+# Keep track of current EA
+M_RF_EAPRV=$M_RF_EACUR
+
 # Resources Decrease
 [ $M_RAPRV -gt $M_RACUR ] && \
-  M_RF_EA=$M_RACUR && \
+  M_RF_EACUR=$M_RACUR && \
   S_RF_UP_TIME=0 && \
   [ "$S_RF_DW_START" == "0" ] && \
     S_RF_UP_TIME=$(bcsCalc "res = 0; if ($S_RF_UP_START > 0) res = ($S_CTME - $S_RF_UP_START);") && \
@@ -985,7 +989,7 @@ updateRF() {
 # Update Effective Availability
 UP=$(bcsCalc "res = 0; if ($M_RF_EMA > $M_RF_RT) res = 1;")
 [ $UP -eq 1 ] && \
-  M_RF_EA=$M_RACUR && \
+  M_RF_EACUR=$M_RACUR && \
   [ "$S_RF_UP_START" == "0" ] && \
     S_RF_UP_START=$S_CTME
 
@@ -1034,7 +1038,7 @@ while [ $RUN -eq 1 ]; do
 	    stdbuf -oL tee -a ${OUT}/${PLOT_SE_NAME}.dat \
 	    >$PLOT_SE
     printf "%9.6f Effective %7.3f Threshold %7.3f EMA %7.3f RF %7.3f \n" \
-		$S_CTME $P_RF_EA $P_RF_RT $P_RF_EMA $P_RF_RF | \
+		$S_CTME $P_RF_EACUR $P_RF_RT $P_RF_EMA $P_RF_RF | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_RF_NAME}.dat \
 	    >$PLOT_RF
     printf "%9.6f Availability %7.3f EMA %7.3f Forwarding %3d\n" \
