@@ -34,12 +34,17 @@ let STEP=STEP+1
 
 scnearyStep 4 "Resources are initially stable"
 
-echo r3p 3 1
-scnearyStep 10 "Resource 3 failing 1[s] every 4[s]"
+echo r3p 2 2
+scnearyStep 10 "Resource 3 failing 2[s] every 4[s]"
 
-echo r3p 1 3
-scnearyStep 10 "Resource 3 failing 3[s] every 4[s]"
+echo r3p 6 2
+scnearyStep 30 "Resource 3 failing 2[s] every 8[s]"
 
+echo r3p 9 1
+scnearyStep 60 "Resource 3 failing 1[s] every 10[s]"
+
+echo r3p 2 2
+scnearyStep 10 "Resource 3 failing 2[s] every 4[s]"
 
 press_to_terminate
 
