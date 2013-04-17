@@ -379,6 +379,12 @@ S_RR_EMA_ALPHA=0   # RR EMA Alpha value
 S_SE_RUN_TIME=500  # The [ms] AVERAGE for a Scheduling Event
 S_SE_RUN_STDV=200  # The [ms] STDDEV  for a Scheduling Event
 S_SE_TIME=0        # The time [s] the last Scheduling Event complete
+S_RF_UP_START=0    # The start time [s] of last Resource Increase event
+S_RF_DW_START=0    # The start time [s] of last Resource Decrease event
+S_RF_UP_TIME=0     # The total time [s] of last Resource Increase event
+S_RF_DW_TIME=0     # The total time [s] of last Resource Decrease event
+S_RF_EMA_SMPLS=50  # RF EA EMA Samples number
+S_RF_EMA_ALPHA=0   # RA EMA Alpha value
 S_CTME=0     # Current Cycle Time
 S_NTME=0     # Next Cycle Time
 S_RTME=0     # Last Reconfiguration request Time
@@ -410,8 +416,17 @@ M_RRCUR=0    # Reconfiguration Rate Current
 M_RREMA=0    # Reconfiguration Rate EMA
 M_RRTRD=5    # Reconfiguration Rate Threshold [%]
 M_SECUR=0    # Scheduling Event
-M_RAPRV=0    # Resources Availability Previous
-M_RACUR=0    # Resources Availability Current
+M_RF_MA=3    # Resource Filter - Maximum Availability (MA)
+M_RF_EA=3    # Resource Filter - Effective Availability (EA)
+M_RF_RF=0    # Resource Filter - Recovery Factor (RF)
+M_RF_RT=0    # Resource Filter - Recovery Threshold (RT)
+M_RF_RM=0.8  # Resource Filter - Recovery Margin (RM) [%]
+M_RF_AI=0    # Resource Filter - Availability Increase (AI)
+M_RF_EMA=0   # Resource Filter - Availability EMA
+M_RF_EMA_SMPLS_MIN=1    # Resource Filter - EMA min samples
+M_RF_EMA_SMPLS_MAX=120  # Resource Filter - EMA max samples
+M_RAPRV=3    # Resources Availability Previous
+M_RACUR=3    # Resources Availability Current
 M_RAEMA=0    # Resources Availability EMA
 M_RATRD=2    # Resources Availability Threshold [%]
 M_RA_R2U=0   # Resource 2 Up Time [s]
@@ -467,7 +482,7 @@ printf  "  avg time [ms]...... %3d\n" $S_SE_RUN_TIME
 printf  "  std time [ms]...... %3d\n" $S_SE_RUN_STDV
 echo
 echo -e "Resource Availability Filter:"
-printf  "  ema_samples........ %3d\n" $S_RA_EMA_SMPLS
+printf  "  ema_samples........ %3d\n" $S_RF_EMA_SMPLS
 echo
 echo -e "Resource 2 model:"
 printf  "  up   (min,max)..... (%d,%d)\n" $C_RA_R2U_MIN $C_RA_R2U_MAX
@@ -788,6 +803,10 @@ P_SECUR=$M_SECUR
 P_RATRD=$M_RATRD
 P_RACUR=$M_RACUR
 P_RAEMA=$M_RAEMA
+P_RF_EA=$M_RF_EA
+P_RF_RT=$M_RF_RT
+P_RF_RF=$M_RF_RF
+P_RF_EMA=$M_RF_EMA
 
 [ $C_PLOT_ALL -eq 1 ] && return
 
@@ -876,6 +895,7 @@ M_RA_R3D=$(uniform $C_RA_R3D_MIN $C_RA_R3D_MAX)
 M_RA_R2T=$(bcsCalc "res = ($M_RA_R2U + $M_RA_R2D);")
 M_RA_R3T=$(bcsCalc "res = ($M_RA_R3U + $M_RA_R3D);")
 S_RA_EMA_ALPHA=$(emaInit  $S_RA_EMA_SMPLS)
+S_RF_EMA_ALPHA=$(emaInit  $S_RF_EMA_SMPLS)
 }
 
 updateRA() {
@@ -925,10 +945,53 @@ SE_RUN=$(bcsCalc "res = 0; if ($S_CTME <= $S_SE_TIME) res = 1;")
 [ $SE_RUN -eq 1 ] && M_SECUR=1
 }
 
+updateRF() {
+
+# Resources Decrease
+[ $M_RAPRV -gt $M_RACUR ] && \
+  M_RF_EA=$M_RACUR && \
+  S_RF_UP_TIME=0 && \
+  [ "$S_RF_DW_START" == "0" ] && \
+    S_RF_UP_TIME=$(bcsCalc "res = 0; if ($S_RF_UP_START > 0) res = ($S_CTME - $S_RF_UP_START);") && \
+    S_RF_DW_START=$S_CTME && \
+    S_RF_UP_START=0 && \
+    M_RF_EMA=0 && \
+    M_RF_RT=0 && \
+    M_RF_AI=0 && \
+    return
+
+# Resources Increase
+[ $M_RAPRV -lt $M_RACUR ] && \
+  S_RF_DW_TIME=$(bcsCalc "res = ($S_CTME - $S_RF_DW_START);") && \
+  M_RF_RF=$(bcsCalc "res = ($S_RF_UP_TIME / ($S_RF_DW_TIME + $S_RF_UP_TIME));") && \
+  S_RF_EMA_SMPLS=$(bcsCalc "res = ($M_RF_EMA_SMPLS_MAX - $M_RF_RF * ($M_RF_EMA_SMPLS_MAX - $M_RF_EMA_SMPLS_MIN));") && \
+  S_RF_EMA_ALPHA=$(emaInit $S_RF_EMA_SMPLS) && \
+  M_RF_AI=$(bcsCalc "res = ($M_RF_AI + ($M_RACUR - $M_RAPRV));") && \
+  M_RF_RT=$(bcsCalc "res = ($M_RF_MA - ($M_RF_RM * $M_RF_AI));") && \
+  S_RF_DW_START=0 && \
+  return
+
+# Update EMA Availability (only after resources increase)
+[ $M_RAPRV -eq $M_RACUR ] && \
+  [ $M_RF_AI -ne 0 ] && \
+  M_RF_EMA=$(emaUpdate $S_RF_EMA_ALPHA $M_RF_EMA $M_RACUR)
+
+# Update Effective Availability
+UP=$(bcsCalc "res = 0; if ($M_RF_EMA > $M_RF_RT) res = 1;")
+[ $UP -eq 1 ] && \
+  M_RF_EA=$M_RACUR && \
+  [ "$S_RF_UP_START" == "0" ] && \
+    S_RF_UP_START=$S_CTME
+
+}
+
 simulationCycleR() {
 
 # Compute the RA metrics
 updateRA
+
+# Update Resources Filter
+updateRF
 
 # Update scheduling events
 updateSE
@@ -938,6 +1001,9 @@ updateSE
 PLOT_SE_NAME=bbqueSignalAlalyzer_plotSE
 PLOT_SE=$(mktemp -u /tmp/${PLOT_SE_NAME}_XXXXXX)
 mkfifo $PLOT_SE
+PLOT_RF_NAME=bbqueSignalAlalyzer_plotRFFilter
+PLOT_RF=$(mktemp -u /tmp/${PLOT_RF_NAME}_XXXXXX)
+mkfifo $PLOT_RF
 PLOT_RA_NAME=bbqueSignalAlalyzer_plotRAFilter
 PLOT_RA=$(mktemp -u /tmp/${PLOT_RA_NAME}_XXXXXX)
 mkfifo $PLOT_RA
@@ -961,6 +1027,10 @@ while [ $RUN -eq 1 ]; do
 		$S_CTME $P_SECUR | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_SE_NAME}.dat \
 	    >$PLOT_SE
+    printf "%9.6f Effective %7.3f Threshold %7.3f EMA %7.3f RF %7.3f \n" \
+		$S_CTME $P_RF_EA $P_RF_RT $P_RF_EMA $P_RF_RF | \
+	    stdbuf -oL tee -a ${OUT}/${PLOT_RF_NAME}.dat \
+	    >$PLOT_RF
     printf "%9.6f Availability %7.3f EMA %7.3f Forwarding %3d\n" \
 		$S_CTME $P_RACUR $P_RAEMA $P_RAFWD | \
 	    stdbuf -oL tee -a ${OUT}/${PLOT_RA_NAME}.dat \
@@ -1020,6 +1090,7 @@ tail -n0 -f "$1" | $PLOTTER \
 	--curvestyle Availability "with point ls 1" \
 	--curvestyle Value "with point ls 1" \
 	--curvestyle EMA "ls 2" \
+	--curvestyle RF "ls 4" \
 	--curvestyle Threshold "ls 3" \
 	--curvestyle Stability "with point ls 2" \
 	--curvestyle Forwarding "with point ls 2" \
@@ -1067,6 +1138,7 @@ cat "\$1" | \
 	--title  "\$2" \
 	--extracmd "\$GPOPTS \$OPTS" \
 	--curvestyle Value "with point ls 1" \
+	--curvestyle Effective "ls 4" \
 	--curvestyle EMA "ls 2" \
 	--curvestyle Threshold "ls 3" \
 	--curvestyle Stability "with point ls 2" \
@@ -1126,7 +1198,7 @@ echo "$1 $S_SM_CAPP $S_SM_CGGT $S_SM_CRRT" >$CFGFIFO
 echo "$1 $S_SE_RUN_TIME $S_SE_RUN_STDV" >$CFGFIFO
 ;;
 
-"ra") # Resources Availability Filter
+"ra") # Resources Availability EMA
 [ $2 != '-' ] && S_RA_EMA_SMPLS=$2
 echo "$1 $S_RA_EMA_SMPLS" >$CFGFIFO
 ;;
@@ -1220,7 +1292,7 @@ echo "    avg  - [ms] of AVERAGE exeution time for a scheduling event"
 echo "    std  - [ms] of STDDEV for a scheduling event exeution time"
 echo "    "
 echo " ra <ema>"
-echo "    tune the Resources Availability Filter, where:"
+echo "    tune the Resources Availability EMA, where:"
 echo "    ema  - set the number of samples for the RA Exponential Moving Average (EMA)"
 echo "    "
 echo " r2m <u_min> <u_max> <d_min> <d_max>"
@@ -1266,6 +1338,7 @@ plotData $PLOT_GV 'Goal Gap (GG) Filter' '' 0 $C_PLOT_GGF_YMAX '' 949x233+-5+517
 plotData $PLOT_RR 'Reconfiguration Rate (RR) Filter (log)' '' 0.01 $C_PLOT_RRF_YMAX 'set logscale y;' 949x233+-5-25
 else
 plotData $PLOT_SE 'Scheduling Events (SE)' '' 0 $C_PLOT_SEV_YMAX '' 949x233+-5+255
+plotData $PLOT_RF 'Resources Availability Filter (RAF)' '' 0 $C_PLOT_RAF_YMAX '' 949x233+-5+517
 plotData $PLOT_RA 'Resources Availability (RA)' '' 0 $C_PLOT_RAV_YMAX '' 949x233+-5-25
 fi
 # Start data generator
@@ -1311,7 +1384,7 @@ cleanup() {
 	kill $(jobs -p)
 	killall feedgnuplot
 	rm $CFGFIFO $PLOT_GG $PLOT_GV $PLOT_RR
-	rm $PLOT_AWM $PLOT_GG $PLOT_GV $PLOT_RR $SPLOT_SE $PLOT_RA
+	rm $PLOT_AWM $PLOT_GG $PLOT_GV $PLOT_RR $SPLOT_SE $PLOT_RF $PLOT_RA
 	rm $BC_FIFO_IN $BC_FIFO_OUT
 	cfgReport
 }
