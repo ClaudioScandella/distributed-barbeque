@@ -1126,6 +1126,7 @@ OPTS=""
 [  \$4  != "-" ] && YMIN="--ymin=\$4"
 [  \$5  != "-" ] && YMAX="--ymax=\$5"
 [ "\$6" != "-" ] && OPTS="\$6"
+[ -f "\$1" ] || return
 cat "\$1" | \
 	awk "{if(\\\$1<\$START || (\$END>0 && \\\$1>\$END)) next; else print \\\$0}" | \
 	$PLOTTER \
@@ -1370,6 +1371,24 @@ printData ${OUT}/${PLOT_RR_NAME}.dat \
 	0.01 $C_PLOT_RRF_YMAX \
 	'set logscale y;' \
 	${OUT}/${PLOT_RR_NAME}\${TIMEFRAME}
+printData ${OUT}/${PLOT_SE_NAME}.dat \
+	'Scheduling Events (SE)' \
+	'' \
+	0 $C_PLOT_SEV_YMAX \
+	'' \
+	${OUT}/${PLOT_SE_NAME}\${TIMEFRAME}
+printData ${OUT}/${PLOT_RF_NAME}.dat \
+	'Resources Availability Filter (RAF)' \
+	'' \
+	0 $C_PLOT_RAF_YMAX \
+	'' \
+	${OUT}/${PLOT_RF_NAME}\${TIMEFRAME}
+printData ${OUT}/${PLOT_RA_NAME}.dat \
+	'Resources Availability (RA)' \
+	'' \
+	0 $C_PLOT_RAV_YMAX \
+	'' \
+	${OUT}/${PLOT_RA_NAME}\${TIMEFRAME}
 EOF
 
 ################################################################################
