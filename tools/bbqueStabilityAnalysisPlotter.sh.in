@@ -395,6 +395,7 @@ S_CAWM=1     # Current  AWM
 S_SM_CAPP=0  # Application control: 0 stable, 1 unstable
 S_SM_CGGT=0  # GG Threshold control: 0 disabled, 1 enabled
 S_SM_CRRT=0  # BBQ control: 0 disabled, 1 enabled
+S_SM_CRAF=0  # Resources Availability Filter: 0 disabled, 1 enabled
 S_RA_EMA_SMPLS=50  # RA EMA Samples number
 S_RA_EMA_ALPHA=0   # RA EMA Alpha value
 
@@ -483,6 +484,7 @@ printf  "  std time [ms]...... %3d\n" $S_SE_RUN_STDV
 echo
 echo -e "Resource Availability Filter:"
 printf  "  ema_samples........ %3d\n" $S_RF_EMA_SMPLS
+echo -e "  control............ ${S_SM_CTR[$S_SM_CRAF]}"
 echo
 echo -e "Resource 2 model:"
 printf  "  up   (min,max)..... (%d,%d)\n" $C_RA_R2U_MIN $C_RA_R2U_MAX
@@ -531,9 +533,13 @@ S_GG_TRD_BETA=$(ggFilterBeta)
 ;;
 
 "mode") # Simulation Mode
+if [ $C_MODE -eq $MODE_APP ]; then
 S_SM_CAPP=$2
 S_SM_CGGT=$3
 S_SM_CRRT=$4
+else
+S_SM_CRAF=$2
+fi
 ;;
 
 "se") # Scheduling Event Model
@@ -1187,10 +1193,15 @@ echo "$1 $S_RR_EMA_SMPLS $S_GG_TRD_RR1 $S_GG_TRD_GG1 $S_GG_TRD_GG2" >$CFGFIFO
 ;;
 
 "mode") # Model Mode
+if [ $C_MODE -eq $MODE_APP ]; then
 [ $2 != '-' ] && S_SM_CAPP=$2
 [ $3 != '-' ] && S_SM_CGGT=$3
 [ $4 != '-' ] && S_SM_CRRT=$4
 echo "$1 $S_SM_CAPP $S_SM_CGGT $S_SM_CRRT" >$CFGFIFO
+else
+[ $2 != '-' ] && S_SM_CRAF=$2
+echo "$1 $S_SM_CRAF" >$CFGFIFO
+fi
 ;;
 
 "se") # Scheduling Event Model
@@ -1320,6 +1331,9 @@ echo "    tune the Resource 3 (parametric) model, where:"
 echo "    u_time - Resource 3 \"Up Time\" [s]"
 echo "    d_time - Resource 3 \"Down Time\" [s]"
 echo "    "
+echo " mode <raf>"
+echo "    tune the system behaviors and control mechanisms, where:"
+echo "    raf  - Resources Availability Filter      0: disabled, 1: enabled"
 
 fi
 
