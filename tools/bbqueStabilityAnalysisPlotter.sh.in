@@ -964,8 +964,8 @@ updateRF() {
 # Keep track of current EA
 M_RF_EAPRV=$M_RF_EACUR
 
-# Resources Decrease
-[ $M_RAPRV -gt $M_RACUR ] && \
+# Resources Decrease under current EA
+[ $M_RAPRV -gt $M_RACUR -a $M_RF_EACUR -gt $M_RACUR ] && \
   M_RF_EACUR=$M_RACUR && \
   S_RF_UP_TIME=0 && \
   [ "$S_RF_DW_START" == "0" ] && \
@@ -977,13 +977,26 @@ M_RF_EAPRV=$M_RF_EACUR
     M_RF_AI=0 && \
     return
 
+# Resources Decrease but still over EA
+[ $M_RAPRV -gt $M_RACUR -a $M_RF_EACUR -lt $M_RACUR ] && \
+  M_RF_AI=$(bcsCalc "res = ($M_RACUR - $M_RF_EACUR);") && \
+  M_RF_RT=$(bcsCalc "res = ($M_RF_MA - ($M_RF_RM * $M_RF_AI));") && \
+  return
+
+# Resources Decrease to EA
+[ $M_RAPRV -gt $M_RACUR -a $M_RF_EACUR -eq $M_RACUR ] && \
+  M_RF_EMA=0 && \
+  M_RF_RT=0 && \
+  M_RF_AI=0 && \
+  return
+
 # Resources Increase
 [ $M_RAPRV -lt $M_RACUR ] && \
   S_RF_DW_TIME=$(bcsCalc "res = ($S_CTME - $S_RF_DW_START);") && \
   M_RF_RF=$(bcsCalc "res = ($S_RF_UP_TIME / ($S_RF_DW_TIME + $S_RF_UP_TIME));") && \
   S_RF_EMA_SMPLS=$(bcsCalc "res = ($M_RF_EMA_SMPLS_MAX - $M_RF_RF * ($M_RF_EMA_SMPLS_MAX - $M_RF_EMA_SMPLS_MIN));") && \
   S_RF_EMA_ALPHA=$(emaInit $S_RF_EMA_SMPLS) && \
-  M_RF_AI=$(bcsCalc "res = ($M_RF_AI + ($M_RACUR - $M_RAPRV));") && \
+  M_RF_AI=$(bcsCalc "res = ($M_RACUR - $M_RF_EACUR);") && \
   M_RF_RT=$(bcsCalc "res = ($M_RF_MA - ($M_RF_RM * $M_RF_AI));") && \
   S_RF_DW_START=0 && \
   return
