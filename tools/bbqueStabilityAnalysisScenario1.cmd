@@ -31,7 +31,7 @@ fi
 let STEP=STEP+1
 }
 
-scnearyStep 4 "Application is initially stable"
+scnearyStep 15 "Application is initially stable for 15[s]"
 
 echo gg 20 60 -
 echo mode 1 - -
