@@ -367,7 +367,7 @@ C_RA_R3D_MAX=0
 C_RA_MAX=3
 
 # Model Status
-S_CPS=10           # Cycles Per Second [Hz]
+S_CPS=20           # Cycles Per Second [Hz]
 S_CPS_TIME=0       # Cycle Period [s]
 S_RND_GG_MIN=0     # GG Random Generator Mimimum
 S_RND_GG_MAX=0     # GG Random Generator Maximum
