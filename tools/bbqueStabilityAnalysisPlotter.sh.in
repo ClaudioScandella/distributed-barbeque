@@ -1,12 +1,24 @@
 #!/bin/bash
 
+################################################################################
+# Script configuration paramters
+################################################################################
+# $1 - Simulation Mode
+MODE_APP=1          # Applications Requirements (AR) simulation mode
+MODE_RES=0          # Resources Availability (RA) simulation mode
+MODE=$MODE_APP      # By default run AR simulation mode
+# $2 - Simulation Scenario
+[ ${1:-"AR"} == "RA" ] && MODE=$MODE_RES
+[ $# -gt 1 -a -f ${2:-""} ] \
+  && SCENARY="$2" \
+  && SCENARY_FIFO=$(mktemp -u /tmp/bbqueSignalAlalyzer_Scenary_XXXXXX)
+# $3 - Output Folder
+OUT=${3:-"."}
+
+################################################################################
+# Plotter Configuration
+################################################################################
 PLOTTER="@CMAKE_INSTALL_PREFIX@/bin/feedgnuplot"
-# $1 - Simulation Mode: Applications vs Resources
-MODE_APP=1          # Applications simulation mode
-MODE_RES=0          # Resources simulation mode
-MODE=$MODE_APP      # By default run Applications simulation
-[ ${1:-"app"} == "res" ] && MODE=$MODE_RES
-OUT=${2:-"."}
 
 GPLINE_SIG="set style line 1 lt 2 lc rgb \"#251BE0\" lw 1 ps 1"
 GPLINE_AVG="set style line 2 lt 2 lc rgb \"#E0A51B\" lw 2"
@@ -1456,7 +1468,7 @@ EOF
 cleanup() {
 	kill $(jobs -p)
 	killall feedgnuplot
-	rm $CFGFIFO $PLOT_GG $PLOT_GV $PLOT_RR
+	rm $CFGFIFO $PLOT_GG $PLOT_GV $PLOT_RR $SCENARY_FIFO
 	rm $PLOT_AWM $PLOT_GG $PLOT_GV $PLOT_RR $SPLOT_SE $PLOT_RF $PLOT_RA
 	rm $BC_FIFO_IN $BC_FIFO_OUT
 	cfgReport
@@ -1491,9 +1503,18 @@ M_RRTRD=$(bcsCalc "res = ($M_RRTRD / 100);")
 # Main function
 plot
 
+# Setup scenary (if required)
+if [ -v SCENARY ]; then
+  mkfifo $SCENARY_FIFO
+  $SCENARY > $SCENARY_FIFO &
+fi
+
 # This is required to properly capture the trap previously defined
 while [ 1 ]; do
-	read -p "$> " CMD
-	[ "x$CMD" != "x" ] && tuneGenerator $CMD
+	[ -v SCENARY ] \
+	  && read -p "$> " CMD <$SCENARY_FIFO \
+	  || read -p "$> " CMD
+	[ "x$CMD" != "x" ] \
+	  && tuneGenerator $CMD
 	sleep .2
 done
