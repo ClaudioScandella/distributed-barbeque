@@ -32,19 +32,41 @@ fi
 let STEP=STEP+1
 }
 
-scnearyStep 4 "Resources are initially stable"
+scnearyStep 5 "Resources are initially stable"
 
-echo r3p 2 2
-scnearyStep 10 "Resource 3 failing 2[s] every 4[s]"
+if [ 1 -eq 1  ]; then
 
-echo r3p 6 2
-scnearyStep 30 "Resource 3 failing 2[s] every 8[s]"
+echo r2m 2 4 7 9
+echo r3m 1 2 4 5
+scnearyStep 30 "Unstable resources R2 and R3"
+
+echo r2p 1 0
+scnearyStep 30 "Resource 2 now stable"
+
+echo r3p 1 9
+scnearyStep 30 "Resource 3 mostly unstable"
+
+echo mode 1
+scnearyStep 30 "Resource Availability Filter (RAF) enabeld"
+
+echo r3p 5 5
+scnearyStep 30 "Resource 3 half unstable"
 
 echo r3p 9 1
-scnearyStep 60 "Resource 3 failing 1[s] every 10[s]"
+scnearyStep 60 "Resource 3 mostly stable"
 
-echo r3p 2 2
-scnearyStep 10 "Resource 3 failing 2[s] every 4[s]"
+echo r3p 5 5
+scnearyStep 30 "Resource 3 again half unstable"
+
+echo r3p 1 9
+scnearyStep 30 "Resource 3 again mostly unstable"
+
+else
+
+echo r2p 3 3
+echo r3p 1 6
+
+fi
 
 press_to_terminate
 
