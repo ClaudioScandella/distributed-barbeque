@@ -57,7 +57,7 @@ scnearyStep 30 "Redefined GoalGap assertions to be in range [75,80]"
 
 echo gg 0 0 -
 echo mode 0 - -
-scnearyStep 30 "Application is now stable again"
+scnearyStep 15 "Application is now stable again"
 
 press_to_terminate
 
