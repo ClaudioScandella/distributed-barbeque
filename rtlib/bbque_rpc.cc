@@ -2361,6 +2361,9 @@ void BbqueRPC::NotifyPostConfigure(
 
 	DB(fprintf(stderr, FD("<=== NotifyConfigure\n")));
 
+	// Reset RR running time, thus disabling ForceCPS on first NotifyPreRun
+	prec->rr.time_running = 0;
+
 	// CPS Enforcing initialization
 	if ((prec->cps_expect != 0) || (prec->cps_tstart == 0))
 		prec->cps_tstart = bbque_tmr.getElapsedTimeMs();
@@ -2398,12 +2401,13 @@ void BbqueRPC::NotifyPreRun(
 		// Get the tRunTimeManagement, used for RR computation:
 		// tRTM = [tPostRun ... tPreRun]
 		prec->rr.time_rtm = prec->rr.tmr.getElapsedTimeUs();
-	}
 
-	// CPS Enforcing: this is done here to exclude the time spent for
-	// cycles forcing from the time_rtm used to compute the RR
-	if (prec->cps_expect != 0)
-		ForceCPS(prec);
+		// CPS Enforcing: this is done here to exclude the time spent for
+		// cycles forcing from the time_rtm used to compute the RR
+		if (prec->cps_expect != 0)
+			ForceCPS(prec);
+
+	}
 
 	// Restart timer for tRunning profiling
 	prec->rr.tmr.start();
