@@ -113,17 +113,17 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::step2(
 
 	switch(status) {
 	case STEP21:
-		logger->Debug("STEP 2.1: Running => Migration (lower prio)");
+		logger->Debug("STEP 2.1: Running => Migration (lower value)");
 		syncState = ApplicationStatusIF::MIGRATE;
 		break;
 
 	case STEP22:
-		logger->Debug("STEP 2.2: Running => Migration/Reconf (lower prio)");
+		logger->Debug("STEP 2.2: Running => Migration/Reconf (lower value)");
 		syncState = ApplicationStatusIF::MIGREC;
 		break;
 
 	case STEP23:
-		logger->Debug("STEP 2.3: Running => Reconf (lower prio)");
+		logger->Debug("STEP 2.3: Running => Reconf (lower value)");
 		syncState = ApplicationStatusIF::RECONF;
 		break;
 
@@ -137,7 +137,7 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::step2(
 		return syncState;
 
 	logger->Debug("STEP 2.0:            "
-			"No EXCs to be reschedule (lower prio)");
+			"No EXCs to be reschedule (lower value)");
 	return ApplicationStatusIF::SYNC_NONE;
 }
 
@@ -148,17 +148,17 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::step3(
 
 	switch(status) {
 	case STEP31:
-		logger->Debug("STEP 3.1: Running => Migration (higher prio)");
+		logger->Debug("STEP 3.1: Running => Migration (higher value)");
 		syncState = ApplicationStatusIF::MIGRATE;
 		break;
 
 	case STEP32:
-		logger->Debug("STEP 3.2: Running => Migration/Reconf (higher prio)");
+		logger->Debug("STEP 3.2: Running => Migration/Reconf (higher value)");
 		syncState = ApplicationStatusIF::MIGREC;
 		break;
 
 	case STEP33:
-		logger->Debug("STEP 3.3: Running => Reconf (higher prio)");
+		logger->Debug("STEP 3.3: Running => Reconf (higher value)");
 		syncState = ApplicationStatusIF::RECONF;
 		break;
 
@@ -172,7 +172,7 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::step3(
 		return syncState;
 
 	logger->Debug("STEP 3.0:            "
-			"No EXCs to be reschedule (higher prio)");
+			"No EXCs to be reschedule (higher value)");
 	return ApplicationStatusIF::SYNC_NONE;
 }
 
@@ -200,6 +200,10 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::GetApplicationsQueue(
 				sm_tmr);
 	}
 
+	// Ensure to do one step at each entry
+	++status;
+
+	// Eventaully restart if the sync protocol ask to start from scratch
 	if (restart) {
 		logger->Debug("Resetting sync status");
 		servedSyncState = ApplicationStatusIF::SYNC_NONE;
@@ -233,12 +237,12 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::GetApplicationsQueue(
 			syncState = step3(sv);
 			if (syncState != ApplicationStatusIF::SYNC_NONE)
 				goto do_sync;
-			break;
+			continue;
 		case STEP40:
 			syncState = step4(sv);
 			if (syncState != ApplicationStatusIF::SYNC_NONE)
 				goto do_sync;
-			break;
+			continue;
 		};
 	}
 
@@ -253,16 +257,76 @@ do_sync:
 }
 
 bool SasbSyncPol::DoSync(AppPtr_t papp) {
+	bool reconf = true;
+
+	// Steps specific synchronization hinibitors
+	switch(status) {
+
+	// STEP 1
+	// Blocked applications are always authorized
+	case STEP10:
+		return true;
+
+	// STEP 2
+	// reconfigure just apps which lower their AWM value since,
+	// in general, the lower the AWM value => the lower the resources
+	case STEP21:
+		reconf &= (papp->SyncState() == ApplicationStatusIF::MIGRATE);
+		reconf &= (papp->NextAWM()->Value() < papp->CurrentAWM()->Value());
+		break;
+	case STEP22:
+		reconf &= (papp->SyncState() == ApplicationStatusIF::MIGREC);
+		reconf &= (papp->NextAWM()->Value() < papp->CurrentAWM()->Value());
+		break;
+	case STEP23:
+		reconf &= (papp->SyncState() == ApplicationStatusIF::RECONF);
+		reconf &= (papp->NextAWM()->Value() < papp->CurrentAWM()->Value());
+		break;
+
+	// STEP 3
+	case STEP31:
+		reconf &= (papp->SyncState() == ApplicationStatusIF::MIGRATE);
+		break;
+	case STEP32:
+		reconf &= (papp->SyncState() == ApplicationStatusIF::MIGREC);
+		break;
+	case STEP33:
+		reconf &= (papp->SyncState() == ApplicationStatusIF::RECONF);
+		break;
+
+	// Just for compilation warnings
+	default:
+		;
+	};
 
 	// TODO this check should be conditioned to a BBQ configuration option
 	// Avoid RESHUFFLING notification on application being RECONF just for
 	// resources reshuffling
 	if ((papp->SyncState() == ApplicationStatusIF::RECONF)) {
 		DB(logger->Notice("Force jump reshuffled EXC"));
-		return papp->SwitchingAWM();
+		reconf &= papp->SwitchingAWM();
 	}
 
-	return true;
+	if (papp->CurrentAWM()) {
+		logger->Debug("Checking [%s] @ step [%d]: sync_state [%d], curr_awm [%02d], next_awm [%02d] => %s",
+				papp->StrId(),
+				status,
+				papp->SyncState(),
+				papp->CurrentAWM()->Id(),
+				papp->NextAWM()->Id(),
+				reconf ? "SYNC" : "SKYP"
+			    );
+	} else {
+		logger->Debug("Checking [%s] @ step [%d]: sync_state [%d], curr_awm [--], next_awm [%02d] => %s",
+				papp->StrId(),
+				status,
+				papp->SyncState(),
+				papp->NextAWM()->Id(),
+				reconf ? "SYNC" : "SKYP"
+			    );
+	}
+
+	return reconf;
 }
 
 SasbSyncPol::ExitCode_t
