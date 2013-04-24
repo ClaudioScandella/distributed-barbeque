@@ -157,6 +157,7 @@ SynchronizationManager::~SynchronizationManager() {
 
 SynchronizationManager::ExitCode_t
 SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncState) {
+	ExitCode_t syncInProgress = NO_EXC_IN_SYNC;
 	AppsUidMapIt apps_it;
 
 	typedef std::map<AppPtr_t, ApplicationProxy::pPreChangeRsp_t> RspMap_t;
@@ -193,6 +194,10 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 		result = ap.SyncP_PreChange(papp, presp);
 		if (result != RTLIB_OK)
 			continue;
+
+		// This flag is set if there is at least one sync pending
+		syncInProgress = OK;
+
 
 // Pre-Change completion (just if asynchronous)
 #ifdef CONFIG_BBQUE_YP_SASB_ASYNC
@@ -272,6 +277,9 @@ error_continue:
 	SM_GET_TIMING_SYNCSTATE(metrics, SM_SYNCP_TIME_PRECHANGE,
 			sm_tmr, syncState);
 	logger->Debug("STEP 1: preChange() DONE");
+
+	if (syncInProgress == NO_EXC_IN_SYNC)
+		return NO_EXC_IN_SYNC;
 
 	return OK;
 }
@@ -567,6 +575,9 @@ SynchronizationManager::Sync_Platform(ApplicationStatusIF::SyncState_t syncState
 	papp = am.GetFirst(syncState, apps_it);
 	for ( ; papp; papp = am.GetNext(syncState, apps_it)) {
 
+		if (!policy->DoSync(papp))
+			continue;
+
 		logger->Info("STEP M: SyncPlatform() ===> [%s]", papp->StrId());
 
 		// Jumping meanwhile disabled applications
@@ -702,7 +713,9 @@ SynchronizationManager::SyncSchedule() {
 
 		// Synchronize these policy selected apps
 		result = SyncApps(syncState);
-		if (result != OK) {
+		if ((result != NO_EXC_IN_SYNC) && (result != OK)) {
+			logger->Warn("SynchSchedule: apps sync FAILED, "
+					"aborting sync...");
 			ra.SyncAbort();
 			return result;
 		}

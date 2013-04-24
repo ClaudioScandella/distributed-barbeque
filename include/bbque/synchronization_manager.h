@@ -64,6 +64,7 @@ public:
 	 */
 	typedef enum ExitCode {
 		OK = 0,
+		NO_EXC_IN_SYNC,
 		ABORTED,
 		PLATFORM_SYNC_FAILED
 	} ExitCode_t;
