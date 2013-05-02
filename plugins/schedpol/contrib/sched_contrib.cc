@@ -114,34 +114,29 @@ float SchedContrib::CLEIndex(uint64_t c_thresh,
 		CLEParams_t const & params) {
 	// SSR: Sub-Saturation Region
 	if (rsrc_amount <= c_thresh) {
-		logger->Debug("Region: ""Constant""");
+		logger->Debug("Region: CONSTANT");
 		return params.k;
 	}
 
 	// ISR: In-Saturation Region
 	if (rsrc_amount <= l_thresh) {
-		logger->Debug("Region: ""Linear""");
+		logger->Debug("Region: LINEAR");
 		return FuncLinear(rsrc_amount, params.lin);
 	}
 
 	// OSR: Over-Saturation Region
-	logger->Debug("Region: ""Exponential""");
+	logger->Debug("Region: EXPONENTIAL");
 	return FuncExponential(rsrc_amount, params.exp);
 }
 
 float SchedContrib::FuncLinear(float x, LParams_t const & p) {
-	DB(
-		fprintf(stderr, FD("LIN ==== 1 - %.6f * (%.2f - %.2f)\n"),
-			p.scale, x, p.xoffset);
-	  );
+	logger->Debug("LIN: 1 - %.6f * (%.2f - %.2f)\n", p.scale, x, p.xoffset);
 	return 1 - p.scale * (x - p.xoffset);
 }
 
 float SchedContrib::FuncExponential(float x, EParams_t const & p) {
-	DB(
-		fprintf(stderr, FD("EXP ==== %.4f * (%.4f ^ ((%.4f - %.4f) / %.4f) - 1)\n"),
+	logger->Debug("EXP: %.4f * (%.4f ^ ((%.4f - %.4f) / %.4f) - 1)\n",
 			p.yscale, p.base, x, p.xoffset, p.xscale);
-	  );
 	return p.yscale * (pow(p.base, ((x - p.xoffset) / p.xscale)) - 1);
 }
 
