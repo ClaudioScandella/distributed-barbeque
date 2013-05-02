@@ -137,10 +137,8 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 	ResourceAccounterStatusIF::ExitCode_t ra_result;
 	char token_path[30];
 
-	// Set the counter (avoiding overflow)
-	vtok_count == std::numeric_limits<uint32_t>::max() ?
-		vtok_count = 0:
-		++vtok_count;
+	// Set the counter
+	++vtok_count;
 
 	// Build a string path for the resource state view
 	std::string schedpolname(MODULE_NAMESPACE);
