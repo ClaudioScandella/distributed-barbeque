@@ -314,7 +314,8 @@ protected:
 	 float CLEIndex(uint64_t c_thresh, uint64_t l_thresh, float rsrc_usage,
 			 CLEParams_t const & params);
 
-	 /***  Static mathematical functions ***/
+
+	 /***  Mathematical functions ***/
 
 	 /**
 	  * @brief Generic linear function
@@ -324,7 +325,7 @@ protected:
 	  *
 	  * @return A floating point value
 	  */
-	 static float FuncLinear(float x, LParams_t const & params);
+	 float FuncLinear(float x, LParams_t const & params);
 
 	 /**
 	  * @brief Generic exponential function
@@ -334,7 +335,7 @@ protected:
 	  *
 	  * @return A floating point value
 	  */
-	 static float FuncExponential(float x, EParams_t const & params);
+	 float FuncExponential(float x, EParams_t const & params);
 
 
 	 /******************* To be implemented by derived classes **********/
