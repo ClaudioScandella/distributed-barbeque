@@ -141,8 +141,7 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 	++vtok_count;
 
 	// Build a string path for the resource state view
-	std::string schedpolname(MODULE_NAMESPACE);
-	snprintf(token_path, 30, "%s%d", schedpolname.c_str(), vtok_count);
+	snprintf(token_path, 30, "%s%d", MODULE_NAMESPACE, vtok_count);
 
 	// Get a resource state view
 	logger->Debug("Init: Requiring state view token for %s", token_path);
@@ -187,7 +186,6 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 SchedulerPolicyIF::ExitCode_t
 YamsSchedPol::Schedule(System & sys_if, RViewToken_t & rav) {
 	ExitCode_t result;
-	logger->Debug("@@@@@@@@@@@@@@@@ Scheduling policy starting @@@@@@@@@@@@");
 
 	// Save a reference to the System interface;
 	sv = &sys_if;
@@ -211,9 +209,8 @@ YamsSchedPol::Schedule(System & sys_if, RViewToken_t & rav) {
 	entities.clear();
 	bindings.full.Reset();
 
+	// Report table
 	ra.PrintStatusReport(vtok);
-	logger->Debug("################ Scheduling policy exiting ##############");
-
 	return SCHED_DONE;
 
 error:
