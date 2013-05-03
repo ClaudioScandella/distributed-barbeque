@@ -898,14 +898,14 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncCommit() {
  ************************************************************************/
 
 void ResourceAccounter::IncBookingCounts(
-		UsagesMapPtr_t const & app_usages,
+		UsagesMapPtr_t const & rsrc_usages,
 		AppSPtr_t const & papp,
 		RViewToken_t vtok) {
 	ResourceAccounter::ExitCode_t result;
 
 	// Book resources for the application
-	UsagesMap_t::const_iterator usages_it(app_usages->begin());
-	UsagesMap_t::const_iterator usages_end(app_usages->end());
+	UsagesMap_t::const_iterator usages_it(rsrc_usages->begin());
+	UsagesMap_t::const_iterator usages_end(rsrc_usages->end());
 	for (; usages_it != usages_end;	++usages_it) {
 		// Current required resource (Usage object)
 		ResourcePathPtr_t const & rsrc_path(usages_it->first);
