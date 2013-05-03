@@ -1173,7 +1173,7 @@ void ApplicationProxy::RpcExcStop(prqsSn_t prqs) {
 			pcon->app_name, pcon->app_pid, pmsg_hdr->exc_id);
 
 	// Enabling the EXC to the ApplicationManager
-	result = am.DisableEXC(pcon->app_pid, pmsg_hdr->exc_id);
+	result = am.DisableEXC(pcon->app_pid, pmsg_hdr->exc_id, true);
 	if (result != ApplicationManager::AM_SUCCESS) {
 		logger->Error("APPs PRX: EXC "
 			"[pid: %d, exc: %d] "
