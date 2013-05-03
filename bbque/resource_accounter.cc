@@ -801,7 +801,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncStart() {
 	if (result != RA_SUCCESS) {
 		logger->Fatal("SyncMode [%d]: Cannot get a resource state view",
 				sync_ssn.count);
-		SyncFinalize();
+		sync_ssn.started = false;
 		return RA_ERR_SYNC_VIEW;
 	}
 	logger->Debug("SyncMode [%d]: Resource state view token = %d",
@@ -863,7 +863,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncAcquireResources(
 
 void ResourceAccounter::SyncAbort() {
 	PutView(sync_ssn.view);
-	SyncFinalize();
+	sync_ssn.started = false;
 	logger->Error("SyncMode [%d]: Session aborted", sync_ssn.count);
 }
 
@@ -885,8 +885,8 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncCommit() {
 		logger->Info("SyncMode [%d]: Session committed", sync_ssn.count);
 	}
 
-	// Finalize the synchronization
-	SyncFinalize();
+	// Mark the synchronization as terminated
+	sync_ssn.started = false;
 
 	// Log the status report
 	PrintStatusReport();

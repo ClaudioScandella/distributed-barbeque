@@ -716,16 +716,6 @@ private:
 	 */
 	ExitCode_t SyncInit();
 
-	/**
-	 * @brief Finalize the synchronized mode
-	 *
-	 * Safely close the sync session by releasing the mutex and unsetting the
-	 * "started" flag.
-	 */
-	inline void SyncFinalize() {
-		std::unique_lock<std::mutex> status_ul(sync_ssn.mtx);
-		sync_ssn.started = false;
-	}
 
 	/**
 	 * @brief Thread-safe checking of sychronization step in progress
