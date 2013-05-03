@@ -510,8 +510,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::UpdateResource(
 ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 		AppSPtr_t papp,
 		UsagesMapPtr_t const & rsrc_usages,
-		RViewToken_t vtok,
-		bool do_check) {
+		RViewToken_t vtok) {
 	std::unique_lock<std::recursive_mutex> status_ul(status_mtx);
 
 	// Check to avoid null pointer segmentation fault
@@ -544,7 +543,10 @@ ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 	}
 
 	// Check resource availability (if this is not a sync session)
-	if ((do_check) && !(Synching())) {
+	// TODO refine this check to consider possible corner cases:
+	// 1. scheduler running while in sync
+	// 2. resource availability decrease while in sync
+	if (!Synching()) {
 		if (CheckAvailability(rsrc_usages, vtok) == RA_ERR_USAGE_EXC) {
 			logger->Debug("Booking: Cannot allocate the resource set");
 			return RA_ERR_USAGE_EXC;
@@ -828,7 +830,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncInit() {
 
 		// Re-acquire the resources (these should not have a "Next AWM"!)
 		result = BookResources(papp, papp->CurrentAWM()->GetResourceBinding(),
-				sync_ssn.view, false);
+				sync_ssn.view);
 		if (result != RA_SUCCESS) {
 			logger->Fatal("SyncInit [%d]: Resource booking failed for %s."
 					" Aborting sync session...", sync_ssn.count, papp->StrId());
@@ -861,7 +863,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncAcquireResources(
 	}
 
 	// Acquire resources
-	return BookResources(papp, usages, sync_ssn.view, false);
+	return BookResources(papp, usages, sync_ssn.view);
 }
 
 void ResourceAccounter::SyncAbort() {

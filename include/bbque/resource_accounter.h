@@ -292,8 +292,7 @@ public:
 	 * available.
 	 */
 	ExitCode_t BookResources(AppSPtr_t papp,
-			UsagesMapPtr_t const & rsrc_usages, RViewToken_t vtok = 0,
-			bool do_check = true);
+			UsagesMapPtr_t const & rsrc_usages, RViewToken_t vtok = 0);
 
 	/**
 	 * @brief Release the resources
