@@ -22,7 +22,6 @@
 
 #include "bbque/resource_accounter_conf.h"
 
-#include "bbque/application_manager.h"
 #include "bbque/res/resource_utils.h"
 #include "bbque/res/resource_tree.h"
 #include "bbque/plugins/logger.h"
@@ -37,7 +36,6 @@
 // Max length for the resource view token string
 #define TOKEN_PATH_MAX_LEN 30
 
-using bbque::ApplicationManager;
 using bbque::plugins::LoggerIF;
 using bbque::app::AppSPtr_t;
 
@@ -57,6 +55,9 @@ typedef std::set<ResourcePtr_t> ResourceSet_t;
 typedef std::shared_ptr<ResourceSet_t> ResourceSetPtr_t;
 /** Map of ResourcesSetPtr_t. The key is the view token */
 typedef std::map<RViewToken_t, ResourceSetPtr_t> ResourceViewsMap_t;
+
+// Forward declarations
+class ApplicationManager;
 
 
 /**
