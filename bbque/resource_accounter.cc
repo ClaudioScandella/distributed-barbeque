@@ -542,6 +542,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 }
 
 void ResourceAccounter::ReleaseResources(AppSPtr_t papp, RViewToken_t vtok) {
+	std::unique_lock<std::mutex> sync_ul(sync_ssn.mtx);
 	std::unique_lock<std::recursive_mutex> status_ul(status_mtx);
 
 	// Sanity check
@@ -758,9 +759,9 @@ RViewToken_t ResourceAccounter::SetView(RViewToken_t vtok) {
  ************************************************************************/
 
 ResourceAccounter::ExitCode_t ResourceAccounter::SyncStart() {
+	std::unique_lock<std::mutex> sync_ul(sync_ssn.mtx);
 	ResourceAccounter::ExitCode_t result;
 	char tk_path[TOKEN_PATH_MAX_LEN];
-	std::unique_lock<std::mutex> sync_ul(sync_ssn.mtx);
 	logger->Info("SyncMode: Start");
 
 	// Build the path for getting the resource view token
@@ -771,7 +772,6 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncStart() {
 
 	// Synchronization has started
 	sync_ssn.started = true;
-	sync_ul.unlock();
 
 	// Get a resource state view for the synchronization
 	result = GetView(tk_path, sync_ssn.view);
@@ -788,6 +788,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncStart() {
 	return SyncInit();
 }
 
+// NOTE this method should be called while holding the sync session mutex
 ResourceAccounter::ExitCode_t ResourceAccounter::SyncInit() {
 	ResourceAccounter::ExitCode_t result;
 	AppsUidMapIt apps_it;
@@ -807,7 +808,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncInit() {
 			logger->Fatal("SyncInit [%d]: Resource booking failed for %s."
 					" Aborting sync session...", sync_ssn.count, papp->StrId());
 
-			SyncAbort();
+			_SyncAbort();
 			return RA_ERR_SYNC_INIT;
 		}
 	}
@@ -818,6 +819,8 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncInit() {
 
 ResourceAccounter::ExitCode_t ResourceAccounter::SyncAcquireResources(
 		AppSPtr_t const & papp) {
+	std::unique_lock<std::mutex> sync_ul(sync_ssn.mtx);
+
 	// Check next AWM
 	if (!papp->NextAWM()) {
 		logger->Fatal("SyncMode [%d]: [%s] missing the next AWM",
@@ -839,12 +842,19 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncAcquireResources(
 }
 
 void ResourceAccounter::SyncAbort() {
+	std::unique_lock<std::mutex> sync_ul(sync_ssn.mtx);
+	_SyncAbort();
+}
+
+// NOTE this method should be called while holding the sync session mutex
+void ResourceAccounter::_SyncAbort() {
 	PutView(sync_ssn.view);
 	sync_ssn.started = false;
 	logger->Error("SyncMode [%d]: Session aborted", sync_ssn.count);
 }
 
 ResourceAccounter::ExitCode_t ResourceAccounter::SyncCommit() {
+	std::unique_lock<std::mutex> sync_ul(sync_ssn.mtx);
 	ResourceAccounter::ExitCode_t result = RA_SUCCESS;
 	RViewToken_t view;
 
@@ -864,6 +874,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncCommit() {
 
 	// Mark the synchronization as terminated
 	sync_ssn.started = false;
+	sync_ssn.mtx.unlock();
 
 	// Log the status report
 	PrintStatusReport();

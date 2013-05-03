@@ -718,13 +718,22 @@ private:
 
 
 	/**
+	 * @brief Abort a synchronized mode session
+	 *
+	 * This is the synchronization session mutex free verios of the dual
+	 * public method SyncAbort
+	 *
+	 * @see SyncAbort
+	 */
+	void _SyncAbort();
+
+	/**
 	 * @brief Thread-safe checking of sychronization step in progress
 	 *
 	 * @return true if the synchronization of the resource accounting is in
 	 * progress, false otherwise
 	 */
 	inline bool Synching() {
-		std::unique_lock<std::mutex> sync_ul(sync_ssn.mtx);
 		return sync_ssn.started;
 	}
 
