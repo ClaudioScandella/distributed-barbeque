@@ -631,7 +631,7 @@ private:
 	 * @param app The application acquiring the resources
 	 * @param vtok The token referencing the resource state view
 	 */
-	void IncBookingCounts(UsagesMapPtr_t const & app_usages,
+	ExitCode_t IncBookingCounts(UsagesMapPtr_t const & app_usages,
 			AppSPtr_t const & papp, RViewToken_t vtok = 0);
 
 	/**

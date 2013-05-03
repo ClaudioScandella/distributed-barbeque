@@ -511,7 +511,6 @@ ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 		AppSPtr_t papp,
 		UsagesMapPtr_t const & rsrc_usages,
 		RViewToken_t vtok) {
-	std::unique_lock<std::recursive_mutex> status_ul(status_mtx);
 
 	// Check to avoid null pointer segmentation fault
 	if (!papp) {
@@ -523,23 +522,6 @@ ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 	if ((!rsrc_usages) || (rsrc_usages->empty())) {
 		logger->Fatal("Booking: Empty resource usages set");
 		return RA_ERR_MISS_USAGES;
-	}
-
-	// Get the map of resources used by the application (from the state view
-	// referenced by 'vtok'). A missing view implies that the token is not
-	// valid.
-	AppUsagesMapPtr_t apps_usages;
-	if (GetAppUsagesByView(vtok, apps_usages) == RA_ERR_MISS_VIEW) {
-		logger->Fatal("Booking: Invalid resource state view token");
-		return RA_ERR_MISS_VIEW;
-	}
-
-	// Each application can hold just one resource usages set
-	AppUsagesMap_t::iterator usemap_it(apps_usages->find(papp->Uid()));
-	if (usemap_it != apps_usages->end()) {
-		logger->Warn("Booking: [%s] currently using a resource set yet",
-				papp->StrId());
-		return RA_ERR_APP_USAGES;
 	}
 
 	// Check resource availability (if this is not a sync session)
@@ -555,13 +537,8 @@ ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 
 	// Increment the booking counts and save the reference to the resource set
 	// used by the application
-	IncBookingCounts(rsrc_usages, papp, vtok);
-	apps_usages->insert(std::pair<AppUid_t, UsagesMapPtr_t>(papp->Uid(),
-				rsrc_usages));
-	logger->Debug("Booking: [%s] now holds %d resources", papp->StrId(),
-			rsrc_usages->size());
+	return IncBookingCounts(rsrc_usages, papp, vtok);
 
-	return RA_SUCCESS;
 }
 
 void ResourceAccounter::ReleaseResources(AppSPtr_t papp, RViewToken_t vtok) {
@@ -897,11 +874,30 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncCommit() {
  *                   RESOURCE ACCOUNTING                                *
  ************************************************************************/
 
-void ResourceAccounter::IncBookingCounts(
+ResourceAccounter::ExitCode_t
+ResourceAccounter::IncBookingCounts(
 		UsagesMapPtr_t const & rsrc_usages,
 		AppSPtr_t const & papp,
 		RViewToken_t vtok) {
+	std::unique_lock<std::recursive_mutex> status_ul(status_mtx, std::defer_lock);
 	ResourceAccounter::ExitCode_t result;
+
+	// Get the map of resources used by the application (from the state view
+	// referenced by 'vtok'). A missing view implies that the token is not
+	// valid.
+	AppUsagesMapPtr_t apps_usages;
+	if (GetAppUsagesByView(vtok, apps_usages) == RA_ERR_MISS_VIEW) {
+		logger->Fatal("Booking: Invalid resource state view token");
+		return RA_ERR_MISS_VIEW;
+	}
+
+	// Each application can hold just one resource usages set
+	AppUsagesMap_t::iterator usemap_it(apps_usages->find(papp->Uid()));
+	if (usemap_it != apps_usages->end()) {
+		logger->Warn("Booking: [%s] currently using a resource set yet",
+				papp->StrId());
+		return RA_ERR_APP_USAGES;
+	}
 
 	// Book resources for the application
 	UsagesMap_t::const_iterator usages_it(rsrc_usages->begin());
@@ -933,6 +929,14 @@ void ResourceAccounter::IncBookingCounts(
 				Available(rsrc_path, MIXED, vtok, papp),
 				Total(rsrc_path, MIXED));
 	}
+
+	apps_usages->insert(std::pair<AppUid_t, UsagesMapPtr_t>
+			(papp->Uid(), rsrc_usages));
+	logger->Debug("Booking: [%s] now holds %d resources",
+			papp->StrId(), rsrc_usages->size());
+
+	return RA_SUCCESS;
+
 }
 
 ResourceAccounter::ExitCode_t ResourceAccounter::DoResourceBooking(
