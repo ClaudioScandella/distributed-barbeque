@@ -1178,7 +1178,9 @@ ApplicationManager::EnableEXC(AppPid_t pid, uint8_t exc_id) {
  ******************************************************************************/
 
 ApplicationManager::ExitCode_t
-ApplicationManager::DisableEXC(AppPtr_t papp) {
+ApplicationManager::DisableEXC(AppPtr_t papp, bool release) {
+	ResourceAccounter &ra(ResourceAccounter::GetInstance());
+
 	// A disabled EXC is moved (as soon as possible) into the DISABLED queue
 	// NOTE: other code-path should check wheter an application is still
 	// !DISABLED to _assume_ a normal operation
@@ -1189,13 +1191,20 @@ ApplicationManager::DisableEXC(AppPtr_t papp) {
 		return AM_ABORT;
 	}
 
+	// If required, return application resources to the system view
+	if (likely(release)) {
+		logger->Debug("Releasing EXC [%s] assigned resources...",
+				papp->StrId());
+		ra.ReleaseResources(papp);
+	}
+
 	logger->Info("EXC [%s] DISABLED", papp->StrId());
 
 	return AM_SUCCESS;
 }
 
 ApplicationManager::ExitCode_t
-ApplicationManager::DisableEXC(AppPid_t pid, uint8_t exc_id) {
+ApplicationManager::DisableEXC(AppPid_t pid, uint8_t exc_id, bool release) {
 	AppPtr_t papp;
 
 	// Find the required EXC
@@ -1207,7 +1216,7 @@ ApplicationManager::DisableEXC(AppPid_t pid, uint8_t exc_id) {
 		return AM_ABORT;
 	}
 
-	return DisableEXC(papp);
+	return DisableEXC(papp, release);
 }
 
 

@@ -143,12 +143,13 @@ public:
 	/**
 	 * @see ApplicationManagerConfIF
 	 */
-	ExitCode_t DisableEXC(AppPtr_t papp);
+	ExitCode_t DisableEXC(AppPtr_t papp, bool release = false);
 
 	/**
 	 * @see ApplicationManagerConfIF
 	 */
-	ExitCode_t DisableEXC(AppPid_t pid, uint8_t exc_id);
+	ExitCode_t DisableEXC(AppPid_t pid, uint8_t exc_id,
+			bool release = false);
 
 /*******************************************************************************
  *     Thread-Safe Queue Access Functions

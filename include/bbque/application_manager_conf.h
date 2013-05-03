@@ -174,19 +174,26 @@ public:
 	/**
 	 * @brief Disable the specified EXC for resources scheduling
 	 *
-	 * Disble assignment of resources to the specified EXC.
+	 * Disble assignment of resources to the specified EXC and, if
+	 * required, release currently assigned resources.
+	 *
 	 * @param papp pointer to the application to enable
+	 * @param release set true to release currently assigned resources
 	 */
-	virtual ExitCode_t DisableEXC(AppPtr_t papp) = 0;
+	virtual ExitCode_t DisableEXC(AppPtr_t papp, bool release = false) = 0;
 
 	/**
 	 * @brief Disable the specified EXC for resources scheduling
 	 *
-	 * Disable assignment of resources to the specified EXC.
+	 * Disable assignment of resources to the specified EXC and, if
+	 * required, release currently assigned resources.
+	 *
 	 * @param pid the processi ID of the application
 	 * @param exc_id the Execution Context ID to enable
+	 * @param release set true to release currently assigned resources
 	 */
-	virtual ExitCode_t DisableEXC(AppPid_t pid, uint8_t exc_id) = 0;
+	virtual ExitCode_t DisableEXC(AppPid_t pid, uint8_t exc_id,
+			bool release = false) = 0;
 };
 
 } // namespace bbque
