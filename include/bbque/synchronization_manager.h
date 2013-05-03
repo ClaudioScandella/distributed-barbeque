@@ -184,6 +184,19 @@ private:
 	 */
 	void DoAcquireResources(AppPtr_t);
 
+	/**
+	 * @brief Check fo reshuffling reconfigurations
+	 *
+	 * A resuhffling reconfiguration happens when an application is not
+	 * changing its working mode or not being migrated but just assigned a
+	 * different set of resources within the same node.
+	 *
+	 * @param papp The App/ExC to verify
+	 *
+	 * @return true if this is a reshuffling reconfiguration
+	 */
+	bool Reshuffling(AppPtr_t papp);
+
 };
 
 } // namespace bbque

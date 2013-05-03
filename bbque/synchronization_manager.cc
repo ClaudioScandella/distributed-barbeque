@@ -155,6 +155,13 @@ SynchronizationManager::SynchronizationManager() :
 SynchronizationManager::~SynchronizationManager() {
 }
 
+bool
+SynchronizationManager::Reshuffling(AppPtr_t papp) {
+	if ((papp->SyncState() == ApplicationStatusIF::RECONF))
+		return !(papp->SwitchingAWM());
+	return false;
+}
+
 SynchronizationManager::ExitCode_t
 SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncState) {
 	ExitCode_t syncInProgress = NO_EXC_IN_SYNC;
@@ -178,6 +185,11 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 
 		if (!policy->DoSync(papp))
 			continue;
+
+		if (Reshuffling(papp)) {
+			syncInProgress = OK;
+			continue;
+		}
 
 		logger->Info("STEP 1: preChange() ===> [%s]", papp->StrId());
 
@@ -307,6 +319,9 @@ SynchronizationManager::Sync_SyncChange(
 		if (!policy->DoSync(papp))
 			continue;
 
+		if (Reshuffling(papp))
+			continue;
+
 		logger->Info("STEP 2: syncChange() ===> [%s]", papp->StrId());
 
 		// Jumping meanwhile disabled applications
@@ -427,6 +442,9 @@ SynchronizationManager::Sync_DoChange(ApplicationStatusIF::SyncState_t syncState
 		if (!policy->DoSync(papp))
 			continue;
 
+		if (Reshuffling(papp))
+			continue;
+
 		logger->Info("STEP 3: doChange() ===> [%s]", papp->StrId());
 
 		// Jumping meanwhile disabled applications
@@ -468,6 +486,9 @@ SynchronizationManager::Sync_PostChange(ApplicationStatusIF::SyncState_t syncSta
 
 		if (!policy->DoSync(papp))
 			continue;
+
+		if (Reshuffling(papp))
+			goto commit;
 
 		logger->Info("STEP 4: postChange() ===> [%s]", papp->StrId());
 
