@@ -82,11 +82,11 @@ private:
 	/** Configuration manager instance */
 	ConfigurationManager & cm;
 
-	/**
-	 * @brief Resource Accounter view used for the last (successfull)
-	 * scheduling
-	 */
+	/** Token for accessing a resources view */
 	RViewToken_t ra_view;
+
+	/** A counter used for getting always a new clean resources view */
+	uint32_t ra_view_count;
 
 	/** The base resource path for the binding step */
 	std::string binding_domain;
@@ -107,6 +107,16 @@ private:
 	 * @return  
 	 */
 	RandomSchedPol();
+
+	/**
+	 * @brief Scheduler run intialization
+	 *
+	 * This method is used each time a new random scheduling is tirggered
+	 * in order to properly setup the system view to be used.
+	 *
+	 * @return SCHED_DONE on success, SCHED_ERROR on falilure
+	 */
+	SchedulerPolicyIF::ExitCode_t Init();
 
 	/**
 	 * @brief Randonly select an AWM for the application
