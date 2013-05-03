@@ -963,6 +963,10 @@ ApplicationManager::DestroyEXC(AppPtr_t papp) {
 	timeout = 100 - (10 * (AppsCount(ApplicationStatusIF::READY) % 5));
 	cleanup_dfr.Schedule(milliseconds(timeout));
 
+	// Ensure resources have been returned to the system view
+	if (papp->CurrentAWM())
+		ra.ReleaseResources(papp);
+
 	logger->Info("EXC [%s] FINISHED", papp->StrId());
 	ReportStatusQ();
 	ReportSyncQ();
@@ -974,7 +978,6 @@ ApplicationManager::DestroyEXC(AppPtr_t papp) {
 
 ApplicationManager::ExitCode_t
 ApplicationManager::DestroyEXC(AppPid_t pid, uint8_t exc_id) {
-	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	AppPtr_t papp;
 
 	// Find the required EXC
@@ -985,10 +988,6 @@ ApplicationManager::DestroyEXC(AppPid_t pid, uint8_t exc_id) {
 				"(Error: EXC not found)");
 		return AM_EXC_NOT_FOUND;
 	}
-
-	// Release resources
-	if (papp->CurrentAWM())
-		ra.ReleaseResources(papp);
 
 	return DestroyEXC(papp);
 }
