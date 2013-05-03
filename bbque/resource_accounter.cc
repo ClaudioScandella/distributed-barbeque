@@ -786,14 +786,9 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncStart() {
 	std::unique_lock<std::mutex> sync_ul(sync_ssn.mtx);
 	logger->Info("SyncMode: Start");
 
-	// If the counter has reached the maximum, reset
-	if (sync_ssn.count == std::numeric_limits<uint32_t>::max()) {
-		logger->Debug("SyncMode: Session counter reset");
-		sync_ssn.count = 0;
-	}
-
 	// Build the path for getting the resource view token
-	snprintf(tk_path, TOKEN_PATH_MAX_LEN, SYNC_RVIEW_PATH"%d", ++sync_ssn.count);
+	++sync_ssn.count;
+	snprintf(tk_path, TOKEN_PATH_MAX_LEN, "%s%d", SYNC_RVIEW_PATH, sync_ssn.count);
 	logger->Debug("SyncMode [%d]: Requiring resource state view for %s",
 			sync_ssn.count,	tk_path);
 
