@@ -665,6 +665,8 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 		curr_awm_str[1] = 0;
 		curr_awm_cl[0] = '-';
 		curr_awm_cl[1] = 0;
+		next_awm_cl[0] = '-';
+		next_awm_cl[1] = 0;
 
 		// Current AWM
 		if (awm) {
