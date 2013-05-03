@@ -909,6 +909,10 @@ ResourceAccounter::IncBookingCounts(
 	std::unique_lock<std::recursive_mutex> status_ul(status_mtx, std::defer_lock);
 	ResourceAccounter::ExitCode_t result;
 
+	// Just the system view could be contended
+	if (vtok == 0)
+		status_ul.lock();
+
 	// Get the map of resources used by the application (from the state view
 	// referenced by 'vtok'). A missing view implies that the token is not
 	// valid.
