@@ -577,8 +577,7 @@ void ResourceAccounter::_ReleaseResources(AppSPtr_t papp, RViewToken_t vtok) {
 	// Get the map of resource usages of the application
 	AppUsagesMap_t::iterator usemap_it(apps_usages->find(papp->Uid()));
 	if (usemap_it == apps_usages->end()) {
-		logger->Fatal("Release: Application referenced misses a resource set."
-				" Possible data corruption occurred.");
+		logger->Debug("Release: resource set not assigned");
 		return;
 	}
 
