@@ -933,7 +933,6 @@ void ApplicationManager::Cleanup() {
 
 ApplicationManager::ExitCode_t
 ApplicationManager::DestroyEXC(AppPtr_t papp) {
-	ApplicationManager &am(ApplicationManager::GetInstance());
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	uint32_t timeout = 0;
 	ExitCode_t result;
@@ -967,7 +966,7 @@ ApplicationManager::DestroyEXC(AppPtr_t papp) {
 	logger->Info("EXC [%s] FINISHED", papp->StrId());
 	ReportStatusQ();
 	ReportSyncQ();
-	am.PrintStatusReport();
+	PrintStatusReport();
 	ra.PrintStatusReport();
 
 	return AM_SUCCESS;
