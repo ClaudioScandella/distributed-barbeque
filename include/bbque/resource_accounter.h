@@ -650,6 +650,17 @@ private:
 	ExitCode_t DoResourceBooking(AppSPtr_t const & papp,
 			UsagePtr_t & pusage, RViewToken_t vtok);
 
+
+	/**
+	 * @brief Release the resources
+	 *
+	 * This is the synchronization session mutex free verios of the dual
+	 * public method ReleaseResources
+	 *
+	 * @see ReleaseResources
+	 */
+	void _ReleaseResources(AppSPtr_t papp, RViewToken_t vtok = 0);
+
 	/**
 	 * @brief Allocate a quota of resource in the scheduling case
 	 *

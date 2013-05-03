@@ -543,13 +543,29 @@ ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 
 void ResourceAccounter::ReleaseResources(AppSPtr_t papp, RViewToken_t vtok) {
 	std::unique_lock<std::mutex> sync_ul(sync_ssn.mtx);
-	std::unique_lock<std::recursive_mutex> status_ul(status_mtx);
 
 	// Sanity check
 	if (!papp) {
 		logger->Fatal("Release: Null pointer to the application descriptor");
 		return;
 	}
+
+	// Decrease resources in the sync view
+	if (vtok == 0 && sync_ssn.started)
+		_ReleaseResources(papp, sync_ssn.view);
+
+	// Decrease resources in the required view
+	_ReleaseResources(papp, vtok);
+
+}
+
+// NOTE this method should be called while holding the sync session mutex
+void ResourceAccounter::_ReleaseResources(AppSPtr_t papp, RViewToken_t vtok) {
+	std::unique_lock<std::recursive_mutex> status_ul(status_mtx, std::defer_lock);
+
+	// Just the system view could be contended
+	if (vtok == 0)
+		status_ul.lock();
 
 	// Get the map of applications resource usages related to the state view
 	// referenced by 'vtok'
