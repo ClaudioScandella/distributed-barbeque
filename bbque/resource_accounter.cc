@@ -837,6 +837,12 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncAcquireResources(
 		AppSPtr_t const & papp) {
 	std::unique_lock<std::mutex> sync_ul(sync_ssn.mtx);
 
+	// Check that we are in a synchronized session
+	if (!Synching()) {
+		logger->Error("SyncMode [%d]: Session not open", sync_ssn.count);
+		return RA_ERR_SYNC_START;
+	}
+
 	// Check next AWM
 	if (!papp->NextAWM()) {
 		logger->Fatal("SyncMode [%d]: [%s] missing the next AWM",
@@ -846,12 +852,6 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncAcquireResources(
 
 	// Resource set to acquire
 	UsagesMapPtr_t const &usages(papp->NextAWM()->GetResourceBinding());
-
-	// Check that we are in a synchronized session
-	if (!Synching()) {
-		logger->Error("SyncMode [%d]: Session not open", sync_ssn.count);
-		return RA_ERR_SYNC_START;
-	}
 
 	// Acquire resources
 	return BookResources(papp, usages, sync_ssn.view);
