@@ -816,7 +816,7 @@ AppPtr_t ApplicationManager::CreateEXC(
 			UidsMapEntry_t(papp->Uid(), papp));
 	status_ul.unlock();
 
-	logger->Debug("Create EXC [%s] DONE", papp->StrId());
+	logger->Info("EXC [%s] CREATED", papp->StrId());
 
 	return papp;
 }
@@ -964,7 +964,7 @@ ApplicationManager::DestroyEXC(AppPtr_t papp) {
 	timeout = 100 - (10 * (AppsCount(ApplicationStatusIF::READY) % 5));
 	cleanup_dfr.Schedule(milliseconds(timeout));
 
-	logger->Info("EXC Finished [%s]", papp->StrId());
+	logger->Info("EXC [%s] FINISHED", papp->StrId());
 	ReportStatusQ();
 	ReportSyncQ();
 	am.PrintStatusReport();
@@ -1009,6 +1009,8 @@ ApplicationManager::DestroyEXC(AppPid_t pid) {
 		if (result != AM_SUCCESS)
 			return result;
 	}
+
+	logger->Info("APP [%d:*:*] TERMINATED", pid);
 
 	return AM_SUCCESS;
 }
@@ -1149,6 +1151,8 @@ ApplicationManager::EnableEXC(AppPtr_t papp) {
 		return AM_ABORT;
 	}
 
+	logger->Info("EXC [%s] ENABLED", papp->StrId());
+
 	return AM_SUCCESS;
 }
 
@@ -1186,6 +1190,8 @@ ApplicationManager::DisableEXC(AppPtr_t papp) {
 	if (papp->Disable() != Application::APP_SUCCESS) {
 		return AM_ABORT;
 	}
+
+	logger->Info("EXC [%s] DISABLED", papp->StrId());
 
 	return AM_SUCCESS;
 }
