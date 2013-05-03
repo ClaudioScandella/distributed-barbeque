@@ -506,7 +506,6 @@ ResourceAccounter::ExitCode_t ResourceAccounter::UpdateResource(
 	return RA_SUCCESS;
 }
 
-
 ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 		AppSPtr_t papp,
 		UsagesMapPtr_t const & rsrc_usages,
@@ -587,6 +586,7 @@ void ResourceAccounter::_ReleaseResources(AppSPtr_t papp, RViewToken_t vtok) {
 	DecBookingCounts(usemap_it->second, papp, vtok);
 	apps_usages->erase(papp->Uid());
 	logger->Debug("Release: [%s] resource release terminated", papp->StrId());
+
 }
 
 
@@ -784,7 +784,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncStart() {
 	++sync_ssn.count;
 	snprintf(tk_path, TOKEN_PATH_MAX_LEN, "%s%d", SYNC_RVIEW_PATH, sync_ssn.count);
 	logger->Debug("SyncMode [%d]: Requiring resource state view for %s",
-			sync_ssn.count,	tk_path);
+			sync_ssn.count, tk_path);
 
 	// Synchronization has started
 	sync_ssn.started = true;
@@ -798,7 +798,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncStart() {
 		return RA_ERR_SYNC_VIEW;
 	}
 	logger->Debug("SyncMode [%d]: Resource state view token = %d",
-			sync_ssn.count,	sync_ssn.view);
+			sync_ssn.count, sync_ssn.view);
 
 	// Init the view with the resource accounting of running applications
 	return SyncInit();
