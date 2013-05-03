@@ -466,10 +466,8 @@ SynchronizationManager::Sync_PostChange(ApplicationStatusIF::SyncState_t syncSta
 	papp = am.GetFirst(syncState, apps_it);
 	for ( ; papp; papp = am.GetNext(syncState, apps_it)) {
 
-		// NOTE: in this last step, ALL apps must be committed in
-		// order to remove them from the Synchronization queues.
 		if (!policy->DoSync(papp))
-			goto commit;
+			continue;
 
 		logger->Info("STEP 4: postChange() ===> [%s]", papp->StrId());
 
@@ -723,6 +721,10 @@ SynchronizationManager::SyncSchedule() {
 		// Select next set of apps to synchronize (if any)
 		syncState = policy->GetApplicationsQueue(sv);
 	}
+
+	// FIXME at this point ALL apps must be committed and the sync queues
+	// enpty, this should be checked probably here before to commit the
+	// system view
 
 	// Commit the resource accounter synchronized session
 	raResult = ra.SyncCommit();
