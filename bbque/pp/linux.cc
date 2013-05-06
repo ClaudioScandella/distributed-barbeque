@@ -216,20 +216,68 @@ LinuxPP::ExitCode_t
 LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	char resourcePath[] = "sys0.cpu256.mem256";
+	unsigned short first_mem_id;
+	unsigned short last_mem_id;
+	const char *p = prlb->mems;
 	uint64_t limit_in_bytes = atol(prlb->memb);
 
-	// Setup resource path
-	snprintf(resourcePath+8, 11, "%hu.mem%hu",
-			prlb->socket_id, prlb->socket_id);
+	// NOTE: The Memory limit in bytes is used to assign the SAME quota to
+	// each memory node within the same cluster. This is not the intended
+	// behavior of the limit_in_bytes, but simplifies a lot the
+	// configuration and should be just enough for our purposes.
 
-	logger->Debug("PLAT LNX: %s [%s: %" PRIu64 " Bytes]...",
-			refreshMode ? "Refreshing" : "Registering",
-			resourcePath, limit_in_bytes);
+	while (*p) {
 
-	if (refreshMode)
-		ra.UpdateResource(resourcePath, "Bytes", limit_in_bytes);
-	else
-		ra.RegisterResource(resourcePath, "Bytes", limit_in_bytes);
+		// Get a Memory NODE id, and register the corresponding resource path
+		sscanf(p, "%hu", &first_mem_id);
+		snprintf(resourcePath+8, 11, "%hu.mem%d",
+				prlb->socket_id, first_mem_id);
+		logger->Debug("PLAT LNX: %s [%s]...",
+				refreshMode ? "Refreshing" : "Registering",
+				resourcePath);
+		if (refreshMode)
+			ra.UpdateResource(resourcePath, "", limit_in_bytes);
+		else
+			ra.RegisterResource(resourcePath, "", limit_in_bytes);
+
+		// Look-up for next NODE id
+		while (*p && (*p != ',') && (*p != '-')) {
+			++p;
+		}
+
+		if (!*p)
+			return OK;
+
+		if (*p == ',') {
+			++p;
+			continue;
+		}
+		// Otherwise: we have stopped on a "-"
+
+		// Get last Memory NODE id of this range
+		sscanf(++p, "%hu", &last_mem_id);
+		// Register all the other Memory NODEs of this range
+		while (++first_mem_id <= last_mem_id) {
+			snprintf(resourcePath+8, 11, "%hu.mem%d",
+					prlb->socket_id, first_mem_id);
+			logger->Debug("PLAT LNX: %s [%s]...",
+					refreshMode ? "Refreshing" : "Registering",
+					resourcePath);
+
+			if (refreshMode)
+				ra.UpdateResource(resourcePath, "", limit_in_bytes);
+			else
+				ra.RegisterResource(resourcePath, "", limit_in_bytes);
+		}
+
+		// Look-up for next CPU id
+		while (*p && (*p != ',')) {
+				++p;
+		}
+
+		if (*p == ',')
+			++p;
+	}
 
 	return OK;
 }
