@@ -649,16 +649,19 @@ SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
 		return OK;
 	}
 
+#ifdef CONFIG_BBQUE_YM_SYNC_FORCE
+
 	result = Sync_PreChange(syncState);
 	if (result != OK)
 		return result;
 
-	// Wait for the policy specified sync point
 	syncLatency = policy->EstimatedSyncTime();
+	SM_ADD_SAMPLE(metrics, SM_SYNCP_TIME_LATENCY, syncLatency);
+
+	// Wait for the policy specified sync point
 	logger->Debug("Wait sync point for %d[ms]", syncLatency);
 	std::this_thread::sleep_for(
 			std::chrono::milliseconds(syncLatency));
-	SM_ADD_SAMPLE(metrics, SM_SYNCP_TIME_LATENCY, syncLatency);
 
 	result = Sync_SyncChange(syncState);
 	if (result != OK)
@@ -671,6 +674,23 @@ SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
 	result = Sync_DoChange(syncState);
 	if (result != OK)
 		return result;
+
+#else
+
+	// Platform is synched before to:
+	// 1. speed-up resources assignement
+	// 2. properly setup platform specific data for the time the
+	// application reconfigure it-self
+	// e.g. CGroups should be already properly initialized
+	result = Sync_Platform(syncState);
+	if (result != OK)
+		return result;
+
+	result = Sync_PreChange(syncState);
+	if (result != OK)
+		return result;
+
+#endif // CONFIG_BBQUE_YM_SYNC_FORCE
 
 	result = Sync_PostChange(syncState);
 	if (result != OK)

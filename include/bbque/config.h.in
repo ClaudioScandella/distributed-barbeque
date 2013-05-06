@@ -118,6 +118,9 @@
 /** Enabled YaMS Scheduling policy parallel execution */
 #cmakedefine CONFIG_BBQUE_SP_YAMS_PARALLEL
 
+/** Enabled Synchronization Manager sync point enforcing */
+#cmakedefine CONFIG_BBQUE_YM_SYNC_FORCE
+
 /** Enabled SASB Synchronization policy asynchronous calls */
 #cmakedefine CONFIG_BBQUE_YP_SASB_ASYNC
 

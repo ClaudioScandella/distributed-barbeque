@@ -1145,7 +1145,21 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify(
 
 	result = _SyncpPreChangeResp(msg.hdr.token, prec, syncLatency);
 
+
+#ifndef CONFIG_BBQUE_YM_SYNC_FORCE
+
+	if (result != RTLIB_OK)
+		return result;
+
+	// Force a DoChange, which will not be forwarded by the BBQ daemon if
+	// the Sync Point forcing support is disabled
+	return SyncP_DoChangeNotify(prec);
+
+#else
+
 	return result;
+
+#endif
 }
 
 RTLIB_ExitCode_t BbqueRPC::SyncP_SyncChangeNotify(pregExCtx_t prec) {

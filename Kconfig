@@ -98,6 +98,25 @@ config BBQUE_SP_YAMS_PARALLEL
 
 comment "Synchronization Policies Configuration"
 
+config BBQUE_YM_SYNC_FORCE
+  bool "Synchronization point forcing"
+  default n
+  ---help---
+  Enable the Sync Point forcing via Synchronization Manager and RTLib.
+
+  By selecting this option, the Synchronization Manager (YM) enforce EXCs
+  reconfiguration to be aligned with the synchronization latency defined by
+  applications being reconfigured.
+  The synchronization latency is the time delay required by an application to
+  be in a synchronization point, i.e. complete the current run and being ready
+  to start a new one.
+
+  In general this option could be keept disabled, since it is mandatory just
+  on few specific platforms and programming paradigms combinations.
+  Specifically, it should be explicitly enabled just when a resource
+  contention treat could be expected on a specific target platform or
+  programming paradigm.
+
 config BBQUE_YP_SASB_ASYNC
   bool "SASB asynchronous calls"
   default n if TARGET_ANDROID
