@@ -601,7 +601,7 @@ exit_setup:
 	// Exit notification
 	rtlib->Notify.Exit(exc_hdl);
 
-	DB(fprintf(stderr, FE("Control-loop for EXC [%s] TERMINATED\n"),
+	DB(fprintf(stderr, FI("Control-loop for EXC [%s] TERMINATED\n"),
 				exc_name.c_str()));
 
 	//--- Notify the control-thread is TERMINATED
