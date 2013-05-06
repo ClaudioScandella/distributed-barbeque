@@ -42,7 +42,8 @@ config BBQUE_RTLIB_PERF_SUPPORT
 config BBQUE_RTLIB_CGROUPS_SUPPORT
   bool "Enable CGroups support on RTLib"
   depends on TARGET_LINUX
-  default n if BBQUE_TEST_PALTFORM_DATA
+  depends on !BBQUE_TEST_PLATFORM_DATA
+  default n if BBQUE_TEST_PLATFORM_DATA
   default y
   ---help---
   Build the Run-Time Library (RTLib) with support for CGroups.
