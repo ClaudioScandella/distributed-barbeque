@@ -2460,7 +2460,7 @@ void BbqueRPC::NotifyPostRun(
 		prec->rr.pStats->update(rr_now);
 	} else {
 		prec->rr.pStats =
-			pEma_t(new EMA(CONFIG_BBQUE_RTLIB_RR_CYCLES, rr_now));
+			bu::pEma_t(new bu::EMA(CONFIG_BBQUE_RTLIB_RR_CYCLES, rr_now));
 	}
 
 	DB(fprintf(stderr, FD("Comp: %7d[us], RTM: %7d[us], RR: %8.3f[%%]\n"),

@@ -22,6 +22,7 @@
 #include "bbque/config.h"
 #include "bbque/rtlib/rpc_messages.h"
 #include "bbque/utils/utility.h"
+#include "bbque/utils/statistics.h"
 #include "bbque/utils/timer.h"
 #include "bbque/cpp11/condition_variable.h"
 #include "bbque/cpp11/mutex.h"
@@ -50,6 +51,8 @@
 
 using bbque::utils::Timer;
 using namespace boost::accumulators;
+
+namespace bu = bbque::utils;
 
 namespace bbque { namespace rtlib {
 
@@ -333,47 +336,6 @@ protected:
 	typedef std::map<uint8_t, pAwmStats_t> AwmStatsMap_t;
 
 	/**
-	 * @brief Exponential Moving Average accumulator
-	 *
-	 * This class provides a simple accumulator for on-line computation of an
-	 * Exponential Moving Average, with an exponential factor @see alpha.
-	 *
-	 * The alpha factor is expressed in terms of N samples, where alpha =
-	 * 2/(N+1). For example, N = 19 is equivalent to alpha = 0.1.
-	 * The half-life of the weights (the interval over which the
-	 * weights decrease by a factor of two) is approximately N/2.8854
-	 * (within 1% if N > 5).
-	 */
-	class EMA {
-	private:
-		double alpha;
-		double value;
-		uint8_t load;
-	public:
-		EMA(int samples = 6, double firstValue = 0) :
-			alpha(2.0 / (samples +1)),
-			value(firstValue),
-			load(samples) {
-		}
-		double update(double newValue) {
-			value = ((alpha * newValue) + ((1 - alpha) * value));
-			if (unlikely(load > 0))
-				--load;
-			return value;
-		}
-		double get() const {
-			if (unlikely(load > 0))
-				return 0;
-			return value;
-		}
-	};
-
-	/**
-	 * @brief A pointer to an EMA-defined accounter
-	 */
-	typedef std::shared_ptr<EMA> pEma_t;
-
-	/**
 	 * @brief Reconfiguration Rate (RR) porfiling
 	 *
 	 * This is a set of parameters useful to track and profile the
@@ -388,7 +350,7 @@ protected:
 		 * (i.e. Monitor + Conffig) */
 		uint32_t time_rtm;
 		/** The (EMA defined) Reconfiguration Rate (RR) */
-		pEma_t pStats;
+		bu::pEma_t pStats;
 		ReconfigurationRate() :
 			time_running(0),
 			time_rtm(0) {
@@ -450,7 +412,7 @@ protected:
 		double cps_tstart = 0; // [ms] at the last cycle start time
 		float cps_max = 0;     // [Hz] the requried maximum CPS
 		float cps_expect = 0;  // [ms] the expected cycle time
-		EMA cps_ctime;         // [ms] Cycle Time on-line estimation
+		bu::EMA cps_ctime;     // [ms] Cycle Time on-line estimation
 
 		/** Reconfiguration Rate profiling support */
 		ReconfigurationRate_t rr;
@@ -463,7 +425,7 @@ protected:
 		~RegisteredExecutionContext() {
 			stats.clear();
 			pAwmStats = pAwmStats_t();
-			rr.pStats = pEma_t();
+			rr.pStats = bu::pEma_t();
 		}
 
 
