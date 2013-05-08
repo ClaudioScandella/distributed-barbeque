@@ -34,7 +34,7 @@
 # Scheduler Manager Options
 ################################################################################
 [SchedulerManager]
-#policy = yams
+policy = yams
 
 ################################################################################
 # Scheduling Policy
@@ -91,8 +91,8 @@ penalty.mem   = 10
 # Set root category priority and its appender
 # By default all logs are only from level greater than or equal to INFO
 ###
-#rootCategory = DEBUG, raFile
-rootCategory = DEBUG, raConsole
+rootCategory = DEBUG, raFile
+#rootCategory = DEBUG, raConsole
 #rootCategory = INFO,  raSyslog
 #rootCategory = INFO,  raRSyslog
 ###
