@@ -1462,38 +1462,38 @@ void BbqueRPC::PerfSetupEvents(pregExCtx_t prec) {
 		prec->events_map[fd] = &(default_events[e]);
 	}
 
-    if (envDetailedRun <  1)
-        return;
+	if (envDetailedRun <  1)
+		return;
 
-    // Append detailed run extra attributes
+	// Append detailed run extra attributes
 	for (uint8_t e = 0; e < ARRAY_SIZE(detailed_events); e++) {
 		fd = prec->perf.AddCounter(
 				detailed_events[e].type, detailed_events[e].config,
 				envNoKernel);
 		prec->events_map[fd] = &(detailed_events[e]);
-    }
+	}
 
-    if (envDetailedRun <  2)
-        return;
+	if (envDetailedRun <  2)
+		return;
 
-    // Append detailed run extra attributes
+	// Append detailed run extra attributes
 	for (uint8_t e = 0; e < ARRAY_SIZE(very_detailed_events); e++) {
 		fd = prec->perf.AddCounter(
 				very_detailed_events[e].type, very_detailed_events[e].config,
 				envNoKernel);
 		prec->events_map[fd] = &(very_detailed_events[e]);
-    }
+	}
 
-    if (envDetailedRun <  3)
-        return;
+	if (envDetailedRun <  3)
+		return;
 
-    // Append detailed run extra attributes
+	// Append detailed run extra attributes
 	for (uint8_t e = 0; e < ARRAY_SIZE(very_very_detailed_events); e++) {
 		fd = prec->perf.AddCounter(
 				very_very_detailed_events[e].type, very_very_detailed_events[e].config,
 				envNoKernel);
 		prec->events_map[fd] = &(very_very_detailed_events[e]);
-    }
+	}
 }
 
 void BbqueRPC::PerfSetupStats(pregExCtx_t prec, pAwmStats_t pstats) {
