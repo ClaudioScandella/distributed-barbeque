@@ -60,6 +60,21 @@ typedef std::shared_ptr<ResourceConstraint> ConstrPtr_t;
 typedef std::map<ResourcePathPtr_t, ConstrPtr_t> ConstrMap_t;
 
 /**
+ * @brief Attribute structure for plugin specific data
+ */
+typedef struct PluginAttr: public AttributesContainer::Attribute {
+	/** Constructor */
+	PluginAttr(std::string const & _ns, std::string const & _key):
+		AttributesContainer::Attribute(_ns, _key) {}
+
+	/** Attribute value: a string object */
+	std::string str;
+} PluginAttr_t;
+
+/** Shared pointer to PluginAttr_t */
+typedef std::shared_ptr<PluginAttr_t> PluginAttrPtr_t;
+
+/**
  * @brief An application recipe
  *
  * Applications need the set of working mode definitions, plus (optionally)

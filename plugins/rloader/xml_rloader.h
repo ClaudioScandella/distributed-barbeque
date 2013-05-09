@@ -78,21 +78,6 @@ class XMLRecipeLoader : public RecipeLoaderIF {
 public:
 
 	/**
-	 * @brief Attribute structure for plugin specific data
-	 */
-	typedef struct PluginAttr: public AttributesContainer::Attribute {
-		/** Constructor */
-		PluginAttr(std::string const & _ns, std::string const & _key):
-			AttributesContainer::Attribute(_ns, _key) {}
-
-		/** Attribute value: a string object */
-		std::string str;
-	} PluginAttr_t;
-
-	/** Shared pointer to PluginAttr_t */
-	typedef std::shared_ptr<PluginAttr_t> PluginAttrPtr_t;
-
-	/**
 	 * @brief Method for creating the static plugin
 	 */
 	static void * Create(PF_ObjectParams *);
