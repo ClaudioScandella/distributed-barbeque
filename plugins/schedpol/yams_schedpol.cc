@@ -223,8 +223,6 @@ error:
 }
 
 void YamsSchedPol::SchedulePrioQueue(AppPrio_t prio) {
-	std::vector<ResID_t>::iterator ids_it;
-	std::vector<ResID_t>::iterator end_ids;
 	bool sched_incomplete;
 	uint8_t naps_count = 0;
 	SchedContribPtr_t sc_fair;
@@ -238,24 +236,8 @@ do_schedule:
 	assert(sc_fair != nullptr);
 	sc_fair->Init(&prio);
 
-	// For each cluster/node evaluate...
-	ids_it = bindings.ids.begin();
-	for (; ids_it != bindings.ids.end(); ++ids_it) {
-		ResID_t & bd_id(*ids_it);
-		logger->Debug("Schedule: :::::::::: BINDING:'%s' ID:[%d] :::::::::",
-				bindings.domain.c_str(), bd_id);
-
-		// Skip current cluster if full
-		if (bindings.full[bd_id]) {
-			logger->Debug("Schedule: domain '%s'%d is full, skipping...",
-					bindings.domain.c_str(), bd_id);
-			continue;
-		}
-
-		// Order schedule entities by aggregate metrics
-		naps_count = OrderSchedEntities(prio, bd_id);
-	}
-	// Collect "ordering step" metrics
+	// Order schedule entities by aggregate metrics
+	naps_count = OrderSchedEntities(prio);
 	YAMS_GET_TIMING(coll_metrics, YAMS_ORDERING_TIME, yams_tmr);
 
 	// Selection: for each application schedule a working mode
@@ -270,7 +252,7 @@ do_schedule:
 	YAMS_GET_TIMING(coll_metrics, YAMS_SELECTING_TIME, yams_tmr);
 }
 
-uint8_t YamsSchedPol::OrderSchedEntities(AppPrio_t prio, uint16_t bd_id) {
+uint8_t YamsSchedPol::OrderSchedEntities(AppPrio_t prio) {
 	uint8_t naps_count = 0;
 	AppsUidMapIt app_it;
 	AppCPtr_t papp;
@@ -283,7 +265,7 @@ uint8_t YamsSchedPol::OrderSchedEntities(AppPrio_t prio, uint16_t bd_id) {
 			continue;
 
 		// Compute the metrics for each AWM binding resources to cluster 'bd_id'
-		InsertWorkingModes(papp, bd_id);
+		InsertWorkingModes(papp);
 
 		// Keep track of NAPped Applications/EXC
 		if (papp->GetGoalGap())
@@ -348,26 +330,42 @@ bool YamsSchedPol::SelectSchedEntities(uint8_t naps_count) {
 	return false;
 }
 
-void YamsSchedPol::InsertWorkingModes(AppCPtr_t const & papp, uint16_t bd_id) {
+void YamsSchedPol::InsertWorkingModes(AppCPtr_t const & papp) {
 	std::list<std::thread> awm_thds;
+	std::vector<ResID_t>::iterator ids_it;
+	std::vector<ResID_t>::iterator end_ids;
+	AwmPtrList_t const * awms = nullptr;
+	AwmPtrList_t::const_iterator awm_it;
+	ResID_t bd_id = R_ID_NONE;
 	float metrics = 0.0;
 
-	// Application Working Modes
-	AwmPtrList_t const * awms = papp->WorkingModes();
-	AwmPtrList_t::const_iterator awm_it(awms->begin());
-	AwmPtrList_t::const_iterator end_awm(awms->end());
+	// For each binding domain (e.g., CPU node) evaluate the AWM
+	ids_it = bindings.ids.begin();
+	for (; ids_it != bindings.ids.end(); ++ids_it) {
+		bd_id = *ids_it;
+		logger->Info("Evaluate: :::::::::: BINDING:'%s' ID:[%d] :::::::::",
+				bindings.domain.c_str(), bd_id);
 
-	// AWMs (+resources bound to 'bd_id') evaluation
-	for (; awm_it != end_awm; ++awm_it) {
-		AwmPtr_t const & pawm(*awm_it);
-		SchedEntityPtr_t pschd(new SchedEntity_t(papp, pawm, bd_id, metrics));
+		// Skip current cluster if full
+		if (bindings.full[bd_id]) {
+			logger->Info("Evaluate: domain [%s%d] is full, skipping...",
+					bindings.domain.c_str(), bd_id);
+			continue;
+		}
+
+		// AWMs (+resources bound to 'bd_id') evaluation
+		awms = papp->WorkingModes();
+		for (awm_it = awms->begin(); awm_it != awms->end(); ++awm_it) {
+			AwmPtr_t const & pawm(*awm_it);
+			SchedEntityPtr_t pschd(new SchedEntity_t(papp, pawm, bd_id, metrics));
 #ifdef BBQUE_SP_YAMS_PARALLEL
-		awm_thds.push_back(
-				std::thread(&YamsSchedPol::EvalWorkingMode, this, pschd)
-		);
+			awm_thds.push_back(
+					std::thread(&YamsSchedPol::EvalWorkingMode, this, pschd)
+			);
 #else
-		EvalWorkingMode(pschd);
+			EvalWorkingMode(pschd);
 #endif
+		}
 	}
 
 #ifdef BBQUE_SP_YAMS_PARALLEL

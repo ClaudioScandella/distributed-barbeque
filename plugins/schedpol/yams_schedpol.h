@@ -252,20 +252,18 @@ private:
 	 * which is sorted in descending order of metrics value
 	 *
 	 * @param prio The priority queue to schedule
-	 * @param cl_id The current cluster for the clustered resources
 	 *
 	 * @return the number of EXCs in this priority queue which have a
 	 * NAP value asserted
 	 */
-	uint8_t OrderSchedEntities(AppPrio_t prio, uint16_t cl_id);
+	uint8_t OrderSchedEntities(AppPrio_t prio);
 
 	/**
 	 * @brief Metrics of all the AWMs of an Application
 	 *
 	 * @param papp Shared pointer to the Application/EXC to schedule
-	 * @param cl_id The current cluster for the clustered resources
 	 */
-	 void InsertWorkingModes(AppCPtr_t const & papp, uint16_t cl_id);
+	void InsertWorkingModes(AppCPtr_t const & papp);
 
 	/**
 	 * @brief Evaluate an AWM
