@@ -46,7 +46,7 @@
 /** Metrics (class SAMPLE) declaration */
 #define SM_SAMPLE_METRIC(NAME, DESC)\
  {SYNCHRONIZATION_MANAGER_NAMESPACE "." NAME, DESC, \
-	 MetricsCollector::SAMPLE, 0, NULL, 0}
+	 MetricsCollector::SAMPLE, 0, NULL, 0, 0}
 /** Reset the timer used to evaluate metrics */
 #define SM_RESET_TIMING(TIMER) \
 	TIMER.start();
@@ -61,7 +61,7 @@
 #define SM_SAMPLE_METRIC_SYNCSTATE(NAME, DESC)\
  {SYNCHRONIZATION_MANAGER_NAMESPACE "." NAME, DESC, MetricsCollector::SAMPLE, \
 	 bbque::app::ApplicationStatusIF::SYNC_STATE_COUNT, \
-	 bbque::app::ApplicationStatusIF::syncStateStr, 0}
+	 bbque::app::ApplicationStatusIF::syncStateStr, 0, 0}
 /** Acquire a new completion time sample for SyncState Metrics*/
 #define SM_GET_TIMING_SYNCSTATE(METRICS, INDEX, TIMER, STATE) \
 	mc.AddSample(METRICS[INDEX].mh, TIMER.getElapsedTimeMs(), STATE);

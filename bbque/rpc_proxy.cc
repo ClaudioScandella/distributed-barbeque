@@ -40,7 +40,7 @@
 /** Metrics (class SAMPLE) declaration */
 #define RP_SAMPLE_METRIC(NAME, DESC)\
  {RPC_CHANNEL_NAMESPACE ".prx." NAME, DESC, \
-	 MetricsCollector::SAMPLE, 0, NULL, 0}
+	 MetricsCollector::SAMPLE, 0, NULL, 0, 0}
 /** Acquire a new EXC reconfigured sample */
 #define RP_ADD_SAMPLE(METRICS, INDEX, COUNT) \
 	mc.AddSample(METRICS[INDEX].mh, COUNT);

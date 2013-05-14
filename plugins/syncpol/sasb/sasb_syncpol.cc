@@ -33,7 +33,7 @@
 /** Metrics (class SAMPLE) declaration */
 #define SM_SAMPLE_METRIC(NAME, DESC)\
  {SYNCHRONIZATION_MANAGER_NAMESPACE "." SYNCHRONIZATION_POLICY_NAME "." NAME,\
-	 DESC, MetricsCollector::SAMPLE, 0, NULL, 0}
+	 DESC, MetricsCollector::SAMPLE, 0, NULL, 0, 0}
 /** Reset the timer used to evaluate metrics */
 #define SM_START_TIMER(TIMER) \
 	TIMER.start();

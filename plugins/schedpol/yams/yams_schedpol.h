@@ -35,7 +35,7 @@
 /** Metrics (class SAMPLE) declaration */
 #define YAMS_SAMPLE_METRIC(NAME, DESC)\
  {SCHEDULER_MANAGER_NAMESPACE ".yams." NAME, DESC, \
-	 MetricsCollector::SAMPLE, 0, NULL, 0}
+	 MetricsCollector::SAMPLE, 0, NULL, 0, 0}
 /** Reset the timer used to evaluate metrics */
 #define YAMS_RESET_TIMING(TIMER) \
 	TIMER.start();
