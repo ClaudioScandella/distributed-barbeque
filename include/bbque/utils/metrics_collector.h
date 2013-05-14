@@ -20,6 +20,7 @@
 
 #include "bbque/plugins/logger.h"
 #include "bbque/utils/timer.h"
+#include "bbque/utils/statistics.h"
 #include "bbque/cpp11/mutex.h"
 #include "bbque/command_manager.h"
 
@@ -40,6 +41,8 @@ using namespace boost::accumulators;
 using bbque::plugins::LoggerIF;
 using bbque::utils::Timer;
 using bbque::CommandHandler;
+
+namespace bu = bbque::utils;
 
 namespace bbque { namespace utils {
 
@@ -106,6 +109,9 @@ public:
 		uint8_t sm_count;
 		/** The sumbetrics descriptions */
 		const char **sm_desc;
+
+		/** The EMA samples (or 0 for none) **/
+		uint8_t ema_samples;
 
 		/** A metric handler returned by the registration method */
 		MetricHandler_t mh;
@@ -218,8 +224,13 @@ public:
 		pStatMetric_t pstat;
 		std::vector<pStatMetric_t> sm_pstat;
 
+		/** The EMA value */
+		bu::pEma_t pema;
+		std::vector<bu::pEma_t> sm_pema;
+
 		SamplesMetric(const char *name, const char *desc,
-				uint8_t sm_count = 0, const char **sm_desc = NULL);
+				uint8_t sm_count = 0, const char **sm_desc = NULL,
+				uint8_t ema_samples = 0);
 
 		void Reset();
 
@@ -246,8 +257,13 @@ public:
 		pStatMetric_t pstat;
 		std::vector<pStatMetric_t> sm_pstat;
 
+		/** The EMA value */
+		bu::pEma_t pema;
+		std::vector<bu::pEma_t> sm_pema;
+
 		PeriodMetric(const char *name, const char *desc,
-				uint8_t sm_count = 0, const char **sm_desc = NULL);
+				uint8_t sm_count = 0, const char **sm_desc = NULL,
+				uint8_t ema_samples = 0);
 
 		void Reset();
 
@@ -284,7 +300,8 @@ public:
 			MetricClass_t mc,
 			MetricHandler_t & mh,
 			uint8_t sm_count = 0,
-			const char **sm_desc = NULL);
+			const char **sm_desc = NULL,
+			uint8_t ema_samples = 0);
 
 	/**
 	 * @brief Register the sepcified set of metrics

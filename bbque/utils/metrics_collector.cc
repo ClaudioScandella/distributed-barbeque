@@ -63,12 +63,21 @@ void MetricsCollector::ValueMetric::Reset() {
 
 MetricsCollector::SamplesMetric::SamplesMetric(
 		const char *name, const char *desc,
-		uint8_t sm_count, const char **sm_desc) :
+		uint8_t sm_count, const char **sm_desc,
+		uint8_t ema_samples) :
 	Metric(name, desc, SAMPLE, sm_count, sm_desc),
-	sm_pstat(sm_count) {
+	sm_pstat(sm_count),
+	sm_pema(sm_count) {
 	pstat = pStatMetric_t(new statMetric_t);
 	for (uint8_t i = 0; i < sm_pstat.size(); ++i) {
 		sm_pstat[i] = pStatMetric_t(new statMetric_t);
+	}
+	// EMA initialization
+	if (ema_samples == 0)
+		return;
+	pema = pEma_t(new EMA(ema_samples));
+	for (uint8_t i = 0; i < sm_pema.size(); ++i) {
+		sm_pema[i] = pEma_t(new EMA(ema_samples));
 	}
 }
 
@@ -77,16 +86,31 @@ void MetricsCollector::SamplesMetric::Reset() {
 	for (uint8_t i = 0; i < sm_pstat.size(); ++i) {
 		sm_pstat[i] = pStatMetric_t(new statMetric_t);
 	}
+	if (!pema)
+		return;
+	pema = pEma_t(new EMA(pema->getSamples()));
+	for (uint8_t i = 0; i < sm_pema.size(); ++i) {
+		sm_pema[i] = pEma_t(new EMA(sm_pema[i]->getSamples()));
+	}
 }
 
 MetricsCollector::PeriodMetric::PeriodMetric(
 		const char *name, const char *desc,
-		uint8_t sm_count, const char **sm_desc) :
+		uint8_t sm_count, const char **sm_desc,
+		uint8_t ema_samples) :
 	Metric(name, desc, PERIOD, sm_count, sm_desc),
-	sm_period_tmr(sm_count), sm_pstat(sm_count) {
+	sm_period_tmr(sm_count),
+	sm_pstat(sm_count),
+	sm_pema(sm_count) {
 	pstat = pStatMetric_t(new statMetric_t);
 	for (uint8_t i = 0; i < sm_pstat.size(); ++i) {
 		sm_pstat[i] = pStatMetric_t(new statMetric_t);
+	}
+	if (ema_samples == 0)
+		return;
+	pema = pEma_t(new EMA(ema_samples));
+	for (uint8_t i = 0; i < sm_pema.size(); ++i) {
+		sm_pema[i] = pEma_t(new EMA(ema_samples));
 	}
 }
 
@@ -94,6 +118,12 @@ void MetricsCollector::PeriodMetric::Reset() {
 	pstat = pStatMetric_t(new statMetric_t);
 	for (uint8_t i = 0; i < sm_pstat.size(); ++i) {
 		sm_pstat[i] = pStatMetric_t(new statMetric_t);
+	}
+	if (!pema)
+		return;
+	pema = pEma_t(new EMA(pema->getSamples()));
+	for (uint8_t i = 0; i < sm_pema.size(); ++i) {
+		sm_pema[i] = pEma_t(new EMA(sm_pema[i]->getSamples()));
 	}
 }
 
@@ -148,7 +178,7 @@ MetricsCollector::GetMetric(const char *name) {
 MetricsCollector::ExitCode_t
 MetricsCollector::Register(const char *name, const char *desc,
 		MetricClass_t mc, MetricHandler_t & mh,
-		uint8_t count, const char **pdescs) {
+		uint8_t count, const char **pdescs, uint8_t ema_samples) {
 	std::unique_lock<std::mutex> metrics_ul(metrics_mtx);
 	pMetric_t pm = GetMetric(name);
 
@@ -170,10 +200,10 @@ MetricsCollector::Register(const char *name, const char *desc,
 		pm = pMetric_t(new ValueMetric(name, desc, count, pdescs));
 		break;
 	case SAMPLE:
-		pm = pMetric_t(new SamplesMetric(name, desc, count, pdescs));
+		pm = pMetric_t(new SamplesMetric(name, desc, count, pdescs, ema_samples));
 		break;
 	case PERIOD:
-		pm = pMetric_t(new PeriodMetric(name, desc, count, pdescs));
+		pm = pMetric_t(new PeriodMetric(name, desc, count, pdescs, ema_samples));
 		break;
 	default:
 		logger->Error("Metric [%s] registration FAILED "
@@ -201,11 +231,20 @@ MetricsCollector::ExitCode_t
 MetricsCollector::Register(MetricsCollection_t *mc, uint8_t count) {
 	ExitCode_t result;
 	uint8_t idx;
+	uint8_t ema_samples;
 
 	for (idx = 0; idx < count; idx++) {
+
+		// Set the number of EMA samples just for classes which
+		// supports EMA computation.
+		ema_samples = 0;
+		if (mc[idx].mc == SAMPLE || mc[idx].mc == PERIOD)
+			ema_samples = mc[idx].ema_samples;
+
 		result = Register(mc[idx].name, mc[idx].desc,
 				mc[idx].mc, mc[idx].mh,
-				mc[idx].sm_count, mc[idx].sm_desc);
+				mc[idx].sm_count, mc[idx].sm_desc,
+				ema_samples);
 		if (result != OK) {
 			logger->Error("Metrics collection registration FAILED");
 			return result;
@@ -349,6 +388,14 @@ MetricsCollector::AddSample(MetricHandler_t mh,
 	if (m->HasSubmetrics())
 		(*m->sm_pstat[idx])(sample);
 
+	// Update EMA only if it has been initialized
+	if ((m->pema) == NULL)
+		return OK;
+
+	m->pema->update(sample);
+	if (m->HasSubmetrics())
+		m->sm_pema[idx]->update(sample);
+
 	return OK;
 }
 
@@ -395,9 +442,12 @@ MetricsCollector::PeriodSample(MetricHandler_t mh,
 	// Push-in the new timer into the accumulator
 	last_period = m->period_tmr.getElapsedTimeMs();
 	(*m->pstat)(last_period);
+	if (m->pema)
+		m->pema->update(last_period);
 	if (m->HasSubmetrics()) {
 		last_period = m->sm_period_tmr[idx].getElapsedTimeMs();
 		(*m->sm_pstat[idx])(last_period);
+		m->sm_pema[idx]->update(last_period);
 	}
 
 	// Reset timer for next period computation
@@ -536,6 +586,7 @@ MetricsCollector::DumpValue(ValueMetric *m) {
 void
 MetricsCollector::DumpSampleSM(SamplesMetric *m, uint8_t idx,
 		MetricStats<double> &ms) {
+	char strEma[16] = "-";
 	uint8_t i;
 
 	// Setup sub-metric name
@@ -550,6 +601,9 @@ MetricsCollector::DumpSampleSM(SamplesMetric *m, uint8_t idx,
 	} else {
 		ms.min = 0; ms.max = 0; ms.avg = 0; ms.var = 0;
 	}
+	if (m->sm_pema[idx])
+		snprintf(strEma, sizeof(strEma), "%9.3f",
+			m->sm_pema[idx]->get());
 
 	// By default use main metrics description
 	if ((m->sm_desc == NULL) || (m->sm_desc[0] == NULL)) {
@@ -569,14 +623,16 @@ MetricsCollector::DumpSampleSM(SamplesMetric *m, uint8_t idx,
 dump_samples_sm:
 	// Dump sub-metric
 	logger->Notice(
-			" %-20s | %9.3f | %9.3f | %9.3f | %9.3f :   %s",
-			ms.name, ms.min, ms.max, ms.avg, ::sqrt(ms.var), ms.desc);
+			" %-20s | %9.3f | %9.3f | %9.3f | %9.3f | %9s :   %s",
+			ms.name, ms.min, ms.max, ms.avg, ::sqrt(ms.var),
+			strEma, ms.desc);
 
 }
 
 void
 MetricsCollector::DumpSample(SamplesMetric *m) {
 	MetricStats<double> ms;
+	char strEma[16] = "-";
 
 	if (count(*m->pstat)) {
 		ms.min = min(*m->pstat);
@@ -584,9 +640,13 @@ MetricsCollector::DumpSample(SamplesMetric *m) {
 		ms.avg = mean(*m->pstat);
 		ms.var = variance(*m->pstat);
 	}
+	if (m->pema)
+		snprintf(strEma, sizeof(strEma), "%9.3f", m->pema->get());
+
 	logger->Notice(
-		" %-20s | %9.3f | %9.3f | %9.3f | %9.3f : %s",
-		m->name, ms.min, ms.max, ms.avg, ::sqrt(ms.var), m->desc);
+		" %-20s | %9.3f | %9.3f | %9.3f | %9.3f | %9s : %s",
+		m->name, ms.min, ms.max, ms.avg, ::sqrt(ms.var),
+		strEma, m->desc);
 
 	if (!m->HasSubmetrics())
 		return;
@@ -599,6 +659,7 @@ MetricsCollector::DumpSample(SamplesMetric *m) {
 void
 MetricsCollector::DumpPeriodSM(PeriodMetric *m, uint8_t idx,
 		MetricStats<double> &ms) {
+	char strEma[32] = "         -          -";
 	uint8_t i;
 
 	// Setup sub-metric name
@@ -613,6 +674,10 @@ MetricsCollector::DumpPeriodSM(PeriodMetric *m, uint8_t idx,
 	} else {
 		ms.min = 0; ms.max = 0; ms.avg = 0; ms.var = 0;
 	}
+	if (m->sm_pema[idx])
+		snprintf(strEma, sizeof(strEma), "%10.3f %10.3f",
+			m->sm_pema[idx]->get(),
+			1000.0 / m->sm_pema[idx]->get());
 
 	// By default use main metrics description
 	if ((m->sm_desc == NULL) || (m->sm_desc[0] == NULL)) {
@@ -632,18 +697,20 @@ MetricsCollector::DumpPeriodSM(PeriodMetric *m, uint8_t idx,
 dump_period_sm:
 	// Dump sub-metric
 	logger->Notice(
-			" %-20s | %10.3f %10.3f | %10.3f %10.3f | %10.3f %10.3f |    %10.3f %10.3f :   %s",
+			" %-20s | %10.3f %10.3f | %10.3f %10.3f | %10.3f %10.3f | %10.3f %10.3f | %s :   %s",
 			ms.name,
 			ms.min, 1000.0/ms.min,
 			ms.max, 1000.0/ms.max,
 			ms.avg, 1000.0/ms.avg,
 			::sqrt(ms.var), 1000.0/::sqrt(ms.var),
+			strEma,
 			ms.desc);
 }
 
 void
 MetricsCollector::DumpPeriod(PeriodMetric *m) {
 	MetricStats<double> ms;
+	char strEma[32] = "         -          -";
 
 	if (count(*m->pstat)) {
 		ms.min = min(*m->pstat);
@@ -651,13 +718,19 @@ MetricsCollector::DumpPeriod(PeriodMetric *m) {
 		ms.avg = mean(*m->pstat);
 		ms.var = variance(*m->pstat);
 	}
+	if (m->pema)
+		snprintf(strEma, sizeof(strEma), "%10.3f %10.3f",
+			m->pema->get(),
+			1000.0 / m->pema->get());
+
 	logger->Notice(
-		" %-20s | %10.3f %10.3f | %10.3f %10.3f | %10.3f %10.3f |    %10.3f %10.3f : %s",
+		" %-20s | %10.3f %10.3f | %10.3f %10.3f | %10.3f %10.3f | %10.3f %10.3f | %s :   %s",
 		m->name,
 		ms.min, 1000.0/ms.min,
 		ms.max, 1000.0/ms.max,
 		ms.avg, 1000.0/ms.avg,
 		::sqrt(ms.var), 1000.0/::sqrt(ms.var),
+		strEma,
 		m->desc);
 
 	if (!m->HasSubmetrics())
@@ -679,14 +752,14 @@ MetricsCollector::DumpPeriod(PeriodMetric *m) {
 "----------------------+-----------+-----------+-----------+----------------------"
 
 #define METRICS_SAMPLES_HEADER \
-"  Metric              |  Min      |  Max      |  Avg      |  StdDev   |  Description"
+"  Metric              |  Min      |  Max      |  Avg      |  StdDev   | EMA       |  Description"
 #define METRICS_SAMPLES_SEPARATOR \
-"----------------------+-----------+-----------+-----------+-----------+----------------------"
+"----------------------+-----------+-----------+-----------+-----------+-----------+----------------------"
 
 #define METRICS_PERIOD_HEADER \
-"  Metric              |  Min  [ms]       [Hz] |  Max  [ms]       [Hz] |  Avg  [ms]       [Hz] |  StdDev  [ms]       [Hz] |  Description"
+"  Metric              |  Min  [ms]       [Hz] |  Max  [ms]       [Hz] |  Avg  [ms]       [Hz] |  SDev [ms]       [Hz] |  EMA  [ms]       [Hz] |  Description"
 #define METRICS_PERIOD_SEPARATOR \
-"----------------------+-----------------------+-----------------------+-----------------------+--------------------------+----------------------"
+"----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+----------------------"
 
 void
 MetricsCollector::DumpMetrics() {
