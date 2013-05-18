@@ -358,7 +358,7 @@ void YamsSchedPol::InsertWorkingModes(AppCPtr_t const & papp) {
 		for (awm_it = awms->begin(); awm_it != awms->end(); ++awm_it) {
 			AwmPtr_t const & pawm(*awm_it);
 			SchedEntityPtr_t pschd(new SchedEntity_t(papp, pawm, bd_id, metrics));
-#ifdef BBQUE_SP_YAMS_PARALLEL
+#ifdef CONFIG_BBQUE_SP_YAMS_PARALLEL
 			awm_thds.push_back(
 					std::thread(&YamsSchedPol::EvalWorkingMode, this, pschd)
 			);
@@ -368,7 +368,7 @@ void YamsSchedPol::InsertWorkingModes(AppCPtr_t const & papp) {
 		}
 	}
 
-#ifdef BBQUE_SP_YAMS_PARALLEL
+#ifdef CONFIG_BBQUE_SP_YAMS_PARALLEL
 	for_each(awm_thds.begin(), awm_thds.end(), mem_fn(&std::thread::join));
 	awm_thds.clear();
 #endif
