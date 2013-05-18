@@ -94,17 +94,6 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 
 		// Query resource availability
 		rsrc_avl = sv->ResourceAvailable(rsrc_bind, vtok, evl_ent.papp);
-		if (rsrc_avl < pusage->GetAmount()) {
-			logger->Debug("%s: {%s} R:%" PRIu64 " A:%" PRIu64 "",
-					evl_ent.StrId(), rsrc_path->ToString().c_str(),
-					pusage->GetAmount(), rsrc_avl);
-			// No availability => discourage resource allocation
-			ctrib = 0.0;
-			if ((rsrc_avl == 0) &&
-				(rsrc_path->Type() == ResourceIdentifier::PROC_ELEMENT))
-				return SC_RSRC_NO_PE;
-			return SC_RSRC_UNAVL;
-		}
 
 		// Total amount of resource
 		rsrc_tot = sv->ResourceTotal(pusage->GetBindingList());

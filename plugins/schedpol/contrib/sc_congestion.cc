@@ -106,7 +106,13 @@ SCCongestion::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		// If there are no free resources the index contribute is equal to 0
 		if (rl.free < pusage->GetAmount()) {
 			ctrib = 0;
-			return SC_SUCCESS;
+			logger->Debug("%s: {%s} U:%" PRIu64 " A:%" PRIu64,
+					evl_ent.StrId(), rsrc_path->ToString().c_str(),
+					rl.free, pusage->GetAmount());
+			if ((rl.free == 0) &&
+				(rsrc_path->Type() == ResourceIdentifier::PROC_ELEMENT))
+				return SC_RSRC_NO_PE;
+			return SC_RSRC_UNAVL;
 		}
 
 		// Set the last parameters for the index computation
