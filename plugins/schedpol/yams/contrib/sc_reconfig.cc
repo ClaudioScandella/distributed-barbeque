@@ -65,7 +65,6 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	UsagesMap_t::const_iterator usage_it;
 	float reconf_cost  = 0.0;
 	uint8_t to_migrate = 0;
-	uint64_t rsrc_avl  = 0.0;
 	uint64_t rsrc_tot;
 	ResourceBitset r_mask;
 
@@ -84,20 +83,16 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		return SC_SUCCESS;
 	}
 
-	// Resource usages of the current entity (AWM + binding domain)
-	for_each_sched_resource_usage(evl_ent, usage_it) {
+	// Resource requested by the AWM (from the recipe)
+	for_each_recp_resource_usage(evl_ent, usage_it) {
 		ResourcePathPtr_t const & r_path(usage_it->first);
 		UsagePtr_t const & pusage(usage_it->second);
-		ResourcePtrList_t & rsrc_bind(pusage->GetBindingList());
-
-		// Query resource availability
-		rsrc_avl = sv->ResourceAvailable(rsrc_bind, vtok, evl_ent.papp);
 
 		// Total amount of resource
-		rsrc_tot = sv->ResourceTotal(pusage->GetBindingList());
-		logger->Debug("%s: {%s} R:%" PRIu64 " A:%" PRIu64 " T:%" PRIu64 "",
+		rsrc_tot = sv->ResourceTotal(r_path);
+		logger->Debug("%s: {%s} R:%" PRIu64 " T:%" PRIu64 "",
 				evl_ent.StrId(), r_path->ToString().c_str(),
-				pusage->GetAmount(), rsrc_avl, rsrc_tot);
+				pusage->GetAmount(), rsrc_tot);
 
 		// Reconfiguration cost
 		reconf_cost += ((float) pusage->GetAmount() / (float) rsrc_tot);
