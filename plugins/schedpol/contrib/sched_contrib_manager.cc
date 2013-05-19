@@ -133,6 +133,12 @@ SchedContribManager::ExitCode_t SchedContribManager::GetIndex(
 		return SC_TYPE_UNKNOWN;
 	}
 
+	// Return zero if weight is null
+	if (weighed && (unlikely(sc_weights_norm[sc_type] == 0))) {
+		sc_value = 0;
+		return OK;
+	}
+
 	// Get the SchedContrib object
 	psc = GetContrib(sc_type);
 	if (!psc) {
