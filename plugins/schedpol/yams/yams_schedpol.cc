@@ -228,15 +228,15 @@ void YamsSchedPol::SchedulePrioQueue(AppPrio_t prio) {
 	uint8_t naps_count = 0;
 	SchedContribPtr_t sc_fair;
 
-	// Reset timer
-	YAMS_RESET_TIMING(yams_tmr);
-
-do_schedule:
-	// Init fairness contribute
+	// Init Fairness contribution
 	sc_fair = scm->GetContrib(SchedContribManager::FAIRNESS);
 	assert(sc_fair != nullptr);
 	sc_fair->Init(&prio);
 
+	// Reset timer
+	YAMS_RESET_TIMING(yams_tmr);
+
+do_schedule:
 	// Order schedule entities by aggregate metrics
 	naps_count = OrderSchedEntities(prio);
 	YAMS_GET_TIMING(coll_metrics, YAMS_ORDERING_TIME, yams_tmr);
