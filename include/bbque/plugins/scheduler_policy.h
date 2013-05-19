@@ -104,6 +104,26 @@ public:
 		inline const char * StrId() const {
 			return str_id;
 		}
+
+		/**
+		 * Return true if the binding domain just set is different from the
+		 * previous one (given the type of resource referenced by the such
+		 * domain)
+		 */
+		inline bool IsMigrating(Resource::Type_t r_type) const {
+			return (papp->CurrentAWM() &&
+					!(papp->CurrentAWM()->BindingSet(r_type).Test(bind_id)));
+		}
+
+		/**
+		 * Return true if this will be the first assignment of AWM (to the
+		 * Application) or if the AWM assigned is different from the
+		 * previous one
+		 */
+		inline bool IsReconfiguring() const {
+			return (!papp->CurrentAWM() ||
+					papp->CurrentAWM()->Id() != pawm->Id());
+		}
 	};
 
 	/**
