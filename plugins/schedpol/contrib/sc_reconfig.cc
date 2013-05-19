@@ -70,8 +70,7 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	ResourceBitset r_mask;
 
 	// Check if a migration would be required, if yes enable the factor
-	if (evl_ent.papp->CurrentAWM() &&
-		!(evl_ent.papp->CurrentAWM()->BindingSet(r_type).Test(evl_ent.bind_id))) {
+	if (evl_ent.IsMigrating(r_type)) {
 		to_migrate = 1;
 		r_mask = evl_ent.papp->CurrentAWM()->BindingSet(r_type);
 		logger->Debug("%s: evaluating ""%s"" migration to {%d}",
@@ -79,9 +78,8 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 				uint32_t(log(r_mask.ToULong())/log(2)));
 	}
 
-	// Reconfiguration index = 1 if no AWM change and no migration
-	if (!to_migrate && evl_ent.papp->CurrentAWM() &&
-			evl_ent.papp->CurrentAWM()->Id() == evl_ent.pawm->Id()) {
+	// Reconfiguration Index := 1 if no migration and no AWM change
+	if (!to_migrate && !evl_ent.IsReconfiguring()) {
 		ctrib = 1.0;
 		return SC_SUCCESS;
 	}
