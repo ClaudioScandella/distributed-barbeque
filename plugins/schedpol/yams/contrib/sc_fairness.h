@@ -69,12 +69,17 @@ private:
 	/** Number of applications to schedule */
 	uint16_t num_apps = 0;
 
-	/** Resource availability */
-	uint64_t rsrc_avail[ResourceIdentifier::TYPE_COUNT];
+	/** Number of possible binding domains */
+	uint16_t num_bds;
+
+	/** Resource availabilities */
+	uint64_t r_avail[ResourceIdentifier::TYPE_COUNT];
+
+	/** Lowest BD resource availabilities */
+	uint64_t low_bd_r_avail[ResourceIdentifier::TYPE_COUNT];
 
 	/** Fair partitions */
-	uint64_t fair_parts[ResourceIdentifier::TYPE_COUNT];
-
+	uint64_t fair_pt[ResourceIdentifier::TYPE_COUNT];
 
 	/**
 	 * @brief Compute the congestion contribute
