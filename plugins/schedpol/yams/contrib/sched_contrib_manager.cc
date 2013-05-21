@@ -22,10 +22,13 @@
 #include "bbque/modules_factory.h"
 #include "sched_contrib_manager.h"
 
+// Binding independent
 #include "sc_value.h"
 #include "sc_reconfig.h"
-#include "sc_congestion.h"
 #include "sc_fairness.h"
+// Binding dependent
+#include "sc_congestion.h"
+#include "sc_migration.h"
 // ...:: ADD_SC ::...
 
 namespace po = boost::program_options;
@@ -42,8 +45,9 @@ bool SchedContribManager::config_ready = false;
 char const * SchedContribManager::sc_str[SC_COUNT] = {
 	"awmvalue",
 	"reconfig",
+	"fairness",
 	"congestion",
-	"fairness"
+	"migration"
 	//"power",
 	//"thermal",
 	//"stability",
@@ -51,9 +55,10 @@ char const * SchedContribManager::sc_str[SC_COUNT] = {
 	// ...:: ADD_SC ::...
 };
 
-std::map<SchedContribManager::Type_t, SchedContribPtr_t> SchedContribManager::sc_objs = {};
+std::map<SchedContribManager::Type_t,
+	SchedContribPtr_t> SchedContribManager::sc_objs  = {};
 float SchedContribManager::sc_weights_norm[SC_COUNT] = {0};
-uint16_t SchedContribManager::sc_weights[SC_COUNT] = {0};
+uint16_t SchedContribManager::sc_weights[SC_COUNT]   = {0};
 uint16_t
 	SchedContribManager::sc_cfg_params[SchedContrib::SC_CONFIG_COUNT*Resource::TYPE_COUNT] = {
 	0};
@@ -89,7 +94,6 @@ SchedContribManager::SchedContribManager(
 
 	// Init the map of scheduling contributions required
 	for (int i = 0; i < sc_num; ++i) {
-
 		switch (sc_types[i]) {
 		case VALUE:
 			sc_objs_reqs[VALUE] =
@@ -99,20 +103,23 @@ SchedContribManager::SchedContribManager(
 			sc_objs_reqs[RECONFIG] =
 				SchedContribManager::sc_objs[RECONFIG];
 			break;
+		case FAIRNESS:
+			sc_objs_reqs[FAIRNESS] =
+				SchedContribManager::sc_objs[FAIRNESS];
+			break;
 		case CONGESTION:
 			sc_objs_reqs[CONGESTION] =
 				SchedContribManager::sc_objs[CONGESTION];
 			break;
-		case FAIRNESS:
-			sc_objs_reqs[FAIRNESS] =
-				SchedContribManager::sc_objs[FAIRNESS];
+		case MIGRATION:
+			sc_objs_reqs[MIGRATION] =
+				SchedContribManager::sc_objs[MIGRATION];
 			break;
 		default:
 			logger->Error("Scheduling contribution unknown: %d", sc_types[i]);
 		}
 	}
 }
-
 
 SchedContribManager::~SchedContribManager() {
 	sc_objs.clear();
@@ -266,6 +273,8 @@ void SchedContribManager::AllocateContribs() {
 			new SCCongestion(sc_str[CONGESTION], binding_domain, sc_cfg_params));
 	sc_objs[FAIRNESS] = SchedContribPtr_t(
 			new SCFairness(sc_str[FAIRNESS], binding_domain, sc_cfg_params));
+	sc_objs[MIGRATION] = SchedContribPtr_t(
+			new SCMigration(sc_str[MIGRATION], binding_domain, sc_cfg_params));
 	// ...:: ADD_SC ::...
 }
 

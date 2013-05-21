@@ -58,8 +58,9 @@ public:
 	enum Type_t {
 		VALUE = 0,
 		RECONFIG,
-		CONGESTION,
 		FAIRNESS,
+		CONGESTION,
+		MIGRATION,
 		//POWER,
 		//THERMAL,
 		//STABILITY,
