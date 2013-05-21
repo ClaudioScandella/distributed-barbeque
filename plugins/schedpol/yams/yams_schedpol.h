@@ -49,7 +49,10 @@
 
 /* Number of scheduling contributions used for the scheduling metrics
  * computation */
-#define YAMS_SC_COUNT 	4
+
+#define YAMS_AWM_SC_COUNT 3
+#define YAMS_BD_SC_COUNT  2
+#define YAMS_SC_COUNT (YAMS_AWM_SC_COUNT + YAMS_BD_SC_COUNT)
 
 using bbque::res::RViewToken_t;
 using bbque::utils::Timer;
