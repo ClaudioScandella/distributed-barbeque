@@ -10,6 +10,7 @@ set (SCHED_CONTRIB_SRC sc_value ${SCHED_CONTRIB_SRC})
 set (SCHED_CONTRIB_SRC sc_reconfig ${SCHED_CONTRIB_SRC})
 set (SCHED_CONTRIB_SRC sc_congestion ${SCHED_CONTRIB_SRC})
 set (SCHED_CONTRIB_SRC sc_fairness ${SCHED_CONTRIB_SRC})
+set (SCHED_CONTRIB_SRC sc_migration ${SCHED_CONTRIB_SRC})
 
 # Add as library
 add_library(bbque_sched_contribs STATIC ${SCHED_CONTRIB_SRC})

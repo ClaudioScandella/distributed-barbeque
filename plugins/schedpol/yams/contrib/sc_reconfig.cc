@@ -16,7 +16,6 @@
  */
 
 #include "sc_reconfig.h"
-#include "bbque/res/binder.h"
 
 namespace po = boost::program_options;
 
@@ -28,22 +27,6 @@ SCReconfig::SCReconfig(
 		std::string const & b_domain,
 		uint16_t cfg_params[]):
 	SchedContrib(_name, b_domain, cfg_params) {
-	char conf_str[40];
-
-	// Configuration parameters
-	po::options_description opts_desc("Reconfiguration contribute params");
-	snprintf(conf_str, 40, SC_CONF_BASE_STR"%s.migfact", name);
-
-	opts_desc.add_options()
-		(conf_str,
-		 po::value<uint16_t>
-		 (&migfact)->default_value(DEFAULT_MIGRATION_FACTOR),
-		 "Migration factor");
-		;
-
-	po::variables_map opts_vm;
-	cm.ParseConfigurationFile(opts_desc, opts_vm);
-	logger->Debug("Application migration cost factor \t= %d", migfact);
 
 	// Type of resource for the binding domain
 	ResourcePath rb(b_domain);
@@ -64,21 +47,10 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		float & ctrib) {
 	UsagesMap_t::const_iterator usage_it;
 	float reconf_cost  = 0.0;
-	uint8_t to_migrate = 0;
 	uint64_t rsrc_tot;
-	ResourceBitset r_mask;
 
-	// Check if a migration would be required, if yes enable the factor
-	if (evl_ent.IsMigrating(r_type)) {
-		to_migrate = 1;
-		r_mask = evl_ent.papp->CurrentAWM()->BindingSet(r_type);
-		logger->Debug("%s: evaluating ""%s"" migration to {%d}",
-				evl_ent.StrId(), ResourceIdentifier::TypeStr[r_type],
-				uint32_t(log(r_mask.ToULong())/log(2)));
-	}
-
-	// Reconfiguration Index := 1 if no migration and no AWM change
-	if (!to_migrate && !evl_ent.IsReconfiguring()) {
+	// No reconfiguration (No AWM change) => Index := 1
+	if (!evl_ent.IsReconfiguring()) {
 		ctrib = 1.0;
 		return SC_SUCCESS;
 	}
@@ -98,12 +70,8 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		reconf_cost += ((float) pusage->GetAmount() / (float) rsrc_tot);
 	}
 
-	// Contribute value
-	ctrib = 1.0 -
-		(1.0 + (float) to_migrate * migfact) /
-		(1.0 + (float) migfact) *
-		((float) reconf_cost / sv->ResourceCountTypes());
-
+	// Contribution value
+	ctrib = 1.0 - ((float) reconf_cost / sv->ResourceCountTypes());
 	return SC_SUCCESS;
 }
 

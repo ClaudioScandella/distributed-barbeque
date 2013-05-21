@@ -47,8 +47,9 @@ binding.domain = sys.cpu
 [SchedPol.Contrib]
 awmvalue.weight      = 20
 reconfig.weight      = 5
-congestion.weight    = 5
 fairness.weight      = 10
+congestion.weight    = 5
+migration.weight     = 5
 
 [SchedPol.Contrib]
 msl.pe        = 75
@@ -57,9 +58,6 @@ msl.mem       = 90
 # Contribution specific parameters
 [SchedPol.Contrib.awmvalue]
 nap.weight    = 60
-
-[SchedPol.Contrib.reconfig]
-migfact       = 5
 
 [SchedPol.Contrib.congestion]
 expbase       = 2
