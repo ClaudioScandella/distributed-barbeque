@@ -38,8 +38,9 @@ namespace bbque { namespace plugins {
 SchedContribManager::Type_t YamsSchedPol::sc_types[] = {
 	SchedContribManager::VALUE,
 	SchedContribManager::RECONFIG,
+	SchedContribManager::FAIRNESS,
 	SchedContribManager::CONGESTION,
-	SchedContribManager::FAIRNESS
+	SchedContribManager::MIGRATION
 };
 
 // Definition of time metrics of the scheduling policy
@@ -61,11 +62,13 @@ YamsSchedPol::coll_mct_metrics[YAMS_SC_COUNT] = {
 	YAMS_SAMPLE_METRIC("awmv.comp",
 			"AWM value computing time [ms]"),
 	YAMS_SAMPLE_METRIC("recf.comp",
-			"Reconfiguration contribute computing time [ms]"),
-	YAMS_SAMPLE_METRIC("cgst.comp",
-			"Congestion contribute computing time [ms]"),
+			"Reconfiguration contribution computing time [ms]"),
 	YAMS_SAMPLE_METRIC("fair.comp",
-			"Fairness contribute computing time [ms]")
+			"Fairness contribution computing time [ms]"),
+	YAMS_SAMPLE_METRIC("cgst.comp",
+			"Congestion contribution computing time [ms]"),
+	YAMS_SAMPLE_METRIC("migr.comp",
+			"Migration contribution computing time [ms]")
 	// ...:: ADD_MCT ::...
 };
 
@@ -177,6 +180,7 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 			bindings.domain.c_str(), bindings.num);
 	logger->Debug("Init: Lowest application prio : %d",
 			sv->ApplicationLowestPriority());
+	logger->Debug("Init: SchedContribs: %d", YAMS_SC_COUNT);
 
 	// Set the view information into the metrics contribute
 	scm->SetViewInfo(sv, vtok);
