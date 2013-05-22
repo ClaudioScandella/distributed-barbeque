@@ -112,6 +112,13 @@ public:
 				snprintf(str_id, 40, "[%s] {AWM:%2d, B: -}",
 						papp->StrId(), pawm->Id());
 		}
+
+		/** Set the binding ID to track */
+		inline void SetBindingID(ResID_t bid) {
+			bind_id = bid;
+			_BuildStr();
+		}
+
 		/**
 		 * Return true if the binding domain just set is different from the
 		 * previous one (given the type of resource referenced by the such
