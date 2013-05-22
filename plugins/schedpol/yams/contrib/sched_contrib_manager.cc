@@ -191,6 +191,21 @@ void SchedContribManager::SetViewInfo(System * sv, RViewToken_t vtok) {
 	}
 }
 
+void SchedContribManager::SetBindingInfo(
+		SchedulerPolicyIF::BindingInfo_t & _bd_info) {
+	std::map<Type_t, SchedContribPtr_t>::iterator sc_it;
+
+	// Set/update the current binding information
+	bd_info = _bd_info;
+
+	// For each SchedContrib set the resource view information
+	for (sc_it = sc_objs_reqs.begin(); sc_it != sc_objs_reqs.end(); ++sc_it) {
+		SchedContribPtr_t & psc(sc_it->second);
+		psc->SetBindingInfo(bd_info);
+		logger->Debug("SetBindingInfo: updated");
+	}
+}
+
 
 /*****************************************************************************
  *                       Private member functions                            *
