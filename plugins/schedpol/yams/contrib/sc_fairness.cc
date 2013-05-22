@@ -27,9 +27,9 @@ namespace bbque { namespace plugins {
 
 SCFairness::SCFairness(
 		const char * _name,
-		std::string const & b_domain,
+		SchedulerPolicyIF::BindingInfo_t const & _bd_info,
 		uint16_t const cfg_params[]):
-	SchedContrib(_name, b_domain, cfg_params) {
+	SchedContrib(_name, _bd_info, cfg_params) {
 	char conf_str[50];
 
 	// Configuration parameters
@@ -158,14 +158,14 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 				fair_pt[r_path->Type()]);
 		logger->Debug("%s: R{%s} BD{'%s'} fraction: %" PRIu64 "",
 				evl_ent.StrId(), r_path->ToString().c_str(),
-				binding_domain.c_str(), bd_fract);
+				bd_info.domain.c_str(), bd_fract);
 		bd_fract == 0 ? bd_fract = 1 : bd_fract;
 
 		// Binding domain fair partition
 		bd_fair_pt = low_bd_r_avail[r_path->Type()] / bd_fract;
 		logger->Debug("%s: R{%s} BD{'%s'} fair partition: %" PRIu64 "",
 				evl_ent.StrId(), r_path->ToString().c_str(),
-				binding_domain.c_str(), bd_fair_pt);
+				bd_info.domain.c_str(), bd_fair_pt);
 
 		// Set last parameters for index computation
 		penalty = static_cast<float>(penalties_int[r_path->Type()]) / 100.0;

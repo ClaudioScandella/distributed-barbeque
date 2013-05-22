@@ -32,21 +32,16 @@ public:
 	 *
 	 * @see SchedContrib
 	 */
-	SCMigration(const char * _name,
-			std::string const & b_domain,
-			uint16_t const cfg_params[]);
+	SCMigration(
+		const char * _name,
+		SchedulerPolicyIF::BindingInfo_t const & _bd_info,
+		uint16_t const cfg_params[]);
 
 	~SCMigration();
 
 	ExitCode_t Init(void * params);
 
 private:
-
-	/**
-	 * The type of resource according to which evaluate task migration
-	 * (e.g., CPU, GROUP, ACCELERATOR, ...)
-	 */
-	ResourceIdentifier::Type_t r_type;
 
 	/**
 	 * @brief Compute the "Migration" contribution

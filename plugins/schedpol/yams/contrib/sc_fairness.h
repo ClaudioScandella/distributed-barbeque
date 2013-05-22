@@ -37,8 +37,10 @@ public:
 	 *
 	 * @see SchedContrib
 	 */
-	SCFairness(const char * _name, std::string const & b_domain,
-			uint16_t const cfg_params[]);
+	SCFairness(
+		const char * _name,
+		SchedulerPolicyIF::BindingInfo_t const & _bd_info,
+		uint16_t const cfg_params[]);
 
 	~SCFairness();
 
@@ -69,8 +71,8 @@ private:
 	/** Number of applications to schedule */
 	uint16_t num_apps = 0;
 
-	/** Number of possible binding domains */
-	uint16_t num_bds;
+	/** List of managed resource types */
+	std::list<Resource::Type_t> r_types;
 
 	/** Resource availabilities */
 	uint64_t r_avail[ResourceIdentifier::TYPE_COUNT];

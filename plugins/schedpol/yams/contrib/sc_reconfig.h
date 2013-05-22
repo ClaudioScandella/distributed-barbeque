@@ -30,8 +30,10 @@ public:
 	/**
 	 * @brief Constructor
 	 */
-	SCReconfig(const char * _name, std::string const & b_domain,
-			uint16_t cfg_params[]);
+	SCReconfig(
+		const char * _name,
+		SchedulerPolicyIF::BindingInfo_t const & _bd_info,
+		uint16_t cfg_params[]);
 
 	~SCReconfig();
 

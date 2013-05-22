@@ -182,11 +182,13 @@ public:
 	 * @brief Constructor
 	 *
 	 * @param name A name identifying the specific contribute
-	 * @param b_domain The base resource path for the binding step
+	 * @param _bd_info Information about binding domains
 	 * @param cfg_params Global configuration parameters
 	 */
-	SchedContrib(const char * name, std::string const & b_domain,
-			uint16_t const cfg_params[]);
+	SchedContrib(
+		const char * name,
+		SchedulerPolicyIF::BindingInfo_t const & _bd_info,
+		uint16_t const cfg_params[]);
 
 	virtual ~SchedContrib();
 
@@ -258,7 +260,7 @@ protected:
 	  * From a scheduling contribution perspective, this represents the domain
 	  * in which consider the index computation
 	  */
-	 std::string binding_domain;
+	 SchedulerPolicyIF::BindingInfo_t bd_info;
 
 
 	 /** Contribute identifier name */

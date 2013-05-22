@@ -35,8 +35,10 @@ public:
 	 *
 	 * @see SchedContrib
 	 */
-	SCCongestion(const char * _name, std::string const & b_domain,
-			uint16_t const cfg_params[]);
+	SCCongestion(
+		const char * _name,
+		SchedulerPolicyIF::BindingInfo_t const & _bd_info,
+		uint16_t const cfg_params[]);
 
 	~SCCongestion();
 

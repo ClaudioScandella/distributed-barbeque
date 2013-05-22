@@ -38,11 +38,12 @@ uint16_t const SchedContrib::ConfigParamsDefault[SC_CONFIG_COUNT] = {
 };
 
 
-SchedContrib::SchedContrib(const char * _name,
-		std::string const & b_domain,
+SchedContrib::SchedContrib(
+		const char * _name,
+		SchedulerPolicyIF::BindingInfo_t const & _bd_info,
 		uint16_t const params[]):
 	cm(ConfigurationManager::GetInstance()),
-	binding_domain(b_domain) {
+	bd_info(_bd_info) {
 	char logname[16];
 
 	// Identifier name of the contribute
