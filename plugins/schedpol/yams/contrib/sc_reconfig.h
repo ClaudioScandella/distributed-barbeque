@@ -41,11 +41,8 @@ public:
 
 private:
 
-	/**
-	 * The type of resource according to which evaluate task migration
-	 * (e.g., CPU, GROUP, ACCELERATOR, ...)
-	 */
-	ResourceIdentifier::Type_t r_type;
+	/** Keep track of the first valid binding ID */
+	ResID_t first_bd_id;
 
 	/**
 	 * @brief Compute the reconfiguration contribute

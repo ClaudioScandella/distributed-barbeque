@@ -33,8 +33,8 @@ SCReconfig::~SCReconfig() {
 }
 
 SchedContrib::ExitCode_t SCReconfig::Init(void * params) {
-	(void) params;
-
+	first_bd_id = *(static_cast<ResID_t *>(params));
+	logger->Debug("First valid binding ID: %d", first_bd_id);
 	return SC_SUCCESS;
 }
 
@@ -53,10 +53,11 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 
 	// Resource requested by the AWM (from the recipe)
 	for_each_recp_resource_usage(evl_ent, usage_it) {
-		ResourcePathPtr_t const & r_path(usage_it->first);
 		UsagePtr_t const & pusage(usage_it->second);
 
-		// Total amount of resource
+		// Total amount of resource (in a valid binding domain)
+		ResourcePathPtr_t r_path(new ResourcePath(*usage_it->first.get()));
+		r_path->ReplaceID(bd_info.type, R_ID_ANY, first_bd_id);
 		rsrc_tot = sv->ResourceTotal(r_path);
 		logger->Debug("%s: {%s} R:%" PRIu64 " T:%" PRIu64 "",
 				evl_ent.StrId(), r_path->ToString().c_str(),
