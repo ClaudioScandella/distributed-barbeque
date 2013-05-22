@@ -211,6 +211,15 @@ public:
 	}
 
 	/**
+	 *@brief Set the binding information
+	 *
+	 * @param _bd_info A binding information data structure
+	 */
+	inline void SetBindingInfo(SchedulerPolicyIF::BindingInfo_t & _bd_info) {
+		bd_info = _bd_info;
+	}
+
+	/**
 	 * @brief Perform setup operations
 	 *
 	 * A metrics contribute can implement this method to place some work that

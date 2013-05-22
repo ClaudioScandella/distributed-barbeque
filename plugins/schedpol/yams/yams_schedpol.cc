@@ -184,6 +184,7 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 
 	// Set the view information into the metrics contribute
 	scm->SetViewInfo(sv, vtok);
+	scm->SetBindingInfo(bindings);
 
 	return YAMS_SUCCESS;
 }

@@ -144,6 +144,13 @@ public:
 	 */
 	void SetViewInfo(System * sv, RViewToken_t vtok);
 
+	/**
+	 *@brief Set the binding information
+	 *
+	 * @param _bd_info A binding information data structure
+	 */
+	void SetBindingInfo(SchedulerPolicyIF::BindingInfo_t & _bd_info);
+
 private:
 
 	/** System logger instance */
