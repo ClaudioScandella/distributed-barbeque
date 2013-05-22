@@ -180,25 +180,9 @@ private:
 	/** Set of scheduling contributions type used for the metrics */
 	static SchedContribManager::Type_t sc_types[YAMS_SC_COUNT];
 
-	/**
-	 * @brief ClustersInfo
-	 *
-	 * Keep track of the runtime status of the clusters
-	 */
-	struct BindingSchedInfo {
-		/** The base resource path for the binding step */
-		std::string domain;
-		/** The type of resource to bind (e.g. CPU, GROUP,...) */
-		Resource::Type_t type;
-		/** Number of binding domains on the platform	 */
-		uint16_t num;
-		/** Resource pointer descriptor list */
-		ResourcePtrList_t rsrcs;
-		/** The IDs of all the possible bindings */
-		std::vector<ResID_t> ids;
-		/** Keep track the bindings without available processing elements */
-		ResourceBitset full;
-	} bindings;
+
+	/** Collect information on binding domains */
+	BindingInfo_t bindings;
 
 	/** Mutex */
 	std::mutex sched_mtx;
