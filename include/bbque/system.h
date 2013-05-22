@@ -224,6 +224,13 @@ public:
 	}
 
 	/**
+	 * @see ResourceAccounterStatusIF::ResourceTypesList()
+	 */
+	inline std::list<Resource::Type_t> ResourceTypesList() const {
+		return ra.GetTypesList();
+	}
+
+	/**
 	 * @see ResourceAccounterStatusIF::GetResource()
 	 */
 	inline ResourcePtr_t GetResource(std::string const & path) const {

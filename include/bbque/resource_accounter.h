@@ -180,6 +180,13 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
+	inline std::list<Resource::Type_t> GetTypesList() const {
+		return r_types;
+	}
+
+	/**
+	 * @see ResourceAccounterStatusIF
+	 */
 	ResourcePtr_t GetResource(std::string const & path) const;
 
 	ResourcePtr_t GetResource(ResourcePathPtr_t ppath) const;
@@ -495,6 +502,9 @@ private:
 
 	/** Counter for the total number of registered resources */
 	std::map<Resource::Type_t, uint16_t> r_count;
+
+	/** List that keeps track of the managed resource types */
+	std::list<Resource::Type_t> r_types;
 
 	/** Keep track of the max length between resources path string */
 	uint8_t path_max_len;

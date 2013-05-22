@@ -294,6 +294,13 @@ public:
 	virtual uint16_t CountTypes() const = 0;
 
 	/**
+	 * @brief The list of (only) managed resource types
+	 *
+	 * @return A list filled of resource types
+	 */
+	virtual std::list<Resource::Type_t> GetTypesList() const = 0;
+
+	/**
 	 * @brief Get a resource descriptor
 	 * @param path Resource path
 	 * @return A shared pointer to the resource descriptor

@@ -454,8 +454,10 @@ ResourceAccounter::ExitCode_t ResourceAccounter::RegisterResource(
 
 	// Track the number of resources per type
 	type = ppath->Type();
-	if (r_count.find(type) == r_count.end())
+	if (r_count.find(type) == r_count.end()) {
 		r_count.insert(std::pair<Resource::Type_t, uint16_t>(type, 1));
+		r_types.push_back(type);
+	}
 	else
 		++r_count[type];
 
