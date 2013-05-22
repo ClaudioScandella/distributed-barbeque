@@ -140,6 +140,7 @@ YamsSchedPol::~YamsSchedPol() {
 YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 	ResourceAccounterStatusIF::ExitCode_t ra_result;
 	char token_path[30];
+	SchedContribPtr_t sc_recf;
 
 	// Set the counter
 	++vtok_count;
@@ -185,6 +186,12 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 	// Set the view information into the metrics contribute
 	scm->SetViewInfo(sv, vtok);
 	scm->SetBindingInfo(bindings);
+
+	// Init Reconfig contribution
+	ResID_t first_id = *(bindings.ids.begin());
+	sc_recf = scm->GetContrib(SchedContribManager::RECONFIG);
+	assert(sc_recf != nullptr);
+	sc_recf->Init(&first_id);
 
 	return YAMS_SUCCESS;
 }
