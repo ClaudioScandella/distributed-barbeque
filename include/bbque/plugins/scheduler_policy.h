@@ -82,7 +82,7 @@ public:
 		 * @param _pawm AWM to evaluate
 		 * @param _bid Cluster ID for resource binding
 		 */
-		EvalEntity_t(AppCPtr_t _papp, AwmPtr_t _pawm, uint8_t _bid):
+		EvalEntity_t(AppCPtr_t _papp, AwmPtr_t _pawm, ResID_t _bid):
 			papp(_papp),
 			pawm(_pawm),
 			bind_id(_bid) {
@@ -144,7 +144,7 @@ public:
 		 * @param _metr The related scheduling metrics (also "application
 		 * value")
 		 */
-		SchedEntity_t(AppCPtr_t _papp, AwmPtr_t _pawm, uint8_t _bid,
+		SchedEntity_t(AppCPtr_t _papp, AwmPtr_t _pawm, ResID_t _bid,
 				float _metr):
 			EvalEntity_t(_papp, _pawm, _bid),
 			metrics(_metr) {
