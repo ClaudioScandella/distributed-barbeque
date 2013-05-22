@@ -123,7 +123,7 @@ YamsSchedPol::YamsSchedPol():
 			ResourceIdentifier::TypeStr[bindings.type]);
 
 	// Instantiate the SchedContribManager
-	scm = new SchedContribManager(sc_types, bindings.domain, YAMS_SC_COUNT);
+	scm = new SchedContribManager(sc_types, bindings, YAMS_SC_COUNT);
 
 	// Resource view counter
 	vtok_count = 0;

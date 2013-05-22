@@ -23,13 +23,9 @@ namespace bbque { namespace plugins {
 
 SCMigration::SCMigration(
 		const char * _name,
-		std::string const & b_domain,
+		SchedulerPolicyIF::BindingInfo_t const & _bd_info,
 		uint16_t const cfg_params[]):
-	SchedContrib(_name, b_domain, cfg_params) {
-
-	// Type of resource for the binding domain
-	ResourcePath rb(b_domain);
-	r_type = rb.Type();
+	SchedContrib(_name, _bd_info, cfg_params) {
 }
 
 SCMigration::~SCMigration() {
@@ -48,11 +44,11 @@ SCMigration::_Compute(
 	ResourceBitset r_mask;
 
 	// Migraton => index := 0
-	if (evl_ent.IsMigrating(r_type)) {
-		r_mask = evl_ent.papp->CurrentAWM()->BindingSet(r_type);
+	if (evl_ent.IsMigrating(bd_info.type)) {
+		r_mask = evl_ent.papp->CurrentAWM()->BindingSet(bd_info.type);
 		logger->Debug("%s: is migrating to %s{%s}",
 				evl_ent.StrId(),
-				ResourceIdentifier::TypeStr[r_type],
+				ResourceIdentifier::TypeStr[bd_info.type],
 				r_mask.ToStringCG().c_str());
 		ctrib = 0.0;
 		return SC_SUCCESS;

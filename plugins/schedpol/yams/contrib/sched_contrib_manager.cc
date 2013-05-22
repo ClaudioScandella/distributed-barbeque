@@ -70,10 +70,10 @@ uint16_t
 
 SchedContribManager::SchedContribManager(
 		Type_t const * sc_types,
-		std::string const & b_domain,
+		SchedulerPolicyIF::BindingInfo_t const & _bd_info,
 		uint8_t sc_num):
 	cm(ConfigurationManager::GetInstance()),
-	binding_domain(b_domain) {
+	bd_info(_bd_info) {
 
 	// Get a logger
 	plugins::LoggerIF::Configuration conf(MODULE_NAMESPACE);
@@ -266,15 +266,15 @@ void SchedContribManager::NormalizeWeights() {
 void SchedContribManager::AllocateContribs() {
 	// Init the map of scheduling contribution objects
 	sc_objs[VALUE] = SchedContribPtr_t(
-			new SCValue(sc_str[VALUE], binding_domain, sc_cfg_params));
+			new SCValue(sc_str[VALUE], bd_info, sc_cfg_params));
 	sc_objs[RECONFIG] = SchedContribPtr_t(
-			new SCReconfig(sc_str[RECONFIG], binding_domain, sc_cfg_params));
+			new SCReconfig(sc_str[RECONFIG], bd_info, sc_cfg_params));
 	sc_objs[CONGESTION] = SchedContribPtr_t(
-			new SCCongestion(sc_str[CONGESTION], binding_domain, sc_cfg_params));
+			new SCCongestion(sc_str[CONGESTION], bd_info, sc_cfg_params));
 	sc_objs[FAIRNESS] = SchedContribPtr_t(
-			new SCFairness(sc_str[FAIRNESS], binding_domain, sc_cfg_params));
+			new SCFairness(sc_str[FAIRNESS], bd_info, sc_cfg_params));
 	sc_objs[MIGRATION] = SchedContribPtr_t(
-			new SCMigration(sc_str[MIGRATION], binding_domain, sc_cfg_params));
+			new SCMigration(sc_str[MIGRATION], bd_info, sc_cfg_params));
 	// ...:: ADD_SC ::...
 }
 
