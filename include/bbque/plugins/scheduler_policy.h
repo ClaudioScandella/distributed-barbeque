@@ -86,9 +86,7 @@ public:
 			papp(_papp),
 			pawm(_pawm),
 			bind_id(_bid) {
-			// Log string
-			snprintf(str_id, 40, "[%s] {AWM:%02d, B:%02d}",
-					papp->StrId(), pawm->Id(), bind_id);
+				_BuildStr();
 		};
 
 		/** Application/EXC to schedule */
@@ -105,6 +103,15 @@ public:
 			return str_id;
 		}
 
+		/** Build the identifier string */
+		inline void _BuildStr() {
+			if ((bind_id != R_ID_NONE) && (bind_id != R_ID_ANY))
+				snprintf(str_id, 40, "[%s] {AWM:%2d, B:%2d}",
+						papp->StrId(), pawm->Id(), bind_id);
+			else
+				snprintf(str_id, 40, "[%s] {AWM:%2d, B: -}",
+						papp->StrId(), pawm->Id());
+		}
 		/**
 		 * Return true if the binding domain just set is different from the
 		 * previous one (given the type of resource referenced by the such
