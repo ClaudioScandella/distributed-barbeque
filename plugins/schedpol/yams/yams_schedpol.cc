@@ -331,10 +331,8 @@ bool YamsSchedPol::SelectSchedEntities(uint8_t naps_count) {
 	for (; se_it != end_se; ++se_it) {
 		SchedEntityPtr_t & pschd(*se_it);
 
-		// Skip this AWM,Binding if the bound domain is full or if the
-		// Application/EXC must be skipped
-		if (bindings.full.Test(pschd->bind_id) ||
-				(CheckSkipConditions(pschd->papp)))
+		// Skip if the Application/EXC has been already scheduled
+		if (CheckSkipConditions(pschd->papp))
 			continue;
 
 		// Send the schedule request
