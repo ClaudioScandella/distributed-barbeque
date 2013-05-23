@@ -47,7 +47,7 @@ binding.domain = sys.cpu
 [SchedPol.Contrib]
 awmvalue.weight      = 20
 reconfig.weight      = 5
-fairness.weight      = 10
+fairness.weight      = 18
 congestion.weight    = 5
 migration.weight     = 5
 
