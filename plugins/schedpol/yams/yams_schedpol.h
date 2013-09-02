@@ -225,6 +225,22 @@ private:
 	YamsSchedPol::ExitCode_t Init();
 
 	/**
+	 * @brief Initialize a new resource state view
+	 */
+	YamsSchedPol::ExitCode_t InitResourceStateView();
+
+	/**
+	 * @brief Initialize the base information needed for the resource binding
+	 */
+	YamsSchedPol::ExitCode_t InitBindingInfo();
+
+	/**
+	 * @brief Initalize scheduling contributions managers (one per binding
+	 * domain)
+	 */
+	YamsSchedPol::ExitCode_t InitSchedContribManagers();
+
+	/**
 	 * @brief Schedule applications from a priority queue
 	 *
 	 * @param prio The priority applications queue to schedule
