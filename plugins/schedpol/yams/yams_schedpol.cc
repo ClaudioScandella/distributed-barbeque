@@ -138,15 +138,33 @@ YamsSchedPol::~YamsSchedPol() {
 }
 
 YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
+	ExitCode_t result;
+
+	// Init a new resource state view
+	result = InitResourceStateView();
+	if (result != YAMS_SUCCESS)
+		return result;
+
+	// Init resource bindings information
+	InitBindingInfo();
+
+	// Initialize information for scheduling contributions
+	InitSchedContribManagers();
+
+	return YAMS_SUCCESS;
+}
+
+YamsSchedPol::ExitCode_t YamsSchedPol::InitResourceStateView() {
 	ResourceAccounterStatusIF::ExitCode_t ra_result;
 	char token_path[30];
-	SchedContribPtr_t sc_recf;
 
-	// Set the counter
+	// Set the resource state view token counter
 	++vtok_count;
 
 	// Build a string path for the resource state view
 	snprintf(token_path, 30, "%s%d", MODULE_NAMESPACE, vtok_count);
+	logger->Debug("Init: Lowest application prio : %d",
+			sv->ApplicationLowestPriority());
 
 	// Get a resource state view
 	logger->Debug("Init: Requiring state view token for %s", token_path);
@@ -157,7 +175,10 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 	}
 	logger->Debug("Init: Resources state view token = %d", vtok);
 
-	// Get the base information for the resource bindings
+	return YAMS_SUCCESS;
+}
+
+YamsSchedPol::ExitCode_t YamsSchedPol::InitBindingInfo() {
 	bindings.rsrcs = sv->GetResources(bindings.domain);
 	bindings.num   = bindings.rsrcs.size();
 	bindings.ids.resize(bindings.num);
@@ -179,17 +200,25 @@ YamsSchedPol::ExitCode_t YamsSchedPol::Init() {
 	}
 	logger->Debug("Init: R{%s}: %d possible bindings",
 			bindings.domain.c_str(), bindings.num);
-	logger->Debug("Init: Lowest application prio : %d",
-			sv->ApplicationLowestPriority());
-	logger->Debug("Init: SchedContribs: %d", YAMS_SC_COUNT);
+
+	return YAMS_SUCCESS;
+}
+
+YamsSchedPol::ExitCode_t YamsSchedPol::InitSchedContribManagers() {
+	SchedContribPtr_t sc_recf;
 
 	// Set the view information into the metrics contribute
 	scm->SetViewInfo(sv, vtok);
 	scm->SetBindingInfo(bindings);
+	logger->Debug("Init: SchedContribs: %d", YAMS_SC_COUNT);
 
 	// Init Reconfig contribution
 	ResID_t first_id = *(bindings.ids.begin());
 	sc_recf = scm->GetContrib(SchedContribManager::RECONFIG);
+	if (sc_recf == nullptr) {
+		logger->Error("Init: SchedContrib 'RECONFIG' missing");
+		return YAMS_ERROR;
+	}
 	assert(sc_recf != nullptr);
 	sc_recf->Init(&first_id);
 
