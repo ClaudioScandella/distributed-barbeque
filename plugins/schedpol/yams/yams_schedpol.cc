@@ -247,8 +247,8 @@ YamsSchedPol::Schedule(System & sys_if, RViewToken_t & rav) {
 	// Set the new resource state view token
 	rav = vtok;
 
-	// Cleaning
-	entities.clear();
+	// Reset scheduling entities and resource bindings status
+	Clear();
 	bindings.full.Reset();
 
 	// Report table
@@ -257,13 +257,15 @@ YamsSchedPol::Schedule(System & sys_if, RViewToken_t & rav) {
 
 error:
 	logger->Error("Schedule: an error occurred. Interrupted.");
-	entities.clear();
 	bindings.full.Reset();
-
+	Clear();
 	ra.PutView(vtok);
 	return SCHED_ERROR;
 }
 
+inline void YamsSchedPol::Clear() {
+	entities.clear();
+}
 void YamsSchedPol::SchedulePrioQueue(AppPrio_t prio) {
 	bool sched_incomplete;
 	uint8_t naps_count = 0;
