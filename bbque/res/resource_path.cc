@@ -25,6 +25,7 @@
 namespace bbque { namespace res {
 
 ResourcePath::ResourcePath(std::string const & r_path):
+		global_type(ResourceIdentifier::UNDEFINED),
 		level_count(0) {
 	std::string head, tail;
 	std::string r_name;
