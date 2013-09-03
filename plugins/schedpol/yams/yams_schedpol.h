@@ -212,6 +212,11 @@ private:
 	YamsSchedPol();
 
 	/**
+	 * @brief Clear information on scheduling entitties and bindings
+	 */
+	void Clear();
+
+	/**
 	 * @brief Perform initialization operation
 	 *
 	 * In particular the method gets a token for accessing a clean resource
