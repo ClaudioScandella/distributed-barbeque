@@ -431,17 +431,29 @@ uint64_t ResourceAccounter::QueryStatus(
 
 uint64_t ResourceAccounter::GetUsageAmount(
 		UsagesMapPtr_t const & pum,
-		ResourceIdentifier::Type_t r_type) const {
+		ResourceIdentifier::Type_t r_type,
+		ResourceIdentifier::Type_t r_scope_type) const {
 	UsagesMap_t::iterator uit;
 	ResourcePathPtr_t ppath;
 	UsagePtr_t pusage;
 	uint64_t usage = 0;
 
-	uit = pum->begin();
-	for ( ; uit != pum->end(); ++uit) {
+	if (pum == nullptr) {
+		logger->Fatal("GetUsageAmount: empty map");
+		return 0;
+	}
+
+	for (uit = pum->begin(); uit != pum->end(); ++uit) {
 		ppath  = (*uit).first;
 		pusage = (*uit).second;
 
+		logger->Debug("GetUsageAmount: type:{%-3s} scope:{%-3s}",
+			ResourceIdentifier::TypeStr[r_type],
+			ResourceIdentifier::TypeStr[r_scope_type]);
+
+		if ((r_scope_type != Resource::UNDEFINED)
+			&& (ppath->GetID(r_scope_type) == R_ID_NONE))
+			continue;
 		// Get the amount used
 		if (ppath->Type() != r_type)
 			continue;

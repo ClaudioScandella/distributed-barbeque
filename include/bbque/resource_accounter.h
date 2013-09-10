@@ -183,7 +183,8 @@ public:
 	 * @return The amount of resource usage
 	 */
 	uint64_t GetUsageAmount(UsagesMapPtr_t const & pum,
-			ResourceIdentifier::Type_t r_type) const;
+			ResourceIdentifier::Type_t r_type,
+			ResourceIdentifier::Type_t r_scope_type = Resource::UNDEFINED) const;
 
 	/**
 	 * @brief Show the system resources status
