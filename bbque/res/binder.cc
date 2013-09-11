@@ -104,6 +104,30 @@ ResourceBitset ResourceBinder::GetMask(
 }
 
 ResourceBitset ResourceBinder::GetMask(
+		UsagesMap_t const & um,
+		ResourceIdentifier::Type_t r_type) {
+	UsagesMap_t::const_iterator um_it;
+	ResourceBitset r_mask;
+	ResID_t r_id;
+
+	// Sanity check
+	if (r_type >= ResourceIdentifier::TYPE_COUNT)
+		return r_mask;
+
+	// Scan the resource usages map
+	for (um_it = um.begin(); um_it != um.end(); ++um_it) {
+		ResourcePathPtr_t const & ppath(um_it->first);
+		// Get the ID of the resource type in the path
+		r_id = ppath->GetID(r_type);
+		if ((r_id == R_ID_NONE) || (r_id == R_ID_ANY))
+			continue;
+		// Set the ID-th bit in the mask
+		r_mask.Set(r_id);
+	}
+	return r_mask;
+}
+
+ResourceBitset ResourceBinder::GetMask(
 		UsagesMapPtr_t pum,
 		ResourceIdentifier::Type_t r_type,
 		ResourceIdentifier::Type_t r_scope_type,

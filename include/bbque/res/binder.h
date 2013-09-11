@@ -79,6 +79,9 @@ public:
 	static ResourceBitset GetMask(
 			UsagesMapPtr_t pum, ResourceIdentifier::Type_t r_type);
 
+	static ResourceBitset GetMask(
+			UsagesMap_t const & um, ResourceIdentifier::Type_t r_type);
+
 	/**
 	 * @brief Retrieve IDs of a type of resource under a scope
 	 *
