@@ -23,6 +23,7 @@
 
 #include "bbque/config.h"
 #include "bbque/application_manager_conf.h"
+#include "bbque/command_manager.h"
 #include "bbque/utils/deferrable.h"
 #include "bbque/plugins/logger.h"
 #include "bbque/plugins/recipe_loader.h"
@@ -59,7 +60,7 @@ class PlatformProxy;
  * to know which is lowest priority level (maximum integer value) managed by
  * Barbeque RTRM.
  */
-class ApplicationManager: public ApplicationManagerConfIF {
+class ApplicationManager: public ApplicationManagerConfIF, public CommandHandler {
 
 public:
 
@@ -345,6 +346,9 @@ private:
 	/** The recipe loader module used to parse recipes */
 	RecipeLoaderIF * rloader;
 
+	/**  Command manager instance */
+	CommandManager & cm;
+
 	/** Lowest application priority value (maximum integer) */
 	app::AppPrio_t lowest_prio;
 
@@ -489,6 +493,9 @@ private:
 
 	/** The constructor */
 	ApplicationManager();
+
+	/** Commands handler */
+	int CommandsCb(int argc, char *argv[]);
 
 	/** Return a pointer to a loaded recipe */
 	RecipeLoaderIF::ExitCode_t LoadRecipe(std::string const & _recipe_name,

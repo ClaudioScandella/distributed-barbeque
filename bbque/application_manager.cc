@@ -30,6 +30,8 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 
+#define MODULE_NAMESPACE "bq.am"
+
 #define RP_DIV1 "=========================================================================="
 #define RP_DIV2 "|------------------+------------+-------------+-------------|-------------|"
 #define RP_HEAD "|      APP:EXC     | STATE/SYNC |     CURRENT |        NEXT | AWM_NAME    |"
@@ -60,6 +62,7 @@ ApplicationManager & ApplicationManager::GetInstance() {
 
 
 ApplicationManager::ApplicationManager() :
+	cm(CommandManager::GetInstance()),
 	pp(PlatformProxy::GetInstance()),
 	cleanup_dfr("am.cln", std::bind(&ApplicationManager::Cleanup, this)) {
 
@@ -75,10 +78,33 @@ ApplicationManager::ApplicationManager() :
 		assert(rloader);
 	}
 
+	// Register commands
+#define CMD_WIPE_RECP ".wipe"
+	cm.RegisterCommand(
+			MODULE_NAMESPACE CMD_WIPE_RECP,
+			static_cast<CommandHandler*>(this),
+			"Wipe out all the recipes");
+
 	// Debug logging
 	logger->Debug("Priority levels: %d, (O = highest)",
 			BBQUE_APP_PRIO_LEVELS);
 
+}
+
+int ApplicationManager::CommandsCb(int argc, char *argv[]) {
+	uint8_t cmd_offset = ::strlen(MODULE_NAMESPACE) + 1;
+
+	logger->Debug("Processing command [%s]", argv[0] + cmd_offset);
+
+	switch (argv[0][cmd_offset]) {
+	case 'w':
+		logger->Debug("Commands: # recipes = %d", recipes.size());
+		logger->Info("Commands: wiping out all the recipes...");
+		recipes.clear();
+		logger->Debug("Commands: # recipes = %d", recipes.size());
+	}
+
+	return 0;
 }
 
 
