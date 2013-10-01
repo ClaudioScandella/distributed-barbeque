@@ -87,7 +87,7 @@ ShieldBuild() {
 
 			rotate="${rotate#?}${rotate%???}"
 			printf "[%5d]... %.1s\b\b\b\b\b\b\b\b\b\b\b\b" $P  $rotate;
-			echo $P > $BBQUE_CGMOUNT/bbque/host/tasks
+			echo $P > $BBQUE_CGMOUNT/bbque/host/cgroup.procs
 	done
 	echo
 }
@@ -102,7 +102,7 @@ ShieldRelease() {
 
 			rotate="${rotate#?}${rotate%???}"
 			printf "[%5d]... %.1s\b\b\b\b\b\b\b\b\b\b\b\b" $P  $rotate;
-			echo $P > $BBQUE_CGMOUNT/tasks
+			echo $P > $BBQUE_CGMOUNT/cgroup.procs
 	done
 }
 
