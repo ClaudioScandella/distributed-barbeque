@@ -100,8 +100,8 @@ config BBQUE_SP_YAMS_PARALLEL
 comment "Synchronization Policies Configuration"
 
 config BBQUE_YM_SYNC_FORCE
-  bool "Synchronization point forcing"
-  default n
+  bool "Synchronization point forcing (EXPERIMENTAL)"
+  default y
   ---help---
   Enable the Sync Point forcing via Synchronization Manager and RTLib.
 
@@ -117,6 +117,12 @@ config BBQUE_YM_SYNC_FORCE
   Specifically, it should be explicitly enabled just when a resource
   contention treat could be expected on a specific target platform or
   programming paradigm.
+
+  NOTE: disabling Sync Point Enforcing is corrently not completely safe and
+        could lead to a reconfiguration miss for some applications.
+        Use this feature at your own risk.
+
+  If unsure, select Y
 
 config BBQUE_YP_SASB_ASYNC
   bool "SASB asynchronous calls"
