@@ -191,12 +191,18 @@ void SchedContribManager::SetViewInfo(System * sv, RViewToken_t vtok) {
 	}
 }
 
+std::string const & SchedContribManager::GetBindingDomain() {
+	return bd_info.domain;
+}
+
+
 void SchedContribManager::SetBindingInfo(
 		SchedulerPolicyIF::BindingInfo_t & _bd_info) {
 	std::map<Type_t, SchedContribPtr_t>::iterator sc_it;
 
 	// Set/update the current binding information
 	bd_info = _bd_info;
+	logger->Debug("SetBindingInfo: domain = %s", bd_info.domain.c_str());
 
 	// For each SchedContrib set the resource view information
 	for (sc_it = sc_objs_reqs.begin(); sc_it != sc_objs_reqs.end(); ++sc_it) {
