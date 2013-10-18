@@ -206,6 +206,15 @@ void SchedContribManager::SetBindingInfo(
 	}
 }
 
+void SchedContribManager::SetWeights(uint16_t new_weights[SC_COUNT]) {
+		logger->Info("SetWeights: changing scheduling contributions "
+				"weights...");
+		for (int i = 0; i < SC_COUNT; ++i) {
+			sc_weights[i] = new_weights[i];
+			logger->Debug("SetWeights: [%11s] = %d", sc_str[i], sc_weights[i]);
+		}
+		NormalizeWeights();
+}
 
 /*****************************************************************************
  *                       Private member functions                            *

@@ -151,6 +151,21 @@ public:
 	 */
 	void SetBindingInfo(SchedulerPolicyIF::BindingInfo_t & _bd_info);
 
+	/**
+	 * @brief Update the set of scheduling contributions weights with new
+	 * values
+	 */
+	void SetWeights(uint16_t new_weights[SC_COUNT]);
+
+	/**
+	 * @brief Get the array with the weights of the scheduling contributions
+	 *
+	 * @return Array of uin16_t values
+	 */
+	inline uint16_t * const GetWeights() const {
+		return sc_weights;
+	}
+
 private:
 
 	/** System logger instance */
