@@ -77,8 +77,11 @@ private:
 	/** Resource availabilities */
 	uint64_t r_avail[ResourceIdentifier::TYPE_COUNT];
 
-	/** Lowest BD resource availabilities */
-	uint64_t low_bd_r_avail[ResourceIdentifier::TYPE_COUNT];
+	/** Lowest BD resources availability */
+	uint64_t min_bd_r_avail[ResourceIdentifier::TYPE_COUNT];
+
+	/** Highest BD resources availability */
+	uint64_t max_bd_r_avail[ResourceIdentifier::TYPE_COUNT];
 
 	/** Fair partitions */
 	uint64_t fair_pt[ResourceIdentifier::TYPE_COUNT];
