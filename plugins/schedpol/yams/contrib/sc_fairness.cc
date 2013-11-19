@@ -99,13 +99,12 @@ SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 		snprintf(r_path_str, 20, "%s.%s",
 				bd_info.domain.c_str(),
 				ResourceIdentifier::TypeStr[*type_it]);
-		r_avail[*type_it] = sv->ResourceAvailable(r_path_str, vtok);
-		fair_pt[*type_it] = r_avail[*type_it] / num_apps;
-		logger->Debug("R{%s} A: %" PRIu64 " fair partition: %" PRIu64,
-				r_path_str, r_avail[*type_it], fair_pt[*type_it]);
 
 		// Look for the binding domain with the lowest availability
-		low_bd_r_avail[*type_it] = r_avail[*type_it];
+		r_avail[*type_it] = sv->ResourceAvailable(r_path_str, vtok);
+		min_bd_r_avail[*type_it] = r_avail[*type_it];
+		max_bd_r_avail[*type_it] = 0;
+
 		ids_it = bd_info.ids.begin();
 		for (; ids_it != bd_info.ids.end(); ++ids_it) {
 			ResID_t bd_id = *ids_it;
@@ -116,16 +115,30 @@ SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 			bd_r_avail = sv->ResourceAvailable(r_path_str, vtok);
 			logger->Debug("R{%s} availability: % " PRIu64,
 					r_path_str, bd_r_avail);
-			if (bd_r_avail >= low_bd_r_avail[*type_it])
-				continue;
 
-			// Update (?) the lowest availability value
-			low_bd_r_avail[*type_it] = bd_r_avail;
-			logger->Debug("R{%s} lowest availability of %s\t: %" PRIu64,
-					r_path_str,
-					ResourceIdentifier::TypeStr[*type_it],
-					low_bd_r_avail[*type_it]);
+			// Update (?) the min availability value
+			if (bd_r_avail < min_bd_r_avail[*type_it]) {
+				min_bd_r_avail[*type_it] = bd_r_avail;
+				logger->Debug("R{%s} min availability of %s\t: %" PRIu64,
+						r_path_str,
+						ResourceIdentifier::TypeStr[*type_it],
+						min_bd_r_avail[*type_it]);
+			}
+
+			// Update (?) the max availability value
+			if (bd_r_avail > max_bd_r_avail[*type_it]) {
+				max_bd_r_avail[*type_it] = bd_r_avail;
+				logger->Debug("R{%s} max availability of %s\t: %" PRIu64,
+						r_path_str,
+						ResourceIdentifier::TypeStr[*type_it],
+						max_bd_r_avail[*type_it]);
+			}
 		}
+
+		// System-wide fair partition
+		fair_pt[*type_it] = max_bd_r_avail[*type_it] / num_apps;
+		logger->Debug("R{%s} maxAV: %" PRIu64 " fair partition: %" PRIu64,
+				r_path_str, max_bd_r_avail[*type_it], fair_pt[*type_it]);
 	}
 
 	return SC_SUCCESS;
@@ -152,17 +165,23 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		ResourcePathPtr_t const & r_path(usage_it->first);
 
 		// Binding domain fraction (resource type related)
-		bd_fract = ceil(
-				static_cast<double>(
-				    low_bd_r_avail[r_path->Type()]) /
+		logger->Debug("%s: R{%s} BD{'%s'} max: %" PRIu64 " fair: %d",
+				evl_ent.StrId(), r_path->ToString().c_str(),
+				bd_info.domain.c_str(),
+				max_bd_r_avail[r_path->Type()],
 				fair_pt[r_path->Type()]);
-		logger->Debug("%s: R{%s} BD{'%s'} fraction: %" PRIu64 "",
+		bd_fract = ceil(
+				max_bd_r_avail[r_path->Type()] /
+				fair_pt[r_path->Type()]);
+		logger->Debug("%s: R{%s} BD{'%s'} fraction: %d",
 				evl_ent.StrId(), r_path->ToString().c_str(),
 				bd_info.domain.c_str(), bd_fract);
 		bd_fract == 0 ? bd_fract = 1 : bd_fract;
 
 		// Binding domain fair partition
-		bd_fair_pt = low_bd_r_avail[r_path->Type()] / bd_fract;
+		bd_fair_pt = max_bd_r_avail[r_path->Type()] / bd_fract;
+		if (bd_info.num > 1)
+			bd_fair_pt = std::max(min_bd_r_avail[r_path->Type()], bd_fair_pt);
 		logger->Debug("%s: R{%s} BD{'%s'} fair partition: %" PRIu64 "",
 				evl_ent.StrId(), r_path->ToString().c_str(),
 				bd_info.domain.c_str(), bd_fair_pt);
@@ -170,8 +189,7 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		// Set last parameters for index computation
 		penalty = static_cast<float>(penalties_int[r_path->Type()]) / 100.0;
 		SetIndexParameters(
-				bd_fair_pt,
-				low_bd_r_avail[r_path->Type()],
+				bd_fair_pt, max_bd_r_avail[r_path->Type()],
 				penalty, params);
 
 		// Compute the region index
