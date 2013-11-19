@@ -113,13 +113,13 @@ SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 					bd_id,
 					ResourceIdentifier::TypeStr[*type_it]);
 			bd_r_avail = sv->ResourceAvailable(r_path_str, vtok);
-			logger->Debug("R{%s} availability: % " PRIu64,
+			logger->Debug("R{%s} availability : % " PRIu64,
 					r_path_str, bd_r_avail);
 
 			// Update (?) the min availability value
 			if (bd_r_avail < min_bd_r_avail[*type_it]) {
 				min_bd_r_avail[*type_it] = bd_r_avail;
-				logger->Debug("R{%s} min availability of %s\t: %" PRIu64,
+				logger->Debug("R{%s} minAV of %s\t: %" PRIu64,
 						r_path_str,
 						ResourceIdentifier::TypeStr[*type_it],
 						min_bd_r_avail[*type_it]);
@@ -128,7 +128,7 @@ SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 			// Update (?) the max availability value
 			if (bd_r_avail > max_bd_r_avail[*type_it]) {
 				max_bd_r_avail[*type_it] = bd_r_avail;
-				logger->Debug("R{%s} max availability of %s\t: %" PRIu64,
+				logger->Debug("R{%s} maxAV of %s\t: %" PRIu64,
 						r_path_str,
 						ResourceIdentifier::TypeStr[*type_it],
 						max_bd_r_avail[*type_it]);
@@ -165,7 +165,7 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		ResourcePathPtr_t const & r_path(usage_it->first);
 
 		// Binding domain fraction (resource type related)
-		logger->Debug("%s: R{%s} BD{'%s'} max: %" PRIu64 " fair: %d",
+		logger->Debug("%s: R{%s} BD{'%s'} maxAV: %" PRIu64 " fair: %d",
 				evl_ent.StrId(), r_path->ToString().c_str(),
 				bd_info.domain.c_str(),
 				max_bd_r_avail[r_path->Type()],
@@ -193,6 +193,9 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 				penalty, params);
 
 		// Compute the region index
+		logger->Debug("%s: R{%s} requested = %" PRIu64,
+				evl_ent.StrId(), r_path->ToString().c_str(),
+				pusage->GetAmount());
 		ru_index = CLEIndex(0, bd_fair_pt, pusage->GetAmount(), params);
 		logger->Debug("%s: R{%s} fairness index = %.4f",
 				evl_ent.StrId(), r_path->ToString().c_str(), ru_index);
