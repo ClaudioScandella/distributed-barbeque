@@ -562,7 +562,8 @@ void ResourceAccounter::ReleaseResources(AppSPtr_t papp, RViewToken_t vtok) {
 
 // NOTE this method should be called while holding the sync session mutex
 void ResourceAccounter::_ReleaseResources(AppSPtr_t papp, RViewToken_t vtok) {
-	std::unique_lock<std::recursive_mutex> status_ul(status_mtx, std::defer_lock);
+	std::unique_lock<std::recursive_mutex> status_ul(
+			status_mtx, std::defer_lock);
 
 	// Just the system view could be contended
 	if (vtok == 0)
@@ -751,12 +752,10 @@ RViewToken_t ResourceAccounter::SetView(RViewToken_t vtok) {
 		return sys_view_token;
 	}
 
-	// Save the old view token
-	old_sys_vtok = sys_view_token;
-
-	// Update the system state view token and the map of Apps/EXCs resource
-	// usages
-	sys_view_token = vtok;
+	// Save the old view token, update the system state view token and the map
+	// of Apps/EXCs resource usages
+	old_sys_vtok    = sys_view_token;
+	sys_view_token  = vtok;
 	sys_usages_view = us_view_it->second;
 
 	// Put the old view
@@ -766,7 +765,6 @@ RViewToken_t ResourceAccounter::SetView(RViewToken_t vtok) {
 			sys_view_token);
 	logger->Debug("SetView: %d resource set and %d usages per view currently managed",
 			rsrc_per_views.size(), usages_per_views.erase(vtok));
-
 	return sys_view_token;
 }
 
@@ -907,7 +905,8 @@ ResourceAccounter::IncBookingCounts(
 		UsagesMapPtr_t const & rsrc_usages,
 		AppSPtr_t const & papp,
 		RViewToken_t vtok) {
-	std::unique_lock<std::recursive_mutex> status_ul(status_mtx, std::defer_lock);
+	std::unique_lock<std::recursive_mutex> status_ul(
+			status_mtx, std::defer_lock);
 	ResourceAccounter::ExitCode_t result;
 
 	// Just the system view could be contended
