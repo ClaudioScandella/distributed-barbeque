@@ -81,34 +81,20 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	inline uint64_t Total(std::string const & path) const {
-		ResourcePtrList_t matchings = GetResources(path);
-		return QueryStatus(matchings, RA_TOTAL, 0);
-	}
+	uint64_t Total(std::string const & path) const;
 
-	inline uint64_t Total(ResourcePtrList_t & rsrc_list) const {
-		if (rsrc_list.empty())
-			return 0;
-		return QueryStatus(rsrc_list, RA_TOTAL);
-	}
+	uint64_t Total(ResourcePtrList_t & rsrc_list) const;
 
 	uint64_t Total(ResourcePathPtr_t ppath,	PathClass_t rpc = EXACT) const;
 
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	inline uint64_t Available(std::string const & path,
-			RViewToken_t vtok = 0, AppSPtr_t papp = AppSPtr_t()) const {
-		ResourcePtrList_t matchings = GetResources(path);
-		return QueryStatus(matchings, RA_AVAIL, vtok, papp);
-	}
+	uint64_t Available(std::string const & path,
+			RViewToken_t vtok = 0, AppSPtr_t papp = AppSPtr_t()) const;
 
-	inline uint64_t Available(ResourcePtrList_t & rsrc_list,
-			RViewToken_t vtok = 0, AppSPtr_t papp = AppSPtr_t()) const {
-		if (rsrc_list.empty())
-			return 0;
-		return QueryStatus(rsrc_list, RA_AVAIL, vtok, papp);
-	}
+	uint64_t Available(ResourcePtrList_t & rsrc_list,
+			RViewToken_t vtok = 0, AppSPtr_t papp = AppSPtr_t()) const;
 
 	uint64_t Available(ResourcePathPtr_t ppath, PathClass_t rpc = EXACT,
 			RViewToken_t vtok = 0, AppSPtr_t papp = AppSPtr_t()) const;
@@ -116,18 +102,9 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	inline uint64_t Used(std::string const & path,
-			RViewToken_t vtok = 0) const {
-		ResourcePtrList_t matchings = GetResources(path);
-		return QueryStatus(matchings, RA_USED, vtok);
-	}
+	uint64_t Used(std::string const & path, RViewToken_t vtok = 0) const;
 
-	inline uint64_t Used(ResourcePtrList_t & rsrc_list,
-			RViewToken_t vtok = 0) const {
-		if (rsrc_list.empty())
-			return 0;
-		return QueryStatus(rsrc_list, RA_USED, vtok);
-	}
+	uint64_t Used(ResourcePtrList_t & rsrc_list, RViewToken_t vtok = 0) const;
 
 	uint64_t Used(ResourcePathPtr_t ppath, PathClass_t rpc = EXACT,
 			RViewToken_t vtok = 0) const;
@@ -135,40 +112,18 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	inline uint64_t Unreserved(std::string const & path) const {
-		ResourcePtrList_t matchings = GetResources(path);
-		return QueryStatus(matchings, RA_UNRESERVED, 0);
-	}
+	uint64_t Unreserved(std::string const & path) const;
 
-	inline uint64_t Unreserved(ResourcePtrList_t & rsrc_list) const {
-		if (rsrc_list.empty())
-			return 0;
-		return QueryStatus(rsrc_list, RA_UNRESERVED);
-	}
+	uint64_t Unreserved(ResourcePtrList_t & rsrc_list) const;
 
-	inline uint64_t Unreserved(ResourcePathPtr_t ppath) const {
-		ResourcePtrList_t matchings = GetList(ppath, MIXED);
-		return QueryStatus(matchings, RA_UNRESERVED, 0);
-	}
+	uint64_t Unreserved(ResourcePathPtr_t ppath) const;
 
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	inline uint16_t Count(ResourcePathPtr_t ppath) const {
-		ResourcePtrList_t matchings = GetResources(ppath);
-		return matchings.size();
-	}
+	uint16_t Count(ResourcePathPtr_t ppath) const;
 
-	/**
-	 * @see ResourceAccounterStatusIF
-	 */
-	inline uint16_t CountPerType(ResourceIdentifier::Type_t type) const {
-		std::map<Resource::Type_t, uint16_t>::const_iterator it;
-		it =  r_count.find(type);
-		if (it == r_count.end())
-			return 0;
-		return it->second;
-	}
+	uint16_t CountPerType(ResourceIdentifier::Type_t type) const;
 
 	/**
 	 * @see ResourceAccounterStatusIF
@@ -392,16 +347,7 @@ public:
 	 *
 	 * @return The token of the system view
 	 */
-	inline void SetScheduledView(RViewToken_t svt) {
-		RViewToken_t old_svt = sch_view_token;
-		// First updated the new scheduled view
-		sch_view_token = svt;
-		// ... than we can keep time to release the previous one
-		if (old_svt != sys_view_token)
-			// but this is to be done only if the previous view was not the
-			// current system view
-			PutView(old_svt);
-	}
+	void SetScheduledView(RViewToken_t svt);
 
 	/**
 	 * @brief Start a synchronized mode session

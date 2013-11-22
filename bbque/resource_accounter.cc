@@ -274,14 +274,43 @@ ResourcePathPtr_t const ResourceAccounter::GetPath(
  *                   QUERY METHODS                                      *
  ************************************************************************/
 
-uint64_t ResourceAccounter::Total(
+inline uint64_t ResourceAccounter::Total(
+		std::string const & path) const {
+	ResourcePtrList_t matchings = GetResources(path);
+	return QueryStatus(matchings, RA_TOTAL, 0);
+}
+
+inline uint64_t ResourceAccounter::Total(
+		ResourcePtrList_t & rsrc_list) const {
+	if (rsrc_list.empty())
+		return 0;
+	return QueryStatus(rsrc_list, RA_TOTAL);
+}
+
+inline uint64_t ResourceAccounter::Total(
 		ResourcePathPtr_t ppath,
 		PathClass_t rpc) const {
 	ResourcePtrList_t matchings = GetList(ppath, rpc);
 	return QueryStatus(matchings, RA_TOTAL, 0);
 }
 
-uint64_t ResourceAccounter::Used(
+
+inline uint64_t ResourceAccounter::Used(
+		std::string const & path,
+		RViewToken_t vtok) const {
+	ResourcePtrList_t matchings = GetResources(path);
+	return QueryStatus(matchings, RA_USED, vtok);
+}
+
+inline uint64_t ResourceAccounter::Used(
+		ResourcePtrList_t & rsrc_list,
+		RViewToken_t vtok) const {
+	if (rsrc_list.empty())
+		return 0;
+	return QueryStatus(rsrc_list, RA_USED, vtok);
+}
+
+inline uint64_t ResourceAccounter::Used(
 		ResourcePathPtr_t ppath,
 		PathClass_t rpc,
 		RViewToken_t vtok) const {
@@ -289,7 +318,25 @@ uint64_t ResourceAccounter::Used(
 	return QueryStatus(matchings, RA_USED, vtok);
 }
 
-uint64_t ResourceAccounter::Available(
+
+inline uint64_t ResourceAccounter::Available(
+		std::string const & path,
+		RViewToken_t vtok,
+		AppSPtr_t papp) const {
+	ResourcePtrList_t matchings = GetResources(path);
+	return QueryStatus(matchings, RA_AVAIL, vtok, papp);
+}
+
+inline uint64_t ResourceAccounter::Available(
+		ResourcePtrList_t & rsrc_list,
+		RViewToken_t vtok,
+		AppSPtr_t papp) const {
+	if (rsrc_list.empty())
+		return 0;
+	return QueryStatus(rsrc_list, RA_AVAIL, vtok, papp);
+}
+
+inline uint64_t ResourceAccounter::Available(
 		ResourcePathPtr_t ppath,
 		PathClass_t rpc,
 		RViewToken_t vtok,
@@ -297,6 +344,42 @@ uint64_t ResourceAccounter::Available(
 	ResourcePtrList_t matchings = GetList(ppath, rpc);
 	return QueryStatus(matchings, RA_AVAIL, vtok, papp);
 }
+
+inline uint64_t ResourceAccounter::Unreserved(
+		std::string const & path) const {
+	ResourcePtrList_t matchings = GetResources(path);
+	return QueryStatus(matchings, RA_UNRESERVED, 0);
+}
+
+inline uint64_t ResourceAccounter::Unreserved(
+		ResourcePtrList_t & rsrc_list) const {
+	if (rsrc_list.empty())
+		return 0;
+	return QueryStatus(rsrc_list, RA_UNRESERVED);
+}
+
+inline uint64_t ResourceAccounter::Unreserved(
+		ResourcePathPtr_t ppath) const {
+	ResourcePtrList_t matchings = GetList(ppath, MIXED);
+	return QueryStatus(matchings, RA_UNRESERVED, 0);
+}
+
+
+inline uint16_t ResourceAccounter::Count(
+		ResourcePathPtr_t ppath) const {
+	ResourcePtrList_t matchings = GetResources(ppath);
+	return matchings.size();
+}
+
+inline uint16_t ResourceAccounter::CountPerType(
+		ResourceIdentifier::Type_t type) const {
+	std::map<Resource::Type_t, uint16_t>::const_iterator it;
+	it =  r_count.find(type);
+	if (it == r_count.end())
+		return 0;
+	return it->second;
+}
+
 
 ResourcePtrList_t ResourceAccounter::GetList(
 		ResourcePathPtr_t ppath,
@@ -766,6 +849,16 @@ RViewToken_t ResourceAccounter::SetView(RViewToken_t vtok) {
 	logger->Debug("SetView: %d resource set and %d usages per view currently managed",
 			rsrc_per_views.size(), usages_per_views.erase(vtok));
 	return sys_view_token;
+}
+
+void ResourceAccounter::SetScheduledView(RViewToken_t svt) {
+	// Update the new scheduled view
+	RViewToken_t old_svt = sch_view_token;
+	sch_view_token = svt;
+
+	// Release the old scheduled view if it is not the current system view
+	if (old_svt != sys_view_token)
+		PutView(old_svt);
 }
 
 
