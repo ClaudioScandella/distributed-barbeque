@@ -799,7 +799,8 @@ AppPtr_t ApplicationManager::CreateEXC(
 		std::string const & _rcp_name,
 		RTLIB_ProgrammingLanguage_t _lang,
 		app::AppPrio_t _prio,
-		bool _weak_load) {
+		bool _weak_load,
+		bool container) {
 	std::unique_lock<std::mutex> lang_ul(lang_mtx[_lang], std::defer_lock);
 	std::unique_lock<std::mutex> prio_ul(prio_mtx[_prio], std::defer_lock);
 	std::unique_lock<std::recursive_mutex> uids_ul(uids_mtx, std::defer_lock);
@@ -812,7 +813,7 @@ AppPtr_t ApplicationManager::CreateEXC(
 	AppPtr_t papp;
 
 	// Create a new descriptor
-	papp = AppPtr_t(new ba::Application(_name, _pid, _exc_id, _lang));
+	papp = AppPtr_t(new ba::Application(_name, _pid, _exc_id, _lang, container));
 	papp->SetPriority(_prio);
 
 	logger->Info("Create EXC [%s], prio[%d]",

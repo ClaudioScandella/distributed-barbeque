@@ -80,7 +80,8 @@ public:
 			std::string const & recipe,
 			RTLIB_ProgrammingLanguage_t lang = RTLIB_LANG_CPP,
 			AppPrio_t prio = BBQUE_APP_PRIO_LEVELS-1,
-			bool weak_load = false);
+			bool weak_load = false,
+			bool container = false);
 
 	/**
 	 * @see ApplicationManagerConfIF

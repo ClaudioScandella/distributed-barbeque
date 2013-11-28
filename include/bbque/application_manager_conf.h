@@ -51,6 +51,7 @@ public:
 	 * @param recipe The name of the recipe to use for this application
 	 * @param prio Static priority
 	 * @param weak_load If true, the recipe accept a "weak load".
+	 * @param container If true, this is just an "EXC container".
 	 * It means that if a resource is missing, Barbeque can look for a
 	 * substituting resource taken from a higher level in the resource tree.
 	 *
@@ -61,7 +62,8 @@ public:
 			std::string const & recipe,
 			RTLIB_ProgrammingLanguage_t lang,
 			app::AppPrio_t prio,
-			bool weak_load) = 0;
+			bool weak_load,
+			bool container) = 0;
 
 	/**
 	 * @brief Destroy all the EXCs of the specified application
