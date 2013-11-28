@@ -186,7 +186,8 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 		if (!policy->DoSync(papp))
 			continue;
 
-		if (Reshuffling(papp)) {
+		if (Reshuffling(papp) ||
+			papp->IsContainer()) {
 			syncInProgress = OK;
 			continue;
 		}
@@ -319,7 +320,8 @@ SynchronizationManager::Sync_SyncChange(
 		if (!policy->DoSync(papp))
 			continue;
 
-		if (Reshuffling(papp))
+		if (Reshuffling(papp) ||
+			papp->IsContainer())
 			continue;
 
 		logger->Info("STEP 2: syncChange() ===> [%s]", papp->StrId());
@@ -442,7 +444,8 @@ SynchronizationManager::Sync_DoChange(ApplicationStatusIF::SyncState_t syncState
 		if (!policy->DoSync(papp))
 			continue;
 
-		if (Reshuffling(papp))
+		if (Reshuffling(papp) ||
+			papp->IsContainer())
 			continue;
 
 		logger->Info("STEP 3: doChange() ===> [%s]", papp->StrId());
@@ -487,7 +490,8 @@ SynchronizationManager::Sync_PostChange(ApplicationStatusIF::SyncState_t syncSta
 		if (!policy->DoSync(papp))
 			continue;
 
-		if (Reshuffling(papp))
+		if (Reshuffling(papp) ||
+			papp->IsContainer())
 			goto commit;
 
 		logger->Info("STEP 4: postChange() ===> [%s]", papp->StrId());
