@@ -27,6 +27,9 @@
 #include "bbque/resource_accounter.h"
 #include "bbque/cpp11/chrono.h"
 
+#define APPLICATION_MANAGER_NAMESPACE "bq.am"
+#define MODULE_NAMESPACE APPLICATION_MANAGER_NAMESPACE
+
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 
