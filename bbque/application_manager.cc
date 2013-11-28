@@ -25,6 +25,7 @@
 #include "bbque/app/recipe.h"
 #include "bbque/plugins/recipe_loader.h"
 #include "bbque/resource_accounter.h"
+#include "bbque/resource_manager.h"
 #include "bbque/cpp11/chrono.h"
 
 #define APPLICATION_MANAGER_NAMESPACE "bq.am"
@@ -32,8 +33,6 @@
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
-
-#define MODULE_NAMESPACE "bq.am"
 
 #define RP_DIV1 "=========================================================================="
 #define RP_DIV2 "|------------------+------------+-------------+-------------|-------------|"
@@ -81,33 +80,113 @@ ApplicationManager::ApplicationManager() :
 		assert(rloader);
 	}
 
+	// Debug logging
+	logger->Debug("Priority levels: %d, (O = highest)",
+			BBQUE_APP_PRIO_LEVELS);
+
 	// Register commands
-#define CMD_WIPE_RECP ".wipe"
+#define CMD_WIPE_RECP ".recipes_wipe"
 	cm.RegisterCommand(
 			MODULE_NAMESPACE CMD_WIPE_RECP,
 			static_cast<CommandHandler*>(this),
 			"Wipe out all the recipes");
 
-	// Debug logging
-	logger->Debug("Priority levels: %d, (O = highest)",
-			BBQUE_APP_PRIO_LEVELS);
+#define CMD_CONTAINER_ADD ".container_add"
+	cm.RegisterCommand(
+			MODULE_NAMESPACE CMD_CONTAINER_ADD,
+			static_cast<CommandHandler*>(this),
+			"Add a new EXC Container");
+
+#define CMD_CONTAINER_DEL ".container_del"
+	cm.RegisterCommand(MODULE_NAMESPACE CMD_CONTAINER_DEL,
+			static_cast<CommandHandler*>(this),
+			"Remove an existing EXC Container");
 
 }
 
 int ApplicationManager::CommandsCb(int argc, char *argv[]) {
+	ResourceManager &rm(ResourceManager::GetInstance());
 	uint8_t cmd_offset = ::strlen(MODULE_NAMESPACE) + 1;
+	uint32_t pid, prio;
+	AppPtr_t papp;
 
 	logger->Debug("Processing command [%s]", argv[0] + cmd_offset);
 
+	cmd_offset = ::strlen(MODULE_NAMESPACE) + sizeof("recipes_");
 	switch (argv[0][cmd_offset]) {
-	case 'w':
+	case 'w': // Recipes wiping
+		  // recipes_wipe
 		logger->Debug("Commands: # recipes = %d", recipes.size());
 		logger->Info("Commands: wiping out all the recipes...");
 		recipes.clear();
 		logger->Debug("Commands: # recipes = %d", recipes.size());
+		return 0;
 	}
 
-	return 0;
+	cmd_offset = ::strlen(MODULE_NAMESPACE) + sizeof("container_");
+	switch (argv[0][cmd_offset]) {
+	case 'a': // Container add
+		  // container_add <name> <pid> <recipe> <prio>
+		if (strcmp(argv[0], MODULE_NAMESPACE CMD_CONTAINER_ADD))
+			goto exit_cmd_not_found;
+
+		if (argc < 5) {
+			logger->Error("Missing params for [container_add] command");
+			goto exit_cmd_not_found;
+		}
+
+		pid = atoi(argv[2]);
+		prio = atoi(argv[4]);
+
+		logger->Notice("Adding EXC [%s:%d] container, using recipe [%s] @ prio [%d]",
+				argv[1], pid, argv[3], prio);
+		papp = CreateEXC(argv[1], pid, 0, argv[3], RTLIB_LANG_CPP, prio, false, true);
+		if (!papp) {
+			logger->Warn("Container EXC [%s:%d] creation FAILED");
+			break;
+		}
+
+		EnableEXC(papp);
+
+		// Notify the ResourceManager for a new application willing to start
+		logger->Debug("Notifing ResourceManager...");
+		rm.NotifyEvent(ResourceManager::EXC_START);
+
+		return 0;
+
+	case 'd': // Container del
+		  // container_del <pid>
+		if (strcmp(argv[0], MODULE_NAMESPACE CMD_CONTAINER_DEL))
+			goto exit_cmd_not_found;
+
+		if (argc < 2) {
+			logger->Error("Missing params for [container_del] command");
+			goto exit_cmd_not_found;
+		}
+
+		logger->Notice("Removing EXC container...");
+
+		uint32_t pid = atoi(argv[1]);
+		papp = GetApplication(pid, 0);
+		if (!papp) {
+			logger->Warn("Container EXC for PID [%d] not FOUND", pid);
+			break;
+		}
+
+		DisableEXC(papp, true);
+		DestroyEXC(papp);
+
+		// Notify the ResourceManager for a new application willing to start
+		logger->Debug("Notifing ResourceManager...");
+		rm.NotifyEvent(ResourceManager::EXC_STOP);
+
+		return 0;
+	}
+
+exit_cmd_not_found:
+	logger->Error("Command [%s] not suppported by this module", argv[0]);
+	return -1;
+
 }
 
 
