@@ -28,11 +28,13 @@
 #include "bbque/plugins/logger.h"
 #include "bbque/plugins/recipe_loader.h"
 #include "bbque/cpp11/mutex.h"
+#include "bbque/command_manager.h"
 
 using bbque::app::Application;
 using bbque::utils::Deferrable;
 using bbque::plugins::LoggerIF;
 using bbque::plugins::RecipeLoaderIF;
+using bbque::CommandHandler;
 
 namespace bbque {
 
@@ -493,9 +495,6 @@ private:
 	/** The constructor */
 	ApplicationManager();
 
-	/** Commands handler */
-	int CommandsCb(int argc, char *argv[]);
-
 	/** Return a pointer to a loaded recipe */
 	RecipeLoaderIF::ExitCode_t LoadRecipe(std::string const & _recipe_name,
 			RecipePtr_t & _recipe, bool weak_load = false);
@@ -514,7 +513,7 @@ private:
 	 * Remove the specified application from the status maps
 	 */
 	ExitCode_t StatusRemove(AppPtr_t papp);
-	
+
 	/**
 	 * Remove the specified application from the apps maps
 	 */
@@ -590,6 +589,12 @@ private:
 	 * asynchronously
 	 */
 	void Cleanup();
+
+	/**
+	 * @brief The handler for commands defined by this module
+	 */
+	int CommandsCb(int argc, char *argv[]);
+
 };
 
 } // namespace bbque
