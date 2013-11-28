@@ -81,10 +81,12 @@ public:
 	 * @param pid Process ID
 	 * @param exc_id The ID of the Execution Context (assigned from the application)
 	 * @param lang The application language
+	 * @param container If true, this is just an "EXC container".
 	 */
 	Application(std::string const & name,
 			AppPid_t pid, uint8_t exc_id,
-			RTLIB_ProgrammingLanguage_t lang = RTLIB_LANG_CPP);
+			RTLIB_ProgrammingLanguage_t lang = RTLIB_LANG_CPP,
+			bool container = false);
 
 	/**
 	 * @brief Default destructor
@@ -287,6 +289,13 @@ public:
 	/**
 	 * @see ApplicationStatusIF
 	 */
+	bool IsContainer() const {
+		return container;
+	}
+
+	/**
+	 * @see ApplicationStatusIF
+	 */
 	AwmPtr_t const & CurrentAWM();
 
 	/**
@@ -481,6 +490,9 @@ private:
 
 	/** The application string ID */
 	char str_id[16];
+
+	/** True if this is an application container */
+	bool container;
 
 	/** A numeric priority value */
 	AppPrio_t priority = BBQUE_APP_PRIO_LEVELS - 1;

@@ -69,11 +69,13 @@ bool AwmIdLesser(const AwmPtr_t & wm1, const AwmPtr_t & wm2) {
 Application::Application(std::string const & _name,
 		AppPid_t _pid,
 		uint8_t _exc_id,
-		RTLIB_ProgrammingLanguage_t lang):
+		RTLIB_ProgrammingLanguage_t lang,
+		bool container):
 	name(_name),
 	pid(_pid),
 	exc_id(_exc_id),
-	language(lang) {
+	language(lang),
+	container(container) {
 
 	// Init the working modes vector
 	awms.recipe_vect.resize(MAX_NUM_AWM);

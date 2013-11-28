@@ -316,6 +316,12 @@ public:
 	}
 
 	/**
+	 * @brief Check if this is an Application Container
+	 * @return True if this is an application container
+	 */
+	virtual bool IsContainer() const = 0;
+
+	/**
 	 * @brief Get the current working mode
 	 * @return A shared pointer to the current application working mode
 	 */
