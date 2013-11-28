@@ -29,8 +29,6 @@
 #include "bbque/plugins/recipe_loader.h"
 #include "bbque/cpp11/mutex.h"
 
-#define APPLICATION_MANAGER_NAMESPACE "bq.am"
-
 using bbque::app::Application;
 using bbque::utils::Deferrable;
 using bbque::plugins::LoggerIF;
