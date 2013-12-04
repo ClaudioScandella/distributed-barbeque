@@ -91,3 +91,22 @@ install(FILES
 	"${PROJECT_SOURCE_DIR}/tools/development/templates/schedpol_templates.tar.bz2"
 	DESTINATION ${BBQUE_PATH_CMAKE}
 )
+
+#----- Deploy the python scheduler tester
+configure_file (
+	"${PROJECT_SOURCE_DIR}/tools/pysched/modules/barbeque_utils.py.in"
+	"${PROJECT_BINARY_DIR}/tools/pysched/modules/barbeque_utils.py"
+	@ONLY
+)
+install(
+	DIRECTORY ${PROJECT_SOURCE_DIR}/tools/pysched/
+	DESTINATION ${BBQUE_PATH_BBQ}/pysched/
+	USE_SOURCE_PERMISSIONS
+	FILES_MATCHING
+	PATTERN "*.py"
+	PATTERN "*.conf"
+)
+install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/pysched/modules/barbeque_utils.py"
+	DESTINATION ${BBQUE_PATH_BBQ}/pysched/modules/
+)
+
