@@ -1,0 +1,184 @@
+#!/usr/bin/python
+
+import logging
+import os
+import subprocess
+import sys
+import recipe_utils as rec
+
+# sys dependant paths
+bosp_path = "@CONFIG_BOSP_RUNTIME_PATH@/../"
+simul_path = bosp_path + "/out/sbin/pysched/"
+
+bosp_escaped = bosp_path.replace("/", "\/");
+simul_escaped = simul_path.replace("/", "\/");
+# ---
+
+bbque_bin = bosp_path + "out/sbin/barbeque"
+bbque_config = " --config " + simul_path + "utils/bbque.conf "
+bbque_bds= " --tpd.cpus "
+bbque_pes = " --tpd.pes "
+bbque_fifo = bosp_path + "out/var/bbque/bbque_cmds"
+
+def set_resources(bds_available_res, params):
+
+	logging.info('bbq:ares - %d BDs', len(bds_available_res))
+
+	for index, av_res in enumerate(bds_available_res):
+		logging.info('bbq:ares - BD %d: %d%% CPU available', \
+index, av_res)
+		total_res = params['bds_size']
+		reserved_res = total_res - av_res
+		res_pes = reserved_res // 100
+		remaining_quota = reserved_res - 100*res_pes		
+		next_pe=0		
+		for i in range(res_pes):
+			logging.info('bbq:ares - reserving PE %d, BD %d', \
+i, index)
+			cmd = "echo 'bq.ra.set_quota sys0.cpu" + str(index) + \
+".pe" + str(next_pe) + " 0' > " + bbque_fifo
+			os.system(cmd)
+			os.system("sleep 0.3")
+			next_pe += 1
+
+		if remaining_quota != 0:
+			cmd = "echo 'bq.ra.set_quota sys0.cpu" + str(index) + \
+".pe" + str(next_pe) + " " + str(100-remaining_quota) + "' > " + bbque_fifo
+			os.system(cmd)
+			logging.info('bbq:ares - reserving %d%% CPU quota \
+from PE %d, BD %d', remaining_quota, next_pe, index)
+		logging.info('bbq:ares - %d/%d%% CPU quota reserved',\
+reserved_res, total_res)
+
+	logging.info('bbq:ares - setting up system')
+
+
+def startd(binding_domains, params):
+	
+	logging.info('bbq:strt - setting up %d BDs', params['bds_number'])
+	logging.info('bbq:strt - PEs per BD: %d', params['bds_size'] / 100)
+	
+	#TEST Platform Data Options:
+	#	--tpd.cpus arg (=3)    number of cpus (1..256, default: 3)
+	#	--tpd.cmem arg (=1024) amount [MB] of cpu-shared memory
+        #                                           (1..65536, default: 1024 MB)
+	#	--tpd.pes arg (=4)     number of PEs per cpu
+        #                                                   (1..256, default: 4)
+	#	--tpd.mem arg (=8120)  amount [MB] of system memory
+        #                                            (1..2^32, default: 8120 MB)
+
+	bds_pes = params['bds_size'] // 100
+
+	bbq_start = bbque_bin + bbque_config + bbque_bds + \
+                      str(params['bds_number']) + bbque_pes + str(bds_pes) + "&"
+
+	with open(os.devnull, 'wb') as devnull:
+		subprocess.check_call(bbq_start, stdout=devnull, \
+stderr=subprocess.STDOUT, shell=True)
+
+	os.system("sleep 0.3")
+
+def stop():
+	logging.info('bbq:stop - killing bbque')
+	bbq_stop = "sudo killall barbeque"
+
+	subprocess.Popen(bbq_stop, shell=True)
+	os.system("sleep 0.3")
+
+def clean_log():
+	logging.info('bbq:stop - cleaning log')
+	if os.path.exists("../utils/bbque.log"):
+		os.remove("../utils/bbque.log")	
+
+def setup_application(name, instances, awms, res_range, offset):
+	# constant parameters (uninfluent to these tests)	
+	priority = 1
+	cows_support = 1
+	pid = 100 + 100 * offset
+
+	recipe = rec.create_recipe(name, priority, awms, res_range[0], \
+res_range[1], cows_support)
+	os.system("cp " + str(recipe) + \
+" " + bosp_path + "out/etc/bbque/recipes")
+
+	logging.info('bbq:apps - %s: %d instances', name, instances)
+	logging.info('bbq:apps - %s: recipe saved in outputs/%s.xml', \
+name, name)
+
+	launch_queue = []
+	stop_queue = []
+	for i in range(instances):
+
+		pid += i
+		app_name = str(name)
+		rec_name = str(name)
+		bbq_c_add = "echo bq.am.container_add"
+		bbq_c_del = "echo bq.am.container_del"
+
+		launch_queue.append(bbq_c_add + " " + str(name) + " " + \
+                     str(pid) + " " + str(name) + " " + str(priority) + \
+" > " + bbque_fifo)
+		stop_queue.append(bbq_c_del + " " + str(pid) + " > " + 	
+bbque_fifo)
+	return launch_queue, stop_queue
+
+
+def start_workload(queue, label, test_number, debug):
+
+	launch_queue = [q[0] for q in queue]
+	stop_queue = [q[1] for q in queue]
+
+	# cleaning log
+	#os.system("cat utils/bbque.log")
+	os.system("echo > utils/bbque.log")
+
+	# creating start script
+	t_path = "start.sh"
+	if os.path.exists(t_path):
+		os.remove(t_path)
+	f = file(t_path, "w")
+	f.write('#!/bin/bash\n\n')
+	for bundle in launch_queue:
+		for command in bundle:
+			f.write(command + "\n")
+
+	f.write('\nsleep 0.1\n\n')
+	f.write("echo > utils/bbque.log\n")
+	f.write('echo bq.rm.optimize > ' + bbque_fifo + '\n')
+
+	f.write('\nsleep 0.5\n\n')
+
+	f.write("\ncat utils/bbque.log | grep 'F_INDEX' | \
+grep -o '[0-9]\.[0-9]\{1,\}' | awk '{S=\"" + str(test_number +1) + " \"$0} \
+END{print S}' >> res.log\n")
+
+	for bundle in stop_queue:
+		for command in bundle:
+			f.write(command + "\n")
+
+	f.flush()
+	f.close()
+	os.system("sudo chmod +x start.sh")
+	
+	with open(os.devnull, 'wb') as devnull:
+		subprocess.check_call("./start.sh" , stdout=devnull, \
+stderr=subprocess.STDOUT, shell=True)
+
+	if debug == True:
+		print "\n\n+============================="
+		print label
+		print "+=============================\n"
+		os.system("cat utils/bbque.log | grep 'F_INDEX'")
+		print "\n+=============================\n\n"
+		os.system("cat utils/bbque.log | grep 'bq.am'")
+		print "\n\n+=============================\n\n"
+		os.system("cat utils/bbque.log | grep 'sc.fair'")
+		print "+=============================\n\n"
+
+def config_file_create():
+	command = "cat " + simul_path + "/utils/template.conf | \
+sed 's/__LOGP__/" + simul_escaped + "/' | \
+sed 's/__BOSP__/" + bosp_escaped + "/' > " + simul_path + "utils/bbque.conf"
+	os.system(command)
+
+
