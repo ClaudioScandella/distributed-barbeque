@@ -55,9 +55,9 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	for_each_recp_resource_usage(evl_ent, usage_it) {
 		UsagePtr_t const & pusage(usage_it->second);
 
-		// Total amount of resource (in a valid binding domain)
-		ResourcePathPtr_t r_path(new ResourcePath(*usage_it->first.get()));
-		r_path->ReplaceID(bd_info.type, R_ID_ANY, first_bd_id);
+		// Total amount of resource (overall)
+		ResourcePathPtr_t r_path(new ResourcePath(
+			ResourcePathUtils::GetTemplate(usage_it->first->ToString())));
 		rsrc_tot = sv->ResourceTotal(r_path);
 		logger->Debug("%s: {%s} R:%" PRIu64 " T:%" PRIu64 "",
 				evl_ent.StrId(), r_path->ToString().c_str(),
