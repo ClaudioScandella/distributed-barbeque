@@ -1,0 +1,12 @@
+
+config CONTRIB_MYAPP
+  bool "MyApp"
+  select CONTRIBS
+  default n
+  ---help---
+  Build the MyApp application.
+  
+  Insert here a description of this application.
+
+  If unsure, say No to this option.
+
