@@ -6,3 +6,5 @@ tags
 api-doc
 .vim*
 cscope*
+config/templates/*.bz2
+config/templates/*.bsx
