@@ -424,6 +424,8 @@ RTLIB_ExitCode_t BbqueRPC::Enable(
 
 	// Mark the EXC as Enabled
 	setEnabled(prec);
+	clearAwmValid(prec);
+	clearAwmAssigned(prec);
 
 	return RTLIB_OK;
 }
@@ -457,6 +459,8 @@ RTLIB_ExitCode_t BbqueRPC::Disable(
 
 	// Mark the EXC as Enabled
 	clearEnabled(prec);
+	clearAwmValid(prec);
+	clearAwmAssigned(prec);
 
 	// Dump statistics on EXC disabling
 	DB(DumpStats(prec));
@@ -858,7 +862,8 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedWorkingMode(
 		return RTLIB_EXC_SYNC_MODE;
 	}
 
-	if (!isAwmValid(prec)) {
+	if (!isSyncMode(prec) && !isAwmValid(prec)) {
+		// This is the case to send a GWM to Barbeque
 		DB(fprintf(stderr, FD("NOT valid AWM\n")));
 		return RTLIB_EXC_GWM_FAILED;
 	}
@@ -889,7 +894,7 @@ RTLIB_ExitCode_t BbqueRPC::WaitForWorkingMode(
 			prec->cv.wait(rec_ul);
 	else
 	// Wait for the EXC being assigned an AWM
-		while (isEnabled(prec) && !isAwmValid(prec) && !isBlocked(prec))
+		while (isEnabled(prec) && !isAwmAssigned(prec) && !isBlocked(prec))
 			prec->cv.wait(rec_ul);
 
 	clearAwmWaiting(prec);
@@ -920,6 +925,7 @@ RTLIB_ExitCode_t BbqueRPC::WaitForSyncDone(pregExCtx_t prec) {
 	// before notifying an anomaly to the RTRM
 
 	clearSyncMode(prec);
+
 	return RTLIB_OK;
 }
 
@@ -1090,6 +1096,7 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify(pregExCtx_t prec) {
 	clearSyncDone(prec);
 	// Setting current AWM as invalid
 	setAwmInvalid(prec);
+	clearAwmAssigned(prec);
 	return RTLIB_OK;
 }
 
@@ -1207,7 +1214,7 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_DoChangeNotify(pregExCtx_t prec) {
 		setBlocked(prec);
 	} else {
 		clearBlocked(prec);
-		setAwmValid(prec);
+		setAwmAssigned(prec);
 	}
 
 	// TODO Setup the ground for reconfiguration statistics collection

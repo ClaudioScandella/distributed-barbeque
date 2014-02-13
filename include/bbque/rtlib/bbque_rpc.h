@@ -300,11 +300,12 @@ protected:
 		pid_t ctrlTrdPid;
 #define EXC_FLAGS_AWM_VALID      0x01 ///< The EXC has been assigned a valid AWM
 #define EXC_FLAGS_AWM_WAITING    0x02 ///< The EXC is waiting for a valid AWM
-#define EXC_FLAGS_EXC_SYNC       0x04 ///< The EXC entered Sync Mode
-#define EXC_FLAGS_EXC_SYNC_DONE  0x08 ///< The EXC exited Sync Mode
-#define EXC_FLAGS_EXC_REGISTERED 0x10 ///< The EXC is registered
-#define EXC_FLAGS_EXC_ENABLED    0x20 ///< The EXC is enabled
-#define EXC_FLAGS_EXC_BLOCKED    0x40 ///< The EXC is blocked
+#define EXC_FLAGS_AWM_ASSIGNED   0x04 ///< The EXC is waiting for a valid AWM
+#define EXC_FLAGS_EXC_SYNC       0x08 ///< The EXC entered Sync Mode
+#define EXC_FLAGS_EXC_SYNC_DONE  0x10 ///< The EXC exited Sync Mode
+#define EXC_FLAGS_EXC_REGISTERED 0x20 ///< The EXC is registered
+#define EXC_FLAGS_EXC_ENABLED    0x40 ///< The EXC is enabled
+#define EXC_FLAGS_EXC_BLOCKED    0x80 ///< The EXC is blocked
 		/** A set of flags to define the state of this EXC */
 		uint8_t flags;
 		/** The last required synchronization action */
@@ -386,6 +387,21 @@ protected:
 		DB(fprintf(stderr, FD("AWM  <= NOT Waiting [%d:%s]\n"),
 					prec->exc_id, prec->name.c_str()));
 		prec->flags &= ~EXC_FLAGS_AWM_WAITING;
+	}
+
+	//--- AWM Assignment
+	inline bool isAwmAssigned(pregExCtx_t prec) const {
+		return (prec->flags & EXC_FLAGS_AWM_ASSIGNED);
+	}
+	inline void setAwmAssigned(pregExCtx_t prec) const {
+		DB(fprintf(stderr, FD("AWM  <= Assigned [%d:%s]\n"),
+					prec->exc_id, prec->name.c_str()));
+		prec->flags |= EXC_FLAGS_AWM_ASSIGNED;
+	}
+	inline void clearAwmAssigned(pregExCtx_t prec) const {
+		DB(fprintf(stderr, FD("AWM  <= NOT Assigned [%d:%s]\n"),
+					prec->exc_id, prec->name.c_str()));
+		prec->flags &= ~EXC_FLAGS_AWM_ASSIGNED;
 	}
 
 	//--- Sync Mode Status
