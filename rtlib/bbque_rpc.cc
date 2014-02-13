@@ -1103,7 +1103,7 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify(pregExCtx_t prec) {
 	// Resetting Sync Done
 	clearSyncDone(prec);
 	// Setting current AWM as invalid
-	setAwmInvalid(prec);
+	clearAwmValid(prec);
 	clearAwmAssigned(prec);
 	return RTLIB_OK;
 }

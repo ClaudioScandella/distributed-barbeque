@@ -368,7 +368,7 @@ protected:
 					prec->exc_id, prec->name.c_str(), prec->awm_id));
 		prec->flags |= EXC_FLAGS_AWM_VALID;
 	}
-	inline void setAwmInvalid(pregExCtx_t prec) const {
+	inline void clearAwmValid(pregExCtx_t prec) const {
 		DB(fprintf(stderr, FD("AWM  <= Invalid [%d:%s]\n"),
 					prec->exc_id, prec->name.c_str()));
 		prec->flags &= ~EXC_FLAGS_AWM_VALID;
