@@ -66,6 +66,24 @@ config BBQUE_BUILD_DEBUG
   This will produce a version of both the daemon and the RTLib with much more
   logging messages and debug symbols, which is suitable for debugging purposes.
 
+config BBQUE_RTLIB_UNMANAGED_SUPPORT
+  bool "Enable UNMANAGED support on RTLib"
+  depends on TARGET_LINUX
+  default y
+  ---help---
+  Build the Run-Time Library (RTLib) with support for UNMANAGED applications.
+
+  An application running in UNMANAGED mode is not controlled by the BarbequRTRM and
+  its automatically configured by the RTLib to run in AWM 0.
+  Once this support is enabled, an application could be executed un UNMANAGED mode
+  by setting the "U" flag in the BBQUE_RTLIB_OPTS environment variable.
+
+  This option is useful to run applications without BarbequeRTRM control, for example to
+  easily support Design Space Exploration (DSE) or the initial development stages of
+  a new application.
+
+  Say NO to this option if unsure.
+
 config BBQUE_APP_PRIO_LEVELS
   int "Number of priority levels"
   default 5

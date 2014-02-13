@@ -503,6 +503,7 @@ protected:
 	// - the string NULL terminator
 	static char envMetricsTag[BBQUE_RTLIB_OPTS_TAG_MAX+2];
 	static bool envBigNum;
+	static bool envUnmanaged;
 	static const char *envCsvSep;
 
 	/**

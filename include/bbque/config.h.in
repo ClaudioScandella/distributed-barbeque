@@ -112,6 +112,9 @@
 /** Performance Counters Support */
 #cmakedefine CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 
+/** Unmanaged Mode Support */
+#cmakedefine CONFIG_BBQUE_RTLIB_UNMANAGED_SUPPORT
+
 /** CGroups Support */
 #cmakedefine CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT
 

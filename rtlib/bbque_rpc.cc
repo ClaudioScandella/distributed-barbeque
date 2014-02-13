@@ -18,6 +18,7 @@
 #include "bbque/config.h"
 #include "bbque/rtlib/bbque_rpc.h"
 #include "bbque/rtlib/rpc_fifo_client.h"
+#include "bbque/rtlib/rpc_unmanaged_client.h"
 #include "bbque/app/application.h"
 
 #include <cstdio>
@@ -41,12 +42,24 @@ BbqueRPC * BbqueRPC::GetInstance() {
 	// Parse environment configuration
 	ParseOptions();
 
+#ifdef CONFIG_BBQUE_RTLIB_UNMANAGED_SUPPORT
+	if (envUnmanaged) {
+		fprintf(stderr, FW("Running in UNMANAGED MODE\n"));
+		instance = new BbqueRPC_UNMANAGED_Client();
+		goto channel_done;
+	}
+#endif
+
 #ifdef CONFIG_BBQUE_RPC_FIFO
 	DB(fprintf(stderr, FD("Using FIFO RPC channel\n")));
 	instance = new BbqueRPC_FIFO_Client();
 #else
 #error RPC Channel NOT defined
 #endif // CONFIG_BBQUE_RPC_FIFO
+
+	// Compilation warning fix
+	goto channel_done;
+channel_done:
 
 	return instance;
 }
@@ -89,6 +102,7 @@ bool BbqueRPC::envCsvOutput = false;
 bool BbqueRPC::envMOSTOutput = false;
 char BbqueRPC::envMetricsTag[BBQUE_RTLIB_OPTS_TAG_MAX+2] = "";
 bool BbqueRPC::envBigNum = false;
+bool BbqueRPC::envUnmanaged = false;
 const char *BbqueRPC::envCsvSep = " ";
 
 RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
@@ -157,6 +171,11 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 			} else {
 				fprintf(stderr, FE("WARN: Perf Counters NOT available\n"));
 			}
+			break;
+		case 'U':
+			// Enable "unmanaged" mode
+			envUnmanaged = true;
+			DB(fprintf(stderr, FW("Enabling UNMANAGED mode\n")));
 			break;
 		case 's':
 			// Setting CSV separator
@@ -965,6 +984,27 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 					prec->ctrlTrdPid, prec->exc_id));
 	}
 
+#ifdef CONFIG_BBQUE_RTLIB_UNMANAGED_SUPPORT
+
+	if (!envUnmanaged)
+		goto do_gwm;
+
+	// Configuration already done
+	if (isAwmValid(prec)) {
+		setSyncDone(prec);
+		return RTLIB_OK;
+	}
+
+	// Configure unmanaged EXC in AWM0
+	prec->event = RTLIB_EXC_GWM_START;
+	wm->awm_id = 0;
+	setAwmValid(prec);
+	goto do_reconf;
+
+do_gwm:
+
+#endif
+
 	// Checking if a valid AWM has been assigned
 	DB(fprintf(stderr, FD("Looking for assigned AWM...\n")));
 	result = GetAssignedWorkingMode(prec, wm);
@@ -1011,6 +1051,10 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 	result = WaitForWorkingMode(prec, wm);
 	if (result != RTLIB_OK)
 		goto exit_gwm_failed;
+
+	// Compilation warning fix
+	goto do_reconf;
+do_reconf:
 
 	// Exit if the EXC has been disabled
 	if (!isEnabled(prec))
