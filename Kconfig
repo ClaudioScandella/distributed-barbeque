@@ -74,9 +74,13 @@ config BBQUE_RTLIB_UNMANAGED_SUPPORT
   Build the Run-Time Library (RTLib) with support for UNMANAGED applications.
 
   An application running in UNMANAGED mode is not controlled by the BarbequRTRM and
-  its automatically configured by the RTLib to run in AWM 0.
+  its automatically configured by the RTLib to run in AWM 0 (by default).
   Once this support is enabled, an application could be executed un UNMANAGED mode
   by setting the "U" flag in the BBQUE_RTLIB_OPTS environment variable.
+  Such flag could be followed by the ID of the AWM the application should be configured
+  to run into, for example:
+    BBQUE_RTLIB_OPTS="U3"
+  will run the application in AWM 3.
 
   This option is useful to run applications without BarbequeRTRM control, for example to
   easily support Design Space Exploration (DSE) or the initial development stages of

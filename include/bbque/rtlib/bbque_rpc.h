@@ -504,6 +504,7 @@ protected:
 	static char envMetricsTag[BBQUE_RTLIB_OPTS_TAG_MAX+2];
 	static bool envBigNum;
 	static bool envUnmanaged;
+	static int  envUnmanagedAWM;
 	static const char *envCsvSep;
 
 	/**

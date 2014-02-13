@@ -103,6 +103,7 @@ bool BbqueRPC::envMOSTOutput = false;
 char BbqueRPC::envMetricsTag[BBQUE_RTLIB_OPTS_TAG_MAX+2] = "";
 bool BbqueRPC::envBigNum = false;
 bool BbqueRPC::envUnmanaged = false;
+int  BbqueRPC::envUnmanagedAWM = 0;
 const char *BbqueRPC::envCsvSep = " ";
 
 RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
@@ -173,8 +174,10 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 			}
 			break;
 		case 'U':
-			// Enable "unmanaged" mode
+			// Enable "unmanaged" mode with the specified AWM
 			envUnmanaged = true;
+			if (*(opt+1))
+				sscanf(opt+1, "%d", &envUnmanagedAWM);
 			DB(fprintf(stderr, FW("Enabling UNMANAGED mode\n")));
 			break;
 		case 's':
@@ -997,7 +1000,7 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 
 	// Configure unmanaged EXC in AWM0
 	prec->event = RTLIB_EXC_GWM_START;
-	wm->awm_id = 0;
+	wm->awm_id = envUnmanagedAWM;
 	setAwmValid(prec);
 	goto do_reconf;
 
