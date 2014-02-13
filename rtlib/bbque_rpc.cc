@@ -140,7 +140,7 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 						BBQUE_RTLIB_OPTS_TAG_MAX,
 						"%s:", opt+1);
 			}
-			fprintf(stderr, "Enabling MOST output [tag: %s]\n",
+			fprintf(stderr, FI("Enabling MOST output [tag: %s]\n"),
 					envMetricsTag[0] ? envMetricsTag : "-");
 			break;
 		case 'O':
@@ -153,9 +153,9 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 			// ... with the specified verbosity level
 			sscanf(opt+1, "%d", &envDetailedRun);
 			if (envPerfCount) {
-				fprintf(stderr, "Enabling Perf Counters [verbosity: %d]\n", envDetailedRun);
+				fprintf(stderr, FI("Enabling Perf Counters [verbosity: %d]\n"), envDetailedRun);
 			} else {
-				fprintf(stderr, "WARN: Perf Counters NOT available\n");
+				fprintf(stderr, FE("WARN: Perf Counters NOT available\n"));
 			}
 			break;
 		case 's':
