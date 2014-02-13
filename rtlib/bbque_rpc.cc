@@ -882,6 +882,10 @@ RTLIB_ExitCode_t BbqueRPC::WaitForWorkingMode(
 		RTLIB_WorkingModeParams_t *wm) {
 	std::unique_lock<std::mutex> rec_ul(prec->mtx);
 
+	// Shortcut in case the AWM has been already assigned
+	if (isAwmAssigned(prec))
+		goto waiting_done;
+
 	// Notify we are going to be suspended waiting for an AWM
 	setAwmWaiting(prec);
 
@@ -898,16 +902,20 @@ RTLIB_ExitCode_t BbqueRPC::WaitForWorkingMode(
 			prec->cv.wait(rec_ul);
 
 	clearAwmWaiting(prec);
-	wm->awm_id = prec->awm_id;
-
-	// Setup AWM statistics
-	SetupStatistics(prec);
 
 	// TIMER: Get BLOCKED
 	prec->time_blocked += prec->exc_tmr.getElapsedTimeMs();
 
+waiting_done:
+
 	// TIMER: Sart RECONF
 	prec->exc_tmr.start();
+
+	setAwmValid(prec);
+	wm->awm_id = prec->awm_id;
+
+	// Setup AWM statistics
+	SetupStatistics(prec);
 
 	return RTLIB_OK;
 }
