@@ -1168,6 +1168,8 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify(
 
 	// Force a DoChange, which will not be forwarded by the BBQ daemon if
 	// the Sync Point forcing support is disabled
+	fprintf(stderr, FI("SyncP_3 (Do-Change) EXC [%d]\n"),
+			msg.hdr.exc_id);
 	return SyncP_DoChangeNotify(prec);
 
 #else
