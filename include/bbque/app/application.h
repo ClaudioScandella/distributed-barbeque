@@ -80,8 +80,11 @@ public:
 	 * @param name Application name
 	 * @param pid Process ID
 	 * @param exc_id The ID of the Execution Context (assigned from the application)
+	 * @param lang The application language
 	 */
-	explicit Application(std::string const & name, AppPid_t pid, uint8_t exc_id);
+	Application(std::string const & name,
+			AppPid_t pid, uint8_t exc_id,
+			RTLIB_ProgrammingLanguage_t lang = RTLIB_LANG_CPP);
 
 	/**
 	 * @brief Default destructor
@@ -116,6 +119,13 @@ public:
 	 */
 	inline uint8_t ExcId() const {
 		return exc_id;
+	}
+
+	/**
+	 * @see ApplicationStatusIF
+	 */
+	inline RTLIB_ProgrammingLanguage_t Language() const {
+		return language;
 	}
 
 	/**
@@ -465,6 +475,9 @@ private:
 
 	/** The ID of this Execution Context */
 	uint8_t exc_id;
+
+	/** The programming language */
+	RTLIB_ProgrammingLanguage_t language;
 
 	/** The application string ID */
 	char str_id[16];

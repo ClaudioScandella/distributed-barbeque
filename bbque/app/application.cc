@@ -66,11 +66,14 @@ bool AwmIdLesser(const AwmPtr_t & wm1, const AwmPtr_t & wm2) {
 		return wm1->Id() < wm2->Id();
 }
 
-Application::Application(std::string const & _name, AppPid_t _pid,
-		uint8_t _exc_id) :
+Application::Application(std::string const & _name,
+		AppPid_t _pid,
+		uint8_t _exc_id,
+		RTLIB_ProgrammingLanguage_t lang):
 	name(_name),
 	pid(_pid),
 	exc_id(_exc_id),
+	language(lang),
 	ggap_percent(0),
 	value(0.0),
 	platform_data(false) {
