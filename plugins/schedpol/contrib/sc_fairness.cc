@@ -118,13 +118,11 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	// Iterate the whole set of resource usage
 	for_each_sched_resource_usage(evl_ent, usage_it) {
 		UsagePtr_t const & pusage(usage_it->second);
-		ResourcePathPtr_t const & rsrc_path(usage_it->first);
+		ResourcePathPtr_t const & r_path(usage_it->first);
 		ResourcePtrList_t & rsrc_bind(pusage->GetBindingList());
 
 		// Resource availability (already bound)
 		bd_rsrc_avail = sv->ResourceAvailable(rsrc_bind, vtok);
-		logger->Debug("%s: R{%s} availability: %" PRIu64 "",
-				evl_ent.StrId(), rsrc_path->ToString().c_str(), bd_rsrc_avail);
 
 		// If there are no free resources the index contribute is equal to 0
 		if (bd_rsrc_avail < pusage->GetAmount()) {
@@ -135,9 +133,9 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		// Binding domain fraction (resource type related)
 		bd_fract = ceil(
 				static_cast<double>(bd_rsrc_avail) /
-				fair_parts[rsrc_path->Type()]);
+				fair_parts[r_path->Type()]);
 		logger->Debug("%s: R{%s} BD{'%s'} fraction: %" PRIu64 "",
-				evl_ent.StrId(), rsrc_path->ToString().c_str(),
+				evl_ent.StrId(), r_path->ToString().c_str(),
 				binding_domain.c_str(), bd_fract);
 		bd_fract == 0 ? bd_fract = 1 : bd_fract;
 
@@ -145,17 +143,17 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		bd_fair_part =
 			std::min<uint64_t>(bd_rsrc_avail, bd_rsrc_avail / bd_fract);
 		logger->Debug("%s: R{%s} BD{'%s'} fair partition: %" PRIu64 "",
-				evl_ent.StrId(), rsrc_path->ToString().c_str(),
+				evl_ent.StrId(), r_path->ToString().c_str(),
 				binding_domain.c_str(), bd_fair_part);
 
 		// Set last parameters for index computation
-		penalty = static_cast<float>(penalties_int[rsrc_path->Type()]) / 100.0;
+		penalty = static_cast<float>(penalties_int[r_path->Type()]) / 100.0;
 		SetIndexParameters(bd_fair_part, bd_rsrc_avail, penalty, params);
 
 		// Compute the region index
 		ru_index = CLEIndex(0, bd_fair_part, pusage->GetAmount(), params);
-		logger->Debug("%s: R{%s} fairness index = %.4f", evl_ent.StrId(),
-				rsrc_path->ToString().c_str(), ru_index);
+		logger->Debug("%s: R{%s} fairness index = %.4f",
+				evl_ent.StrId(), r_path->ToString().c_str(), ru_index);
 
 		// Update the contribution if the index is lower, i.e. the most
 		// penalizing request dominates

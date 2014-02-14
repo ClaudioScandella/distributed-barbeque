@@ -116,7 +116,8 @@ YamsSchedPol::YamsSchedPol():
 	ResourcePath rp(bindings.domain);
 	bindings.type = rp.Type();
 	logger->Debug("Binding domain:'%s' Type:%s",
-			bindings.domain.c_str(), ResourceIdentifier::TypeStr[bindings.type]);
+			bindings.domain.c_str(),
+			ResourceIdentifier::TypeStr[bindings.type]);
 
 	// Instantiate the SchedContribManager
 	scm = new SchedContribManager(sc_types, bindings.domain, YAMS_SC_COUNT);
@@ -239,12 +240,11 @@ do_schedule:
 	// Order schedule entities by aggregate metrics
 	naps_count = OrderSchedEntities(prio);
 	YAMS_GET_TIMING(coll_metrics, YAMS_ORDERING_TIME, yams_tmr);
-
-	// Selection: for each application schedule a working mode
 	YAMS_RESET_TIMING(yams_tmr);
+
+	// Select and schedule the best bound AWM for each application
 	sched_incomplete = SelectSchedEntities(naps_count);
 	entities.clear();
-
 	if (sched_incomplete)
 		goto do_schedule;
 
@@ -295,8 +295,8 @@ bool YamsSchedPol::SelectSchedEntities(uint8_t naps_count) {
 			continue;
 
 		// Send the schedule request
-		app_result = pschd->papp->ScheduleRequest(pschd->pawm, vtok,
-				pschd->bind_id);
+		app_result = pschd->papp->ScheduleRequest(
+				pschd->pawm, vtok, pschd->bind_id);
 		logger->Debug("Selecting: %s schedule requested", pschd->StrId());
 		if (app_result != ApplicationStatusIF::APP_WM_ACCEPTED) {
 			logger->Debug("Selecting: %s rejected!", pschd->StrId());

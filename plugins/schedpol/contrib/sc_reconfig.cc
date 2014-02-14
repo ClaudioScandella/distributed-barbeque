@@ -88,7 +88,7 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 
 	// Resource usages of the current entity (AWM + binding domain)
 	for_each_sched_resource_usage(evl_ent, usage_it) {
-		ResourcePathPtr_t const & rsrc_path(usage_it->first);
+		ResourcePathPtr_t const & r_path(usage_it->first);
 		UsagePtr_t const & pusage(usage_it->second);
 		ResourcePtrList_t & rsrc_bind(pusage->GetBindingList());
 
@@ -98,7 +98,7 @@ SCReconfig::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		// Total amount of resource
 		rsrc_tot = sv->ResourceTotal(pusage->GetBindingList());
 		logger->Debug("%s: {%s} R:%" PRIu64 " A:%" PRIu64 " T:%" PRIu64 "",
-				evl_ent.StrId(), rsrc_path->ToString().c_str(),
+				evl_ent.StrId(), r_path->ToString().c_str(),
 				pusage->GetAmount(), rsrc_avl, rsrc_tot);
 
 		// Reconfiguration cost

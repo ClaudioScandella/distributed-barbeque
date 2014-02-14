@@ -300,17 +300,17 @@ private:
 		// Skip if the application has been rescheduled yet (with success) or
 		// disabled in the meanwhile
 		if (!papp->Active() && !papp->Blocking()) {
-			logger->Debug("Skipping [%s]. State = {%s/%s}",
+			logger->Debug("Skipping [%s] State = [%s, %s]",
 					papp->StrId(),
 					ApplicationStatusIF::StateStr(papp->State()),
 					ApplicationStatusIF::SyncStateStr(papp->SyncState()));
 			return true;
 		}
 
-		// Avoid double AWM selection for RUNNING applications with an already
+		// Avoid double AWM selection for RUNNING applications with already
 		// assigned AWM.
 		if ((papp->State() == Application::RUNNING) && papp->NextAWM()) {
-			logger->Debug("Skipping [%s]. No reconfiguration needed. (AWM=%d)",
+			logger->Debug("Skipping [%s] AWM %d => No reconfiguration",
 					papp->StrId(), papp->CurrentAWM()->Id());
 			return true;
 		}
@@ -318,7 +318,7 @@ private:
 		// Avoid double AWM selection for SYNCH applications with an already
 		// assigned AWM.
 		if ((papp->State() == Application::SYNC) && papp->NextAWM()) {
-			logger->Debug("Skipping [%s]. AWM already assigned. (AWM=%d)",
+			logger->Debug("Skipping [%s] AWM already assigned [%d]",
 					papp->StrId(), papp->NextAWM()->Id());
 			return true;
 		}

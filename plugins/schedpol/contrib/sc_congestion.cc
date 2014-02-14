@@ -95,33 +95,33 @@ SCCongestion::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 
 	// Iterate the whole set of resource usage
 	for_each_sched_resource_usage(evl_ent, usage_it) {
-		ResourcePathPtr_t const & rsrc_path(usage_it->first);
+		ResourcePathPtr_t const & r_path(usage_it->first);
 		UsagePtr_t const & pusage(usage_it->second);
 		logger->Debug("%s: {%s}",
-				evl_ent.StrId(), rsrc_path->ToString().c_str());
+				evl_ent.StrId(), r_path->ToString().c_str());
 
 		// Get the region of the (next) resource usage
-		GetResourceThresholds(rsrc_path, pusage->GetAmount(), evl_ent, rl);
+		GetResourceThresholds(r_path, pusage->GetAmount(), evl_ent, rl);
 
 		// If there are no free resources the index contribute is equal to 0
 		if (rl.free < pusage->GetAmount()) {
 			ctrib = 0;
 			logger->Debug("%s: {%s} U:%" PRIu64 " A:%" PRIu64,
-					evl_ent.StrId(), rsrc_path->ToString().c_str(),
+					evl_ent.StrId(), r_path->ToString().c_str(),
 					rl.free, pusage->GetAmount());
 			if ((rl.free == 0) &&
-				(rsrc_path->Type() == ResourceIdentifier::PROC_ELEMENT))
+				(r_path->Type() == ResourceIdentifier::PROC_ELEMENT))
 				return SC_RSRC_NO_PE;
 			return SC_RSRC_UNAVL;
 		}
 
 		// Set the last parameters for the index computation
-		SetIndexParameters(rl, penalties[rsrc_path->Type()], params);
+		SetIndexParameters(rl, penalties[r_path->Type()], params);
 
 		// Compute the region index
 		ru_index = CLEIndex(rl.sat_lack, rl.free, pusage->GetAmount(), params);
-		logger->Debug("%s: {%s} index = %.4f", evl_ent.StrId(),
-				rsrc_path->ToString().c_str(), ru_index);
+		logger->Debug("%s: {%s} reconfiguration index = %.4f",
+				evl_ent.StrId(), r_path->ToString().c_str(), ru_index);
 
 		// Update the contribute if the index is lower, i.e. the most
 		// penalizing request dominates
