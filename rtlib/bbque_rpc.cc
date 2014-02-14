@@ -1553,9 +1553,6 @@ uint8_t BbqueRPC::InsertRAWPerfCounter(const char *perf_str) {
 	strncpy(buff, perf_str, sizeof(buff));
 	strncpy(strpbrk(buff,"-"), " ", 1);
 	sscanf(buff, "%s %s", label, event_code_str);
-	DB(fprintf(stderr, FD("RawPerfCounter: [%d] LB=%-5s EVT=%-4s\n"),
-			idx, label, event_code_str);
-	);
 
 	// Nullptr check
 	if ((label == nullptr) || (event_code_str == nullptr))
