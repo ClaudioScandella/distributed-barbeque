@@ -23,6 +23,7 @@
 #include <string>
 
 #include "bbque/cpp11/mutex.h"
+#include "bbque/rtlib.h"
 #include "bbque/utils/attributes_container.h"
 
 using bbque::utils::AttributesContainer;
@@ -198,6 +199,12 @@ public:
 	 * @return PID value
 	 */
 	virtual uint8_t ExcId() const = 0;
+
+	/**
+	 * @brief Get the programming language
+	 * @return The programming language enumerated value
+	 */
+	virtual RTLIB_ProgrammingLanguage_t Language() const = 0;
 
 	/**
 	 * @brief Get the UID of the current application
