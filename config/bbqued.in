@@ -68,8 +68,39 @@ check_controllers() {
 							if(PH!=MH || PH!=CH || PH!=AH) print 1;
 							else print 0;
 						}' /proc/cgroups`
+
+		# Hierarchies unmounting
 		if [ $DIFFH -ne 0 ]; then
-				echo "[cpuset,memory,cpu,cpuacct] controllers on different hierachies"
+				echo '[cpuset,memory,cpu,cpuacct] controllers on different hierachies.'
+				echo 'To continue, they have to be placed on the same hierarchy.'
+
+				read -p 'Proceed with the unmounting (Y/n)? ' ANS
+
+				if [ -z "$ANS" ]; then
+					ANS='y'
+				fi
+
+				if [ $ANS != 'Y' ] && [ $ANS != 'y' ]; then
+					echo
+					echo 'BarbequeRTRM could not be started without proper CGroups setup'
+					exit 1
+				fi
+
+				grep cgroups /proc/mounts | cut -d' ' -f2 | \
+				while read C; do
+					[ -d $C ] || continue
+					echo "Unmounting [$C] controller..."
+					sudo umount $C
+				done
+		fi
+
+		# Mount BBQ required hierarchies
+		mount -t cgroup -o cpuset,memory,cpu,cpuacct bbque_cgroups \
+				$BBQUE_CGMOUNT >/dev/null 2>&1
+		if [ $? -ne 0 ]; then
+				echo 'Mounting hierarchies [cpuset,memory,cpu,cpuacct] FAILED'
+				echo 'BarbequeRTRM could not be started without proper CGroups setup'
+				exit 2
 		fi
 
 }
@@ -127,14 +158,7 @@ setup() {
 	if [ ! -f $BBQUE_CGMOUNT/tasks ]; then
 		echo "Mounting CGroups on [$BBQUE_CGMOUNT]..."
 		mkdir -p $BBQUE_CGMOUNT >/dev/null 2>&1
-
-		mount -t cgroup -o cpuset,memory,cpu,cpuacct bbque_cgroups \
-				$BBQUE_CGMOUNT >/dev/null 2>&1
-		if [ $? -ne 0 ]; then
-				echo "Mounting hierarchies [cpuset,memory,cpu,cpuacct] FAILED"
-				check_controllers
-				exit 1
-		fi
+		check_controllers
 	fi
 
 	# Check for CFS quota support
