@@ -21,7 +21,7 @@ bbque: external
 		exit 1
 	@echo $(CMAKE_COMMON_OPTIONS)
 	@cd barbeque/build/$(BUILD_TYPE) && \
-		CXX=$(CXX) CFLAGS="--sysroot=$(PLATFORM_SYSROOT)" \
+		CXX=$(CXX) CFLAGS="$(CFLAGS_SYSROOT)" \
 		cmake $(BBQUE_CMAKE_OPTS) $(CMAKE_COMMON_OPTIONS) || \
 		exit 1
 	@cd barbeque/build/$(BUILD_TYPE) && make -j$(CPUS) install || \
