@@ -130,14 +130,6 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 		DB(fprintf(stderr, FD("OPT: %s\n"), opt));
 
 		switch (opt[0]) {
-		case 'b':
-			// Enabling "big numbers" notations
-			envBigNum = true;
-			break;
-		case 'c':
-			// Enabling CSV output
-			envCsvOutput = true;
-			break;
 		case 'G':
 			// Enabling Global statistics collection
 			envGlobal = true;
@@ -162,6 +154,21 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 			// Collect statistics on RTLIB overheads
 			envOverheads = true;
 			break;
+		case 'U':
+			// Enable "unmanaged" mode with the specified AWM
+			envUnmanaged = true;
+			if (*(opt+1))
+				sscanf(opt+1, "%d", &envUnmanagedAWM);
+			DB(fprintf(stderr, FW("Enabling UNMANAGED mode\n")));
+			break;
+		case 'b':
+			// Enabling "big numbers" notations
+			envBigNum = true;
+			break;
+		case 'c':
+			// Enabling CSV output
+			envCsvOutput = true;
+			break;
 		case 'p':
 			// Enabling perf...
 			envPerfCount = BBQUE_RTLIB_PERF_ENABLE;
@@ -172,13 +179,6 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 			} else {
 				fprintf(stderr, FE("WARN: Perf Counters NOT available\n"));
 			}
-			break;
-		case 'U':
-			// Enable "unmanaged" mode with the specified AWM
-			envUnmanaged = true;
-			if (*(opt+1))
-				sscanf(opt+1, "%d", &envUnmanagedAWM);
-			DB(fprintf(stderr, FW("Enabling UNMANAGED mode\n")));
 			break;
 		case 's':
 			// Setting CSV separator
