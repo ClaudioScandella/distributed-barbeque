@@ -1,0 +1,40 @@
+<BarbequeRTRM version="0.8">
+    <recipe version="0.8"/>
+    <application>
+        <priority max-value="10"/>
+        <languages>
+            <language name="cpp"/>
+            <language name="ocl"/>
+        </languages>
+    </application>
+
+    <platforms>
+        <platform id="org.linux.cgroups" name="Linux system based on multi-Core CPU(s)"/>
+        <platform id="com.st.sthorm" name="ST Microelectronis STHORM"/>
+    </platforms>
+
+    <resources>
+        <resource id="sys" name="System"/>
+        <resource id="grp" name="Group of computing units"/>
+        <resource id="cpu" name="CPU"/>
+        <resource id="gpu" name="GPGPU"/>
+        <resource id="acc" name="Hardware accelerator"/>
+        <resource id="pe" name="Processing element (core)"/>
+        <resource id="mem" name="Memory"/>
+        <resource id="icn" name="Communication channel"/>
+        <resource id="io" name="I/O interface"/>
+        <resource id="cst" name="Custom resource"/>
+    </resources>
+
+    <plugins>
+        <plugin id="cows" name="CoScheduling Workloads (x86)" description="Co-scheduling support exploiting performance counter profiling information">
+            <data id="llcm"/>
+            <data id="stalls"/>
+            <data id="iret"/>
+            <data id="flops"/>
+        </plugin>
+    </plugins>
+
+</BarbequeRTRM>
+
+<!-- vim: set tabstop=4 filetype=xml : -->
