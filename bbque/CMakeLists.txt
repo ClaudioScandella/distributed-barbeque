@@ -55,6 +55,16 @@ configure_file (
 	"${PROJECT_SOURCE_DIR}/config/bbque-layapp"
 	@ONLY
 )
+configure_file (
+	"${PROJECT_SOURCE_DIR}/config/templates/cpp/.cproject.in"
+	"${PROJECT_SOURCE_DIR}/config/templates/cpp/.cproject"
+	@ONLY
+)
+configure_file (
+	"${PROJECT_SOURCE_DIR}/config/templates/cpp/.project.in"
+	"${PROJECT_SOURCE_DIR}/config/templates/cpp/.project"
+	@ONLY
+)
 
 
 # Build subdirs
