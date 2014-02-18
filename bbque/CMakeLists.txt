@@ -49,6 +49,13 @@ configure_file (
 	@ONLY
 )
 
+# Setup Template generator
+configure_file (
+	"${PROJECT_SOURCE_DIR}/config/bbque-layapp.sh.in"
+	"${PROJECT_SOURCE_DIR}/config/bbque-layapp"
+	@ONLY
+)
+
 
 # Build subdirs
 add_subdirectory(utils)
@@ -160,4 +167,3 @@ install (DIRECTORY "${PROJECT_SOURCE_DIR}/config/pil/"
 		DESTINATION ${BBQUE_PATH_PILS}
 		COMPONENT BarbequeRTRM
 		FILES_MATCHING PATTERN "*.bpl")
-
