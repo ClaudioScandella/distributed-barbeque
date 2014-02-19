@@ -163,6 +163,9 @@ ResourceManager::ResourceManager() :
 #define CMD_STATUS_SYNC ".syn_status"
 	cm.RegisterCommand(MODULE_NAMESPACE CMD_STATUS_SYNC, static_cast<CommandHandler*>(this),
 			"Dump the status of each Synchronization Queue");
+#define CMD_OPT_FORCE ".opt_force"
+	cm.RegisterCommand(MODULE_NAMESPACE CMD_OPT_FORCE, static_cast<CommandHandler*>(this),
+			"Force a new scheduling event");
 
 }
 
@@ -591,7 +594,14 @@ int ResourceManager::CommandsCb(int argc, char *argv[]) {
 		logger->Info("");
 		am.ReportSyncQ(true);
 		break;
-
+	case 'o':
+		logger->Info("");
+		logger->Info("");
+		logger->Info("==========[ User Required Scheduling ]==="
+				"===============================");
+		logger->Info("");
+		NotifyEvent(ResourceManager::BBQ_OPTS);
+		break;
 	}
 
 	return 0;
