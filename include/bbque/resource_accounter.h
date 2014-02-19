@@ -21,6 +21,7 @@
 #include <set>
 
 #include "bbque/resource_accounter_conf.h"
+#include "bbque/command_manager.h"
 
 #include "bbque/res/resource_utils.h"
 #include "bbque/res/resource_tree.h"
@@ -64,7 +65,7 @@ class ApplicationManager;
  * @brief Resources Accouter
  * @ingroup sec07_ra
  */
-class ResourceAccounter: public ResourceAccounterConfIF {
+class ResourceAccounter: public ResourceAccounterConfIF, CommandHandler {
 
 public:
 
@@ -395,6 +396,11 @@ public:
 	 */
 	ExitCode_t SyncCommit();
 
+	/**
+	 * @see CommandHandler
+	 */
+	int CommandsCb(int argc, char *argv[]);
+
 private:
 
 	/**
@@ -433,6 +439,9 @@ private:
 
 	/** The Application Manager component */
 	bbque::ApplicationManager & am;
+
+	/** The Command Manager component */
+	CommandManager &cm;
 
 	/** Mutex protecting resource release and acquisition */
 	std::recursive_mutex status_mtx;

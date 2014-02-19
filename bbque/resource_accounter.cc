@@ -59,7 +59,8 @@ ResourceAccounter & ResourceAccounter::GetInstance() {
 }
 
 ResourceAccounter::ResourceAccounter() :
-	am(ApplicationManager::GetInstance()) {
+	am(ApplicationManager::GetInstance()),
+	cm(CommandManager::GetInstance()) {
 
 	// Get a logger
 	std::string logger_name(RESOURCE_ACCOUNTER_NAMESPACE);
@@ -75,6 +76,11 @@ ResourceAccounter::ResourceAccounter() :
 
 	// Init sync session info
 	sync_ssn.count = 0;
+
+	// Register set quota command
+#define CMD_SET_QUOTA ".set_quota"
+	cm.RegisterCommand(RESOURCE_ACCOUNTER_NAMESPACE CMD_SET_QUOTA, static_cast<CommandHandler*>(this),
+		"Reserve the specified quota of a resource");
 }
 
 ResourceAccounter::~ResourceAccounter() {
@@ -1256,5 +1262,27 @@ void ResourceAccounter::UndoResourceBooking(
 	assert(usage_freed == pusage->GetAmount());
 }
 
+/************************************************************************
+ *                   COMMANDS HANDLING                                  *
+ ************************************************************************/
+
+int ResourceAccounter::CommandsCb(int argc, char *argv[]) {
+	uint8_t cmd_offset = ::strlen(RESOURCE_ACCOUNTER_NAMESPACE) + 1;
+	logger->Debug("Processing command [%s]", argv[0] + cmd_offset);
+
+	if (argc != 3) {
+		logger->Error("'set_quota' expecting 2 parameters");
+		logger->Error("Usage example: bq.ra.set_quota sys0.cpu0.pe0 80");
+		return 1;
+	}
+
+	uint64_t quota = atoi(argv[2]);
+
+	UpdateResource(std::string(argv[1]), "", quota);
+	PrintStatusReport(0, true);
+
+	return 0;
+
+}
 
 }   // namespace bbque
