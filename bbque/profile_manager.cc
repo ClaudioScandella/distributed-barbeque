@@ -139,9 +139,10 @@ loop_continue:
 	// Workload Mix INDEX: WMix = Apps[RUNNING] / Apps[ACTIVE]
 	wmix_idx = static_cast<double>(running_count) / actives_count;
 
-	// Fairness INDEX: F = WMix / (1 + Sched[VARIANCE])
-	fnes_idx = wmix_idx / (1 + app_var);
-
+	// Fairness INDEX:
+	// a) lower running/active apps ratio => lower index
+	// b) same running/active ratios and higher AWM variance => lower index
+	fnes_idx =  (running_count + (1 - 3 * awm_var)) / (1 + actives_count);
 
 	// Adding SAMPLES to metrics collector
 	PM_ADD_SAMPLE(metrics, PM_SCHED_APP_VALUE, app_avg,
