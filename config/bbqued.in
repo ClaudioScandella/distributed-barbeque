@@ -262,8 +262,15 @@ case "$1" in
 	status)
 		# not implemented
 		;;
+	setup)
+		setup
+		;;
+	ShieldRelease)
+		ShieldRelease
+		;;
 	*)
-		echo "Usage: $0 {start|stop|restart}"
+		echo "Usage: $0 {start|stop|restart} or for cgroups testing purposes" \
+		"{setup|ShieldRelease}"
 		exit 1
 		;;
 esac
