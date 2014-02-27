@@ -1459,6 +1459,10 @@ RTLIB_ExitCode_t BbqueRPC::GGap(
 		return RTLIB_EXC_NOT_REGISTERED;
 	}
 
+	// Check the application is not in sync
+	if (isSyncMode(prec))
+		return RTLIB_OK;
+
 	// Calling the low-level enable function
 	result = _GGap(prec, percent);
 	if (result != RTLIB_OK) {
