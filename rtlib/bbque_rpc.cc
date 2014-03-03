@@ -1546,7 +1546,7 @@ uint8_t BbqueRPC::InsertRAWPerfCounter(const char *perf_str) {
 	// Extract label and event select code + unit mask
 	strncpy(buff, perf_str, sizeof(buff));
 	strncpy(strpbrk(buff,"-"), " ", 1);
-	sscanf(buff, "%s %s", label, event_code_str);
+	sscanf(buff, "%10s %4s", label, event_code_str);
 
 	// Nullptr check
 	if ((label == nullptr) || (event_code_str == nullptr))
