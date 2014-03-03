@@ -144,6 +144,7 @@ bool ResourceTree::findNode(
 		// Traverse the resource tree according to the comparison result
 		switch (rresult) {
 		case Resource::EQUAL_TYPE:
+		case Resource::EQUAL:
 			//  Skip if mixed matching required but resource IDs do not match
 			if (match_flags & RT_MATCH_MIXED) {
 				if ((prid->ID() != R_ID_NONE) && (prid->ID() != R_ID_ANY)) {
@@ -154,7 +155,8 @@ bool ResourceTree::findNode(
 			else if (!(match_flags & RT_MATCH_TYPE)) {
 				continue;
 			}
-		case Resource::EQUAL:
+			if (rresult != Resource::EQUAL)
+				break;
 			if (path_it != path_end)
 				// Go deeper in the resource tree
 				findNode(*tree_it, ++path_it, path_end, match_flags, matchings);

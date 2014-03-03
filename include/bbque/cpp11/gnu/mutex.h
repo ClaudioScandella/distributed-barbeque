@@ -313,6 +313,7 @@ namespace std {
 	    _M_owns = _M_device->try_lock();
 	    return _M_owns;
 	  }
+	return false; // fix compilation warning
       }
 
       template<typename _Clock, typename _Duration>

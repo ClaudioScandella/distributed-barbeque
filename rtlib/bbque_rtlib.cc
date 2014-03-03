@@ -294,6 +294,8 @@ static void RTLIB_Exit(void) {
 	rpc->UnregisterAll();
 	delete rpc;
 
+	if (0) RTLIB_Exit(); // Fix compilation warning
+
 }
 
 
