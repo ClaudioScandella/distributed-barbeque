@@ -131,7 +131,7 @@ bool Log4CppLogger::Configure(PF_ObjectParams * params) {
 	try {
 		l4::PropertyConfigurator::configure(conf_file_path);
 		configured = true;
-	} catch (log4cpp::ConfigureFailure e) {
+	} catch (log4cpp::ConfigureFailure & e) {
 
 		if (daemonized)
 			syslog(LOG_INFO, "Log4CppLogger configuration FAILED (Error %s)",
