@@ -77,6 +77,9 @@ const uint16_t defaultWindowSize = 100;
 class GenericWindowIF {
 
 public:
+
+	virtual ~GenericWindowIF();
+
 	/**
 	 * @brief Checks whether the goal has been respected and returns a
 	 * boolean with the result of the check

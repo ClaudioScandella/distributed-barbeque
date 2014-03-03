@@ -169,6 +169,11 @@ public:
 	};
 
 	/**
+	 * @brief Default destructor
+	 */
+	virtual ~SchedulerPolicyIF() {};
+
+	/**
 	 * @brief Return the name of the optimization policy
 	 * @return The name of the optimization policy
 	 */

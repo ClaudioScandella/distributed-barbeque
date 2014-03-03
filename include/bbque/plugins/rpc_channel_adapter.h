@@ -38,7 +38,7 @@ public:
 		df(_df) {
 	}
 
-	~RPCChannelAdapter() {
+	virtual ~RPCChannelAdapter() {
 		if (df)
 			df(rc);
 	}

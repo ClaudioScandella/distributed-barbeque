@@ -147,6 +147,8 @@ class ApplicationManagerStatusIF {
 
 public:
 
+	virtual ~ApplicationManagerStatusIF() {};
+
 	/**
 	 * @brief Exit code to return
 	 */

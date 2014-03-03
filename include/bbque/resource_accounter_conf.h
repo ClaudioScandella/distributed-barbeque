@@ -33,6 +33,8 @@ class ResourceAccounterConfIF: public ResourceAccounterStatusIF {
 
 public:
 
+	virtual ~ResourceAccounterConfIF() {};
+
 	/**
 	 * @brief Get a new resources view
 	 *

@@ -166,9 +166,6 @@ ResourceManager::ResourceManager() :
 
 }
 
-ResourceManager::~ResourceManager() {
-}
-
 ResourceManager::ExitCode_t
 ResourceManager::Setup() {
 

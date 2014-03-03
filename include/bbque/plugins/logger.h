@@ -44,6 +44,8 @@ class LoggerIF {
 
 public:
 
+	virtual ~LoggerIF() {};
+
 //----- Objects initialization data
 
 	typedef enum Priority {

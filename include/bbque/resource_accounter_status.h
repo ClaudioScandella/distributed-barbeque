@@ -26,12 +26,6 @@
 #include "bbque/res/identifier.h"
 #include "bbque/res/usage.h"
 
-
-
-
-
-
-
 namespace bbque {
 
 namespace res {
@@ -63,6 +57,8 @@ using namespace bbque::app;
 class ResourceAccounterStatusIF {
 
 public:
+
+	virtual ~ResourceAccounterStatusIF() {};
 
 	/**
 	 * @brief Exit codes

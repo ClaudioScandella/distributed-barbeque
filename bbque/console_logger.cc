@@ -35,9 +35,6 @@ std::shared_ptr<ConsoleLogger> ConsoleLogger::GetInstance(void) {
 	return logger;
 }
 
-ConsoleLogger::~ConsoleLogger() {
-}
-
 //----- Logger plugin interface
 
 void ConsoleLogger::Debug(const char *fmt, ...) {

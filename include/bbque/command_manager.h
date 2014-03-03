@@ -50,6 +50,11 @@ class CommandHandler {
 public:
 
 	/**
+	 * @brief Default destructor
+	 */
+	virtual ~CommandHandler() {};
+
+	/**
 	 * @brief The Callback method of a CommandHandler
 	 *
 	 * This is the method called for a corresponding registered command,
@@ -60,6 +65,7 @@ public:
 	 * @return 0 on success, a negative number otherwise
 	 */
 	virtual int CommandsCb(int argc, char *argv[]) = 0;
+
 };
 
 /**

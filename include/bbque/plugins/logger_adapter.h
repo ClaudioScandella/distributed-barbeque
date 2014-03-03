@@ -42,7 +42,7 @@ public:
 		df(_df) {
 	}
 
-	~LoggerAdapter() {
+	virtual ~LoggerAdapter() {
 		if (df)
 			df(logger);
 	}

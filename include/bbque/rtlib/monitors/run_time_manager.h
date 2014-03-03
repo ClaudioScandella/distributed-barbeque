@@ -43,12 +43,6 @@ typedef std::vector<GenericWindowIF*> GoalsList;
 class RunTimeManager {
 
 public:
-	/**
-	 * @brief Default constructor of the class
-	 */
-	RunTimeManager() {
-
-	}
 
 	/**
 	 * @brief Constructor of the class

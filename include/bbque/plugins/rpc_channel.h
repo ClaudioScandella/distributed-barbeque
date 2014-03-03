@@ -48,6 +48,10 @@ public:
 	 */
 	typedef std::shared_ptr<void> plugin_data_t;
 
+	/**
+	 * @brief Default destructor
+	 */
+	virtual ~RPCChannelIF() {};
 
 	/**
 	 * @brief Initialize the communication channel.

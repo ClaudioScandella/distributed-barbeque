@@ -98,7 +98,7 @@ public:
 	 * @brief  Clean-up the grill by releasing current resource manager
 	 * resources and modules.
 	 */
-	~ResourceManager();
+	virtual ~ResourceManager() {};
 
 	/**
 	 * @brief Start managing resources

@@ -55,7 +55,7 @@ public:
 	/**
 	 *
 	 */
-	~AndroidLogger();
+	virtual ~AndroidLogger();
 
 //----- Logger module interface
 

@@ -38,7 +38,7 @@ public:
 		df(_df) {
 	}
 
-	~TestAdapter() {
+	virtual ~TestAdapter() {
 		if (df)
 			df(test);
 	}

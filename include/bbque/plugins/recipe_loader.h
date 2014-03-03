@@ -52,6 +52,8 @@ class RecipeLoaderIF {
 
 public:
 
+	virtual ~RecipeLoaderIF() {};
+
 	/**
 	 * @brief Recipe load exit codes
 	 */

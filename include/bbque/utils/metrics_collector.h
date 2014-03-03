@@ -265,7 +265,7 @@ public:
 	/**
 	 * @brief  Clean-up the metrics collector data structures.
 	 */
-	~MetricsCollector();
+	virtual ~MetricsCollector();
 
 	/**
 	 * @brief Register a new system metric

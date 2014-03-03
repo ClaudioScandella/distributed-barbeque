@@ -42,6 +42,11 @@ class SignalHandler {
 public:
 
 	/**
+	 * @brief Default destructor
+	 */
+	virtual ~SignalHandler() {};
+
+	/**
 	 * The hook method for signal specific handlers
 	 */
 	virtual int Handler(int signum) = 0;
@@ -65,6 +70,8 @@ public:
 		evt(event),
 		asserted(0) {
 		}
+
+	virtual ~EventNotifier() {};
 
 	virtual int Handler(int signum) {
 		assert(signum == sn);
@@ -149,14 +156,9 @@ private:
 	  EventNotifier quitEn;
 
 	  /**
-	   * 
+	   *  @brief Default constructor
 	   */
 	  SignalsManager();
-
-	  /**
-	   * 
-	   */
-	  ~SignalsManager();
 
 	  /**
 	   * @brief Entry point adapter installed into <sigaction>

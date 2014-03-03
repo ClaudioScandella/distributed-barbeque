@@ -60,7 +60,7 @@ public:
 	/**
 	 * @brief class destructor
 	 */
-	~ApplicationProxyTest();
+	virtual ~ApplicationProxyTest();
 
 	/**
 	 * @brief Test launcher

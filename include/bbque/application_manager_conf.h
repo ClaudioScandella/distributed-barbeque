@@ -38,6 +38,11 @@ class ApplicationManagerConfIF: public ApplicationManagerStatusIF {
 public:
 
 	/**
+	 * @brief Default destructor
+	 */
+	virtual ~ApplicationManagerConfIF() {};
+
+	/**
 	 * @brief Entry point for applications
 	 *
 	 * @param name The application name

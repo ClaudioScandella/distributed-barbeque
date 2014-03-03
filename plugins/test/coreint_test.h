@@ -78,7 +78,7 @@ public:
 	/**
 	 * @brief class destructor
 	 */
-	~CoreInteractionsTest();
+	virtual ~CoreInteractionsTest();
 
 	/**
 	 * @brief Test launcher

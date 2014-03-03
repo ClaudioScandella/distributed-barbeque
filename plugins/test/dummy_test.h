@@ -58,7 +58,7 @@ public:
 	 */
 	static int32_t Destroy(void *);
 
-	~DummyTest();
+	virtual ~DummyTest();
 
 //----- dummy module interface
 

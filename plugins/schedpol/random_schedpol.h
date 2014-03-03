@@ -63,7 +63,7 @@ public:
 	 */
 	static int32_t Destroy(void *);
 
-	~RandomSchedPol();
+	virtual ~RandomSchedPol();
 
 //----- Scheduler Policy module interface
 

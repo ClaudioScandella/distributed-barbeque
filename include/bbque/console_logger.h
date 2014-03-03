@@ -43,7 +43,7 @@ public:
 	/**
 	 *
 	 */
-	~ConsoleLogger();
+	virtual ~ConsoleLogger() {};
 
 //----- Logger module interface
 

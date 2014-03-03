@@ -57,6 +57,12 @@ public:
 	} ExitCode_t;
 
 	/**
+	 * @brief Default destructor
+	 */
+	virtual ~SynchronizationPolicyIF() {};
+
+
+	/**
 	 * @brief Return the name of the synchronization policy
 	 * @return The name of the synchronization policy
 	 */

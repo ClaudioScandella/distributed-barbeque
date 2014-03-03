@@ -76,7 +76,7 @@ public:
 	/**
 	 * @brief Destructor
 	 */
-	~ResourceAccounter();
+	virtual ~ResourceAccounter();
 
 	/**
 	 * @see ResourceAccounterStatusIF

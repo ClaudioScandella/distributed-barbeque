@@ -57,11 +57,6 @@ SignalsManager::SignalsManager() :
 
 }
 
-SignalsManager::~SignalsManager() {
-}
-
-
-
 SignalHandler *SignalsManager::RegisterHandler(int signum, SignalHandler *sh) {
 	struct sigaction sa;
 
