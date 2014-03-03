@@ -89,17 +89,17 @@ private:
 		STEP40
 	} syncState_t;
 
-	uint8_t status;
+	uint8_t status = STEP10;
 
 	/**
 	 * @brief System logger instance
 	 */
-	LoggerIF *logger;
+	LoggerIF *logger = NULL;
 
 	/**
 	 * @brief Keep track of the best estimation for the sync latency
 	 */
-	SyncLatency_t max_latency;
+	SyncLatency_t max_latency = 0;
 
 	/** The metrics collector */
 	MetricsCollector & mc;

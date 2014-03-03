@@ -67,7 +67,7 @@ private:
 	uint16_t penalties_int[ResourceIdentifier::TYPE_COUNT];
 
 	/** Number of applications to schedule */
-	uint16_t num_apps;
+	uint16_t num_apps = 0;
 
 	/** Resource availability */
 	uint64_t rsrc_avail[ResourceIdentifier::TYPE_COUNT];

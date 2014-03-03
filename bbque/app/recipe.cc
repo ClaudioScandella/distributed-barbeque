@@ -32,8 +32,7 @@ namespace bbque { namespace app {
 
 
 Recipe::Recipe(std::string const & name):
-	pathname(name),
-	last_awm_id(0) {
+	pathname(name) {
 
 	// Get a logger
 	std::string logger_name(RECIPE_NAMESPACE"." + name);

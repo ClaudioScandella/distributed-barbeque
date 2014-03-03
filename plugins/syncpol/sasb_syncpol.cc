@@ -62,7 +62,6 @@ SasbSyncPol::metrics[SM_METRICS_COUNT] = {
 };
 
 SasbSyncPol::SasbSyncPol() :
-	status(STEP10),
 	mc(bu::MetricsCollector::GetInstance()) {
 
 	// Get a logger

@@ -297,7 +297,7 @@ protected:
 		/** The RTLIB assigned ID for this Execution Context */
 		uint8_t exc_id;
 		/** The PID of the control thread managing this EXC */
-		pid_t ctrlTrdPid;
+		pid_t ctrlTrdPid = 0;
 #define EXC_FLAGS_AWM_VALID      0x01 ///< The EXC has been assigned a valid AWM
 #define EXC_FLAGS_AWM_WAITING    0x02 ///< The EXC is waiting for a valid AWM
 #define EXC_FLAGS_AWM_ASSIGNED   0x04 ///< The EXC is waiting for a valid AWM
@@ -307,11 +307,11 @@ protected:
 #define EXC_FLAGS_EXC_ENABLED    0x40 ///< The EXC is enabled
 #define EXC_FLAGS_EXC_BLOCKED    0x80 ///< The EXC is blocked
 		/** A set of flags to define the state of this EXC */
-		uint8_t flags;
+		uint8_t flags = 0x00;
 		/** The last required synchronization action */
-		RTLIB_ExitCode_t event;
+		RTLIB_ExitCode_t event = RTLIB_OK;
 		/** The ID of the assigned AWM (if valid) */
-		uint8_t awm_id;
+		uint8_t awm_id = 0;
 		/** The mutex protecting access to this structure */
 		std::mutex mtx;
 		/** The conditional variable to be notified on changes for this EXC */
@@ -320,11 +320,11 @@ protected:
 		/** The High-Resolution timer used for profiling */
 		Timer exc_tmr;
 		/** The time [ms] spent on waiting for an AWM being assigned */
-		uint32_t time_blocked;
+		uint32_t time_blocked = 0;
 		/** The time [ms] spent on reconfigurations */
-		uint32_t time_reconf;
+		uint32_t time_reconf = 0;
 		/** The time [ms] spent on processing */
-		uint32_t time_processing;
+		uint32_t time_processing = 0;
 
 #ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 		/** Performance counters */
@@ -338,15 +338,12 @@ protected:
 		/** Statistics of currently selected AWM */
 		pAwmStats_t pAwmStats;
 
-		double cps_tstart; // [ms] at the last cycle start time
-		float cps_max;     // [Hz] the requried maximum CPS
-		float cps_expect;  // [ms] the expected cycle time
+		double cps_tstart = 0; // [ms] at the last cycle start time
+		float cps_max = 0;     // [Hz] the requried maximum CPS
+		float cps_expect = 0;  // [ms] the expected cycle time
 
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
-			name(_name), ctrlTrdPid(0), flags(0x00),
-			time_blocked(0), time_reconf(0), time_processing(0),
-			cps_tstart(0), cps_max(0) {
-				exc_id = id;
+			name(_name), exc_id(id) {
 		}
 
 		~RegisteredExecutionContext() {
@@ -478,11 +475,6 @@ protected:
 					prec->exc_id, prec->name.c_str()));
 		prec->flags &= ~EXC_FLAGS_EXC_BLOCKED;
 	}
-
-	/**
-	 * @brief Build a new RTLib
-	 */
-	BbqueRPC(void);
 
 
 /******************************************************************************
@@ -625,7 +617,7 @@ protected:
 	 * subcluss of this based class which provides the low-level channel
 	 * access methods.
 	 */
-	pid_t chTrdPid;
+	pid_t chTrdPid = 0;
 
 
 	/**
@@ -635,7 +627,7 @@ protected:
 	 * identified by a UID string which is initialized by a call to
 	 * @see setUid()
 	 */
-	char chTrdUid[20];
+	char chTrdUid[20] = "00000:undef ";
 
 	inline void setChId(pid_t id, const char *name) {
 		chTrdPid = id;
@@ -651,12 +643,12 @@ private:
 	 * PID could be exploited by the Barbeque RTRM to directly control
 	 * applications accessing its managed resources.
 	 */
-	pid_t appTrdPid;
+	pid_t appTrdPid = 0;
 
 	/**
 	 * @brief True if the library has been properly initialized
 	 */
-	bool initialized;
+	bool initialized = false;
 
 	/**
 	 * @brief A map of registered Execution Context

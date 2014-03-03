@@ -102,27 +102,25 @@ public:
 		CCheckEXC(std::string const & name,
                 std::string const & recipe,
                 RTLIB_Services_t *rtlib):
-        BbqueEXC(name, recipe, rtlib),
-		testPassed(true),
-		checkStep(0) {
+        BbqueEXC(name, recipe, rtlib) {
         }
 
         ~CCheckEXC() {
         }
 		
 		// Test passed?
-		bool testPassed;
+		bool testPassed = true;
 
 private:
 
 		// The expected AWM being selected from BBQ
-		uint8_t curAwm;
+		uint8_t curAwm = 0;
 	
 		// The checking step
-		uint8_t checkStep;
+		uint8_t checkStep = 0;
 
 		// The minimum run loops on each CheckStep
-		int16_t runLoops;
+		int16_t runLoops = 0;
 
         RTLIB_ExitCode_t CheckStep();
         RTLIB_ExitCode_t onConfigure(uint8_t awm_id);

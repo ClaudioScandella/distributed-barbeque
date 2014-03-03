@@ -199,7 +199,7 @@ public:
 private:
 
 	/** Usage amount request */
-	uint64_t amount;
+	uint64_t amount = 0;
 
 	/** List of resource descriptors which to the resource usage is bound */
 	ResourcePtrList_t bindings;
@@ -208,7 +208,7 @@ private:
 	AppSPtr_t own_app;
 
 	/** The token referencing the state view of the resource usage */
-	RViewToken_t view_tk;
+	RViewToken_t view_tk = 0;
 
 	/** List iterator pointing to the first resource used by the App/EXC */
 	ResourcePtrListIterator_t first_bind;

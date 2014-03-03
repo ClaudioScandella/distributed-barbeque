@@ -79,10 +79,6 @@ class AppsUidMapIt {
 
 public:
 
-	AppsUidMapIt() :
-		updated(false),
-		ret(NULL) {
-	};
 	~AppsUidMapIt() {
 		Release();
 	};
@@ -90,13 +86,13 @@ public:
 private:
 
 	/** The map to visit */
-	AppsUidMap_t *map;
+	AppsUidMap_t *map = NULL;
 	/** An interator on a UIDs map */
 	AppsUidMap_t::iterator it;
 	/** A flag to track iterator validity */
-	bool updated;
+	bool updated = false;
 	/** The retantion list on which this has been inserted */
-	AppsUidMapItRetainer_t *ret;
+	AppsUidMapItRetainer_t *ret = NULL;
 
 	void Init(AppsUidMap_t & m, AppsUidMapItRetainer_t & rl) {
 		map = &m;

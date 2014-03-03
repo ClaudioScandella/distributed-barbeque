@@ -241,17 +241,17 @@ public:
 protected:
 
 	 /** Logger */
-	 LoggerIF * logger;
+	 LoggerIF * logger = NULL;
 
 	 /** Configuration manager instance */
 	 ConfigurationManager & cm;
 
 
 	 /** Pointer to the System instance */
-	 System * sv;
+	 System * sv = NULL;
 
 	 /** The token of scheduling resource state view */
-	 RViewToken_t vtok;
+	 RViewToken_t vtok = 0;
 
 	 /**
 	  * The base resource path for the binding step.

@@ -83,10 +83,10 @@ private:
 	ConfigurationManager & cm;
 
 	/** Token for accessing a resources view */
-	RViewToken_t ra_view;
+	RViewToken_t ra_view = 0;
 
 	/** A counter used for getting always a new clean resources view */
-	uint32_t ra_view_count;
+	uint32_t ra_view_count = 0;
 
 	/** The base resource path for the binding step */
 	std::string binding_domain;

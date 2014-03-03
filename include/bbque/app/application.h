@@ -462,7 +462,7 @@ public:
 private:
 
 	/** The logger used by the application */
-	LoggerIF  *logger;
+	LoggerIF  *logger = NULL;
 
 	/** The application name */
 	std::string name;
@@ -483,25 +483,25 @@ private:
 	char str_id[16];
 
 	/** A numeric priority value */
-	AppPrio_t priority;
+	AppPrio_t priority = BBQUE_APP_PRIO_LEVELS - 1;
 
 	/** Current scheduling informations */
 	SchedulingInfo_t schedule;
 
 	/** The current Goal-Gap value, must be in [0,100] */
-	uint8_t ggap_percent;
+	uint8_t ggap_percent = 0;
 
 	/**
 	 * The metrics value set by the scheduling policy. The purpose of this
 	 * attribute is to provide a support for the evaluation of the schedule
 	 * results.
 	 */
-	float value;
+	float value = 0.0;
 
 	/**
 	 * Platform Specifica Data properly initialized
 	 */
-	bool platform_data;
+	bool platform_data = false;
 
 	/**
 	 * Recipe pointer for the current application instance.

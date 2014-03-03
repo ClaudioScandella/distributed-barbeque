@@ -103,23 +103,20 @@ private:
 	 * @brief Resource assignement bindings on a Linux machine
 	 */
 	typedef struct RLinuxBindings {
-		unsigned short node_id; ///> Maps a "tile" on Host Linux machines
-		unsigned short socket_id; ///> Maps a "cluster" on SMP Linux machine
-		char *cpus;
-		char *mems;
-		char *memb;
+		unsigned short node_id = 0; ///> Maps a "tile" on Host Linux machines
+		unsigned short socket_id = 0; ///> Maps a "cluster" on SMP Linux machine
+		char *cpus = NULL;
+		char *mems = NULL;
+		char *memb = NULL;
 		/** The percentage of CPUs time assigned */
-		uint16_t amount_cpus;
+		uint16_t amount_cpus = 0;
 		/** The bytes amount of Socket MEMORY assigned */
-		uint64_t amount_memb;
+		uint64_t amount_memb = 0;
 		/** The CPU time quota assigned */
-		uint32_t amount_cpuq;
+		uint32_t amount_cpuq = 0;
 		/** The CPU time period considered for quota assignement */
-		uint32_t amount_cpup;
-		RLinuxBindings(const uint8_t MaxCpusCount, const uint8_t MaxMemsCount) :
-			cpus(NULL), mems(NULL), memb(NULL),
-			amount_cpus(0), amount_memb(0),
-			amount_cpuq(0), amount_cpup(0) {
+		uint32_t amount_cpup = 0;
+		RLinuxBindings(const uint8_t MaxCpusCount, const uint8_t MaxMemsCount) {
 			// 3 chars are required for each CPU/MEM resource if formatted
 			// with syntax: "nn,". This allows for up-to 99 resources per
 			// cluster

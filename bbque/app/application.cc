@@ -73,10 +73,7 @@ Application::Application(std::string const & _name,
 	name(_name),
 	pid(_pid),
 	exc_id(_exc_id),
-	language(lang),
-	ggap_percent(0),
-	value(0.0),
-	platform_data(false) {
+	language(lang) {
 
 	// Init the working modes vector
 	awms.recipe_vect.resize(MAX_NUM_AWM);

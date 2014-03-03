@@ -64,12 +64,6 @@ channel_done:
 	return instance;
 }
 
-BbqueRPC::BbqueRPC(void) :
-	initialized(false) {
-
-	sprintf(chTrdUid, "00000:undef ");
-}
-
 BbqueRPC::~BbqueRPC(void) {
 	excMap_t::iterator it;
 	pregExCtx_t prec;

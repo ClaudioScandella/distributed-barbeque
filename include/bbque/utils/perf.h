@@ -255,7 +255,7 @@ private:
 	/**
 	 * @brief Perf counter group leader
 	 */
-	int fd_group;
+	int fd_group = 0;
 
 	/**
 	 * @brief The format of bytes readed from kernel space
@@ -271,9 +271,9 @@ private:
 	 */
 	typedef struct RegisteredCounter {
 		/** The counter associated FD */
-		int fd;
+		int fd = -1;
 		/** The counter monitored PID */
-		pid_t pid;
+		pid_t pid = -1;
 		/** The attributed of this counter */
 		struct perf_event_attr attr;
 
@@ -283,8 +283,7 @@ private:
 		/** Counters values since last update */
 		ReadFormat_t delta;
 
-		RegisteredCounter() :
-			fd(-1), pid(-1) {
+		RegisteredCounter() {
 			memset(&attr,  0, sizeof(attr));
 			memset(&count, 0, sizeof(count));
 			memset(&delta, 0, sizeof(delta));

@@ -160,16 +160,16 @@ private:
 	MetricsCollector & mc;
 
 	/** System logger instance */
-	LoggerIF *logger;
+	LoggerIF *logger = NULL;
 
 	/** System view instance */
-	System * sv;
+	System * sv = NULL;
 
 	/** Token for accessing a resources view */
-	RViewToken_t vtok;
+	RViewToken_t vtok = 0;
 
 	/** A counter used for getting always a new clean resources view */
-	uint32_t vtok_count;
+	uint32_t vtok_count = 0;
 
 	/** List of entities to schedule */
 	SchedEntityList_t entities;

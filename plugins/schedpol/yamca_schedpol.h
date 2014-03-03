@@ -91,19 +91,19 @@ public:
 private:
 
 	/** System logger instance */
-	LoggerIF *logger;
+	LoggerIF *logger = NULL;
 
 	/** Resource accounter instance */
 	ResourceAccounter & rsrc_acct;
 
 	/** Token for accessing a resources view */
-	RViewToken_t rsrc_view_token;
+	RViewToken_t rsrc_view_token = 0;
 
 	/** A counter used for getting always a new clean resources view */
-	uint32_t tok_counter;
+	uint32_t tok_counter = 0;
 
 	/** Number of clusters on the platform	 */
-	uint64_t num_clusters;
+	uint64_t num_clusters = 0;
 
 	/** Keep track the clusters without available PEs */
 	std::vector<bool> clusters_full;

@@ -58,10 +58,7 @@ if(::write(server_fifo_fd, (void*)&rf_ ## RPC_MSG, SIZE) <= 0) {\
 namespace bbque { namespace rtlib {
 
 BbqueRPC_FIFO_Client::BbqueRPC_FIFO_Client() :
-	BbqueRPC(),
-	app_fifo_path(BBQUE_PATH_VAR "/"),
-	bbque_fifo_path(BBQUE_PATH_VAR "/" BBQUE_PUBLIC_FIFO) {
-
+	BbqueRPC() {
 	DB(fprintf(stderr, FD("Building FIFO RPC channel\n")));
 }
 

@@ -67,7 +67,7 @@ public:
 	/**
 	 * @brief Indicates whether a starting time has been set or not
 	 */
-	bool started;
+	bool started = false;
 
 };
 

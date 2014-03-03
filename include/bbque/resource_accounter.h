@@ -429,7 +429,7 @@ private:
 	} sync_ssn;
 
 	/** The logger used by the resource accounter */
-	LoggerIF  *logger;
+	LoggerIF  *logger = NULL;
 
 	/** The Application Manager component */
 	bbque::ApplicationManager & am;
@@ -453,7 +453,7 @@ private:
 	std::list<Resource::Type_t> r_types;
 
 	/** Keep track of the max length between resources path string */
-	uint8_t path_max_len;
+	uint8_t path_max_len = 0;
 
 
 	/**
@@ -490,7 +490,7 @@ private:
 	 * committed, i.e. resources usage synchronized, this has the same value
 	 * of sys_view_token.
 	 */
-	RViewToken_t sch_view_token;
+	RViewToken_t sch_view_token = 0;
 
 	/**
 	 * Default constructor

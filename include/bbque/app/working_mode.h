@@ -324,7 +324,7 @@ private:
 	};
 
 	/** The logger used by the application manager */
-	LoggerIF  *logger;
+	LoggerIF  *logger = NULL;
 
 	/**
 	 * A pointer to the Application descriptor containing the
@@ -333,10 +333,10 @@ private:
 	AppSPtr_t owner;
 
 	/** A numerical ID  */
-	uint8_t id;
+	uint8_t id = 0;
 
 	/** A descriptive name */
-	std::string name;
+	std::string name = "UNDEF";
 
 	/** Logger messages ID string */
 	char str_id[15];

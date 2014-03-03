@@ -35,7 +35,6 @@ namespace bbque { namespace plugins {
 
 RandomSchedPol::RandomSchedPol() :
 	cm(ConfigurationManager::GetInstance()),
-	ra_view_count(0),
 	dist(0, 100) {
 
 	// Get a logger

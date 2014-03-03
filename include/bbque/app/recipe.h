@@ -201,10 +201,10 @@ private:
 	std::string pathname;
 
 	/** Priority */
-	uint8_t priority;
+	uint8_t priority = BBQUE_APP_PRIO_LEVELS - 1;
 
 	/** Expected AWM ID */
-	uint8_t last_awm_id;
+	uint8_t last_awm_id = 0;
 
 	/** The complete set of working modes descriptors defined in the recipe */
 	AwmPtrVect_t working_modes;

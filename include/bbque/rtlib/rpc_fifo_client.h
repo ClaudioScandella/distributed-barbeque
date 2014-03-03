@@ -101,17 +101,17 @@ private:
 
 	char app_fifo_filename[BBQUE_FIFO_NAME_LENGTH];
 
-	std::string app_fifo_path;
+	std::string app_fifo_path = BBQUE_PATH_VAR "/";
 
-	std::string bbque_fifo_path;
+	std::string bbque_fifo_path = BBQUE_PATH_VAR "/" BBQUE_PUBLIC_FIFO;
 
-	int client_fifo_fd;
+	int client_fifo_fd = 0;
 
-	int server_fifo_fd;
+	int server_fifo_fd = 0;
 
-	bool done;
+	bool done = false;
 
-	bool running;
+	bool running = false;
 
 	std::thread ChTrd;
 
