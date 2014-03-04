@@ -59,6 +59,10 @@ public:
 	 * @param dst_r_id The ID of the system resource to which bind
 	 * @param dst_pum A shared pointer to the map of bound resources to fill
 	 *
+	 * @param filter_rtype [optional] Type of resource to filter
+	 * @param filter_mask  [optional] IDs of the resources to include in the output
+	 * UsagesMap
+	 *
 	 * @return The number of resources on which the binding has been performed
 	 */
 	static uint32_t Bind(
@@ -66,7 +70,10 @@ public:
 			ResourceIdentifier::Type_t r_type,
 			ResID_t	src_r_id,
 			ResID_t dst_r_id,
-			UsagesMapPtr_t dst_pum);
+			UsagesMapPtr_t dst_pum,
+			ResourceIdentifier::Type_t filter_rtype =
+				ResourceIdentifier::UNDEFINED,
+			ResourceBitset * filter_mask = nullptr);
 
 	/**
 	 * @brief Retrieve IDs of a type of resource from a UsagesMap_t

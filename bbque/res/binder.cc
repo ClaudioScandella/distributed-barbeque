@@ -33,7 +33,9 @@ uint32_t ResourceBinder::Bind(
 		ResourceIdentifier::Type_t r_type,
 		ResID_t	src_r_id,
 		ResID_t dst_r_id,
-		UsagesMapPtr_t dst_pum) {
+		UsagesMapPtr_t dst_pum,
+		ResourceIdentifier::Type_t filter_rtype,
+		ResourceBitset * filter_mask) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	UsagesMap_t::const_iterator src_it, src_end;
 	ResourcePath::ExitCode_t rp_result;
@@ -72,6 +74,10 @@ uint32_t ResourceBinder::Bind(
 		// Create a new Usage object and set the binding list
 		UsagePtr_t dst_pusage(new Usage(src_pusage->GetAmount()));
 		r_list = ra.GetResources(dst_ppath);
+		if ((filter_rtype != ResourceIdentifier::UNDEFINED)
+				&& (filter_mask != nullptr))
+			dst_pusage->SetResourcesList(r_list, filter_rtype, *filter_mask);
+		else
 			dst_pusage->SetResourcesList(r_list);
 
 		// Insert the resource usage object in the output map
