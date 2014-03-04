@@ -51,6 +51,7 @@
 		);
 
 
+
 namespace bbque {
 
 ResourceAccounter & ResourceAccounter::GetInstance() {
@@ -78,9 +79,10 @@ ResourceAccounter::ResourceAccounter() :
 	sync_ssn.count = 0;
 
 	// Register set quota command
-#define CMD_SET_QUOTA ".set_quota"
-	cm.RegisterCommand(RESOURCE_ACCOUNTER_NAMESPACE CMD_SET_QUOTA, static_cast<CommandHandler*>(this),
-		"Reserve the specified quota of a resource");
+#define CMD_RESERVE "reserve"
+	cm.RegisterCommand(RESOURCE_ACCOUNTER_NAMESPACE "." CMD_RESERVE,
+		static_cast<CommandHandler*>(this),
+		"Reserve (offline) a CPU quota of a single processing element");
 }
 
 ResourceAccounter::~ResourceAccounter() {
@@ -1268,21 +1270,39 @@ void ResourceAccounter::UndoResourceBooking(
 
 int ResourceAccounter::CommandsCb(int argc, char *argv[]) {
 	uint8_t cmd_offset = ::strlen(RESOURCE_ACCOUNTER_NAMESPACE) + 1;
-	logger->Debug("Processing command [%s]", argv[0] + cmd_offset);
+	char * command_id  = argv[0] + cmd_offset;
+	logger->Info("Processing command [%s]", command_id);
 
-	if (argc != 3) {
-		logger->Error("'set_quota' expecting 2 parameters");
-		logger->Error("Usage example: bq.ra.set_quota sys0.cpu0.pe0 80");
-		return 1;
+	// Reserve CPU quota
+	if (!strncmp(CMD_RESERVE, command_id, strlen(CMD_RESERVE))) {
+		if (argc != 3) {
+			logger->Error("'%s' expecting 2 parameters.", CMD_RESERVE);
+			logger->Error("Ex: 'bq.ra.%s sys0.cpu0.pe0 80'", CMD_RESERVE);
+			return 1;
+		}
+		return ReserveHandler(argv[1], argv[2]);
 	}
 
-	uint64_t quota = atoi(argv[2]);
+	logger->Error("Unexpected command: %s", command_id);
 
-	UpdateResource(std::string(argv[1]), "", quota);
+	return 0;
+}
+
+int ResourceAccounter::ReserveHandler(char * r_path, char * value) {
+	uint64_t quota = atoi(value);
+
+	ExitCode_t ra_result = UpdateResource(r_path, "", quota);
+	if (ra_result != RA_SUCCESS) {
+		logger->Error("ReserveHandler: "
+				"cannot reserve %" PRIu64 " from '%s'", quota, r_path);
+		return 2;
+	}
+
+	logger->Info("ReserveHandler: "
+				"reserved %" PRIu64 " from '%s'", quota, r_path);
 	PrintStatusReport(0, true);
 
 	return 0;
-
 }
 
 }   // namespace bbque

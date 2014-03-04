@@ -401,6 +401,17 @@ public:
 	 */
 	int CommandsCb(int argc, char *argv[]);
 
+	/**
+	 * @brief Handler for the shell command that allows to specify a reserved
+	 * amount of resources. This means that such amount will not be allocable.
+	 *
+	 * @param r_path The resource path (char string)
+	 * @value value  The amount to reserve
+	 *
+	 * @return 0 if success, an positive integer value otherwise
+	 */
+	int ReserveHandler(char * r_path, char * value);
+
 private:
 
 	/**
