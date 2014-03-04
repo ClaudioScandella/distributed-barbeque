@@ -480,14 +480,14 @@ ResourceAccounter::ExitCode_t ResourceAccounter::CheckAvailability(
 		UsagePtr_t const & pusage(usages_it->second);
 
 		// Query the availability of the resources in the list
-		avail = QueryStatus(pusage->GetBindingList(), RA_AVAIL, vtok, papp);
+		avail = QueryStatus(pusage->GetResourcesList(), RA_AVAIL, vtok, papp);
 
 		// If the availability is less than the amount required...
 		if (avail < pusage->GetAmount()) {
 			logger->Debug("Check availability: Exceeding request for {%s}"
 					"[USG:%" PRIu64 " | AV:%" PRIu64 " | TOT:%" PRIu64 "] ",
 					rsrc_path->ToString().c_str(), pusage->GetAmount(), avail,
-					QueryStatus(pusage->GetBindingList(), RA_TOTAL));
+					QueryStatus(pusage->GetResourcesList(), RA_TOTAL));
 			return RA_ERR_USAGE_EXC;
 		}
 	}
@@ -1087,8 +1087,8 @@ ResourceAccounter::ExitCode_t ResourceAccounter::DoResourceBooking(
 		AppSPtr_t const & papp,
 		UsagePtr_t & pusage,
 		RViewToken_t vtok) {
-	ResourcePtrListIterator_t it_bind(pusage->GetBindingList().begin());
-	ResourcePtrListIterator_t end_it(pusage->GetBindingList().end());
+	ResourcePtrListIterator_t it_bind(pusage->GetResourcesList().begin());
+	ResourcePtrListIterator_t end_it(pusage->GetResourcesList().end());
 	bool first_resource = false;
 
 	// Get the set of resources referenced in the view
@@ -1123,14 +1123,14 @@ ResourceAccounter::ExitCode_t ResourceAccounter::DoResourceBooking(
 			continue;
 
 		// Keep track of the first resource granted from the bindings
-		pusage->TrackFirstBinding(papp, it_bind, vtok);
+		pusage->TrackFirstResource(papp, it_bind, vtok);
 		first_resource = true;
 	}
 
 	// Keep track of the last resource granted from the bindings (only if we
 	// are in the scheduling case)
 	if (!Synching())
-		pusage->TrackLastBinding(papp, it_bind, vtok);
+		pusage->TrackLastResource(papp, it_bind, vtok);
 
 	// Critical error: The availability of resources mismatches the one
 	// checked in the scheduling phase. This should never happen!
@@ -1256,8 +1256,8 @@ void ResourceAccounter::UndoResourceBooking(
 	ResourceSetPtr_t & rsrc_set(rsrc_view->second);
 
 	// For each resource binding release the amount allocated to the App/EXC
-	ResourcePtrListIterator_t it_bind(pusage->GetBindingList().begin());
-	ResourcePtrListIterator_t  end_it(pusage->GetBindingList().end());
+	ResourcePtrListIterator_t it_bind(pusage->GetResourcesList().begin());
+	ResourcePtrListIterator_t  end_it(pusage->GetResourcesList().end());
 	for(; usage_freed < pusage->GetAmount(); ++it_bind) {
 		assert(it_bind != end_it);
 
