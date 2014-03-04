@@ -49,16 +49,16 @@ uint32_t ResourceBinder::Bind(
 		ResourcePathPtr_t const & src_ppath(src_it->first);
 		UsagePtr_t const        & src_pusage(src_it->second);
 
-		// Replace ID of the given resource type with a new ID
 		ResourcePathPtr_t dst_ppath(new ResourcePath(src_ppath->ToString()));
 		if (dst_ppath->NumLevels() == 0)
 			return 0;
-		rp_result = dst_ppath->ReplaceID(r_type, src_r_id, dst_r_id);
 
-		// Set the bit corresponding to the bound ID
+		// Replace ID of the given resource type with the bound ID
+		rp_result = dst_ppath->ReplaceID(r_type, src_r_id, dst_r_id);
 		if (rp_result == ResourcePath::OK) {
 			DB(fprintf(stderr, FD("Bind: [%s] to [%s] done\n"),
-					src_ppath->ToString().c_str(), dst_ppath->ToString().c_str());
+					src_ppath->ToString().c_str(),
+					dst_ppath->ToString().c_str());
 			);
 			++count;
 		}
