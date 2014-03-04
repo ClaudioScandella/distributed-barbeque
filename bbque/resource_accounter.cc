@@ -1166,13 +1166,12 @@ bool ResourceAccounter::IsReshuffling(
 		while (presc && presa) {
 			logger->Debug("Checking: curr [%s:%d] vs next [%s:%d]",
 				presc->Name().c_str(),
-				presc->ApplicationUsage(puc->own_app, 0),
+				presc->ApplicationUsage(puc->owner_app, 0),
 				presa->Name().c_str(),
-				presc->ApplicationUsage(puc->own_app, pua->view_tk));
+				presc->ApplicationUsage(puc->owner_app, pua->status_view));
 			// Check for resource binding differences
-			if (presc->ApplicationUsage(puc->own_app, 0) !=
-				presc->ApplicationUsage(puc->own_app,
-					pua->view_tk)) {
+			if (presc->ApplicationUsage(puc->owner_app, 0) !=
+					presc->ApplicationUsage(puc->owner_app,	pua->status_view)) {
 				logger->Debug("AWM Shuffling detected");
 				return true;
 			}

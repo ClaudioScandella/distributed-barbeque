@@ -68,7 +68,7 @@ ResourcePtr_t Usage::GetNextResource(
 		// Return null if there are no more resource bindings
 		if ((it == bindings.end()) || (it == last_bind))
 			return ResourcePtr_t();
-	} while ((*it)->ApplicationUsage(own_app, view_tk) == 0);
+	} while ((*it)->ApplicationUsage(owner_app, status_view) == 0);
 
 	// Return the shared pointer to the resource descriptor
 	return (*it);
@@ -81,9 +81,9 @@ Usage::ExitCode_t Usage::TrackFirstBinding(
 	if (!papp)
 		return RU_ERR_NULL_POINTER;
 
-	view_tk = vtok;
-	own_app = papp;
-	first_bind = first_it;
+	status_view = vtok;
+	owner_app   = papp;
+	first_bind  = first_it;
 
 	return RU_OK;
 }
@@ -95,10 +95,10 @@ Usage::ExitCode_t Usage::TrackLastBinding(
 	if (!papp)
 		return RU_ERR_NULL_POINTER;
 
-	if (!own_app)
+	if (!owner_app)
 		return RU_ERR_APP_MISMATCH;
 
-	if (vtok != view_tk)
+	if (vtok != status_view)
 		return RU_ERR_VIEW_MISMATCH;
 
 	last_bind = last_it;
