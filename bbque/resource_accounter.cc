@@ -1134,8 +1134,10 @@ ResourceAccounter::ExitCode_t ResourceAccounter::DoResourceBooking(
 
 	// Critical error: The availability of resources mismatches the one
 	// checked in the scheduling phase. This should never happen!
-	if (requested != 0)
+	if (requested != 0) {
+		assert(requested != 0);
 		return RA_ERR_USAGE_EXC;
+	}
 
 	return RA_SUCCESS;
 }
