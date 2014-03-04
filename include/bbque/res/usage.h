@@ -60,7 +60,7 @@ typedef std::shared_ptr<UsagesMap_t> UsagesMapPtr_t;
  * includes resource requests like "tile.cluster2.pe = 4", the
  * scheduler/optimizer must define a binding between that "cluster2" and the
  * "real" cluster on the platform, to which bind the usage of 4 processing
- * elements. Thus, after that, the list "bindings", will contain the
+ * elements. Thus, after that, the list "resources", will contain the
  * descriptors of the resources "pe (processing elements)" in the cluster
  * assigned by the scheduler/optimizer module.
  */
@@ -103,33 +103,33 @@ public:
 	uint64_t GetAmount();
 
 	/**
-	 * @brief Get the entire list of resource bindings
+	 * @brief Get the entire list of resources
 	 *
-	 * @return A reference to the resource bindings list
+	 * @return A reference to the resources list
 	 */
-	ResourcePtrList_t & GetBindingList();
+	ResourcePtrList_t & GetResourcesList();
 
 	/**
-	 * @brief Set the list of resource bindings
+	 * @brief Set the list of resources
 	 *
 	 * Commonly a Usage object specifies the request of a specific
 	 * type of resource, which can be bound on a set of platform resources
-	 * (i.e. "tile0,cluster2.pe" -> "...cluster2.pe{0|1|2|...}".
-	 * The bindings list includes the pointers to all the resource descriptors
+	 * (i.e. "sys0,cpu2.pe" -> "...cpu2.pe{0|1|2|...}".
+	 * The resources list includes the pointers to all the resource descriptors
 	 * that can satisfy the request. The method initialises the iterators
-	 * pointing to the set of resource bindings effectively granted to the
+	 * pointing to the set of resources effectively granted to the
 	 * Application/EXC.
 	 *
-	 * @param bind_list The list of resource descriptor for binding
+	 * @param r_list The list of resource descriptor for binding
 	 */
-	void SetBindingList(ResourcePtrList_t & bind_list);
+	void SetResourcesList(ResourcePtrList_t & r_list);
 
 	/**
 	 * @brief Check of the resource binding list is empty
 	 *
 	 * @return true if the list is empty, false otherwise.
 	 */
-	bool EmptyBindingList();
+	bool EmptyResourcesList();
 
 	/**
 	 * @brief Get the first resource from the binding list
@@ -170,7 +170,7 @@ public:
 	 * @return RU_OK if success. RU_ERR_NULL_POINTER if the pointer to the
 	 * application is null.
 	 */
-	ExitCode_t TrackFirstBinding(AppSPtr_t const & papp,
+	ExitCode_t TrackFirstResource(AppSPtr_t const & papp,
 			ResourcePtrListIterator_t & first_it, RViewToken_t vtok);
 
 	/**
@@ -189,11 +189,11 @@ public:
 	 * @return RU_OK if success.
 	 * RU_ERR_NULL_POINTER if the pointer to the application is null.
 	 * RU_ERR_APP_MISMATCH if the application specified differs from the one
-	 * specified in TrackFirstBinding().
+	 * specified in TrackFirstResource().
 	 * RU_ERR_VIEW_MISMATCH if the state view token does not match the one set
-	 * in TrackFirstBinding().
+	 * in TrackFirstResource().
 	 */
-	ExitCode_t TrackLastBinding(AppSPtr_t const & papp,
+	ExitCode_t TrackLastResource(AppSPtr_t const & papp,
 			ResourcePtrListIterator_t & last_it, RViewToken_t vtok);
 
 private:
@@ -202,7 +202,13 @@ private:
 	uint64_t amount = 0;
 
 	/** List of resource descriptors which to the resource usage is bound */
-	ResourcePtrList_t bindings;
+	ResourcePtrList_t resources;
+
+	/** List iterator pointing to the first resource used by the App/EXC */
+	ResourcePtrListIterator_t first_resource_it;
+
+	/** List iterator pointing to the last resource used by the App/EXC */
+	ResourcePtrListIterator_t last_resource_it;
 
 	/** The application/EXC owning this resource usage */
 	AppSPtr_t owner_app;
@@ -210,11 +216,6 @@ private:
 	/** The token referencing the state view of the resource usage */
 	RViewToken_t status_view = 0;
 
-	/** List iterator pointing to the first resource used by the App/EXC */
-	ResourcePtrListIterator_t first_bind;
-
-	/** List iterator pointing to the last resource used by the App/EXC */
-	ResourcePtrListIterator_t last_bind;
 };
 
 } // namespace res

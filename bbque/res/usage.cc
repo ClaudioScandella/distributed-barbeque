@@ -26,36 +26,38 @@ Usage::Usage(uint64_t usage_amount):
 }
 
 Usage::~Usage() {
-	bindings.clear();
+	resources.clear();
 }
 
 uint64_t Usage::GetAmount() {
 	return amount;
 }
 
-ResourcePtrList_t & Usage::GetBindingList() {
-	return bindings;
+ResourcePtrList_t & Usage::GetResourcesList() {
+	return resources;
 }
 
-void Usage::SetBindingList(ResourcePtrList_t & bind_list) {
-	bindings = bind_list;
-	first_bind = bind_list.begin();
-	last_bind = bind_list.end();
+void Usage::SetResourcesList(ResourcePtrList_t & r_list) {
+	resources   = r_list;
+	first_resource_it = r_list.begin();
+	last_resource_it  = r_list.end();
 }
 
-bool Usage::EmptyBindingList() {
-	return bindings.empty();
+}
+
+bool Usage::EmptyResourcesList() {
+	return resources.empty();
 }
 
 ResourcePtr_t Usage::GetFirstResource(
 		ResourcePtrListIterator_t & it) {
-	// Check if 'first_bind' points to a valid resource descriptor
-	if (first_bind == bindings.end())
+	// Check if 'first_resource_it' points to a valid resource descriptor
+	if (first_resource_it == resources.end())
 		return ResourcePtr_t();
 
 	// Set the argument iterator and return the shared pointer to the
 	// resource descriptor
-	it = first_bind;
+	it = first_resource_it;
 	return (*it);
 }
 
@@ -65,8 +67,8 @@ ResourcePtr_t Usage::GetNextResource(
 		// Next resource used by the application
 		++it;
 
-		// Return null if there are no more resource bindings
-		if ((it == bindings.end()) || (it == last_bind))
+		// Return null if there are no more resources
+		if ((it == resources.end()) || (it == last_resource_it))
 			return ResourcePtr_t();
 	} while ((*it)->ApplicationUsage(owner_app, status_view) == 0);
 
@@ -74,7 +76,7 @@ ResourcePtr_t Usage::GetNextResource(
 	return (*it);
 }
 
-Usage::ExitCode_t Usage::TrackFirstBinding(
+Usage::ExitCode_t Usage::TrackFirstResource(
 		AppSPtr_t const & papp,
 		ResourcePtrListIterator_t & first_it,
 		RViewToken_t vtok) {
@@ -83,12 +85,12 @@ Usage::ExitCode_t Usage::TrackFirstBinding(
 
 	status_view = vtok;
 	owner_app   = papp;
-	first_bind  = first_it;
+	first_resource_it  = first_it;
 
 	return RU_OK;
 }
 
-Usage::ExitCode_t Usage::TrackLastBinding(
+Usage::ExitCode_t Usage::TrackLastResource(
 		AppSPtr_t const & papp,
 		ResourcePtrListIterator_t & last_it,
 		RViewToken_t vtok) {
@@ -101,7 +103,7 @@ Usage::ExitCode_t Usage::TrackLastBinding(
 	if (vtok != status_view)
 		return RU_ERR_VIEW_MISMATCH;
 
-	last_bind = last_it;
+	last_resource_it = last_it;
 	return RU_OK;
 }
 
