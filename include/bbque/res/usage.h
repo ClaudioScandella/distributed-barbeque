@@ -25,6 +25,7 @@
 #include <memory>
 #include <string>
 
+#include "bbque/res/bitset.h"
 #include "bbque/res/resources.h"
 #include "bbque/utils/utility.h"
 
@@ -123,6 +124,33 @@ public:
 	 * @param r_list The list of resource descriptor for binding
 	 */
 	void SetResourcesList(ResourcePtrList_t & r_list);
+
+	/**
+	 * @brief Set the a filtered list of resources
+	 *
+	 * Commonly a Usage object specifies the request of a specific
+	 * type of resource, which can be bound on a set of platform resources
+	 * (i.e. "sys0,cpu2.pe" -> "...cpu2.pe{0|1|2|...}".
+	 *
+	 * The resources list, in this case, includes the pointers to a subset of
+	 * the resource descriptors that can satisfy the request. This subset
+	 * is built on the bases of two parameters that allow the definition of a
+	 * filter criteria.
+	 *
+	 * Considering the example above, for the path "sys0,.cpu2.pe" i can
+	 * specify a filtered list of processing elements, such that it includes
+	 * only PE2 and PE3: "sys0.cpu2.pe" -> "sys0cpu2.pe{2|3}"
+	 *
+	 * @param r_list The list of resource descriptor for binding
+	 * @param filter_rtype The type of resource on which apply the
+	 * filter
+	 * @param filter_mask A bitmask where in the set bits represents the
+	 * resource ID to include in the list
+	 */
+	void SetResourcesList(
+			ResourcePtrList_t & r_list,
+			ResourceIdentifier::Type_t filter_rtype,
+			ResourceBitset & filter_mask);
 
 	/**
 	 * @brief Check of the resource binding list is empty
