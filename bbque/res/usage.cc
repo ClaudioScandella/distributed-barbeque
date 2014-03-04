@@ -38,11 +38,37 @@ ResourcePtrList_t & Usage::GetResourcesList() {
 }
 
 void Usage::SetResourcesList(ResourcePtrList_t & r_list) {
-	resources   = r_list;
+	resources         = r_list;
 	first_resource_it = r_list.begin();
 	last_resource_it  = r_list.end();
 }
 
+void Usage::SetResourcesList(
+		ResourcePtrList_t & r_list,
+		ResourceIdentifier::Type_t filter_rtype,
+		ResourceBitset & filter_mask) {
+	ResourcePtrListIterator_t r_it;
+
+	if (r_list.empty())
+		return;
+
+	resources.clear();
+	r_it = r_list.begin();
+	for (; r_it != r_list.end(); ++r_it) {
+		ResourcePtr_t rsrc(*r_it);
+
+		// Is there a filter on the resources?
+		if ((filter_rtype == rsrc->Type()) &&
+				(!filter_mask.Test((rsrc->ID()))))
+			continue;
+
+		// Copy the resource in the list and keep track of the boundary
+		// iterators
+		resources.push_back(rsrc);
+		last_resource_it = r_it;
+		if (first_resource_it == resources.end())
+			first_resource_it = r_it;
+	}
 }
 
 bool Usage::EmptyResourcesList() {
