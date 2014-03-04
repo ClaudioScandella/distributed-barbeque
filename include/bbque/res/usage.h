@@ -122,7 +122,7 @@ public:
 	 *
 	 * @param bind_list The list of resource descriptor for binding
 	 */
-	void SetBindingList(ResourcePtrList_t bind_list);
+	void SetBindingList(ResourcePtrList_t & bind_list);
 
 	/**
 	 * @brief Check of the resource binding list is empty

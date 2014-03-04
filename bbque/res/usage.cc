@@ -37,7 +37,7 @@ ResourcePtrList_t & Usage::GetBindingList() {
 	return bindings;
 }
 
-void Usage::SetBindingList(ResourcePtrList_t bind_list) {
+void Usage::SetBindingList(ResourcePtrList_t & bind_list) {
 	bindings = bind_list;
 	first_bind = bind_list.begin();
 	last_bind = bind_list.end();
