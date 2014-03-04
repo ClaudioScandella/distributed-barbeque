@@ -205,10 +205,10 @@ private:
 	ResourcePtrList_t bindings;
 
 	/** The application/EXC owning this resource usage */
-	AppSPtr_t own_app;
+	AppSPtr_t owner_app;
 
 	/** The token referencing the state view of the resource usage */
-	RViewToken_t view_tk = 0;
+	RViewToken_t status_view = 0;
 
 	/** List iterator pointing to the first resource used by the App/EXC */
 	ResourcePtrListIterator_t first_bind;

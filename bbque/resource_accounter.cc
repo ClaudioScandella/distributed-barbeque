@@ -1087,11 +1087,9 @@ ResourceAccounter::ExitCode_t ResourceAccounter::DoResourceBooking(
 		AppSPtr_t const & papp,
 		UsagePtr_t & pusage,
 		RViewToken_t vtok) {
-	bool first_resource;
-	uint64_t  requested;
-
-	// When the first resource bind has been tracked this is set false
-	first_resource = false;
+	ResourcePtrListIterator_t it_bind(pusage->GetBindingList().begin());
+	ResourcePtrListIterator_t end_it(pusage->GetBindingList().end());
+	bool first_resource = false;
 
 	// Get the set of resources referenced in the view
 	ResourceViewsMap_t::iterator rsrc_view(rsrc_per_views.find(vtok));
@@ -1099,19 +1097,18 @@ ResourceAccounter::ExitCode_t ResourceAccounter::DoResourceBooking(
 	ResourceSetPtr_t & rsrc_set(rsrc_view->second);
 
 	// Amount of resource to book
-	requested = pusage->GetAmount();
+	uint64_t requested = pusage->GetAmount();
 
 	// Get the list of resource binds
-	ResourcePtrListIterator_t it_bind(pusage->GetBindingList().begin());
-	ResourcePtrListIterator_t end_it(pusage->GetBindingList().end());
 	for (; it_bind != end_it; ++it_bind) {
+		ResourcePtr_t & rsrc(*it_bind);
+
 		// Break if the required resource has been completely allocated
 		if (requested == 0)
 			break;
 
 		// Add the current resource binding to the set of resources used in
 		// the view referenced by 'vtok'
-		ResourcePtr_t & rsrc(*it_bind);
 		rsrc_set->insert(rsrc);
 
 		// Synchronization: booking according to scheduling decisions
@@ -1152,10 +1149,9 @@ bool ResourceAccounter::IsReshuffling(
 	UsagePtr_t pua, puc;
 
 	// Loop on resources
-	for ( cuit = pum_current->begin(), auit = pum_next->begin();
-		cuit != pum_current->end() && auit != pum_next->end();
+	for (cuit = pum_current->begin(), auit = pum_next->begin();
+			cuit != pum_current->end() && auit != pum_next->end();
 			++cuit, ++auit) {
-
 		// Get the resource usages
 		puc = (*cuit).second;
 		pua = (*auit).second;
