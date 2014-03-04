@@ -37,6 +37,7 @@ uint32_t ResourceBinder::Bind(
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	UsagesMap_t::const_iterator src_it, src_end;
 	ResourcePath::ExitCode_t rp_result;
+	ResourcePtrList_t binding_list;
 	uint32_t count = 0;
 
 	// Sanity check
@@ -70,7 +71,7 @@ uint32_t ResourceBinder::Bind(
 
 		// Create a new Usage object and set the binding list
 		UsagePtr_t dst_pusage(new Usage(src_pusage->GetAmount()));
-		dst_pusage->SetBindingList(ra.GetResources(dst_ppath));
+			dst_pusage->SetBindingList(binding_list);
 
 		// Insert the resource usage object in the output map
 		dst_pum->insert(
