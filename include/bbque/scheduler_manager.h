@@ -36,13 +36,6 @@ using bbque::utils::MetricsCollector;
 
 #define SCHEDULER_MANAGER_NAMESPACE "bq.sm"
 
-#ifdef BBQUE_DEBUG
-# define BBQUE_DEFAULT_SCHEDULER_MANAGER_POLICY "random"
-#else
-# define BBQUE_DEFAULT_SCHEDULER_MANAGER_POLICY "yams"
-#endif
-
-
 namespace bbque {
 
 /**

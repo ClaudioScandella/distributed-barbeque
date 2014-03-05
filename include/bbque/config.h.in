@@ -137,7 +137,13 @@
 #define BBQUE_BUILD_FLAVOR "${BBQUE_BUILD_FLAVOR}"
 
 /*******************************************************************************
- * BarbequeRTMR Global Features
+ * BarbequeRTRM Plugins Selection
+ ******************************************************************************/
+
+#define BBQUE_SCHEDPOL_DEFAULT "${BBQUE_SCHEDPOL_DEFAULT}"
+
+/*******************************************************************************
+ * BarbequeRTRM Global Features
  ******************************************************************************/
 
 /**
