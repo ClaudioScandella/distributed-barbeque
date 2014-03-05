@@ -1,0 +1,7 @@
+config BBQUE_SCHEDPOL_YAMCA
+  bool "YaMCA"
+  default n
+  ---help---
+  YaMCA is the ancient of YaMS..
+
+

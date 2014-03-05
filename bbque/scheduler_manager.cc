@@ -92,6 +92,7 @@ SchedulerManager::SchedulerManager() :
 	am(ApplicationManager::GetInstance()),
 	mc(bu::MetricsCollector::GetInstance()),
 	sched_count(0) {
+	std::string opt_namespace((SCHEDULER_POLICY_NAMESPACE"."));
 	std::string opt_policy;
 
 	//---------- Get a logger module
@@ -103,22 +104,18 @@ SchedulerManager::SchedulerManager() :
 	}
 
 	logger->Debug("Starting resource scheduler...");
-
 	//---------- Loading module configuration
 	ConfigurationManager & cm = ConfigurationManager::GetInstance();
 	po::options_description opts_desc("Resource Scheduler Options");
 	opts_desc.add_options()
 		(MODULE_CONFIG".policy",
-		 po::value<std::string>
-		 (&opt_policy)->default_value(BBQUE_DEFAULT_SCHEDULER_MANAGER_POLICY),
-		 "The name of the optimization policy to use")
-		;
+		 po::value<std::string>(&opt_policy)->default_value(
+			 BBQUE_SCHEDPOL_DEFAULT), "The optimization policy to use");
 	po::variables_map opts_vm;
 	cm.ParseConfigurationFile(opts_desc, opts_vm);
 
 	//---------- Load the required optimization plugin
-	std::string opt_namespace(SCHEDULER_POLICY_NAMESPACE".");
-	logger->Debug("Loading optimization policy [%s%s]...",
+	logger->Info("Loading optimization policy [%s%s]...",
 			opt_namespace.c_str(), opt_policy.c_str());
 	policy = ModulesFactory::GetSchedulerPolicyModule(
 			opt_namespace + opt_policy);

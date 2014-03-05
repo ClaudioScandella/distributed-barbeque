@@ -1,16 +1,6 @@
 
 comment "BarbequeRTRM Daemon Configuration"
 
-choice
-  prompt "RPC Channel"
-
-  config BBQUE_RPC_FIFO
-    bool "FIFO based"
-    ---help---
-    Use the FIFO based RPC channel
-
-endchoice
-
 config BBQUE_TEST_PLATFORM_DATA
   bool "Use Test Platform Data (TPD)"
   default y if TARGET_ANDROID
@@ -23,6 +13,25 @@ config BBQUE_TEST_PLATFORM_DATA
   This could be a convenient way to use the BarbequeRTRM for initial
   application development and integration, without worry about daemon
   setup or requiring to run the daemon as root.
+
+
+comment "Plugins Management"
+
+menu "Scheduling Policy"
+  source "barbeque/plugins/schedpol/Kconfig"
+
+endmenu
+
+choice
+  prompt "RPC Channel"
+
+  config BBQUE_RPC_FIFO
+    bool "FIFO based"
+    ---help---
+    Use the FIFO based RPC channel
+
+endchoice
+
 
 comment "RTLib Configuration"
 
@@ -54,6 +63,7 @@ config BBQUE_RTLIB_CGROUPS_SUPPORT
   This option is useful to port easily the RTLib on platforms not supporting
   or using CGroups for run-time resources management, such as some Android
   devices.
+
 
 menu "Advanced options"
 

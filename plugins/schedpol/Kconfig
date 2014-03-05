@@ -1,0 +1,19 @@
+
+choice
+  prompt "Default scheduling policy"
+  config BBQUE_SCHEDPOL_DEFAULT_YAMS
+    bool "YaMS"
+    select BBQUE_SCHEDPOL_YAMS
+  config BBQUE_SCHEDPOL_DEFAULT_YAMCA
+    bool "YaMCA"
+    select BBQUE_SCHEDPOL_YAMCA
+  config BBQUE_SCHEDPOL_DEFAULT_RANDOM
+    bool "Random"
+    select BBQUE_SCHEDPOL_RANDOM
+##NP
+
+endchoice
+
+source barbeque/plugins/schedpol/yams/Kconfig
+source barbeque/plugins/schedpol/yamca/Kconfig
+source barbeque/plugins/schedpol/random/Kconfig
