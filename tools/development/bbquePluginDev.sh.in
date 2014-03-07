@@ -1,0 +1,255 @@
+#!/bin/bash
+
+#BOSP_BASE=${BOSP_BASE:-"/home/giuseppe/Development/BOSP"}
+BOSP_OUT=${BOSP_OUT:-@CONFIG_BOSP_RUNTIME_PATH@}
+BOSP_TEMP_PATH=$BOSP_OUT/@BBQUE_PATH_CMAKE@
+BOSP_BASE=$BOSP_OUT/../
+PLUGINS_DIR="barbeque/plugins"
+BBQUE_PLUGINS_PATH=$BOSP_BASE/$PLUGINS_DIR
+
+TAG="Custom"
+TAG_UC="CUSTOM"
+TAG_LC="custom"
+
+PLUGIN_ACTION=$1
+PLUGIN_TYPE=$2
+PLUGIN_NAME=$3
+PLUGIN_PATH="/tmp"
+PLUGIN_NAME_LC="custom"
+
+PLUGIN_TYPES=(schedpol)
+PLUGIN_ACTIONS=(create delete list help)
+PLUGINS_BUILD_FILE_NAME="CMakeLists.txt"
+PLUGINS_CONFIG_FILE_NAME="Kconfig"
+PLUGIN_FILES_PATTERN="*.cc *.h *.txt Kconfig*"
+
+
+################################ Helper Functions #############################
+
+function print_header {
+	printf "\n"
+	printf "************************************************\n"
+	printf "*                                              *\n"
+	printf "*       The BarbequeRTRM Plugin Builder        *\n"
+	printf "*                                              *\n"
+	printf "************************************************\n"
+}
+
+function parse_args {
+	# Action selection
+	case $PLUGIN_ACTION in
+		create | delete | list)
+			printf "INFO: Valid action selected: \t[%s]\n" $PLUGIN_ACTION
+			printf "************************************************\n"
+			if [ $PLUGIN_ACTION == "list" ]; then
+				return
+			fi
+			;;
+		*)
+			PLUGIN_ACTION="help"
+			return
+	esac
+
+	# Plugin type specified?
+	PLUGIN_TYPE_OK=""
+	for pt in $PLUGIN_TYPES; do
+		if [ "$PLUGIN_TYPE" == "$pt" ]; then
+			PLUGIN_TYPE_OK=1
+			break
+		fi
+	done
+
+	if [ ! $PLUGIN_TYPE_OK ]; then
+		printf "ERROR: Unexpected plugin type [%s]\n" $PLUGIN_TYPE
+		exit 255
+	fi
+	printf "INFO: Plugin type: \t%s\n" $PLUGIN_TYPE
+	if [ ! $PLUGIN_TYPE ]; then
+		printf "ERROR: Please specify the plugin type: "
+		for pt in $PLUGIN_TYPES; do
+			printf "\t%s\n" $pt
+		done
+		printf "\n\n"
+		exit 254
+	fi
+	PLUGIN_PATH=$BBQUE_PLUGINS_PATH/$PLUGIN_TYPE
+
+	if [ "$PLUGIN_ACTION" == "list" ]; then
+		return
+	fi
+
+	# Plugin name specified?
+	if [ ! $PLUGIN_NAME ]; then
+		echo "ERROR: Plugin name missing"
+		exit 253
+	fi
+	printf "INFO: Plugin name: \t%s\n" $PLUGIN_NAME
+
+	# Global variables setting
+	PLUGIN_NAME="$(tr '[:lower:]' '[:upper:]' <<< ${PLUGIN_NAME:0:1})${PLUGIN_NAME:1}"
+	PLUGIN_TYPE_UC="$(tr '[:lower:]' '[:upper:]' <<< ${PLUGIN_TYPE})"
+	PLUGIN_NAME_LC="$(tr '[:upper:]' '[:lower:]' <<< ${PLUGIN_NAME})"
+	PLUGIN_NAME_UC="$(tr '[:lower:]' '[:upper:]' <<< ${PLUGIN_NAME})"
+
+	if [ "$PLUGIN_NAME_LC" == $TAG_LC ]; then
+		printf "INFO: Plugin name not valid : %s\n" $PLUGIN_NAME
+		exit 252
+	fi
+	PLUGIN_SUBDIR=$PLUGIN_PATH/$PLUGIN_NAME_LC
+}
+
+function plugin_install {
+	# Output files
+	BUILD_FILE="$PLUGIN_PATH/$PLUGINS_BUILD_FILE_NAME"
+	CONFIG_FILE="$PLUGIN_PATH/$PLUGINS_CONFIG_FILE_NAME"
+
+	# CMake line
+	BUILD_LINE=$(printf "\nadd_subdirectory(%s)\n" $PLUGIN_NAME_LC)
+
+	# Kconfig line: enable building
+	CONFIG_LINE=$(printf "\nsource %s\n" \
+		$PLUGINS_DIR/$PLUGIN_TYPE/$PLUGIN_NAME_LC/$PLUGINS_CONFIG_FILE_NAME)
+
+	# Kconfig line: default selection
+	DEFAULT_CHOICE_LINE="  config BBQUE_"$PLUGIN_TYPE_UC"_DEFAULT_"$PLUGIN_NAME_UC"\n"
+	DEFAULT_CHOICE_LINE=$DEFAULT_CHOICE_LINE"    bool \""$PLUGIN_NAME"\"\n"
+	DEFAULT_CHOICE_LINE=$DEFAULT_CHOICE_LINE"    select BBQUE_"$PLUGIN_TYPE_UC"_"$PLUGIN_NAME_UC"\n##NP"
+
+	# Add Kconfig option
+	echo "INFO: Adding the building file..."
+	CL_EXIST=`cat $CONFIG_FILE | grep "$PLUGIN_TYPE/$PLUGIN_NAME_LC"`
+	if [ ! "$CL_EXIST" ]; then
+		echo $CONFIG_LINE >> $CONFIG_FILE
+		printf "INFO: Added plugin [%s] the configuration system [enable building]\n" $PLUGIN_NAME
+	else
+		printf "WARN: Plugin [%s] already added to configuration\n" $PLUGIN_NAME
+	fi
+
+	CD_EXIST=`cat $CONFIG_FILE | grep -e $PLUGIN_NAME -e $PLUGIN_NAME_UC`
+	if [ ! "$CD_EXIST" ]; then
+		cat $CONFIG_FILE | sed -i "s/##NP/$DEFAULT_CHOICE_LINE/g" $CONFIG_FILE
+		printf "INFO: Added plugin [%s] the configuration system [default choice]\n" $PLUGIN_NAME
+	else
+		printf "WARN: Plugin [%s] already added to configuration\n" $PLUGIN_NAME
+	fi
+
+	# Add to CMake
+	BL_EXIST=`cat $BUILD_FILE | grep $BUILD_LINE`
+	if [ ! "$BL_EXIST" ]; then
+		echo $BUILD_LINE >> $BUILD_FILE
+		printf "INFO: Added plugin [%s] the building system\n" $PLUGIN_NAME
+	else
+		printf "WARN: Plugin [%s] already added to building\n" $PLUGIN_NAME
+	fi
+}
+
+
+################################ Action functions ##########################################
+
+function plugin_create {
+	printf  "INFO: Creating [%s] plugin '%s'...\n" $PLUGIN_TYPE $PLUGIN_NAME
+
+	# Avoid overwriting tracked plugins
+	cd $PLUGIN_PATH
+	if [ -d $PLUGIN_SUBDIR ]; then
+		UNTRACKED=`git status $PLUGIN_SUBDIR | grep "Untracked"`
+		if [ -z "$UNTRACKED" ]; then
+			echo "ERROR: Forbidden to overwrite a tracked file"
+			return
+		else
+			echo "INFO: Plugin untracked"
+		fi
+	fi
+
+	# Decompress template files
+	mkdir -p $PLUGIN_SUBDIR
+	cd $PLUGIN_SUBDIR
+	tar -xf $BOSP_TEMP_PATH"/plugin_templates.tar.bz2"
+	tar -xf $BOSP_TEMP_PATH/$PLUGIN_TYPE"_templates.tar.bz2"
+
+	# String replacement and renaming
+	find  -type f | while read FILE; do
+		DST_FILE=`echo $FILE | sed "s/$TAG_LC/$PLUGIN_NAME_LC/g"`
+		echo "$(cat $FILE \
+			| sed "s/$TAG/$PLUGIN_NAME/g"        \
+			| sed "s/$TAG_UC/$PLUGIN_NAME_UC/g"  \
+			| sed "s/$TAG_LC/$PLUGIN_NAME_LC/g"  \
+		)" > $DST_FILE
+		if [ $FILE != $DST_FILE ]; then
+			rm $FILE
+		fi
+
+		# If EDITOR is defined, open it for editing source files
+		SRC_FILE=`echo $DST_FILE | grep $PLUGIN_TYPE`
+		if [ ! -z $EDITOR ] && [ ! -z $SRC_FILE ]; then
+			$EDITOR $DST_FILE &
+		fi
+	done
+
+	# Integration in the configuration and building system
+	plugin_install
+}
+
+
+function plugin_delete {
+	printf "INFO: Deleting [%s] plugin '%s'...\n" $PLUGIN_TYPE $PLUGIN_NAME_LC
+	BUILD_FILE=$PLUGIN_PATH/$PLUGINS_BUILD_FILE_NAME
+	CONFIG_FILE=$PLUGIN_PATH/$PLUGINS_CONFIG_FILE_NAME
+
+	# Remove the plugin sub-directory
+	if [ $PLUGIN_NAME -a -d $PLUGIN_SUBDIR ]; then
+		# Check if it is a tracked plugin
+		cd $PLUGIN_SUBDIR
+		UNTRACKED=`git status $PLUGIN_SUBDIR | grep "Untracked"`
+		if [ -z "$UNTRACKED" ]; then
+			echo "ERROR: Forbidden for tracked files. Do it manually by using GIT."
+			return
+		else
+			printf "INFO: Removing '%s'...\n" $PLUGIN_SUBDIR
+			rm -r $PLUGIN_SUBDIR
+		fi
+
+	else
+		echo "WARN: Cannot find plugin directory: " $PLUGIN_SUBDIR
+	fi
+
+	# Delete CMake and Kconfig lines
+	sed -i "/$PLUGIN_NAME_LC/"d $BUILD_FILE
+	sed -i "/$PLUGIN_NAME_LC/"d $CONFIG_FILE
+	echo "$(cat $CONFIG_FILE | grep -v -e $PLUGIN_NAME -e $PLUGIN_NAME_UC)" > $CONFIG_FILE
+	printf "INFO: DONE.\n"
+}
+
+function plugin_list {
+	if [ $PLUGIN_TYPE ]; then
+		printf "[%s]\n" $PLUGIN_TYPE
+	fi
+	ls  -l $BBQUE_PLUGINS_PATH/$PLUGIN_TYPE | awk '/drwx/ { print " --- "$9 }'
+	printf "\n"
+}
+
+function plugin_help {
+	printf "\n\n"
+	printf "%s ACTION [TYPE name]\n\n" $0
+	printf " * ACTION\n"
+	printf "\t%s\n" ${PLUGIN_ACTIONS[@]}
+	printf " * TYPE\n"
+	printf "\t%s\n" ${PLUGIN_TYPES[@]}
+	printf "\n\n"
+}
+
+
+
+################################ Main #########################################
+
+print_header
+parse_args
+
+case $PLUGIN_ACTION in
+	"create") plugin_create ;;
+	"delete") plugin_delete ;;
+	"list") plugin_list ;;
+	"help") plugin_help ;;
+	*) plugin_help ;;
+esac
+
