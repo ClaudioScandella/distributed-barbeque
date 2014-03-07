@@ -74,3 +74,20 @@ install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/bbqueStabilityAnalysisPlotter.sh"
 	DESTINATION ${BBQUE_PATH_BBQ}
 	COMPONENT BarbequeUTILS
 	RENAME bbque-stability-analysis)
+
+
+#----- Deploy the Plugin development script
+configure_file (
+	"${PROJECT_SOURCE_DIR}/tools/development/bbquePluginDev.sh.in"
+	"${PROJECT_BINARY_DIR}/tools/development/bbquePluginDev.sh"
+	@ONLY
+)
+install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/development/bbquePluginDev.sh"
+	DESTINATION ${BBQUE_PATH_BBQ}
+	RENAME bbque-dev-plugin
+)
+install(FILES
+	"${PROJECT_SOURCE_DIR}/tools/development/templates/plugin_templates.tar.bz2"
+	"${PROJECT_SOURCE_DIR}/tools/development/templates/schedpol_templates.tar.bz2"
+	DESTINATION ${BBQUE_PATH_CMAKE}
+)
