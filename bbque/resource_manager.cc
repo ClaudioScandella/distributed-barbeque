@@ -247,7 +247,7 @@ void ResourceManager::Unregister(const char *name) {
 
 void ResourceManager::TerminateWorkers() {
 	std::unique_lock<std::mutex> workers_ul(workers_mtx);
-	std::chrono::milliseconds timeout(300);
+	std::chrono::milliseconds timeout = std::chrono::milliseconds(300);
 
 	// Waiting for all workers to be terminated
 	for (uint8_t i = 3; i; --i) {

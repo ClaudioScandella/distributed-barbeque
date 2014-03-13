@@ -640,7 +640,6 @@ SynchronizationManager::Sync_Platform(ApplicationStatusIF::SyncState_t syncState
 
 SynchronizationManager::ExitCode_t
 SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
-	SynchronizationPolicyIF::SyncLatency_t syncLatency;
 	ExitCode_t result;
 
 	if (syncState == ApplicationStatusIF::SYNC_NONE) {
@@ -650,6 +649,7 @@ SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
 	}
 
 #ifdef CONFIG_BBQUE_YM_SYNC_FORCE
+	SynchronizationPolicyIF::SyncLatency_t syncLatency;
 
 	result = Sync_PreChange(syncState);
 	if (result != OK)
