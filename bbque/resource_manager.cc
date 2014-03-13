@@ -544,6 +544,8 @@ void ResourceManager::EvtBbqExit() {
 
 int ResourceManager::CommandsCb(int argc, char *argv[]) {
 	uint8_t cmd_offset = ::strlen(MODULE_NAMESPACE) + 1;
+	// Fix compiler warnings
+	(void)argc;
 
 	logger->Debug("Processing command [%s]", argv[0] + cmd_offset);
 

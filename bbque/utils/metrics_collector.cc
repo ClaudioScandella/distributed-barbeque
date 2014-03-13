@@ -766,6 +766,9 @@ MetricsCollector::metricClassName[MetricsCollector::CLASSES_COUNT] = {
 
 int
 MetricsCollector::CommandsCb(int argc, char *argv[]) {
+	// Avoid compiler warnings
+	(void)argc;
+	(void)argv;
 
 	logger->Debug("Dumping metrics collection...");
 	DumpMetrics();

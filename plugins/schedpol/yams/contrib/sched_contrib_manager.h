@@ -167,7 +167,7 @@ public:
 	 *
 	 * @return Array of uin16_t values
 	 */
-	inline uint16_t * const GetWeights() const {
+	inline uint16_t* GetWeights() const {
 		return sc_weights;
 	}
 

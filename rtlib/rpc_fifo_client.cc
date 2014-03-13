@@ -43,7 +43,7 @@ DB(fprintf(stderr, FD("Tx [" #RPC_MSG "] Request "\
 	rf_ ## RPC_MSG.pyl.hdr.typ,\
 	rf_ ## RPC_MSG.pyl.hdr.app_pid,\
 	rf_ ## RPC_MSG.pyl.hdr.exc_id,\
-	SIZE\
+	(uint32_t)SIZE\
 ));\
 if(::write(server_fifo_fd, (void*)&rf_ ## RPC_MSG, SIZE) <= 0) {\
 	fprintf(stderr, FE("write to BBQUE fifo FAILED [%s]\n"),\
@@ -395,7 +395,8 @@ RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_Register(pregExCtx_t prec) {
 				prec->exc_id
 			},
 			"\0",
-			"\0"
+			"\0",
+			RTLIB_LANG_UNDEF
 		}
 	};
 	::strncpy(rf_EXC_REGISTER.pyl.exc_name, prec->name.c_str(),

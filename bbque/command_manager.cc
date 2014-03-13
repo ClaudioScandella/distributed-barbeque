@@ -76,6 +76,9 @@ std::mutex mCommands_mtx;
 
 int CommandManager::CommandsCb(int argc, char *argv[]) {
 	uint8_t num = 0;
+	// Fix compiler warnings
+	(void) argc;
+	(void) argv;
 
 	logger->Notice("List of supported commands:");
 	for_each(mCommands.begin(), mCommands.end(),
