@@ -41,6 +41,14 @@ get_filename_component(_gitdescmoddir ${CMAKE_CURRENT_LIST_FILE} PATH)
 
 function(get_git_head_revision _refspecvar _hashvar)
 	set(GIT_DIR "${CMAKE_SOURCE_DIR}/.git")
+	# Check if we are a project or a submodule
+	message ( STATUS "Checking GIT directory: [${GIT_DIR}]..." )
+	if(EXISTS "${GIT_DIR}" AND NOT IS_DIRECTORY "${GIT_DIR}")
+		file(READ "${GIT_DIR}" GIT_SUBMODULE OFFSET 8)
+		string(STRIP "${GIT_SUBMODULE}" GIT_SUBMODULE)
+		message ( STATUS "Checking for GIT submodule [${GIT_SUBMODULE}]..." )
+		set (GIT_DIR "${CMAKE_SOURCE_DIR}/${GIT_SUBMODULE}/.git")
+	endif()
 	if(NOT EXISTS "${GIT_DIR}")
 		message ( STATUS "Git tree NOT FOUND")
 		# not in git
