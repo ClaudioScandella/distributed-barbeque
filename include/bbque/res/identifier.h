@@ -33,7 +33,6 @@
 #define R_TYPE_INTERCONNECT  64
 #define R_TYPE_IO            128
 
-#define MAX_R_ID_NUM         64
 #define R_ID_ANY            -1
 #define R_ID_NONE           -2
 

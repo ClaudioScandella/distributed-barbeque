@@ -31,16 +31,6 @@
 #endif
 
 /**
- * @brief Default MAX number of CPUs per socket
- */
-#define DEFAULT_MAX_CPUS 16
-
-/**
- * @brief Default MAX number of MEMs node per host
- */
-#define DEFAULT_MAX_MEMS 16
-
-/**
  * @brief The CGroup expected to assigne resources to BBQ
  *
  * Resources which are assigned to Barbeque for Run-Time Management

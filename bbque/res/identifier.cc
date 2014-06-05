@@ -19,6 +19,7 @@
 #include <cstring>
 #include <string>
 
+#include "bbque/config.h"
 #include "bbque/res/identifier.h"
 
 namespace bbque { namespace res {
@@ -45,7 +46,7 @@ ResourceIdentifier::ResourceIdentifier(
 	char buff[MAX_R_NAME_LEN];
 
 	// Sanity check
-	if (((_id < R_ID_NONE)   || (_id > MAX_R_ID_NUM)) ||
+	if (((_id < R_ID_NONE)   || (_id > BBQUE_MAX_RID_NUMBER)) ||
 		((_type < UNDEFINED) || (_type > TYPE_COUNT))) {
 		type = UNDEFINED;
 		id   = R_ID_NONE;
@@ -72,7 +73,7 @@ void ResourceIdentifier::SetID(ResID_t _id) {
 	id = _id;
 	// ID boundaries check
 	if ((_id == R_ID_NONE) || (_id == R_ID_ANY) ||
-		(_id > MAX_R_ID_NUM)) {
+		(_id > BBQUE_MAX_RID_NUMBER)) {
 		id = R_ID_NONE;
 		strncpy(id_str, "", 1);
 	}

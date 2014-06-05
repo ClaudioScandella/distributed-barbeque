@@ -70,8 +70,8 @@ LinuxPP::LinuxPP() :
 #endif
 	controller("cpuset"),
 	cfsQuotaSupported(true),
-	MaxCpusCount(DEFAULT_MAX_CPUS),
-	MaxMemsCount(DEFAULT_MAX_MEMS),
+	MaxCpusCount(BBQUE_MAX_RID_NUMBER),
+	MaxMemsCount(BBQUE_MAX_RID_NUMBER),
 	refreshMode(false) {
 	ExitCode_t pp_result = OK;
 	char *mount_path = NULL;

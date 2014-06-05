@@ -61,7 +61,7 @@ public:
 	 * @return WM_SUCCESS if the binding has been correctly performed.
 	 * WM_ERR_RSRC_TYPE if the resource type specified is not correct, and
 	 * WM_BIND_ID_OVERFLOW in case of binding ID provided overflow. In this
-	 * regards the maximum number is defined by MAX_R_ID_NUM macro.
+	 * regards the maximum number is defined by BBQUE_MAX_RID_NUMBER macro.
 	 *
 	 * @note Use R_ID_ANY if you want to bind the resource without care
 	 * about its ID.

@@ -20,6 +20,7 @@
 
 #include <bitset>
 
+#include "bbque/config.h"
 #include "bbque/res/identifier.h"
 
 namespace bbque { namespace res {
@@ -113,7 +114,7 @@ public:
 
 private:
 
-	std::bitset<MAX_R_ID_NUM> bit_set;
+	std::bitset<BBQUE_MAX_RID_NUMBER> bit_set;
 
 	ResID_t first_set;
 

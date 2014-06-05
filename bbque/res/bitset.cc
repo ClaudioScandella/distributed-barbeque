@@ -37,7 +37,7 @@ ResourceBitset::ExitCode_t ResourceBitset::Set(ResID_t pos) {
 	char buff[4] = "";
 
 	// Boundary check
-	if (pos > MAX_R_ID_NUM)
+	if (pos > BBQUE_MAX_RID_NUMBER)
 		return OUT_OF_RANGE;
 	// Set bit
 	if (bit_set.test(pos))
