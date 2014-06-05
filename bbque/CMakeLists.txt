@@ -134,6 +134,7 @@ if (CONFIG_TARGET_LINUX)
 target_link_libraries(
 	barbeque
 	${CGroup_LIBRARIES}
+	${Sysfs_LIBRARIES}
 	-ldl -lrt
 )
 endif (CONFIG_TARGET_LINUX)
