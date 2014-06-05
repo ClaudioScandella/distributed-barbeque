@@ -166,6 +166,10 @@ endif (CMAKE_INSTALL_PREFIX STREQUAL "/usr/local")
 # Lookup for library dependencies
 ################################################################################
 
+# Setup CMake find path to favorite the output folder
+set (CMAKE_FIND_ROOT_PATH ${CMAKE_INSTALL_PREFIX})
+message (STATUS "Setup CMake search path to: ${CMAKE_FIND_ROOT_PATH}")
+
 # Force usage of BOSP provided BOOST installation
 set (Boost_NO_SYSTEM_PATHS ON)
 set (Boost_DETAILED_FAILURE_MSG ON)
