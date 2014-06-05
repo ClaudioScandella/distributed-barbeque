@@ -190,6 +190,18 @@
 #define BBQUE_APP_PRIO_LEVELS ${CONFIG_BBQUE_APP_PRIO_LEVELS}
 
 /**
+ * @brief Maximum number of resources
+ *
+ * Computation resources are assigned a unique ID number, which is counting
+ * from 0 up to BBQUE_MAX_RID_NUMBER - 1. These IDs are used for example to
+ * represent the CPUs of a target system or its memory nodes.
+ * Usually this value is used to dimension bitmaps data structures.
+ *
+ * An optimal number is a multiple of the target system word size.
+ */
+#define BBQUE_MAX_RID_NUMBER ${CONFIG_BBQUE_MAX_RID_NUMBER}
+
+/**
  * @brief The type used to represent UIDs
  *
  * The UID is a unique identifier for each BabrequeRTRM managed application.

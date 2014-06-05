@@ -233,6 +233,18 @@ config BBQUE_APP_PRIO_LEVELS
 
   Recipies define the priority of the corresponding Application.
 
+config BBQUE_MAX_RID_NUMBER
+  int "Maximum number of resources"
+  default 32 if TARGET_LINUX_ARM
+  default 64
+  ---help---
+  Computation resources are assigned a unique ID number, which is counting
+  from 0 up to BBQUE_MAX_RID_NUMBER - 1. These IDs are used for example to
+  represent the CPUs of a target system or its memory nodes.
+  Usually this value is used to dimension bitmaps data structures.
+
+  An optimal number is a multiple of the target system word size.
+
 config BBQUE_BUILD_TESTS
   bool "Build the TEST suite"
   default n
