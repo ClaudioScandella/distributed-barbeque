@@ -159,7 +159,7 @@ LinuxPP::~LinuxPP() {
 LinuxPP::ExitCode_t
 LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	char resourcePath[] = "sys0.cpu256.pe256";
+	char resourcePath[] = "sys0.grp256.cpu256.pe256";
 	unsigned short first_cpu_id;
 	unsigned short last_cpu_id;
 	const char *p = prlb->cpus;
@@ -200,8 +200,8 @@ LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 
 		// Get a CPU id, and register the corresponding resource path
 		sscanf(p, "%hu", &first_cpu_id);
-		snprintf(resourcePath+8, 10, "%hu.pe%d",
-				prlb->socket_id, first_cpu_id);
+		snprintf(resourcePath+8, 17, "%hu.cpu%hu.pe%d",
+				prlb->node_id, prlb->socket_id, first_cpu_id);
 		logger->Debug("PLAT LNX: %s [%s]...",
 				refreshMode ? "Refreshing" : "Registering",
 				resourcePath);
@@ -231,8 +231,8 @@ LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 		sscanf(++p, "%hu", &last_cpu_id);
 		// Register all the other CPUs of this range
 		while (++first_cpu_id <= last_cpu_id) {
-			snprintf(resourcePath+8, 10, "%hu.pe%d",
-					prlb->socket_id, first_cpu_id);
+			snprintf(resourcePath+8, 17, "%hu.cpu%hu.pe%d",
+					prlb->node_id, prlb->socket_id, first_cpu_id);
 			logger->Debug("PLAT LNX: %s [%s]...",
 					refreshMode ? "Refreshing" : "Registering",
 					resourcePath);
@@ -261,7 +261,7 @@ LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 LinuxPP::ExitCode_t
 LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	char resourcePath[] = "sys0.cpu256.mem256";
+	char resourcePath[] = "sys0.grp256.mem256";
 	unsigned short first_mem_id;
 	unsigned short last_mem_id;
 	const char *p = prlb->mems;
@@ -280,7 +280,7 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 		// Get a Memory NODE id, and register the corresponding resource path
 		sscanf(p, "%hu", &first_mem_id);
 		snprintf(resourcePath+8, 11, "%hu.mem%d",
-				prlb->socket_id, first_mem_id);
+				prlb->node_id, first_mem_id);
 		logger->Debug("PLAT LNX: %s [%s]...",
 				refreshMode ? "Refreshing" : "Registering",
 				resourcePath);
@@ -311,7 +311,7 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 		// Register all the other Memory NODEs of this range
 		while (++first_mem_id <= last_mem_id) {
 			snprintf(resourcePath+8, 11, "%hu.mem%d",
-					prlb->socket_id, first_mem_id);
+					prlb->node_id, first_mem_id);
 			logger->Debug("PLAT LNX: %s [%s]...",
 					refreshMode ? "Refreshing" : "Registering",
 					resourcePath);
