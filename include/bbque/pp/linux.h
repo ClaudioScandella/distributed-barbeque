@@ -115,6 +115,8 @@ private:
 		char *cpus = NULL;
 		char *mems = NULL;
 		char *memb = NULL;
+		std::bitset<BBQUE_MAX_RID_NUMBER> cpus_map;
+		std::bitset<BBQUE_MAX_RID_NUMBER> mems_map;
 		/** The percentage of CPUs time assigned */
 		uint16_t amount_cpus = 0;
 		/** The bytes amount of Socket MEMORY assigned */

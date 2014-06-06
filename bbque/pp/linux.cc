@@ -193,6 +193,9 @@ LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 
 #endif
 
+	// Reset map of registered CPUs
+	prlb->cpus_map &= 0x0;
+
 	while (*p) {
 
 		// Get a CPU id, and register the corresponding resource path
@@ -206,6 +209,9 @@ LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 			ra.UpdateResource(resourcePath, "", cpu_quota);
 		else
 			ra.RegisterResource(resourcePath, "", cpu_quota);
+
+		// Keep track of registered CPUs
+		prlb->cpus_map.set(first_cpu_id);
 
 		// Look-up for next CPU id
 		while (*p && (*p != ',') && (*p != '-')) {
@@ -235,6 +241,9 @@ LinuxPP::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) {
 				ra.UpdateResource(resourcePath, "", cpu_quota);
 			else
 				ra.RegisterResource(resourcePath, "", cpu_quota);
+
+			// Keep track of registered CPUs
+			prlb->cpus_map.set(first_cpu_id);
 		}
 
 		// Look-up for next CPU id
@@ -263,6 +272,9 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 	// behavior of the limit_in_bytes, but simplifies a lot the
 	// configuration and should be just enough for our purposes.
 
+	// Reset map of registered MEMs
+	prlb->mems_map &= 0x0;
+
 	while (*p) {
 
 		// Get a Memory NODE id, and register the corresponding resource path
@@ -276,6 +288,9 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 			ra.UpdateResource(resourcePath, "", limit_in_bytes);
 		else
 			ra.RegisterResource(resourcePath, "", limit_in_bytes);
+
+		// Keep track of registered CPUs
+		prlb->mems_map.set(first_mem_id);
 
 		// Look-up for next NODE id
 		while (*p && (*p != ',') && (*p != '-')) {
@@ -305,6 +320,10 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 				ra.UpdateResource(resourcePath, "", limit_in_bytes);
 			else
 				ra.RegisterResource(resourcePath, "", limit_in_bytes);
+
+			// Keep track of registered CPUs
+			prlb->mems_map.set(first_mem_id);
+
 		}
 
 		// Look-up for next CPU id
