@@ -265,12 +265,18 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 	unsigned short first_mem_id;
 	unsigned short last_mem_id;
 	const char *p = prlb->mems;
-	uint64_t limit_in_bytes = atol(prlb->memb);
+	uint64_t mem_quota = 16LU * 1024 * 1024 * 1024; // 16 GB
 
 	// NOTE: The Memory limit in bytes is used to assign the SAME quota to
 	// each memory node within the same cluster. This is not the intended
 	// behavior of the limit_in_bytes, but simplifies a lot the
 	// configuration and should be just enough for our purposes.
+
+	if (prlb->amount_memb) {
+		mem_quota = prlb->amount_memb;
+		if (mem_quota < 16LU * 1024 * 1024) // At least 16 MB
+			mem_quota = 16LU * 1024 * 1024;
+	}
 
 	// Reset map of registered MEMs
 	prlb->mems_map &= 0x0;
@@ -285,9 +291,9 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 				refreshMode ? "Refreshing" : "Registering",
 				resourcePath);
 		if (refreshMode)
-			ra.UpdateResource(resourcePath, "", limit_in_bytes);
+			ra.UpdateResource(resourcePath, "", mem_quota);
 		else
-			ra.RegisterResource(resourcePath, "", limit_in_bytes);
+			ra.RegisterResource(resourcePath, "", mem_quota);
 
 		// Keep track of registered CPUs
 		prlb->mems_map.set(first_mem_id);
@@ -317,9 +323,9 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 					resourcePath);
 
 			if (refreshMode)
-				ra.UpdateResource(resourcePath, "", limit_in_bytes);
+				ra.UpdateResource(resourcePath, "", mem_quota);
 			else
-				ra.RegisterResource(resourcePath, "", limit_in_bytes);
+				ra.RegisterResource(resourcePath, "", mem_quota);
 
 			// Keep track of registered CPUs
 			prlb->mems_map.set(first_mem_id);
@@ -460,6 +466,7 @@ LinuxPP::ParseNodeAttributes(struct cgroup_file_info &entry,
 		pp_result = PLATFORM_NODE_PARSING_FAILED;
 		goto parsing_failed;
 	}
+	prlb->amount_memb = atol(prlb->memb);
 
 	/**********************************************************************
 	 *    CPU Quota Controller
