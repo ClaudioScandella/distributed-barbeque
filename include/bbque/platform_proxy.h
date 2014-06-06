@@ -62,6 +62,14 @@ public:
 		MAPPING_FAILED
 	} ExitCode_t;
 
+	typedef struct HostDescription {
+		std::string cpu_model;
+		unsigned int cpus_count;
+		unsigned int mems_mb;
+		unsigned int mems_nodes;
+	} HostDescription_t;
+
+
 /**
  * @defgroup group_plt_prx Platform Proxy
  * @{
@@ -123,6 +131,13 @@ public:
 
 	std::string SysfsRead(std::string attribute);
 
+	const HostDescription_t & GetHostDescription() const {
+		return hostDesc;
+	}
+
+	ExitCode_t LoadHostDescription();
+
+	void DumpHostDescription();
 /**
  * @}
  * @name Resource state monitoring
@@ -179,6 +194,12 @@ protected:
 	 * @brief Sysfs mount point (default /sys)
 	 */
 	std::string sysfs_mount;
+
+	/**
+	 * @brief Descriptor of host computational resources
+	 */
+	HostDescription_t hostDesc;
+
 
 /**
  * @}

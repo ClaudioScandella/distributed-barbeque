@@ -21,6 +21,7 @@
 #include "bbque/utils/utility.h"
 #include "bbque/modules_factory.h"
 
+#include <thread>
 #include <sysfs/libsysfs.h>
 
 #ifdef CONFIG_BBQUE_TEST_PLATFORM_DATA
@@ -57,6 +58,10 @@ PlatformProxy::PlatformProxy() : Worker(),
 	sysfs_mount = mpoint;
 	sysfs_mount.shrink_to_fit();
 	logger->Info("Sysfs mount point at [%s]", sysfs_mount.c_str());
+
+	//---------- Load HOST descriptor
+	LoadHostDescription();
+
 #ifdef CONFIG_BBQUE_TEST_PLATFORM_DATA
 	// Mark the Platform Integration Layer (PIL) as initialized
 	SetPilInitialized();
@@ -136,6 +141,83 @@ PlatformProxy::SysfsRead(std::string attribute) {
 	logger->Debug("Sysfs READ [%s]:\n%s", path.c_str(), attr.c_str());
 
 	return attr;
+}
+
+PlatformProxy::ExitCode_t
+PlatformProxy::LoadHostDescription() {
+	char data[256];
+	char line[256];
+	std::string attribute;
+	int valuesToRead;
+	int value, i;
+	char *pos;
+	FILE *fd;
+
+	// CPUs information
+	hostDesc.cpus_count = std::thread::hardware_concurrency();
+	fd = fopen("/proc/cpuinfo", "r");
+	if (fd != nullptr) {
+		valuesToRead = 1;
+		while (valuesToRead && fgets(line, sizeof(line), fd) != nullptr) {
+			DB(
+			if (strlen(line) && line[strlen(line)-1] == '\n')
+				line[strlen(line)-1] = 0;
+			logger->Debug("cpuinfo [%s]", line);
+			)
+			if (hostDesc.cpu_model.empty() &&
+				strncmp(line, "model name", 10) == 0) {
+				if (line[strlen(line)-1] == '\n')
+					line[strlen(line)-1] = 0;
+				pos = strchr(line, ':');
+				hostDesc.cpu_model = pos+2;
+				valuesToRead -= 1;
+			}
+		}
+		fclose(fd);
+	}
+
+	// MEMs information
+	fd = fopen("/proc/meminfo", "r");
+	if (fd != nullptr) {
+		valuesToRead = 1;
+		while (valuesToRead && fgets(line, sizeof(line), fd)) {
+			DB(
+			if (strlen(line) && line[strlen(line)-1] == '\n')
+				line[strlen(line)-1] = 0;
+			logger->Debug("meminfo [%s]", line);
+			)
+			if (sscanf(line, "MemTotal: %d kB", &value) == 1) {
+				hostDesc.mems_mb = value / 1024;
+				valuesToRead -= 1;
+			}
+		}
+		fclose(fd);
+	}
+	// counting numa nodes, note: at least one memory node is alwasy available
+	for (i = 1; ; ++i) {
+		snprintf(data, sizeof(data), "%s/devices/system/node/node%d/numastat",
+				sysfs_mount.c_str(), i);
+		logger->Debug("memnode [%s]...", data);
+		// Just check for file existance
+		if (access(data, F_OK) == -1)
+			break;
+	}
+	hostDesc.mems_nodes = i;
+
+	DumpHostDescription();
+
+	return OK;
+}
+
+void
+PlatformProxy::DumpHostDescription() {
+	logger->Notice("Host description:\n"
+			"  CPU Model    : %s\n"
+			"  Total CPUS   : %d\n"
+			"  Total Memory : %d MB (%d NUMA node/s)",
+			hostDesc.cpu_model.c_str(),
+			hostDesc.cpus_count,
+			hostDesc.mems_mb, hostDesc.mems_nodes);
 }
 
 PlatformProxy::ExitCode_t
