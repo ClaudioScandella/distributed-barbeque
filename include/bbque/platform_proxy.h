@@ -120,6 +120,9 @@ public:
 		assert(platformIdentifier != NULL);
 		return platformIdentifier;
 	};
+
+	std::string SysfsRead(std::string attribute);
+
 /**
  * @}
  * @name Resource state monitoring
@@ -169,6 +172,13 @@ public:
 	 */
 	ExitCode_t MapResources(AppPtr_t papp, UsagesMapPtr_t pres,
 			bool excl = true);
+
+protected:
+
+	/**
+	 * @brief Sysfs mount point (default /sys)
+	 */
+	std::string sysfs_mount;
 
 /**
  * @}

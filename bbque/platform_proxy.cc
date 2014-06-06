@@ -21,6 +21,8 @@
 #include "bbque/utils/utility.h"
 #include "bbque/modules_factory.h"
 
+#include <sysfs/libsysfs.h>
+
 #ifdef CONFIG_BBQUE_TEST_PLATFORM_DATA
 # warning Using Test Platform Data (TPD)
 # define PLATFORM_PROXY PlatformProxy // Use the base class when TPD in use
@@ -45,10 +47,16 @@ namespace bbque {
 PlatformProxy::PlatformProxy() : Worker(),
 	pilInitialized(false),
 	platformIdentifier(NULL) {
+	char mpoint[SYSFS_PATH_MAX];
 
 	//---------- Setup Worker
 	Worker::Setup(BBQUE_MODULE_NAME("pp"), PLATFORM_PROXY_NAMESPACE);
 
+	//---------- Sysfs library initialization
+	sysfs_get_mnt_path(mpoint, SYSFS_PATH_MAX);
+	sysfs_mount = mpoint;
+	sysfs_mount.shrink_to_fit();
+	logger->Info("Sysfs mount point at [%s]", sysfs_mount.c_str());
 #ifdef CONFIG_BBQUE_TEST_PLATFORM_DATA
 	// Mark the Platform Integration Layer (PIL) as initialized
 	SetPilInitialized();
@@ -89,6 +97,46 @@ void PlatformProxy::Task() {
 
 }
 
+std::string
+PlatformProxy::SysfsRead(std::string attribute) {
+	struct sysfs_attribute *sysattr = NULL;
+	std::string attr;
+	std::string path;
+	int result;
+	char *p;
+
+	path = sysfs_mount + attribute;
+	logger->Debug("Sysfs READ [%s]...", path.c_str());
+
+	sysattr = sysfs_open_attribute(path.c_str());
+	if (sysattr == nullptr) {
+		DB(logger->Warn("Sysfs OPEN attribute [%s] FAILED (Error %d: %s)",
+				path.c_str(), errno, strerror(errno)));
+		return "";
+	}
+
+	result = sysfs_read_attribute(sysattr);
+	if (result != 0) {
+		DB(logger->Warn("Sysfs READ attribute [%s] FAILED (Error %d: %s)",
+				path.c_str(), errno, strerror(errno)));
+		return "";
+	}
+
+	// Trim ending newline
+	p = sysattr->value;
+	if (p != nullptr) {
+		p += strlen(sysattr->value) - 1;
+		if (p != NULL && *p == '\n')
+			*p = '\0';
+	}
+
+	attr = sysattr->value;
+	sysfs_close_attribute(sysattr);
+
+	logger->Debug("Sysfs READ [%s]:\n%s", path.c_str(), attr.c_str());
+
+	return attr;
+}
 
 PlatformProxy::ExitCode_t
 PlatformProxy::LoadPlatformData() {
