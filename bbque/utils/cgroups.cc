@@ -40,7 +40,7 @@ const char *CGroups::controller[] = {
 
 char *CGroups::mounts[CGC::COUNT] = { nullptr, };
 
-CGroups::CGResult CGroups::Init(const char *logname) {
+CGroups::CGResult CGroups::Init(const char *logname, bool mount) {
 	static bool initialized = false;
 	int result;
 
@@ -106,6 +106,7 @@ CGroups::CGResult CGroups::Read(const char *cgpath, CGSetup &cgsetup) {
 	struct cgroup_controller *pc_memory;
 	struct cgroup_controller *pc_cpu;
 	struct cgroup *pcg;
+	char *attribute;
 	int result;
 
 	// Get required CGroup path
@@ -140,13 +141,28 @@ CGroups::CGResult CGroups::Read(const char *cgpath, CGSetup &cgsetup) {
 			&cgsetup.cpuset.cpus);
 	if (result)
 		logger->Error("CGroup [%s]: read [cpuset.cpus] FAILED", cgpath);
+	result = cgroup_get_value_string(pc_cpuset, "cpuset.cpu_exclusive",
+			&attribute);
+	if (result)
+		logger->Error("CGroup [%s]: read [cpuset.cpu_exclusive] FAILED", cgpath);
+	if (attribute[0] == '1')
+		cgsetup.cpuset.cpu_exclusive = true;
+
 	result = cgroup_get_value_string(pc_cpuset, "cpuset.mems",
 			&cgsetup.cpuset.mems);
 	if (result)
 		logger->Error("CGroup [%s]: read [cpuset.mems] FAILED", cgpath);
+	result = cgroup_get_value_string(pc_cpuset, "cpuset.mem_exclusive",
+			&attribute);
+	if (result)
+		logger->Error("CGroup [%s]: read [cpuset.mem_exclusive] FAILED", cgpath);
+	if (attribute[0] == '1')
+		cgsetup.cpuset.mem_exclusive = true;
 
-	logger->Debug("CGroup [%s] => cpus: %s, mems: %s",
-			cgpath, cgsetup.cpuset.cpus, cgsetup.cpuset.mems);
+	logger->Debug("CGroup [%s] => cpus: %s [%s], mems: %s [%s]",
+			cgpath,
+			cgsetup.cpuset.cpus, cgsetup.cpuset.cpu_exclusive ? "exc" : "shr",
+			cgsetup.cpuset.mems, cgsetup.cpuset.mem_exclusive ? "exc" : "shr");
 get_cpus:
 
 	// Get CPU configuration (if available)
@@ -201,8 +217,9 @@ done:
 }
 
 CGroups::CGResult CGroups::CloneFromParent(const char *cgpath) {
+	CGResult result = CGResult::OK;
 	struct cgroup *pcg;
-	int result;
+	int error;
 
 	// Get required CGroup path
 	pcg = cgroup_new_cgroup(cgpath);
@@ -212,15 +229,17 @@ CGroups::CGResult CGroups::CloneFromParent(const char *cgpath) {
 	}
 
 	// Update the CGroup variable with kernel info
-	result = cgroup_create_cgroup_from_parent(pcg, 0);
-	if (result != 0) {
+	error = cgroup_create_cgroup_from_parent(pcg, 0);
+	if (error != 0) {
 		logger->Debug("CGroup [%s] clone FAILED (Error: %d, %s)",
-				cgpath, result, cgroup_strerror(result));
-		return CGResult::CLONE_FAILED;
+				cgpath, error, cgroup_strerror(error));
+		result = CGResult::CLONE_FAILED;
+		goto exit_error;
 	}
 
+exit_error:
 	cgroup_free(&pcg);
-	return CGResult::OK;
+	return result; 
 }
 
 CGroups::CGResult CGroups::Create(const char *cgpath,
@@ -256,12 +275,19 @@ CGroups::CGResult CGroups::Create(const char *cgpath,
 			cgsetup.cpuset.cpus);
 	if (result)
 		logger->Error("CGroup [%s]: write [cpuset.cpus] FAILED", cgpath);
+	result = cgroup_set_value_string(pc_cpuset, "cpuset.cpu_exclusive",
+			cgsetup.cpuset.cpu_exclusive ? "1" : "0");
+	if (result)
+		logger->Error("CGroup [%s]: write [cpuset.cpu_exclusive] FAILED", cgpath);
 
 	result = cgroup_set_value_string(pc_cpuset, "cpuset.mems",
 			cgsetup.cpuset.mems);
 	if (result)
 		logger->Error("CGroup [%s]: write [cpuset.mems] FAILED", cgpath);
-
+	result = cgroup_set_value_string(pc_cpuset, "cpuset.mem_exclusive",
+			cgsetup.cpuset.mem_exclusive ? "1" : "0");
+	if (result)
+		logger->Error("CGroup [%s]: write [cpuset.mem_exclusive] FAILED", cgpath);
 set_cpus:
 
 	// Set CPU configuration (if available)

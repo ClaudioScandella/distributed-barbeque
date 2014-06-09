@@ -23,15 +23,19 @@
 #include "bbque/res/binder.h"
 #include "bbque/res/resource_utils.h"
 #include "bbque/app/working_mode.h"
+#include "bbque/utils/cgroups.h"
 
 #include <cmath>
 #include <string.h>
 #include <linux/version.h>
 
+#include <sysfs/libsysfs.h>
 
 #define BBQUE_LINUXPP_PLATFORM_ID		"org.linux.cgroup"
 
+#define BBQUE_LINUXPP_HOST 			BBQUE_LINUXPP_CGROUP"/host"
 #define BBQUE_LINUXPP_SILOS 			BBQUE_LINUXPP_CGROUP"/silos"
+#define BBQUE_LINUXPP_DOMAIN 			BBQUE_LINUXPP_CGROUP"/res"
 
 #define BBQUE_LINUXPP_CPUS_PARAM 		"cpuset.cpus"
 #define BBQUE_LINUXPP_CPUP_PARAM 		"cpu.cfs_period_us"
@@ -68,17 +72,25 @@ LinuxPP::LinuxPP() :
 #ifdef CONFIG_BBQUE_OPENCL
 	oclProxy(OpenCLProxy::GetInstance()),
 #endif
-	controller("cpuset"),
 	cfsQuotaSupported(true),
 	MaxCpusCount(BBQUE_MAX_RID_NUMBER),
 	MaxMemsCount(BBQUE_MAX_RID_NUMBER),
 	refreshMode(false) {
 	ExitCode_t pp_result = OK;
-	char *mount_path = NULL;
 	int cg_result;
 
 	//---------- Loading configuration
 	po::options_description opts_desc("Resource Manager Options");
+	opts_desc.add_options()
+		(MODULE_CONFIG ".partitioned",
+		 po::value<bool>
+		 (&mdev_partitioned)->default_value(false),
+		 "Use a strictly partitioned managed device");
+	opts_desc.add_options()
+		(MODULE_CONFIG ".mdev.domains",
+		 po::value<std::string>
+		 (&mdev_domains)->default_value("LLC"),
+		 "The cache level domains to consider for CUPs grouping");
 	opts_desc.add_options()
 		(MODULE_CONFIG ".cfs_bandwidth.margin_pct",
 		 po::value<int>
@@ -104,40 +116,10 @@ LinuxPP::LinuxPP() :
 	logger->Info("CFS bandwidth control, margin %d%%, threshold: %d%%",
 			cfs_margin_pct, cfs_threshold_pct);
 
-	// Init the Control Group Library
-	cg_result = cgroup_init();
-	if (cg_result) {
-		logger->Error("PLAT LNX: CGroup Library initializaton FAILED! "
-				"(Error: %d - %s)", cg_result, cgroup_strerror(cg_result));
-		return;
-	}
+	//---------- Init Control Groups
+	InitCGroup();
 
-	cg_result = cgroup_get_subsys_mount_point(controller, &mount_path);
-	if (cg_result) {
-		logger->Error("PLAT LNX: CGroup Library mountpoint lookup FAILED! "
-				"(Error: %d - %s)", cg_result, cgroup_strerror(cg_result));
-		return;
-	}
-	logger->Info("PLAT LNX: controller [%s] mounted at [%s]",
-			controller, mount_path);
-
-
-	// TODO: check that the "bbq" cgroup already existis
-	// TODO: check that the "bbq" cgroup has CPUS and MEMS
-	// TODO: keep track of overall associated resources => this should be done
-	// by exploting the LoadPlatformData low-level method
-	// TODO: update the MaxCpusCount and MaxMemsCount
-
-	// Build "silos" CGroup to host blocked applications
-	pp_result = BuildSilosCG(psilos);
-	if (pp_result) {
-		logger->Error("PLAT LNX: Silos CGroup setup FAILED!");
-		return;
-	}
-
-	free(mount_path);
-
-	// Register a command dispatcher to handle CGroups reconfiguration
+	//---------- Register Commands
 	CommandManager &cm = CommandManager::GetInstance();
 	cm.RegisterCommand(MODULE_NAMESPACE ".refresh", static_cast<CommandHandler*>(this),
 			"Refresh CGroups resources description");
@@ -594,6 +576,8 @@ LinuxPP::_GetPlatformID() {
 	return linuxPlatformID;
 }
 
+
+#if 0
 LinuxPP::ExitCode_t
 LinuxPP::_LoadPlatformData() {
 	struct cgroup *bbq_resources = NULL;
@@ -643,7 +627,267 @@ LinuxPP::_LoadPlatformData() {
 	return pp_result;
 }
 
+#else
 
+LinuxPP::ExitCode_t
+LinuxPP::RegisterCpusGroupingNone() {
+	logger->Error("PLAT LNX: Grouping NONE not yet supported");
+	return PLATFORM_INIT_FAILED;
+}
+
+LinuxPP::ExitCode_t
+LinuxPP::RegisterCpusGroupingCache(int level) {
+	RLinuxBindingsPtr_t prlb(new
+			RLinuxBindings_t(MaxCpusCount,MaxMemsCount));
+	std::bitset<BBQUE_MAX_RID_NUMBER> cpus_map;
+	std::bitset<BBQUE_MAX_RID_NUMBER> mems_map;
+	char attr_path[SYSFS_PATH_MAX];
+	std::string attr, cpus;
+	ExitCode_t pp_result;
+	int cache_index = 0;
+	int cpu_index = 0;
+	int dlevel;
+
+	// attr = SysfsRead("/devices/system/cpu/cpu0/cache/index0/shared_cpu_list");
+	// logger->Error("CPU0, CacheL1-1, Cpus: [%s]", attr.c_str());
+
+	// Lookup for required cache level
+	for (cache_index = 0; ; ++cache_index) {
+		snprintf(attr_path, SYSFS_PATH_MAX,
+				"/devices/system/cpu/cpu0/cache/index%d/level",
+				cache_index);
+		attr = SysfsRead(attr_path);
+		if (attr.empty()) {
+			logger->Error("Sysfs: cache level lookup failed");
+			return PLATFORM_ENUMERATION_FAILED;
+		}
+		dlevel = atoi(attr.c_str());
+		logger->Debug("CPU0, Cache[%d] is level %d", cache_index, dlevel);
+		if (dlevel == level) {
+			logger->Info("Found required cache level @ index [%d]", cache_index);
+			break;
+		}
+	}
+
+	// Register CPUs grouped by cache level locality
+	do {
+
+		// --- CPUs resources registration
+		// Setup:
+		// NODE ID    => physical_package_id                  => sys.GRP
+		// SOCKET IDs => first CPU on that cache level domain => sys.grp.CPU
+		snprintf(attr_path, SYSFS_PATH_MAX,
+				"/devices/system/cpu/cpu%d/topology/physical_package_id",
+				cpu_index);
+		attr = SysfsRead(attr_path);
+		if (attr.empty())
+			break;
+		prlb->node_id = atoi(attr.c_str());
+		prlb->socket_id = cpu_index;
+
+		// CPUs local to this cache level
+		snprintf(attr_path, SYSFS_PATH_MAX,
+				"/devices/system/cpu/cpu%d/cache/index%d/shared_cpu_list",
+				cpu_index, cache_index);
+		cpus = SysfsRead(attr_path);
+		if (cpus.empty())
+			break;
+
+		strncpy(prlb->cpus, cpus.c_str(), sizeof(prlb->cpus));
+		logger->Notice("PLAT LNX: Registering CPUs [%s] @ cache level [%d]",
+				prlb->cpus, dlevel);
+
+		// Register all the CPUs local to this cache level
+		pp_result = RegisterClusterCPUs(prlb);
+		if (pp_result != OK)
+			return pp_result;
+
+		// Keep track of CPUs registered so far
+		cpus_map |= prlb->cpus_map;
+		logger->Debug("PLAT LNX: \n\tRegistered CPUs: %s\n\t     Total CPUs: %s",
+				prlb->cpus_map.to_string().c_str(),
+				cpus_map.to_string().c_str());
+
+		// Find next CPUs to register
+		for ( ; cpu_index < BBQUE_MAX_RID_NUMBER && cpus_map[cpu_index]; )
+			++cpu_index;
+
+		// --- MEMs resources registration
+		// Check if a memory node should be registered for this group
+		if (mems_map[prlb->node_id])
+			continue;
+
+		// Read NUMA node information
+		snprintf(attr_path, SYSFS_PATH_MAX,
+				"/devices/system/node/node%d/meminfo",
+				prlb->node_id);
+		attr = SysfsRead(attr_path);
+		if (attr.empty())
+			break;
+
+		// Get memory node size in [KB]
+		sscanf(attr.c_str(), "%*s%*d%*s%lu", &prlb->amount_memb);
+		prlb->amount_memb *= 1024;
+		snprintf(prlb->mems, sizeof(prlb->mems), "%d", prlb->node_id);
+		logger->Notice("PLAT LNX: Registering memory node [%d], size [%lu] bytes",
+				prlb->node_id, prlb->amount_memb);
+
+		// Regsiter Memory for this
+		pp_result = RegisterClusterMEMs(prlb);
+		if (pp_result != OK)
+			return pp_result;
+
+		// Keep track of registered memory nodes
+		mems_map |= prlb->mems_map;
+		logger->Debug("PLAT LNX: \n\tRegistered MEMs: %s\n\t     Total MEMs: %s",
+				prlb->mems_map.to_string().c_str(),
+				mems_map.to_string().c_str());
+
+	} while(true);
+
+	return OK;
+}
+
+LinuxPP::ExitCode_t
+LinuxPP::RegisterCpusGroupingCustom(int domains_count) {
+	// Configuration params
+	char cpus_conf[]       = MODULE_CONFIG "mdev.domain256.cpus";
+	char cpus_quota_conf[] = MODULE_CONFIG "mdev.domain256.cpus.quota";
+	char mems_conf[]       = MODULE_CONFIG "mdev.domain256.mems";
+	char mems_quota_conf[] = MODULE_CONFIG "mdev.domain256.mems.quota";
+	// Configuration values
+	std::string cpus, cpus_quota;
+	std::string mems, mems_quota;
+	// Configuration parsing suppport
+	po::options_description *opts_desc;
+	po::variables_map *opts_vm;
+
+	RLinuxBindingsPtr_t prlb(new
+			RLinuxBindings_t(MaxCpusCount,MaxMemsCount));
+	ExitCode_t pp_result;
+
+	if (domains_count == 0) {
+		logger->Error("Custom binding domains definition not found");
+		return PLATFORM_ENUMERATION_FAILED;
+	}
+
+	for (int domain = 1; domain <= domains_count; ++domain) {
+
+		// Setup configuration settings to parse
+		snprintf(cpus_conf, sizeof(cpus_conf),
+				MODULE_CONFIG ".mdev.domain%d.cpus", domain);
+		snprintf(cpus_quota_conf, sizeof(cpus_quota_conf),
+				MODULE_CONFIG ".mdev.domain%d.cpus.quota", domain);
+		snprintf(mems_conf, sizeof(mems_conf),
+				MODULE_CONFIG ".mdev.domain%d.mems", domain);
+		snprintf(mems_quota_conf, sizeof(mems_quota_conf),
+				MODULE_CONFIG ".mdev.domain%d.mems.quota", domain);
+
+		// Read custom domains definition from configuration file
+		// NOTE: here we use plain pointers to start with a minimum
+		// set of options to parse for each node, otherwise each time
+		// we parse also attibutes of previous nodes.
+		opts_desc = new po::options_description("Binding Domains");
+		opts_vm = new po::variables_map();
+		opts_desc->add_options()
+			(cpus_conf,       po::value<std::string>(&cpus)->default_value(""))
+			(cpus_quota_conf, po::value<std::string>(&cpus_quota)->default_value("100"))
+			(mems_conf,       po::value<std::string>(&mems)->default_value(""))
+			(mems_quota_conf, po::value<std::string>(&mems_quota)->default_value("100"))
+			;
+		ConfigurationManager::GetInstance()
+			.ParseConfigurationFile(*opts_desc, *opts_vm);
+		delete opts_desc;
+		delete opts_vm;
+
+		// Setup binding domain params
+		prlb->node_id = domain;
+		prlb->socket_id = domain;
+		strncpy(prlb->cpus, cpus.c_str(), sizeof(prlb->cpus));
+		strncpy(prlb->mems, mems.c_str(), sizeof(prlb->mems));
+
+		// CPUs quota (percent)
+		prlb->amount_cpup = 100;
+		prlb->amount_cpuq = atoi(cpus_quota.c_str());
+
+		// Memory quota (bytes)
+		prlb->amount_memb = atoi(mems_quota.c_str());
+		prlb->amount_memb *= hostDesc.mems_mb;
+		prlb->amount_memb /= 100;
+		prlb->amount_memb *= (1024 * 1024);
+
+		logger->Info("\nCustom binding domain #%02d:\n"
+				"  CPUs: %16s, quota %3s%% (per CPU)\n"
+				"  MEMs: %16s, quota %3s%%\n",
+				prlb->socket_id,
+				prlb->cpus, cpus_quota.c_str(),
+				prlb->mems, mems_quota.c_str());
+
+		// Register CPUs for this Node
+		pp_result = RegisterCluster(prlb);
+		if (pp_result != OK)
+			return pp_result;
+
+		// Setup MDEV CGroup for this domain
+		CGroupDataPtr_t pcgd;
+		pp_result = BuildDomainCG(prlb, pcgd);
+		if (pp_result != OK)
+			return pp_result;
+
+	}
+
+	// Setup HOST CGroup (if required)
+
+	// Setup SILOS CGroup
+
+	return OK;
+}
+
+LinuxPP::ExitCode_t
+LinuxPP::_LoadPlatformData() {
+	ExitCode_t pp_result = OK;
+	std::map<std::string, int> grouping_policy = {
+		{"COUNT",  -1},
+		{"NONE",    0},
+		{"L1",      1},
+		{"L2",      2},
+		{"LLC",     3},
+	};
+	int domains_count = 0;
+
+	logger->Info("PLAT LNX: SysFS based resources enumeration...");
+
+	logger->Error("Check domains[0]: %c", mdev_domains[0]);
+	// If an integer number has been specified, than we are configured in
+	// COUNT grouping policy
+	if (isdigit(mdev_domains[0])) {
+		domains_count = atoi(mdev_domains.c_str());
+		mdev_domains = "COUNT";
+	}
+
+	switch (grouping_policy[mdev_domains]) {
+	case -1:
+		logger->Info("PLAT LNX: Register CPUs with [%d] custom binding domains",
+				domains_count);
+		pp_result = RegisterCpusGroupingCustom(domains_count);
+		break;
+	case  0:
+		logger->Info("PLAT LNX: Register all CPUs without binding domains");
+		pp_result = RegisterCpusGroupingNone();
+		break;
+	case  1:
+	case  2:
+	case  3:
+		logger->Info("PLAT LNX: Register all CPUs with cache level [%s:%d] binding domains",
+			mdev_domains.c_str(), grouping_policy[mdev_domains]);
+		pp_result = RegisterCpusGroupingCache(grouping_policy[mdev_domains]);
+		break;
+	}
+
+	return pp_result;
+}
+
+#endif
 
 /*******************************************************************************
  *    Resources Mapping and Assigment to Applications
@@ -709,6 +953,62 @@ void LinuxPP::BuildSocketCGAttr(
 	dest[strlen(dest)-1] = 0;
 }
 
+
+LinuxPP::ExitCode_t
+LinuxPP::InitCGroup() {
+	bu::CGroups::CGSetup cgs;
+	ExitCode_t pp_result;
+
+	logger->Debug("PLAT LNX: Initialize CGroups subsystem...");
+
+	bu::CGroups::Init(BBQUE_MODULE_NAME("pp.lnx"));
+
+	// TODO:
+	// Check for all required Controllers being available
+	// Mount missing controllers
+
+	// Read root CGroup configuration to ensure that CPUs and MEMs
+	// exclusive flags are reset
+	bu::CGroups::Read("/", cgs);
+	cgs.cpuset.cpu_exclusive = false;
+	cgs.cpuset.mem_exclusive = false;
+
+	// Setup BBQUE CGroup
+	if (!bu::CGroups::Exists(BBQUE_LINUXPP_CGROUP))
+		bu::CGroups::Create(BBQUE_LINUXPP_CGROUP, cgs);
+
+	// Setup DOMAIN CGroup
+	if (!bu::CGroups::Exists(BBQUE_LINUXPP_DOMAIN))
+		bu::CGroups::Create(BBQUE_LINUXPP_DOMAIN, cgs);
+
+	// Setup SILOS CGroup
+	// NOTE, if more CPUs/MEMs must be allocated, than the destiation
+	// buffer should probably be resized
+	sprintf(cgs.cpuset.cpus, "0");
+	sprintf(cgs.cpuset.mems, "0");
+	if (!bu::CGroups::Exists(BBQUE_LINUXPP_SILOS))
+		bu::CGroups::Create(BBQUE_LINUXPP_SILOS, cgs);
+
+#if 0
+	// TODO: check that the "bbq" cgroup already existis
+	// TODO: check that the "bbq" cgroup has CPUS and MEMS
+	// TODO: keep track of overall associated resources => this should be done
+	// by exploting the LoadPlatformData low-level method
+	// TODO: update the MaxCpusCount and MaxMemsCount
+
+	// Build "silos" CGroup to host blocked applications
+	pp_result = BuildSilosCG(psilos);
+	if (pp_result) {
+		logger->Error("PLAT LNX: Silos CGroup setup FAILED!");
+		return;
+	}
+
+#endif
+
+
+	return OK;
+}
+
 LinuxPP::ExitCode_t
 LinuxPP::BuildCGroup(CGroupDataPtr_t &pcgd) {
 	int result;
@@ -768,6 +1068,62 @@ LinuxPP::BuildCGroup(CGroupDataPtr_t &pcgd) {
 
 	return OK;
 }
+
+LinuxPP::ExitCode_t
+LinuxPP::BuildDomainCG(RLinuxBindingsPtr_t prlb, CGroupDataPtr_t &pcgd) {
+	char cgdir[sizeof(BBQUE_LINUXPP_DOMAIN)+sizeof("/node256")+1];
+	bu::CGroups::CGSetup cgs;
+	char limit_in_bytes[24];
+	char cfs_quota_us[24];
+	int64_t cpu_quota;
+	ExitCode_t result;
+
+	logger->Debug("PLAT LNX: Building DOMAIN CGroup...");
+
+	// Build new CGroup data
+	snprintf(cgdir, sizeof(cgdir), BBQUE_LINUXPP_DOMAIN"/node%d", prlb->node_id);
+
+	// CPUSET Controller
+	cgs.cpuset.cpus = prlb->cpus;
+	cgs.cpuset.mems = prlb->mems;
+
+	// CPU Controller
+	cgs.cpu.cfs_period_us = CGSETUP_CPU_CFS_PERIOD_DEFAULT;
+	cpu_quota = (atoi(CGSETUP_CPU_CFS_PERIOD_DEFAULT) / 100) * prlb->amount_cpus;
+	snprintf(cfs_quota_us, sizeof(cfs_quota_us), "%lu", cpu_quota);
+	cgs.cpu.cfs_quota_us = cfs_quota_us;
+
+	// Memory Controller
+	snprintf(limit_in_bytes, sizeof(limit_in_bytes), "%lu", prlb->amount_memb);
+	cgs.memory.limit_in_bytes = limit_in_bytes;
+
+	// Create the DOMAIN control group
+	bu::CGroups::Create(cgdir, cgs);
+
+	return result;
+}
+
+LinuxPP::ExitCode_t
+LinuxPP::BuildHostCG(RLinuxBindingsPtr_t prlb, CGroupDataPtr_t &pcgd) {
+	ExitCode_t result;
+
+	logger->Debug("PLAT LNX: Building HOST CGroup...");
+
+	// Build new CGroup data
+	pcgd = CGroupDataPtr_t(new CGroupData_t(BBQUE_LINUXPP_HOST));
+	result = BuildCGroup(pcgd);
+	if (result != OK)
+		return result;
+
+	// Configuring domain constraints
+	result = SetupCGroup(pcgd, prlb, false, false);
+	if (result != OK)
+		logger->Error("PLAT LNX: setup CGroup from domain [%d] FAILED",
+				prlb->node_id);
+
+	return result;
+}
+
 
 LinuxPP::ExitCode_t
 LinuxPP::BuildSilosCG(CGroupDataPtr_t &pcgd) {
@@ -930,9 +1286,7 @@ LinuxPP::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 				cpus_quota, cfs_threshold_pct);
 		goto quota_enforcing_disabled;
 	}
-
-	cpus_quota = (BBQUE_LINUXPP_CPUP_DEFAULT / 100) *
-			prlb->amount_cpus;
+	cpus_quota = (BBQUE_LINUXPP_CPUP_DEFAULT / 100) * cpus_quota;
 	cgroup_set_value_int64(pcgd->pc_cpu,
 			BBQUE_LINUXPP_CPUQ_PARAM, cpus_quota);
 

@@ -44,6 +44,30 @@
 # The threshold [%] under which we enable CFS bandwidth enforcement
 # threshold_pct = 100
 
+[PlatformProxy.CGroups]
+# MDEV binding domains [L1|L2|LLC|NONE|COUNT]
+mdev.domains = LLC
+# MDEV Domain 1
+mdev.domain1.cpus = 1
+mdev.domain1.cpus.quota = 100
+mdev.domain1.mems = 0
+mdev.domain1.mems.quota = 100
+# MDEV Domain 2
+mdev.domain2.cpus = 2
+mdev.domain2.cpus.quota = 100
+mdev.domain2.mems = 0
+mdev.domain2.mems.quota = 100
+# MDEV Domain 3
+mdev.domain3.cpus = 3
+mdev.domain3.cpus.quota = 100
+mdev.domain3.mems = 0
+mdev.domain3.mems.quota = 100
+# HOST partition
+partitioned     = true
+host.cpus       = 0
+host.cpus.quota = 100
+host.mems       = 0
+host.mems.quota = 100
 
 ################################################################################
 # Scheduler Manager Options

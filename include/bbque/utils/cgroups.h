@@ -80,10 +80,13 @@ public:
 		struct {
 			char *cpus = nullptr;
 			char *mems = nullptr;
+			bool cpu_exclusive = false;
+			bool mem_exclusive = false;
 		} cpuset;
 		// CPU controller
 		struct {
 			char *cfs_period_us = nullptr;
+#define CGSETUP_CPU_CFS_PERIOD_DEFAULT "100000"
 			char *cfs_quota_us  = nullptr;
 #define CGSETUP_CPU_CFS_QUOTA_NOLIMITS "-1"
 		} cpu;
@@ -92,9 +95,16 @@ public:
 #define CGSETUP_MEMORY_NOLIMITS "18446744073709551615"
 			char *limit_in_bytes = nullptr;
 		} memory;
+		~CGSetup() {
+			free(cpuset.cpus);
+			free(cpuset.mems);
+			free(cpu.cfs_period_us);
+			free(cpu.cfs_quota_us);
+			free(memory.limit_in_bytes);
+		}
 	};
 
-	static CGResult Init(const char *logname);
+	static CGResult Init(const char *logname, bool mount = false);
 
 	static bool Exists(const char *cgpath);
 

@@ -23,6 +23,7 @@
 #include "bbque/command_manager.h"
 #include "bbque/res/bitset.h"
 #include "bbque/utils/attributes_container.h"
+#include "bbque/utils/cgroups.h"
 
 #include <libcgroup.h>
 
@@ -94,6 +95,16 @@ public:
 private:
 
 	/**
+	 * @brief If true, use a partitioned managed device
+	 */
+	bool mdev_partitioned = false;
+
+	/**
+	 * @brief Managed device binding domains policy
+	 */
+	std::string mdev_domains;
+
+	/**
 	 * @brief CFS bandwidth enforcement safety margin (default: 0%)
 	 */
 	int cfs_margin_pct    = 0;
@@ -112,6 +123,7 @@ private:
 	typedef struct RLinuxBindings {
 		unsigned short node_id = 0; ///> Maps a "tile" on Host Linux machines
 		unsigned short socket_id = 0; ///> Maps a "cluster" on SMP Linux machine
+		// struct bu::CGroups::CGSetup cgs;
 		char *cpus = NULL;
 		char *mems = NULL;
 		char *memb = NULL;
@@ -253,6 +265,9 @@ private:
 	ExitCode_t ParseNodeAttributes(struct cgroup_file_info &entry,
 			RLinuxBindingsPtr_t prlb);
 
+	ExitCode_t RegisterCpusGroupingNone();
+	ExitCode_t RegisterCpusGroupingCache(int level);
+	ExitCode_t RegisterCpusGroupingCustom(int domains_count);
 
 	const char* _GetPlatformID();
 
@@ -285,8 +300,11 @@ private:
 			br::ResourceBitset const & cpu_mask, br::Resource::Type_t r_type,
 			ba::AppPtr_t papp, br::RViewToken_t rvt);
 
+	ExitCode_t InitCGroup();
 	ExitCode_t BuildCGroup(CGroupDataPtr_t &pcgd);
 
+	ExitCode_t BuildDomainCG(RLinuxBindingsPtr_t prlb, CGroupDataPtr_t &pcgd);
+	ExitCode_t BuildHostCG(RLinuxBindingsPtr_t prlb, CGroupDataPtr_t &pcgd);
 	ExitCode_t BuildSilosCG(CGroupDataPtr_t &pcgd);
 	ExitCode_t BuildAppCG(ba::AppPtr_t papp, CGroupDataPtr_t &pcgd);
 
