@@ -51,7 +51,7 @@ struct ResourceConstraint {
 
 	ResourceConstraint():
 		lower(0),
-		upper(std::numeric_limits<uint64_t>::max()) {
+		upper(std::numeric_limits<uint32_t>::max()) {
 	}
 
 	/**
@@ -61,7 +61,7 @@ struct ResourceConstraint {
 	ResourceConstraint(ResourcePtr_t const & rsrc_ptr):
 		resource(rsrc_ptr),
 		lower(0),
-		upper(std::numeric_limits<uint64_t>::max()) {
+		upper(std::numeric_limits<uint32_t>::max()) {
 	}
 
 	/**
@@ -69,7 +69,7 @@ struct ResourceConstraint {
 	 * @param lb Lower bound value
 	 * @param ub Upper bound value
 	 */
-	ResourceConstraint(uint64_t lb, uint64_t ub):
+	ResourceConstraint(uint32_t lb, uint32_t ub):
 		lower(lb),
 		upper(ub) {
 	}
@@ -81,10 +81,10 @@ struct ResourceConstraint {
 	ResourcePtr_t resource;
 
 	/** Resource usage lower bound   */
-	uint64_t lower;
+	uint32_t lower;
 
 	/** Resource usage upper bound   */
-	uint64_t upper;
+	uint32_t upper;
 
 };
 

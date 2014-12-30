@@ -65,7 +65,7 @@ float SCReconfig::ComputeResourceProportional(
 		SchedulerPolicyIF::EvalEntity_t const & evl_ent) {
 	br::UsagesMap_t::const_iterator usage_it;
 	float reconf_cost  = 0.0;
-	uint64_t rsrc_tot;
+	uint32_t rsrc_tot;
 
 	// Resource requested by the AWM (from the recipe)
 	for (auto const & ru_entry :evl_ent.pawm->RecipeResourceUsages()) {
@@ -75,7 +75,7 @@ float SCReconfig::ComputeResourceProportional(
 		ResourcePathPtr_t r_path(new br::ResourcePath(
 			br::ResourcePathUtils::GetTemplate(usage_it->first->ToString())));
 		rsrc_tot = sv->ResourceTotal(r_path);
-		logger->Debug("%s: {%s} R:%" PRIu64 " T:%" PRIu64 "",
+		logger->Debug("%s: {%s} R:%4d T:%4d",
 				evl_ent.StrId(), r_path->ToString().c_str(),
 				pusage->GetAmount(), rsrc_tot);
 

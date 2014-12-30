@@ -1136,7 +1136,7 @@ void Application::UpdateEnabledWorkingModes() {
 Application::ExitCode_t Application::SetResourceConstraint(
 		ResourcePathPtr_t r_path,
 		br::ResourceConstraint::BoundType_t b_type,
-				uint64_t _value) {
+				uint32_t _value) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 
 	// Check the existance of the resource
@@ -1159,9 +1159,9 @@ Application::ExitCode_t Application::SetResourceConstraint(
 		rsrc_constraints[r_path]->lower = _value;
 		if (rsrc_constraints[r_path]->upper < _value)
 			rsrc_constraints[r_path]->upper =
-				std::numeric_limits<uint64_t>::max();
+				std::numeric_limits<uint32_t>::max();
 
-		logger->Debug("SetConstraint (Resources): Set on {%s} LB = %" PRIu64,
+		logger->Debug("SetConstraint (Resources): Set on {%s} LB = %d",
 				r_path->ToString().c_str(), _value);
 		break;
 
@@ -1170,7 +1170,7 @@ Application::ExitCode_t Application::SetResourceConstraint(
 		if (rsrc_constraints[r_path]->lower > _value)
 			rsrc_constraints[r_path]->lower = 0;
 
-		logger->Debug("SetConstraint (Resources): Set on {%s} UB = %" PRIu64,
+		logger->Debug("SetConstraint (Resources): Set on {%s} UB = %d",
 				r_path->ToString().c_str(), _value);
 		break;
 	}
@@ -1196,12 +1196,12 @@ Application::ExitCode_t Application::ClearResourceConstraint(
 	switch (b_type) {
 	case br::ResourceConstraint::LOWER_BOUND :
 		it_con->second->lower = 0;
-		if (it_con->second->upper == std::numeric_limits<uint64_t>::max())
+		if (it_con->second->upper == std::numeric_limits<uint32_t>::max())
 			rsrc_constraints.erase(it_con);
 		break;
 
 	case br::ResourceConstraint::UPPER_BOUND :
-		it_con->second->upper = std::numeric_limits<uint64_t>::max();
+		it_con->second->upper = std::numeric_limits<uint32_t>::max();
 		if (it_con->second->lower == 0)
 			rsrc_constraints.erase(it_con);
 		break;
@@ -1214,11 +1214,11 @@ Application::ExitCode_t Application::ClearResourceConstraint(
 }
 
 
-uint64_t Application::GetResourceUsageStat(std::string const & rsrc_path,
+uint32_t Application::GetResourceUsageStat(std::string const & rsrc_path,
 		ResourceUsageStatType_t ru_stat) {
-	uint64_t min_usage  = UINT64_MAX;
-	uint64_t max_usage  = 0;
-	uint64_t usages_sum = 0;
+	uint32_t min_usage  = UINT32_MAX;
+	uint32_t max_usage  = 0;
+	uint32_t usages_sum = 0;
 	AwmPtrList_t::iterator awm_it(awms.enabled_list.begin());
 	AwmPtrList_t::iterator awm_end(awms.enabled_list.end());
 
@@ -1231,7 +1231,7 @@ uint64_t Application::GetResourceUsageStat(std::string const & rsrc_path,
 		// Resources
 		for (; rsrc_it != rsrc_end; ++rsrc_it) {
 			ResourcePathPtr_t const & rp((*rsrc_it).first);
-			uint64_t curr_usage = ((*rsrc_it).second)->GetAmount();
+			uint32_t curr_usage = ((*rsrc_it).second)->GetAmount();
 
 			// Is current resource the one required?
 			br::ResourcePath stat_rp(rsrc_path);

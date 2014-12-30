@@ -330,7 +330,7 @@ public:
 	/**
 	 * @see ApplicationStatusIF
 	 */
-	uint64_t GetResourceUsageStat(std::string const & rsrc_path,
+	uint32_t GetResourceUsageStat(std::string const & rsrc_path,
 			ResourceUsageStatType_t ru_stat);
 
 	/**
@@ -603,7 +603,7 @@ private:
 	 * specified does not exist.
 	 */
 	ExitCode_t SetResourceConstraint(br::ResourcePathPtr_t r_path,
-			br::ResourceConstraint::BoundType_t b_type, uint64_t value);
+			br::ResourceConstraint::BoundType_t b_type, uint32_t value);
 
 	/**
 	 * @brief Remove a constraint upon a specific resource.

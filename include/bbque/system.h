@@ -154,17 +154,17 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF::Available()
 	 */
-	inline uint64_t ResourceAvailable(std::string const & path,
+	inline uint32_t ResourceAvailable(std::string const & path,
 			br::RViewToken_t vtok = 0, ba::AppCPtr_t papp = ba::AppCPtr_t()) const {
 		return ra.Available(path, vtok, papp);
 	}
 
-	inline uint64_t ResourceAvailable(ResourcePathPtr_t ppath,
+	inline uint32_t ResourceAvailable(ResourcePathPtr_t ppath,
 			br::RViewToken_t vtok = 0, AppSPtr_t papp = AppSPtr_t()) const {
 		return ra.Available(ppath, ResourceAccounter::UNDEFINED, vtok, papp);
 	}
 
-	inline uint64_t ResourceAvailable(br::ResourcePtrList_t & rsrc_list,
+	inline uint32_t ResourceAvailable(br::ResourcePtrList_t & rsrc_list,
 			br::RViewToken_t vtok = 0, ba::AppCPtr_t papp = ba::AppCPtr_t()) const {
 		return ra.Available(rsrc_list, vtok, papp);
 	}
@@ -172,32 +172,32 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF::Total()
 	 */
-	inline uint64_t ResourceTotal(std::string const & path) const {
+	inline uint32_t ResourceTotal(std::string const & path) const {
 		return ra.Total(path);
 	}
 
-	inline uint64_t ResourceTotal(ResourcePathPtr_t ppath) const {
+	inline uint32_t ResourceTotal(ResourcePathPtr_t ppath) const {
 		return ra.Total(ppath, ResourceAccounter::UNDEFINED);
 	}
 
-	inline uint64_t ResourceTotal(br::ResourcePtrList_t & rsrc_list) const {
+	inline uint32_t ResourceTotal(br::ResourcePtrList_t & rsrc_list) const {
 		return ra.Total(rsrc_list);
 	}
 
 	/**
 	 * @see ResourceAccounterStatusIF::Used()
 	 */
-	inline uint64_t ResourceUsed(std::string const & path,
+	inline uint32_t ResourceUsed(std::string const & path,
 			br::RViewToken_t vtok = 0) const {
 		return ra.Used(path, vtok);
 	}
 
-	inline uint64_t ResourceUsed(ResourcePathPtr_t ppath,
+	inline uint32_t ResourceUsed(ResourcePathPtr_t ppath,
 			br::RViewToken_t vtok = 0) const {
 		return ra.Used(ppath, ResourceAccounter::UNDEFINED, vtok);
 	}
 
-	inline uint64_t ResourceUsed(br::ResourcePtrList_t & rsrc_list,
+	inline uint32_t ResourceUsed(br::ResourcePtrList_t & rsrc_list,
 			br::RViewToken_t vtok = 0) const {
 		return ra.Used(rsrc_list, vtok);
 	}

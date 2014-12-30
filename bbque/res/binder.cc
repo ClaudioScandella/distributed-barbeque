@@ -154,7 +154,7 @@ ResourceBitset ResourceBinder::GetMask(
 
 	DB(fprintf(stderr, FD("GetMask: scope='%s%d' r='%s' view=%lu\n"),
 				br::ResourceIdentifier::TypeStr[r_scope_type], r_scope_id,
-				br::ResourceIdentifier::TypeStr[r_type], vtok););
+				br::ResourceIdentifier::TypeStr[r_type], (long) vtok););
 
 	// Scan the resource usages map
 	for (pum_it = pum->begin();	pum_it != pum->end(); ++pum_it) {

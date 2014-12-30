@@ -246,12 +246,12 @@ public:
 	 * types have been specified in the resource path string).
 	 * WM_SUCCESS if the request has been correctly added
 	 */
-	ExitCode_t AddResourceUsage(std::string const & rsrc_path, uint64_t amount);
+	ExitCode_t AddResourceUsage(std::string const & rsrc_path, uint32_t amount);
 
 	/**
 	 * @see WorkingModeStatusIF
 	 */
-	uint64_t ResourceUsageAmount(br::ResourcePathPtr_t ppath) const;
+	uint32_t ResourceUsageAmount(br::ResourcePathPtr_t ppath) const;
 
 	/**
 	 * @see WorkingModeStatusIF

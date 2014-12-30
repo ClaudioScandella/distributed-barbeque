@@ -130,9 +130,9 @@ public:
 	 *
 	 * @return The total amount of resource
 	 */
-	virtual uint64_t Total(std::string const & path) const = 0;
+	virtual uint32_t Total(std::string const & path) const = 0;
 
-	virtual uint64_t Total(br::ResourcePathPtr_t ppath,
+	virtual uint32_t Total(br::ResourcePathPtr_t ppath,
 			PathClass_t rpc = EXACT) const = 0;
 
 	/**
@@ -146,7 +146,7 @@ public:
 	 *
 	 * @return The total amount of not reserved resource
 	 */
-	virtual uint64_t Unreserved(std::string const & path) const = 0;
+	virtual uint32_t Unreserved(std::string const & path) const = 0;
 
 	/**
 	 * @brief Total amount of resource
@@ -164,7 +164,7 @@ public:
 	 *
 	 * @return The total amount of resource
 	 */
-	virtual uint64_t Total(br::ResourcePtrList_t & rsrc_list) const = 0;
+	virtual uint32_t Total(br::ResourcePtrList_t & rsrc_list) const = 0;
 
 	/**
 	 * @brief Total amount of not reserved resource
@@ -177,7 +177,7 @@ public:
 	 *
 	 * @return The total amount of not reserved resource
 	 */
-	virtual uint64_t Unreserved(br::ResourcePtrList_t & rsrc_list) const = 0;
+	virtual uint32_t Unreserved(br::ResourcePtrList_t & rsrc_list) const = 0;
 
 	/**
 	 * @brief Amount of resource available
@@ -193,10 +193,10 @@ public:
 	 *
 	 * @return The amount of resource available
 	 */
-	virtual uint64_t Available(std::string const & path, br::RViewToken_t vtok = 0,
+	virtual uint32_t Available(std::string const & path, br::RViewToken_t vtok = 0,
 			ba::AppSPtr_t papp = ba::AppSPtr_t()) const = 0;
 
-	virtual uint64_t Available(br::ResourcePathPtr_t ppath,
+	virtual uint32_t Available(br::ResourcePathPtr_t ppath,
 			PathClass_t rpc = EXACT, br::RViewToken_t vtok = 0,
 			ba::AppSPtr_t papp = ba::AppSPtr_t()) const = 0;
 
@@ -220,7 +220,7 @@ public:
 	 *
 	 * @return The amount of resource available
 	 */
-	virtual uint64_t Available(br::ResourcePtrList_t & rsrc_list,
+	virtual uint32_t Available(br::ResourcePtrList_t & rsrc_list,
 			br::RViewToken_t vtok = 0, ba::AppSPtr_t papp = ba::AppSPtr_t()) const = 0;
 
 	/**
@@ -234,10 +234,10 @@ public:
 	 *
 	 * @return The used amount of resource
 	 */
-	virtual uint64_t Used(std::string const & path, br::RViewToken_t vtok = 0)
+	virtual uint32_t Used(std::string const & path, br::RViewToken_t vtok = 0)
 		const = 0;
 
-	virtual uint64_t Used(br::ResourcePathPtr_t ppath,
+	virtual uint32_t Used(br::ResourcePathPtr_t ppath,
 			PathClass_t rpc = EXACT, br::RViewToken_t vtok = 0) const = 0;
 
 	/**
@@ -257,7 +257,7 @@ public:
 	 *
 	 * @return The used amount of resource
 	 */
-	virtual uint64_t Used(br::ResourcePtrList_t & rsrc_list, br::RViewToken_t vtok = 0)
+	virtual uint32_t Used(br::ResourcePtrList_t & rsrc_list, br::RViewToken_t vtok = 0)
 		const = 0;
 
 	/**

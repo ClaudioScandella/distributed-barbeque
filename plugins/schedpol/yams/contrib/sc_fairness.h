@@ -75,16 +75,16 @@ private:
 	std::list<br::Resource::Type_t> r_types;
 
 	/** Resource availabilities */
-	uint64_t r_avail[br::ResourceIdentifier::TYPE_COUNT];
+	uint32_t r_avail[br::ResourceIdentifier::TYPE_COUNT];
 
 	/** Lowest BD resources availability */
-	uint64_t min_bd_r_avail[br::ResourceIdentifier::TYPE_COUNT];
+	uint32_t min_bd_r_avail[br::ResourceIdentifier::TYPE_COUNT];
 
 	/** Highest BD resources availability */
-	uint64_t max_bd_r_avail[br::ResourceIdentifier::TYPE_COUNT];
+	uint32_t max_bd_r_avail[br::ResourceIdentifier::TYPE_COUNT];
 
 	/** Fair partitions */
-	uint64_t fair_pt[br::ResourceIdentifier::TYPE_COUNT];
+	uint32_t fair_pt[br::ResourceIdentifier::TYPE_COUNT];
 
 	/**
 	 * @brief Compute the congestion contribute
@@ -112,7 +112,7 @@ private:
 	 * @param penalty The un-fairness penalty of the resource
 	 * @param params Parameters structure to fill
 	 */
-	void SetIndexParameters(uint64_t bfp, uint64_t bra,	float & penalty,
+	void SetIndexParameters(uint32_t bfp, uint32_t bra,	float & penalty,
 			CLEParams_t & params);
 
 };

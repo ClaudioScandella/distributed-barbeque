@@ -441,7 +441,7 @@ uint8_t RXMLRecipeLoader::LoadResources(rapidxml::xml_node<> * _xml_elem,
 
 uint8_t RXMLRecipeLoader::AppendToWorkingMode(AwmPtr_t & wm,
 		std::string const & _res_path,
-		uint64_t _res_usage) {
+		uint32_t _res_usage) {
 	ba::WorkingModeStatusIF::ExitCode_t result;
 	// Add the resource usage to the working mode,
 	// return a "weak load" code if some resources are missing
@@ -459,7 +459,7 @@ uint8_t RXMLRecipeLoader::GetResourceAttributes(
 		rapidxml::xml_node<> * _res_elem,
 		AwmPtr_t & _wm,
 		std::string & _res_path) {
-	uint64_t res_usage = 0;
+	uint32_t res_usage = 0;
 	std::string res_units;
 	std::string res_id;
 	std::string read_usage;
@@ -481,13 +481,13 @@ uint8_t RXMLRecipeLoader::GetResourceAttributes(
 	attribute_usage = _res_elem->first_attribute("qty", 0, true);
 	if (attribute_usage != 0) {
 		read_usage = attribute_usage->value();
-		res_usage = (uint64_t) atoi(read_usage.c_str());
+		res_usage = (uint32_t) atoi(read_usage.c_str());
 	}
 	res_units = loadAttribute("units", false, _res_elem);
 
 	// The usage requested must be > 0
 	if (!(attribute_usage == 0) && res_usage <= 0) {
-		logger->Error("Resource ""%s"": usage value not valid (%" PRIu64 ")",
+		logger->Error("Resource ""%s"": usage value not valid (%d)",
 				_res_path.c_str(), res_usage);
 		return __RSRC_FORMAT_ERR;
 	}

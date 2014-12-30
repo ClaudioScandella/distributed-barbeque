@@ -166,7 +166,7 @@ public:
 	 * @param lb Lower bound value
 	 * @param ub Upper bound value
 	 */
-	void AddConstraint(std::string const & rsrc_path, uint64_t lb, uint64_t ub);
+	void AddConstraint(std::string const & rsrc_path, uint32_t lb, uint32_t ub);
 
 	/**
 	 * @brief Get all the static constraints

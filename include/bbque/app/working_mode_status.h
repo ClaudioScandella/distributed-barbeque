@@ -124,7 +124,7 @@ public:
 	 * @param r_path Resource path object (shared pointer)
 	 * @return The requested amount
 	 */
-	virtual uint64_t ResourceUsageAmount(br::ResourcePathPtr_t r_path) const = 0;
+	virtual uint32_t ResourceUsageAmount(br::ResourcePathPtr_t r_path) const = 0;
 
 	/**
 	 * @brief Return a map of all the requested resources

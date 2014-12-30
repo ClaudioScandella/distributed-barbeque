@@ -79,7 +79,7 @@ SCFairness::~SCFairness() {
 
 SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 	char r_path_str[20];
-	uint64_t bd_r_avail;
+	uint32_t bd_r_avail;
 	AppPrio_t priority;
 	std::vector<br::ResID_t>::iterator ids_it;
 	std::list<br::Resource::Type_t>::iterator type_it;
@@ -111,13 +111,13 @@ SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 					bd_id,
 					br::ResourceIdentifier::TypeStr[r_type]);
 			bd_r_avail = sv->ResourceAvailable(r_path_str, vtok);
-			logger->Debug("R{%s} availability : % " PRIu64,
+			logger->Debug("R{%s} availability : %d",
 					r_path_str, bd_r_avail);
 
 			// Update (?) the min availability value
 			if (bd_r_avail < min_bd_r_avail[r_type]) {
 				min_bd_r_avail[r_type] = bd_r_avail;
-				logger->Debug("R{%s} minAV of %s: %" PRIu64,
+				logger->Debug("R{%s} minAV of %s: %d",
 						r_path_str,
 						br::ResourceIdentifier::TypeStr[r_type],
 						min_bd_r_avail[r_type]);
@@ -126,7 +126,7 @@ SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 			// Update (?) the max availability value
 			if (bd_r_avail > max_bd_r_avail[r_type]) {
 				max_bd_r_avail[r_type] = bd_r_avail;
-				logger->Debug("R{%s} maxAV of %s: %" PRIu64,
+				logger->Debug("R{%s} maxAV of %s: %d",
 						r_path_str,
 						br::ResourceIdentifier::TypeStr[r_type],
 						max_bd_r_avail[r_type]);
@@ -135,7 +135,7 @@ SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 
 		// System-wide fair partition
 		fair_pt[r_type] = max_bd_r_avail[r_type] / num_apps;
-		logger->Debug("R{%s} maxAV: %" PRIu64 " fair partition: %" PRIu64,
+		logger->Debug("R{%s} maxAV: %d fair partition: %d",
 				r_path_str, max_bd_r_avail[r_type], fair_pt[r_type]);
 	}
 
@@ -149,8 +149,8 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 	CLEParams_t params;
 	float ru_index;
 	float penalty;
-	uint64_t bd_fract;
-	uint64_t bd_fair_pt;
+	uint32_t bd_fract;
+	uint32_t bd_fair_pt;
 	ctrib = 1.0;
 
 	// Fixed function parameters
@@ -163,7 +163,7 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		br::UsagePtr_t    const & pusage(ru_entry.second);
 
 		// Binding domain fraction (resource type related)
-		logger->Debug("%s: R{%s} BD{'%s'} maxAV: %" PRIu64 " fair: %d",
+		logger->Debug("%s: R{%s} BD{'%s'} maxAV: %d fair: %d",
 				evl_ent.StrId(), r_path->ToString().c_str(),
 				bd_info.d_path->ToString().c_str(),
 				max_bd_r_avail[r_path->Type()],
@@ -188,7 +188,7 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		bd_fair_pt = max_bd_r_avail[r_path->Type()] / bd_fract;
 		if (bd_info.count > 1)
 			bd_fair_pt = std::max(min_bd_r_avail[r_path->Type()], bd_fair_pt);
-		logger->Debug("%s: R{%s} BD{'%s'} fair partition: %" PRIu64 "",
+		logger->Debug("%s: R{%s} BD{'%s'} fair partition: %d",
 				evl_ent.StrId(), r_path->ToString().c_str(),
 				bd_info.d_path->ToString().c_str(), bd_fair_pt);
 
@@ -200,7 +200,7 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 				penalty,
 				params);
 
-		logger->Debug("%s: R{%s} requested = %" PRIu64,
+		logger->Debug("%s: R{%s} requested = %d",
 				evl_ent.StrId(),
 				r_path->ToString().c_str(),
 				pusage->GetAmount());
@@ -221,8 +221,8 @@ SCFairness::_Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 }
 
 void SCFairness::SetIndexParameters(
-		uint64_t bfp,
-		uint64_t bra,
+		uint32_t bfp,
+		uint32_t bra,
 		float & penalty,
 		CLEParams_t & params) {
 	// Linear parameters

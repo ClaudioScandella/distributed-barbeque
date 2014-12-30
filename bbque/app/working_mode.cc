@@ -81,7 +81,7 @@ WorkingMode::~WorkingMode() {
 
 WorkingMode::ExitCode_t WorkingMode::AddResourceUsage(
 		std::string const & rsrc_path,
-		uint64_t required_amount) {
+		uint32_t required_amount) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	br::ResourcePath::ExitCode_t rp_result;
 	ExitCode_t result = WM_SUCCESS;
@@ -113,7 +113,7 @@ WorkingMode::ExitCode_t WorkingMode::AddResourceUsage(
 	br::UsagePtr_t pusage(br::UsagePtr_t(new br::Usage(required_amount)));
 	resources.requested.insert(
 			std::pair<ResourcePathPtr_t, br::UsagePtr_t>(ppath, pusage));
-	logger->Debug("%s AddResourceUsage: added {%s}\t[usage: %" PRIu64 "]",
+	logger->Debug("%s AddResourceUsage: added {%s}\t[usage: %d]",
 			str_id, ppath->ToString().c_str(), required_amount);
 
 	return result;
@@ -122,7 +122,7 @@ WorkingMode::ExitCode_t WorkingMode::AddResourceUsage(
 WorkingMode::ExitCode_t WorkingMode::Validate() {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	br::UsagesMap_t::iterator usage_it, it_end;
-	uint64_t total_amount;
+	uint32_t total_amount;
 
 	// Initialization
 	usage_it = resources.requested.begin();
@@ -141,8 +141,7 @@ WorkingMode::ExitCode_t WorkingMode::Validate() {
 		// can be mapped on more than one system/HW resource.
 		total_amount = ra.Total(rcp_path, ResourceAccounter::TEMPLATE);
 		if (total_amount < rcp_pusage->GetAmount()) {
-			logger->Warn("%s Validate: {%s} usage required (%" PRIu64 ") "
-					"exceeds total (%" PRIu64 ")",
+			logger->Warn("%s Validate: {%s} usage required (%d) exceeds total (%d)",
 					str_id, rcp_path->ToString().c_str(),
 					rcp_pusage->GetAmount(), total_amount);
 			hidden = true;
@@ -154,7 +153,7 @@ WorkingMode::ExitCode_t WorkingMode::Validate() {
 	return WM_SUCCESS;
 }
 
-uint64_t WorkingMode::ResourceUsageAmount(
+uint32_t WorkingMode::ResourceUsageAmount(
 		ResourcePathPtr_t ppath) const {
 	br::UsagesMap_t::const_iterator r_it(resources.requested.begin());
 	br::UsagesMap_t::const_iterator r_end(resources.requested.end());

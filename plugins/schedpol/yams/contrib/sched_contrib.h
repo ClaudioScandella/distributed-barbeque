@@ -105,15 +105,15 @@ public:
 	 */
 	struct ResourceThresholds_t {
 		/** Maximum Saturation Level */
-		uint64_t saturate;
+		uint32_t saturate;
 		/** Current usage level (system resource state)*/
-		uint64_t usage;
+		uint32_t usage;
 		/** Amount of resource remaining before reaching the saturation */
-		uint64_t free;
+		uint32_t free;
 		/** Difference between saturation and free resources */
-		uint64_t sat_lack;
+		uint32_t sat_lack;
 		/** Total amount of resource */
-		uint64_t total;
+		uint32_t total;
 	};
 
 	/**
@@ -283,7 +283,7 @@ protected:
 	 * @param rt The structure filled with the information regarding the
 	 * resource thresholds information
 	 */
-	 void GetResourceThresholds(ResourcePathPtr_t r_path, uint64_t amount,
+	 void GetResourceThresholds(ResourcePathPtr_t r_path, uint32_t amount,
 			 SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 			 ResourceThresholds_t & rt);
 
@@ -315,7 +315,7 @@ protected:
 	  *
 	  * @return The index value
 	  */
-	 float CLEIndex(uint64_t c_thresh, uint64_t l_thresh, float rsrc_usage,
+	 float CLEIndex(uint32_t c_thresh, uint32_t l_thresh, float rsrc_usage,
 			 CLEParams_t const & params);
 
 

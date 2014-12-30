@@ -21,7 +21,7 @@
 namespace bbque { namespace res {
 
 
-Usage::Usage(uint64_t usage_amount):
+Usage::Usage(uint32_t usage_amount):
 	amount(usage_amount) {
 }
 
@@ -29,7 +29,7 @@ Usage::~Usage() {
 	resources.clear();
 }
 
-uint64_t Usage::GetAmount() {
+uint32_t Usage::GetAmount() {
 	return amount;
 }
 

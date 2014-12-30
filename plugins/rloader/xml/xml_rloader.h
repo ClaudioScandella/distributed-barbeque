@@ -187,7 +187,7 @@ private:
 	uint8_t AppendToWorkingMode(
 			AwmPtr_t & wm,
 			std::string const & res_path,
-			uint64_t res_usage);
+			uint32_t res_usage);
 
 	/**
 	 * @brief Parse the resource data from the xml element and add the

@@ -83,8 +83,8 @@ AwmPtr_t const Recipe::AddWorkingMode(
 
 void Recipe::AddConstraint(
 		std::string const & rsrc_path,
-		uint64_t lb,
-		uint64_t ub) {
+		uint32_t lb,
+		uint32_t ub) {
 	// Check resource existance
 	ResourceAccounter & ra(ResourceAccounter::GetInstance());
 	ResourcePathPtr_t const r_path(ra.GetPath(rsrc_path));
@@ -107,7 +107,7 @@ void Recipe::AddConstraint(
 	// Insert a new constraint
 	constraints.insert(std::pair<ResourcePathPtr_t, ConstrPtr_t>(
 				r_path, ConstrPtr_t(new br::ResourceConstraint(lb, ub))));
-	logger->Debug("Constraint (new): %s L=%" PRIu64 " U=%" PRIu64,
+	logger->Debug("Constraint (new): %s L=%d U=%d",
 					r_path->ToString().c_str(),
 					constraints[r_path]->lower,
 					constraints[r_path]->upper);

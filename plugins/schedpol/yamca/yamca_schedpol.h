@@ -99,7 +99,7 @@ private:
 	uint32_t tok_counter = 0;
 
 	/** Number of clusters on the platform	 */
-	uint64_t num_clusters = 0;
+	uint32_t num_clusters = 0;
 
 	/** Keep track the clusters without available PEs */
 	std::vector<bool> clusters_full;

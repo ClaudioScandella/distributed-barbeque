@@ -85,7 +85,7 @@ SchedContrib::Compute(SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 
 void SchedContrib::GetResourceThresholds(
 		br::ResourcePathPtr_t r_path,
-		uint64_t rsrc_amount,
+		uint32_t rsrc_amount,
 		SchedulerPolicyIF::EvalEntity_t const & evl_ent,
 		ResourceThresholds_t & rl) {
 
@@ -105,14 +105,14 @@ void SchedContrib::GetResourceThresholds(
 		rl.sat_lack = rl.saturate - rl.total + rl.free;
 
 	assert(rl.sat_lack <= rl.free);
-	logger->Debug("%s: REGIONS -> usg: %" PRIu64 "| sat: %" PRIu64 "|"
-			" sat-lack: %" PRIu64 " | free: %" PRIu64 "| req: %" PRIu64 "|",
+	logger->Debug("%s: REGIONS -> "
+			" usg:%4d | sat:%4d | sat-lack:%4d | free:%4d | req:%4d |",
 			evl_ent.StrId(),
 			rl.usage, rl.saturate, rl.sat_lack, rl.free, rsrc_amount);
 }
 
-float SchedContrib::CLEIndex(uint64_t c_thresh,
-		uint64_t l_thresh,
+float SchedContrib::CLEIndex(uint32_t c_thresh,
+		uint32_t l_thresh,
 		float rsrc_amount,
 		CLEParams_t const & params) {
 	// SSR: Sub-Saturation Region

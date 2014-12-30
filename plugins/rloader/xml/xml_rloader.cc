@@ -412,7 +412,7 @@ uint8_t XMLRecipeLoader::LoadResources(ticpp::Element * _xml_elem,
 
 uint8_t XMLRecipeLoader::AppendToWorkingMode(AwmPtr_t & wm,
 		std::string const & _res_path,
-		uint64_t _res_usage) {
+		uint32_t _res_usage) {
 	ba::WorkingModeStatusIF::ExitCode_t result;
 
 	// Add the resource usage to the working mode
@@ -432,7 +432,7 @@ uint8_t XMLRecipeLoader::GetResourceAttributes(
 		ticpp::Element * _res_elem,
 		AwmPtr_t & _wm,
 		std::string & _res_path) {
-	uint64_t res_usage = 0;
+	uint32_t res_usage = 0;
 	std::string res_units;
 	std::string res_id;
 
@@ -450,7 +450,7 @@ uint8_t XMLRecipeLoader::GetResourceAttributes(
 
 	// The usage requested must be > 0
 	if (!_res_elem->GetAttribute("qty").empty() && res_usage <= 0) {
-		logger->Error("Resource ""%s"": usage value not valid (%" PRIu64 ")",
+		logger->Error("Resource ""%s"": usage value not valid (%d)",
 				_res_path.c_str(), res_usage);
 		return __RSRC_FORMAT_ERR;
 	}

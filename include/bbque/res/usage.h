@@ -89,7 +89,7 @@ public:
 	 * @brief Constructor
 	 * @param usage_amount The amount of resource usage
 	 */
-	Usage(uint64_t usage_amount);
+	Usage(uint32_t usage_amount);
 
 	/**
 	 * @brief Destructor
@@ -101,7 +101,7 @@ public:
 	 *
 	 * @return The amount of resource
 	 */
-	uint64_t GetAmount();
+	uint32_t GetAmount();
 
 	/**
 	 * @brief Get the entire list of resources
@@ -227,7 +227,7 @@ public:
 private:
 
 	/** Usage amount request */
-	uint64_t amount = 0;
+	uint32_t amount = 0;
 
 	/** List of resource descriptors which to the resource usage is bound */
 	ResourcePtrList_t resources;

@@ -26,7 +26,7 @@ namespace bbque { namespace res {
  * class Resource
  *****************************************************************************/
 
-Resource::Resource(std::string const & res_path, uint64_t tot):
+Resource::Resource(std::string const & res_path, uint32_t tot):
 	br::ResourceIdentifier(UNDEFINED, 0),
 	total(tot),
 	reserved(0),
@@ -46,7 +46,7 @@ Resource::Resource(std::string const & res_path, uint64_t tot):
 	av_profile.lastOnlineTime = 0;
 }
 
-Resource::Resource(br::ResourceIdentifier::Type_t type, br::ResID_t id, uint64_t tot):
+Resource::Resource(br::ResourceIdentifier::Type_t type, br::ResID_t id, uint32_t tot):
 	br::ResourceIdentifier(type, id),
 	total(tot),
 	reserved(0),
@@ -58,14 +58,14 @@ Resource::Resource(br::ResourceIdentifier::Type_t type, br::ResID_t id, uint64_t
 	av_profile.lastOnlineTime = 0;
 }
 
-Resource::ExitCode_t Resource::Reserve(uint64_t amount) {
+Resource::ExitCode_t Resource::Reserve(uint32_t amount) {
 
 	if (amount > total)
 		return RS_FAILED;
 
 	reserved = amount;
-	DB(fprintf(stderr, FD("Resource {%s}: update reserved to [%" PRIu64 "] "
-					"=> available [%" PRIu64 "]\n"),
+	DB(fprintf(stderr, FD("Resource {%s}: update reserved to [%d] "
+					"=> available [%d]\n"),
 				name.c_str(), reserved, total-reserved));
 	return RS_SUCCESS;
 }
@@ -99,7 +99,7 @@ void Resource::SetOnline() {
 }
 
 
-uint64_t Resource::Used(RViewToken_t vtok) {
+uint32_t Resource::Used(RViewToken_t vtok) {
 	// Retrieve the state view
 	ResourceStatePtr_t view = GetStateView(vtok);
 	if (!view)
@@ -109,8 +109,8 @@ uint64_t Resource::Used(RViewToken_t vtok) {
 	return view->used;
 }
 
-uint64_t Resource::Available(AppSPtr_t papp, RViewToken_t vtok) {
-	uint64_t total_available = Unreserved();
+uint32_t Resource::Available(AppSPtr_t papp, RViewToken_t vtok) {
+	uint32_t total_available = Unreserved();
 	ResourceStatePtr_t view;
 
 	// Offlined resources are considered not available
@@ -137,12 +137,12 @@ uint64_t Resource::Available(AppSPtr_t papp, RViewToken_t vtok) {
 
 }
 
-uint64_t Resource::ApplicationUsage(AppSPtr_t const & papp, RViewToken_t vtok) {
+uint32_t Resource::ApplicationUsage(AppSPtr_t const & papp, RViewToken_t vtok) {
 	// Retrieve the state view
 	ResourceStatePtr_t view = GetStateView(vtok);
 	if (!view) {
-		DB(fprintf(stderr, FW("Resource {%s}: cannot find view %" PRIu64 "\n"),
-					name.c_str(), vtok));
+		DB(fprintf(stderr, FW("Resource {%s}: cannot find view %lu\n"),
+					name.c_str(), (long) vtok));
 		return 0;
 	}
 
@@ -151,7 +151,7 @@ uint64_t Resource::ApplicationUsage(AppSPtr_t const & papp, RViewToken_t vtok) {
 }
 
 Resource::ExitCode_t Resource::UsedBy(AppUid_t & app_uid,
-		uint64_t & amount,
+		uint32_t & amount,
 		uint8_t idx,
 		RViewToken_t vtok) {
 	// Get the map of Apps/EXCs using the resource
@@ -182,7 +182,7 @@ Resource::ExitCode_t Resource::UsedBy(AppUid_t & app_uid,
 	return RS_NO_APPS;
 }
 
-uint64_t Resource::Acquire(AppSPtr_t const & papp, uint64_t amount,
+uint32_t Resource::Acquire(AppSPtr_t const & papp, uint32_t amount,
 		RViewToken_t vtok) {
 	// Retrieve the state view
 	ResourceStatePtr_t view = GetStateView(vtok);
@@ -192,7 +192,7 @@ uint64_t Resource::Acquire(AppSPtr_t const & papp, uint64_t amount,
 	}
 
 	// Try to set the new "used" value
-	uint64_t fut_used = view->used + amount;
+	uint32_t fut_used = view->used + amount;
 	if (fut_used > total)
 		return 0;
 
@@ -202,12 +202,12 @@ uint64_t Resource::Acquire(AppSPtr_t const & papp, uint64_t amount,
 	return amount;
 }
 
-uint64_t Resource::Release(AppSPtr_t const & papp, RViewToken_t vtok) {
+uint32_t Resource::Release(AppSPtr_t const & papp, RViewToken_t vtok) {
 	// Retrieve the state view
 	ResourceStatePtr_t view = GetStateView(vtok);
 	if (!view) {
-		DB(fprintf(stderr, FW("Resource {%s}: cannot find view %" PRIu64 "\n"),
-					name.c_str(), vtok));
+		DB(fprintf(stderr, FW("Resource {%s}: cannot find view %lu\n"),
+					name.c_str(), (long) vtok));
 		return 0;
 	}
 
@@ -220,7 +220,7 @@ uint64_t Resource::Release(AppSPtr_t const & papp, RViewToken_t vtok) {
 	}
 
 	// Decrease the used value and remove the application
-	uint64_t used_by_app = lkp->second;
+	uint32_t used_by_app = lkp->second;
 	view->used -= used_by_app;
 	view->apps.erase(papp->Uid());
 
@@ -248,7 +248,7 @@ uint16_t Resource::ApplicationsCount(AppUseQtyMap_t & apps_map,
 	return apps_map.size();
 }
 
-uint64_t Resource::ApplicationUsage(AppSPtr_t const & papp,
+uint32_t Resource::ApplicationUsage(AppSPtr_t const & papp,
 		AppUseQtyMap_t & apps_map) {
 	// Sanity check
 	if (!papp) {

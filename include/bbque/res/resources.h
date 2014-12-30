@@ -59,7 +59,7 @@ typedef ResourcePtrList_t::iterator ResourcePtrListIterator_t;
 /** Shared pointer to ResourceState object */
 typedef std::shared_ptr<ResourceState> ResourceStatePtr_t;
 /** Map of amounts of resource used by applications. Key: Application UID */
-typedef std::map<AppUid_t, uint64_t> AppUseQtyMap_t;
+typedef std::map<AppUid_t, uint32_t> AppUseQtyMap_t;
 /** Hash map collecting the state views of a resource */
 typedef std::unordered_map<RViewToken_t, ResourceStatePtr_t> RSHashMap_t;
 
@@ -93,7 +93,7 @@ struct ResourceState {
 	}
 
 	/** The amount of resource used in the system   */
-	uint64_t used;
+	uint32_t used;
 
 	/**
 	 * Amounts of resource used by each of the applications holding the
@@ -140,7 +140,7 @@ public:
 	 * @param res_path Resource path
 	 * @param tot The total amount of resource
 	 */
-	Resource(std::string const & res_path, uint64_t tot = 1);
+	Resource(std::string const & res_path, uint32_t tot = 1);
 
 
 	/**
@@ -150,7 +150,7 @@ public:
 	 * @param id Resource integer ID
 	 * @param tot The total amount of resource
 	 */
-	Resource(ResourceIdentifier::Type_t type, ResID_t id, uint64_t tot = 1);
+	Resource(ResourceIdentifier::Type_t type, ResID_t id, uint32_t tot = 1);
 
 	/**
 	 * Destructor
@@ -163,7 +163,7 @@ public:
 	 * @brief Resource total
 	 * @return The total amount of resource
 	 */
-	inline uint64_t Total() {
+	inline uint32_t Total() {
 		return total;
 	}
 
@@ -175,13 +175,13 @@ public:
 	 *
 	 * @return The amount of resources not being currently reserved
 	 */
-	inline uint64_t Unreserved() {
+	inline uint32_t Unreserved() {
 		return (total - reserved);
 	}
 
-	ExitCode_t  Reserve(uint64_t amount);
+	ExitCode_t  Reserve(uint32_t amount);
 
-	inline uint64_t Reserved() const {
+	inline uint32_t Reserved() const {
 		return reserved;
 	}
 
@@ -200,7 +200,7 @@ public:
 	 *
 	 * @return How much resource has been allocated
 	 */
-	uint64_t Used(RViewToken_t vtok = 0);
+	uint32_t Used(RViewToken_t vtok = 0);
 
 	/**
 	 * @brief Resource availability
@@ -220,7 +220,7 @@ public:
 	 * @return How much resource is still available including the amount of
 	 * resource used by the given application
 	 */
-	uint64_t Available(AppSPtr_t papp = AppSPtr_t(), RViewToken_t vtok = 0);
+	uint32_t Available(AppSPtr_t papp = AppSPtr_t(), RViewToken_t vtok = 0);
 
 	/**
 	 * @brief Count of applications using the resource
@@ -241,7 +241,7 @@ public:
 	 *
 	 * @return The 'quota' of resource used by the application
 	 */
-	uint64_t ApplicationUsage(AppSPtr_t const & papp, RViewToken_t vtok = 0);
+	uint32_t ApplicationUsage(AppSPtr_t const & papp, RViewToken_t vtok = 0);
 
 	/**
 	 * @brief Get the Uid of the idx-th App/EXC using the resource
@@ -252,7 +252,7 @@ public:
 	 * @param vtok The token referencing the resource view
 	 * @return RS_SUCCESS if the App/EXC has been found, RS_NO_APPS otherwise
 	 */
-	ExitCode_t UsedBy(AppUid_t & app_uid, uint64_t & amount, uint8_t idx = 0,
+	ExitCode_t UsedBy(AppUid_t & app_uid, uint32_t & amount, uint8_t idx = 0,
 			RViewToken_t vtok = 0); 
 
 
@@ -267,10 +267,10 @@ public:
 private:
 
 	/** The total amount of resource  */
-	uint64_t total;
+	uint32_t total;
 
 	/** The amount of resource being reserved */
-	uint64_t reserved;
+	uint32_t reserved;
 
 	/** True if this resource is currently offline */
 	bool offline;
@@ -308,7 +308,7 @@ private:
 	 * @note This method acts only upon the default state view only
 	 * @param tot The amount to set
 	 */
-	inline void SetTotal(uint64_t tot) {
+	inline void SetTotal(uint32_t tot) {
 		total = tot;
 	}
 
@@ -320,7 +320,7 @@ private:
 	 * @param vtok The token referencing the resource view
 	 * @return The amount of resource acquired if success, 0 otherwise.
 	 */
-	 uint64_t Acquire(AppSPtr_t const & papp, uint64_t amount,
+	 uint32_t Acquire(AppSPtr_t const & papp, uint32_t amount,
 			 RViewToken_t vtok = 0);
 
 	/**
@@ -332,7 +332,7 @@ private:
 	 * @param vtok The token referencing the resource view
 	 * @return The amount of resource released
 	 */
-	uint64_t Release(AppSPtr_t const & papp, RViewToken_t vtok = 0);
+	uint32_t Release(AppSPtr_t const & papp, RViewToken_t vtok = 0);
 
 	/**
 	 * @brief Apps/EXCs using the resource
@@ -354,7 +354,7 @@ private:
 	 *
 	 * @return The 'quota' of resource used by the application
 	 */
-	uint64_t ApplicationUsage(AppSPtr_t const & papp, AppUseQtyMap_t & apps_map);
+	uint32_t ApplicationUsage(AppSPtr_t const & papp, AppUseQtyMap_t & apps_map);
 
 	/**
 	 * @brief Get the view referenced by the token

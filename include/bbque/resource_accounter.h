@@ -136,26 +136,26 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	uint64_t Total(std::string const & path) const;
+	uint32_t Total(std::string const & path) const;
 
-	uint64_t Total(br::ResourcePtrList_t & rsrc_list) const;
+	uint32_t Total(br::ResourcePtrList_t & rsrc_list) const;
 
-	uint64_t Total(br::ResourcePathPtr_t ppath,	PathClass_t rpc = EXACT) const;
+	uint32_t Total(br::ResourcePathPtr_t ppath,	PathClass_t rpc = EXACT) const;
 
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	uint64_t Available(
+	uint32_t Available(
 			std::string const & path,
 			br::RViewToken_t vtok = 0,
 			ba::AppSPtr_t papp = ba::AppSPtr_t()) const;
 
-	uint64_t Available(
+	uint32_t Available(
 			br::ResourcePtrList_t & rsrc_list,
 			br::RViewToken_t vtok = 0,
 			ba::AppSPtr_t papp = ba::AppSPtr_t()) const;
 
-	uint64_t Available(
+	uint32_t Available(
 			br::ResourcePathPtr_t ppath, PathClass_t rpc = EXACT,
 			br::RViewToken_t vtok = 0,
 			ba::AppSPtr_t papp = ba::AppSPtr_t()) const;
@@ -163,21 +163,21 @@ public:
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	uint64_t Used(std::string const & path, br::RViewToken_t vtok = 0) const;
+	uint32_t Used(std::string const & path, br::RViewToken_t vtok = 0) const;
 
-	uint64_t Used(br::ResourcePtrList_t & rsrc_list, br::RViewToken_t vtok = 0) const;
+	uint32_t Used(br::ResourcePtrList_t & rsrc_list, br::RViewToken_t vtok = 0) const;
 
-	uint64_t Used(br::ResourcePathPtr_t ppath, PathClass_t rpc = EXACT,
+	uint32_t Used(br::ResourcePathPtr_t ppath, PathClass_t rpc = EXACT,
 			br::RViewToken_t vtok = 0) const;
 
 	/**
 	 * @see ResourceAccounterStatusIF
 	 */
-	uint64_t Unreserved(std::string const & path) const;
+	uint32_t Unreserved(std::string const & path) const;
 
-	uint64_t Unreserved(br::ResourcePtrList_t & rsrc_list) const;
+	uint32_t Unreserved(br::ResourcePtrList_t & rsrc_list) const;
 
-	uint64_t Unreserved(br::ResourcePathPtr_t ppath) const;
+	uint32_t Unreserved(br::ResourcePathPtr_t ppath) const;
 
 	/**
 	 * @see ResourceAccounterStatusIF
@@ -243,11 +243,11 @@ public:
 	 *
 	 * @return The amount of resource usage
 	 */
-	uint64_t GetUsageAmount(br::UsagesMapPtr_t const & pum,
+	uint32_t GetUsageAmount(br::UsagesMapPtr_t const & pum,
 			br::ResourceIdentifier::Type_t r_type,
 			br::ResourceIdentifier::Type_t r_scope_type = br::Resource::UNDEFINED) const;
 
-	uint64_t GetUsageAmount(br::UsagesMap_t const & um,
+	uint32_t GetUsageAmount(br::UsagesMap_t const & um,
 			br::ResourceIdentifier::Type_t r_type,
 			br::ResourceIdentifier::Type_t r_scope_type = br::Resource::UNDEFINED) const;
 
@@ -295,14 +295,14 @@ public:
 	 * resource descriptor cannot be allocated.
 	 */
 	ExitCode_t RegisterResource(
-			std::string const & path, std::string const & units, uint64_t amount);
+			std::string const & path, std::string const & units, uint32_t amount);
 
 	/**
 	 * @brief Update availabilies for the specified resource
 	 *
 	 */
 	ExitCode_t UpdateResource(
-			std::string const & path, std::string const & units,uint64_t amount);
+			std::string const & path, std::string const & units,uint32_t amount);
 
 	/**
 	 * @brief Book e a set of resources
@@ -365,9 +365,9 @@ public:
 	 * @return RA_SUCCESS if the reservation has been completed correctly,
 	 * RA_FAILED otherwise.
 	 */
-	ExitCode_t  ReserveResources(br::ResourcePathPtr_t ppath, uint64_t amount);
+	ExitCode_t  ReserveResources(br::ResourcePathPtr_t ppath, uint32_t amount);
 
-	ExitCode_t  ReserveResources(std::string const & path, uint64_t amount);
+	ExitCode_t  ReserveResources(std::string const & path, uint32_t amount);
 
 
 	bool  IsOfflineResource(br::ResourcePathPtr_t ppath) const;
@@ -559,7 +559,7 @@ private:
 	/** Resources that can be allocated in 'slice', i.e. the assigned amount
 	 * is distributed over all the resources referenced by the mixed/template
 	 * path specified */
-	std::map<br::ResourcePathPtr_t, uint64_t> r_sliced;
+	std::map<br::ResourcePathPtr_t, uint32_t> r_sliced;
 
 	/** Counter for the total number of registered resources */
 	std::map<br::Resource::Type_t, uint16_t> r_count;
@@ -704,7 +704,7 @@ private:
 	 *
 	 * @return The value of the attribute request
 	 */
-	uint64_t QueryStatus(
+	uint32_t QueryStatus(
 			br::ResourcePtrList_t const & rsrc_list,
 			QueryOption_t q_opt, br::RViewToken_t vtok = 0,
 			ba::AppSPtr_t papp = ba::AppSPtr_t()) const;
@@ -723,7 +723,7 @@ private:
 	 *
 	 * @return The amount of resource usage
 	 */
-	uint64_t GetAmountFromUsagesMap(
+	uint32_t GetAmountFromUsagesMap(
 			br::UsagesMap_t::const_iterator & begin,
 			br::UsagesMap_t::const_iterator & end,
 			br::ResourceIdentifier::Type_t r_type,
@@ -842,7 +842,7 @@ private:
 	void SchedResourceBooking(
 			ba::AppSPtr_t const & papp,
 			br::ResourcePtr_t & rsrc,
-			uint64_t & requested,
+			uint32_t & requested,
 			br::RViewToken_t vtok);
 
 	/**
@@ -859,7 +859,7 @@ private:
 	void SyncResourceBooking(
 			ba::AppSPtr_t const & papp,
 			br::ResourcePtr_t & rsrc,
-			uint64_t & requested);
+			uint32_t & requested);
 
 	/**
 	 * @brief Decrement the resource usages counts

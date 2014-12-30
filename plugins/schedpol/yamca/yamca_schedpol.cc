@@ -521,8 +521,8 @@ SchedulerPolicyIF::ExitCode_t YamcaSchedPol::ComputeContentionLevel(
 		ba::AppCPtr_t const & papp,
 		br::UsagesMapPtr_t const & rsrc_usages,
 		float & cont_level) {
-	uint64_t rsrc_avail;
-	uint64_t min_usage;
+	uint32_t rsrc_avail;
+	uint32_t min_usage;
 	cont_level = 0;
 
 	// Check the availability of the resources requested
@@ -536,7 +536,7 @@ SchedulerPolicyIF::ExitCode_t YamcaSchedPol::ComputeContentionLevel(
 		// Query resource availability
 		rsrc_avail = rsrc_acct.Available(pusage->GetResourcesList(),
 				rsrc_view_token, papp);
-		logger->Debug("{%s} availability = %" PRIu64,
+		logger->Debug("{%s} availability = %d",
 				rsrc_path->ToString().c_str(), rsrc_avail);
 
 		// Is the request satisfiable?

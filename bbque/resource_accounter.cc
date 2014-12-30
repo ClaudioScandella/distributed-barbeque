@@ -226,7 +226,7 @@ void ResourceAccounter::PrintStatusReport(br::RViewToken_t vtok, bool verbose) c
 	end_path = r_paths.end();
 	//                        +--------- 22 ------------+     +-- 11 ---+   +-- 11 ---+   +-- 11 ---+
 	char rsrc_text_row[] = "| sys0.cpu0.mem0              I : 1234.123e+1 | 1234.123e+1 | 1234.123e+1 |";
-	uint64_t rsrc_used;
+	uint32_t rsrc_used;
 
 
 	// Print the head of the report table
@@ -284,7 +284,7 @@ void ResourceAccounter::PrintAppDetails(
 	br::Resource::ExitCode_t res_result;
 	ba::AppSPtr_t papp;
 	AppUid_t app_uid;
-	uint64_t rsrc_amount;
+	uint32_t rsrc_amount;
 	uint8_t app_index = 0;
 	//                           +----- 15 ----+             +-- 11 ---+  +--- 13 ----+ +--- 13 ----+
 	char app_text_row[] = "|     12345:exc_01:01,P01,AWM01 : 1234.123e+1 |             |             |";
@@ -396,20 +396,20 @@ ResourcePathPtr_t const ResourceAccounter::GetPath(
  *                   QUERY METHODS                                      *
  ************************************************************************/
 
-inline uint64_t ResourceAccounter::Total(
+inline uint32_t ResourceAccounter::Total(
 		std::string const & path) const {
 	br::ResourcePtrList_t matchings = GetResources(path);
 	return QueryStatus(matchings, RA_TOTAL, 0);
 }
 
-inline uint64_t ResourceAccounter::Total(
+inline uint32_t ResourceAccounter::Total(
 		br::ResourcePtrList_t & rsrc_list) const {
 	if (rsrc_list.empty())
 		return 0;
 	return QueryStatus(rsrc_list, RA_TOTAL);
 }
 
-inline uint64_t ResourceAccounter::Total(
+inline uint32_t ResourceAccounter::Total(
 		ResourcePathPtr_t ppath,
 		PathClass_t rpc) const {
 	br::ResourcePtrList_t matchings = GetList(ppath, rpc);
@@ -417,14 +417,14 @@ inline uint64_t ResourceAccounter::Total(
 }
 
 
-inline uint64_t ResourceAccounter::Used(
+inline uint32_t ResourceAccounter::Used(
 		std::string const & path,
 		br::RViewToken_t vtok) const {
 	br::ResourcePtrList_t matchings = GetResources(path);
 	return QueryStatus(matchings, RA_USED, vtok);
 }
 
-inline uint64_t ResourceAccounter::Used(
+inline uint32_t ResourceAccounter::Used(
 		br::ResourcePtrList_t & rsrc_list,
 		br::RViewToken_t vtok) const {
 	if (rsrc_list.empty())
@@ -432,7 +432,7 @@ inline uint64_t ResourceAccounter::Used(
 	return QueryStatus(rsrc_list, RA_USED, vtok);
 }
 
-inline uint64_t ResourceAccounter::Used(
+inline uint32_t ResourceAccounter::Used(
 		ResourcePathPtr_t ppath,
 		PathClass_t rpc,
 		br::RViewToken_t vtok) const {
@@ -441,7 +441,7 @@ inline uint64_t ResourceAccounter::Used(
 }
 
 
-inline uint64_t ResourceAccounter::Available(
+inline uint32_t ResourceAccounter::Available(
 		std::string const & path,
 		br::RViewToken_t vtok,
 		ba::AppSPtr_t papp) const {
@@ -449,7 +449,7 @@ inline uint64_t ResourceAccounter::Available(
 	return QueryStatus(matchings, RA_AVAIL, vtok, papp);
 }
 
-inline uint64_t ResourceAccounter::Available(
+inline uint32_t ResourceAccounter::Available(
 		br::ResourcePtrList_t & rsrc_list,
 		br::RViewToken_t vtok,
 		ba::AppSPtr_t papp) const {
@@ -458,7 +458,7 @@ inline uint64_t ResourceAccounter::Available(
 	return QueryStatus(rsrc_list, RA_AVAIL, vtok, papp);
 }
 
-inline uint64_t ResourceAccounter::Available(
+inline uint32_t ResourceAccounter::Available(
 		ResourcePathPtr_t ppath,
 		PathClass_t rpc,
 		br::RViewToken_t vtok,
@@ -467,20 +467,20 @@ inline uint64_t ResourceAccounter::Available(
 	return QueryStatus(matchings, RA_AVAIL, vtok, papp);
 }
 
-inline uint64_t ResourceAccounter::Unreserved(
+inline uint32_t ResourceAccounter::Unreserved(
 		std::string const & path) const {
 	br::ResourcePtrList_t matchings = GetResources(path);
 	return QueryStatus(matchings, RA_UNRESERVED, 0);
 }
 
-inline uint64_t ResourceAccounter::Unreserved(
+inline uint32_t ResourceAccounter::Unreserved(
 		br::ResourcePtrList_t & rsrc_list) const {
 	if (rsrc_list.empty())
 		return 0;
 	return QueryStatus(rsrc_list, RA_UNRESERVED);
 }
 
-inline uint64_t ResourceAccounter::Unreserved(
+inline uint32_t ResourceAccounter::Unreserved(
 		ResourcePathPtr_t ppath) const {
 	br::ResourcePtrList_t matchings = GetList(ppath, MIXED);
 	return QueryStatus(matchings, RA_UNRESERVED, 0);
@@ -512,14 +512,14 @@ br::ResourcePtrList_t ResourceAccounter::GetList(
 }
 
 
-uint64_t ResourceAccounter::QueryStatus(
+uint32_t ResourceAccounter::QueryStatus(
 		br::ResourcePtrList_t const & rsrc_list,
 		QueryOption_t _att,
 		br::RViewToken_t vtok,
 		ba::AppSPtr_t papp) const {
 	br::ResourcePtrList_t::const_iterator res_it(rsrc_list.begin());
 	br::ResourcePtrList_t::const_iterator res_end(rsrc_list.end());
-	uint64_t value = 0;
+	uint32_t value = 0;
 
 	// For all the descriptors in the list add the quantity of resource in the
 	// specified state (available, used, total)
@@ -543,7 +543,7 @@ uint64_t ResourceAccounter::QueryStatus(
 	return value;
 }
 
-uint64_t ResourceAccounter::GetUsageAmount(
+uint32_t ResourceAccounter::GetUsageAmount(
 		br::UsagesMapPtr_t const & pum,
 		br::ResourceIdentifier::Type_t r_type,
 		br::ResourceIdentifier::Type_t r_scope_type) const {
@@ -558,7 +558,7 @@ uint64_t ResourceAccounter::GetUsageAmount(
 	return  GetAmountFromUsagesMap(b_it, e_it, r_type, r_scope_type);
 }
 
-uint64_t ResourceAccounter::GetUsageAmount(
+uint32_t ResourceAccounter::GetUsageAmount(
 		br::UsagesMap_t const & um,
 		br::ResourceIdentifier::Type_t r_type,
 		br::ResourceIdentifier::Type_t r_scope_type) const {
@@ -568,13 +568,13 @@ uint64_t ResourceAccounter::GetUsageAmount(
 	return  GetAmountFromUsagesMap(b_it, e_it, r_type, r_scope_type);
 }
 
-uint64_t ResourceAccounter::GetAmountFromUsagesMap(
+uint32_t ResourceAccounter::GetAmountFromUsagesMap(
 		br::UsagesMap_t::const_iterator & begin,
 		br::UsagesMap_t::const_iterator & end,
 		br::ResourceIdentifier::Type_t r_type,
 		br::ResourceIdentifier::Type_t r_scope_type) const {
 	br::UsagesMap_t::const_iterator uit;
-	uint64_t amount = 0;
+	uint32_t amount = 0;
 
 	uit = begin;
 	for ( ; uit != end; ++uit) {
@@ -594,7 +594,7 @@ uint64_t ResourceAccounter::GetAmountFromUsagesMap(
 		amount += pusage->GetAmount();
 	}
 
-	logger->Debug("GetUsageAmount: R{%-3s} U = %" PRIu64 "",
+	logger->Debug("GetUsageAmount: R{%-3s} U = %d",
 			br::ResourceIdentifier::TypeStr[r_type], amount);
 	return amount;
 }
@@ -603,7 +603,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::CheckAvailability(
 		br::UsagesMapPtr_t const & usages,
 		br::RViewToken_t vtok,
 		ba::AppSPtr_t papp) const {
-	uint64_t avail = 0;
+	uint32_t avail = 0;
 	br::UsagesMap_t::const_iterator usages_it(usages->begin());
 	br::UsagesMap_t::const_iterator usages_end(usages->end());
 
@@ -618,7 +618,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::CheckAvailability(
 		// If the availability is less than the amount required...
 		if (avail < pusage->GetAmount()) {
 			logger->Debug("Check availability: Exceeding request for {%s}"
-					"[USG:%" PRIu64 " | AV:%" PRIu64 " | TOT:%" PRIu64 "] ",
+					"[USG:%4d | AV:%4d | TOT:%4d] ",
 					rsrc_path->ToString().c_str(), pusage->GetAmount(), avail,
 					QueryStatus(pusage->GetResourcesList(), RA_TOTAL));
 			return RA_ERR_USAGE_EXC;
@@ -664,7 +664,7 @@ br::ResourcePath const & ResourceAccounter::GetPrefixPath() const {
 ResourceAccounter::ExitCode_t ResourceAccounter::RegisterResource(
 		std::string const & path_str,
 		std::string const & units,
-		uint64_t amount) {
+		uint32_t amount) {
 	br::ResourceIdentifier::Type_t type;
 
 	// Build a resource path object (from the string)
@@ -709,11 +709,11 @@ ResourceAccounter::ExitCode_t ResourceAccounter::RegisterResource(
 ResourceAccounter::ExitCode_t ResourceAccounter::UpdateResource(
 		std::string const & _path,
 		std::string const & _units,
-		uint64_t _amount) {
+		uint32_t _amount) {
 	br::ResourcePtr_t pres;
 	br::ResourcePathPtr_t ppath;
-	uint64_t availability;
-	uint64_t reserved;
+	uint32_t availability;
+	uint32_t reserved;
 	std::unique_lock<std::mutex> status_ul(status_mtx, std::defer_lock);
 
 	// Lookup for the resource to be updated
@@ -853,11 +853,11 @@ void ResourceAccounter::_ReleaseResources(
 
 ResourceAccounter::ExitCode_t  ResourceAccounter::ReserveResources(
 		ResourcePathPtr_t ppath,
-		uint64_t amount) {
+		uint32_t amount) {
 	br::Resource::ExitCode_t rresult;
 	br::ResourcePtrList_t const & rlist(
 		resources.findList(*(ppath.get()), RT_MATCH_MIXED));
-	logger->Info("Reserving [%" PRIu64 "] for [%s] resources...",
+	logger->Info("Reserving [%4d] for [%s] resources...",
 			amount, ppath->ToString().c_str());
 
 	if (rlist.empty()) {
@@ -870,7 +870,7 @@ ResourceAccounter::ExitCode_t  ResourceAccounter::ReserveResources(
 	for (br::ResourcePtr_t r: rlist) {
 		rresult = r->Reserve(amount);
 		if (rresult != br::Resource::RS_SUCCESS) {
-			logger->Warn("Reservation: Exceeding value [%" PRIu64 "] for [%s]",
+			logger->Warn("Reservation: Exceeding value [%4d] for [%s]",
 				amount, ppath->ToString().c_str());
 			return RA_FAILED;
 		}
@@ -881,7 +881,7 @@ ResourceAccounter::ExitCode_t  ResourceAccounter::ReserveResources(
 
 ResourceAccounter::ExitCode_t  ResourceAccounter::ReserveResources(
 		std::string const & path,
-		uint64_t amount) {
+		uint32_t amount) {
 	ResourcePathPtr_t ppath(new br::ResourcePath(path));
 	logger->Info("Reserve: built %d from %s", ppath.get(), path.c_str());
 
@@ -1280,7 +1280,7 @@ ResourceAccounter::IncBookingCounts(
 		result = DoResourceBooking(papp, pusage, vtok);
 		if (result != RA_SUCCESS)  {
 			logger->Crit("Booking: unexpected fail! %s "
-					"[USG:%" PRIu64 " | AV:%" PRIu64 " | TOT:%" PRIu64 "]",
+					"[USG:%4d | AV:%4d | TOT:%4d]",
 				rsrc_path->ToString().c_str(), pusage->GetAmount(),
 				Available(rsrc_path, MIXED, vtok, papp),
 				Total(rsrc_path, MIXED));
@@ -1290,8 +1290,7 @@ ResourceAccounter::IncBookingCounts(
 		}
 
 		assert(result == RA_SUCCESS);
-		logger->Info("Booking: R{%s} SUCCESS "
-				"[U:%" PRIu64 " | A:%" PRIu64 " | T:%" PRIu64 "]",
+		logger->Info("Booking: R{%s} SUCCESS [U:%4d | A:%4d | T:4d%]",
 				rsrc_path->ToString().c_str(), pusage->GetAmount(),
 				Available(rsrc_path, MIXED, vtok, papp),
 				Total(rsrc_path, MIXED));
@@ -1320,7 +1319,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::DoResourceBooking(
 	ResourceSetPtr_t & rsrc_set(rsrc_view->second);
 
 	// Amount of resource to book
-	uint64_t requested = pusage->GetAmount();
+	uint32_t requested = pusage->GetAmount();
 
 	// Get the list of resource binds
 	for (; it_bind != end_it; ++it_bind) {
@@ -1409,10 +1408,10 @@ bool ResourceAccounter::IsReshuffling(
 inline void ResourceAccounter::SchedResourceBooking(
 		ba::AppSPtr_t const & papp,
 		br::ResourcePtr_t & rsrc,
-		uint64_t & requested,
+		uint32_t & requested,
 		br::RViewToken_t vtok) {
 	// Check the available amount in the current resource binding
-	uint64_t available = rsrc->Available(papp, vtok);
+	uint32_t available = rsrc->Available(papp, vtok);
 
 	// If it is greater than the required amount, acquire the whole
 	// quantity from the current resource binding, otherwise split
@@ -1429,9 +1428,9 @@ inline void ResourceAccounter::SchedResourceBooking(
 inline void ResourceAccounter::SyncResourceBooking(
 		ba::AppSPtr_t const & papp,
 		br::ResourcePtr_t & rsrc,
-		uint64_t & requested) {
+		uint32_t & requested) {
 	// Skip the resource binding if the not assigned by the scheduler
-	uint64_t sched_usage = rsrc->ApplicationUsage(papp, sch_view_token);
+	uint32_t sched_usage = rsrc->ApplicationUsage(papp, sch_view_token);
 	if (sched_usage == 0) {
 		logger->Debug("DRBooking (sync): no usage of {%s} scheduled for [%s]",
 				rsrc->Name().c_str(), papp->StrId());
@@ -1462,7 +1461,7 @@ void ResourceAccounter::DecBookingCounts(
 
 		// Release the resources bound to the current request
 		UndoResourceBooking(papp, pusage, vtok);
-		logger->Debug("DecCount: [%s] has freed {%s} of %" PRIu64 "",
+		logger->Debug("DecCount: [%s] has freed {%s} of %d",
 				papp->StrId(), rsrc_path->ToString().c_str(),
 				pusage->GetAmount());
 	}
@@ -1473,7 +1472,7 @@ void ResourceAccounter::UndoResourceBooking(
 		br::UsagePtr_t & pusage,
 		br::RViewToken_t vtok) {
 	// Keep track of the amount of resource freed
-	uint64_t usage_freed = 0;
+	uint32_t usage_freed = 0;
 
 	// Get the set of resources referenced in the view
 	ResourceViewsMap_t::iterator rsrc_view(rsrc_per_views.find(vtok));
@@ -1522,17 +1521,17 @@ int ResourceAccounter::CommandsCb(int argc, char *argv[]) {
 }
 
 int ResourceAccounter::SetQuotaHandler(char * r_path, char * value) {
-	uint64_t amount = atoi(value);
+	uint32_t amount = atoi(value);
 
 	ExitCode_t ra_result = UpdateResource(r_path, "", amount);
 	if (ra_result != RA_SUCCESS) {
 		logger->Error("SetQuotaHandler: "
-			"cannot set quota %" PRIu64 " to [%s]", amount, r_path);
+			"cannot set quota %d to [%s]", amount, r_path);
 		return 2;
 	}
 
 	logger->Info("SetQuotaHandler: "
-			"set quota %" PRIu64 " to [%s]", amount, r_path);
+			"set quota %d to [%s]", amount, r_path);
 	PrintStatusReport(0, true);
 
 	return 0;
