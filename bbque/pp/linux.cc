@@ -272,10 +272,11 @@ LinuxPP::RegisterClusterMEMs(RLinuxBindingsPtr_t prlb) {
 		logger->Debug("PLAT LNX: %s [%s]...",
 				refreshMode ? "Refreshing" : "Registering",
 				resourcePath);
+		// Register the memory amount in kilobytes
 		if (refreshMode)
-			ra.UpdateResource(resourcePath, "", limit_in_bytes);
+			ra.UpdateResource(resourcePath, "", limit_in_bytes/1024);
 		else
-			ra.RegisterResource(resourcePath, "", limit_in_bytes);
+			ra.RegisterResource(resourcePath, "", limit_in_bytes/1024);
 
 		// Look-up for next NODE id
 		while (*p && (*p != ',') && (*p != '-')) {

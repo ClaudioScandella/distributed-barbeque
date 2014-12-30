@@ -500,6 +500,8 @@ uint8_t RXMLRecipeLoader::GetResourceAttributes(
 
 	// Convert the usage value accordingly to the units, and then append the
 	// request to the working mode.
+	if (!strncmp("mem", _res_elem->name(), 3))
+		if (res_units.compare("M")) res_units = "K";
 	res_usage = br::ConvertValue(res_usage, res_units);
 	return AppendToWorkingMode(_wm, _res_path, res_usage);
 }
