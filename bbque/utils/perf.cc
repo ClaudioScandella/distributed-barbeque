@@ -111,7 +111,7 @@ int Perf::AddCounter(perf_type_id type,
 
 	counters[prc->fd] = prc;
 
-	fprintf(stderr, FI("Added new PERF counter [%02d:%d:%02lu]\n"),
+	fprintf(stderr, FI("Added new PERF counter [%02d:%d:%02" PRIu64 "]\n"),
 			prc->fd, type, config);
 
 	return prc->fd;

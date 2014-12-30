@@ -833,7 +833,7 @@ LinuxPP::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 	 **********************************************************************/
 
 	// Set the assigned MEMORY amount
-	sprintf(quota, "%lu", prlb->amount_memb);
+	sprintf(quota, "%" PRIu64, prlb->amount_memb);
 	cgroup_set_value_string(pcgd->pc_memory,
 			BBQUE_LINUXPP_MEMB_PARAM, quota);
 
@@ -923,7 +923,7 @@ jump_quota_management:
 	// CGroup not yet configure.
 
 	logger->Notice("PLAT LNX: [%s] => "
-			"{cpus [%s: %" PRIu64 " %], mems[%s: %" PRIu64 " B]}",
+			"{cpus [%s: %d  %], mems[%s: %d B]}",
 			pcgd->papp->StrId(),
 			prlb->cpus, prlb->amount_cpus,
 			prlb->mems, prlb->amount_memb);

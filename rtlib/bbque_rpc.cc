@@ -1184,7 +1184,7 @@ void BbqueRPC::DumpStats(pregExCtx_t prec, bool verbose) {
 
 	if (verbose) {
 		fprintf(outfd, "Cumulative execution stats for '%s':\n", prec->name.c_str());
-		fprintf(outfd, "  TotCycles    : %7lu\n", prec->cycles_count);
+		fprintf(outfd, "  TotCycles    : %7" PRIu64 "\n", prec->cycles_count);
 		fprintf(outfd, "  StartLatency : %7u [ms]\n", prec->time_starting);
 		fprintf(outfd, "  AwmWait      : %7u [ms]\n", prec->time_blocked);
 		fprintf(outfd, "  Configure    : %7u [ms]\n", prec->time_config);
@@ -2436,7 +2436,7 @@ void BbqueRPC::PerfPrintStats(pregExCtx_t prec, pAwmStats_t pstats) {
 			continue;
 		}
 
-		DB(fprintf(outfd, " (Ena: %20lu, Run: %10lu) ", avg_enabled, avg_running));
+		DB(fprintf(outfd, " (Ena: %20" PRIu64 ", Run: %10" PRIu64 ") ", avg_enabled, avg_running));
 
 		// Print percentage of counter usage
 		if (avg_enabled != avg_running) {

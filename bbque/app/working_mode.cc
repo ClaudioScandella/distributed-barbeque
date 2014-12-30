@@ -189,7 +189,7 @@ size_t WorkingMode::BindResource(
 	else {
 		pum_it = resources.sched_bindings.find(b_refn);
 		if (pum_it == resources.sched_bindings.end()) {
-			logger->Error("[%s] BindResource: invalid binding reference [%ld]",
+			logger->Error("[%s] BindResource: invalid binding reference [%zd]",
 				str_id, b_refn);
 			return 0;
 		}
@@ -208,7 +208,7 @@ size_t WorkingMode::BindResource(
 	// Store the resource binding
 	n_refn = std::hash<std::string>()(BindingStr(r_type, src_ID, dst_ID, b_refn));
 	resources.sched_bindings[n_refn] = bind_pum;
-	logger->Info("[%s] BindResource: R{%s} refn[%ld] size:%d count:%d",
+	logger->Info("[%s] BindResource: R{%s} refn[%zd] size:%d count:%d",
 			str_id, br::ResourceIdentifier::StringFromType(r_type),
 			n_refn, bind_pum->size(), b_count);
 	return n_refn;
@@ -221,7 +221,7 @@ std::string WorkingMode::BindingStr(
 		size_t b_refn) {
 	char tail_str[40];
 	std::string str(br::ResourceIdentifier::TypeStr[r_type]);
-	snprintf(tail_str, 40, ",%d,%d,%ld", src_ID, dst_ID, b_refn);
+	snprintf(tail_str, 40, ",%d,%d,%lu", src_ID, dst_ID, (long) b_refn);
 	str.append(tail_str);
 	logger->Debug("BindingStr: %s", str.c_str());
 	return str;
@@ -232,7 +232,7 @@ br::UsagesMapPtr_t WorkingMode::GetSchedResourceBinding(size_t b_refn) const {
 	sched_it = resources.sched_bindings.find(b_refn);
 	if (sched_it == resources.sched_bindings.end()) {
 		logger->Error("GetSchedResourceBinding: "
-			"invalid reference [%ld]", b_refn);
+			"invalid reference [%zd]", b_refn);
 		return nullptr;
 	}
 	return sched_it->second;
@@ -244,7 +244,7 @@ WorkingMode::ExitCode_t WorkingMode::SetResourceBinding(
 	// Set the new binding / resource usages map
 	resources.sync_bindings = GetSchedResourceBinding(b_refn);
 	if (resources.sync_bindings == nullptr) {
-		logger->Error("SetBinding: invalid scheduling binding [%ld]", b_refn);
+		logger->Error("SetBinding: invalid scheduling binding [%zd]", b_refn);
 		return WM_BIND_FAILED;
 	}
 	resources.sync_refn = b_refn;
@@ -252,7 +252,7 @@ WorkingMode::ExitCode_t WorkingMode::SetResourceBinding(
 	// Update the resource binding bit-masks
 	UpdateBindingInfo(vtok, true);
 
-	logger->Debug("SetBinding: resource binding [%ld] to allocate", b_refn);
+	logger->Debug("SetBinding: resource binding [%zd] to allocate", b_refn);
 	return WM_SUCCESS;
 }
 

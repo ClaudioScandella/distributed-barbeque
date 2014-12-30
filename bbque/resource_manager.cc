@@ -261,7 +261,7 @@ void ResourceManager::TerminateWorkers() {
 			break;
 
 		DB(fprintf(stderr, FD("Waiting for [%lu] workers to terminate...\n"),
-					workers_map.size()));
+					(long) workers_map.size()));
 
 	}
 
