@@ -170,6 +170,13 @@ function plugin_create {
 	cd $PLUGIN_SUBDIR
 	tar -xf $BOSP_TEMP_PATH"/plugin_templates.tar.bz2"
 	tar -xf $BOSP_TEMP_PATH/$PLUGIN_TYPE"_templates.tar.bz2"
+	if [ $? -ne 0 ];then
+		printf "ERROR: Plugin specific (%s) template missing\n" \
+			$PLUGIN_TYPE
+		plugin_purge
+		printf "INFO: Creation aborted.\n"
+		exit 1
+	fi
 
 	PLUGIN_CLASS=""
 	if [ "$PLUGIN_TYPE" == "schedpol" ]; then
