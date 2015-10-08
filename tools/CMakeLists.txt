@@ -116,11 +116,9 @@ install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/development/bbquePluginDev.sh"
 	DESTINATION ${BBQUE_PATH_BBQ}
 	RENAME bbque-dev-plugin
 )
-install(FILES
-	"${PROJECT_SOURCE_DIR}/tools/development/templates/plugin_templates.tar.bz2"
-	"${PROJECT_SOURCE_DIR}/tools/development/templates/schedpol_templates.tar.bz2"
-	"${PROJECT_SOURCE_DIR}/tools/development/templates/rloader_templates.tar.bz2"
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/tools/development/templates/"
 	DESTINATION ${BBQUE_PATH_CMAKE}
+	FILES_MATCHING PATTERN "*_templates.tar.bz2"
 )
 
 #----- Deploy the python scheduler tester
