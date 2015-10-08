@@ -203,8 +203,7 @@ function plugin_create {
 	plugin_install
 }
 
-
-function plugin_delete {
+function plugin_purge {
 	printf "INFO: Deleting [%s] plugin '%s'...\n" $PLUGIN_TYPE $PLUGIN_NAME_LC
 	BUILD_FILE=$PLUGIN_PATH/$PLUGINS_BUILD_FILE_NAME
 	CONFIG_FILE=$PLUGIN_PATH/$PLUGINS_CONFIG_FILE_NAME
@@ -231,6 +230,15 @@ function plugin_delete {
 	sed -i "/$PLUGIN_NAME_LC/"d $CONFIG_FILE
 	echo "$(cat $CONFIG_FILE | grep -v -e $PLUGIN_NAME -e $PLUGIN_NAME_UC)" > $CONFIG_FILE
 	printf "INFO: DONE.\n"
+}
+
+function plugin_delete {
+	read -p "WARN: Do you really want to delete the plugin (Y/n)?" $CONFIRMED
+	if [ ! $CONFIRMED == "Y" ]; then
+		printf "INFO: Deletion aborted.\n"
+		return
+	fi
+	plugin_purge
 }
 
 function plugin_list {
