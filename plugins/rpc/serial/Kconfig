@@ -1,0 +1,5 @@
+config BBQUE_RPC_SERIAL
+  bool "Serial"
+  default n
+  ---help---
+  RPC plugin based on Fifo channel and Boost Serialization API.

@@ -8,8 +8,12 @@ choice
   config BBQUE_RPC_DEFAULT_FIFO
     bool "FifoRPC"
     select BBQUE_RPC_FIFO
+  config BBQUE_RPC_DEFAULT_SERIAL
+    bool "Serial"
+    select BBQUE_RPC_SERIAL
 ##NP
 
 endchoice
 
 source barbeque/plugins/rpc/fifo/Kconfig
+source barbeque/plugins/rpc/serial/Kconfig
