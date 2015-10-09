@@ -19,6 +19,7 @@
 
 #include "bbque/config.h"
 #include "bbque/application_manager.h"
+#include "bbque/configuration_manager.h"
 #include "bbque/resource_accounter.h"
 #include "bbque/resource_manager.h"
 #include "bbque/modules_factory.h"
@@ -35,6 +36,7 @@
 namespace ba = bbque::app;
 namespace bl = bbque::rtlib;
 namespace br = bbque::res;
+namespace po = boost::program_options;
 
 namespace bbque {
 
@@ -48,9 +50,22 @@ ApplicationProxy::ApplicationProxy() : Worker()
 	Worker::Setup(BBQUE_MODULE_NAME("ap"), APPLICATION_PROXY_NAMESPACE);
 
 	//---------- Initialize the RPC channel module
-	// TODO look the configuration file for the required channel
+	// Loading module configuration
+	std::string rpc_option;
+	ConfigurationManager & cm = ConfigurationManager::GetInstance();
+	po::options_description opts_desc("RPC plugin options");
+	opts_desc.add_options()
+		("rpc.plugin",
+		 po::value<std::string>(&rpc_option)->default_value(BBQUE_RPC_DEFAULT),
+		 "The RPC plugin to use");
+	po::variables_map opts_vm;
+	cm.ParseConfigurationFile(opts_desc, opts_vm);
+
 	// Build an RPCChannelIF object
-	rpc = ModulesFactory::GetRPCChannelModule();
+	std::string rpc_module(RPC_CHANNEL_NAMESPACE ".");
+	rpc_module += rpc_option;
+	logger->Debug("RM: Loading RPC plugin %s...", rpc_module.c_str());
+	rpc = ModulesFactory::GetRPCChannelModule(rpc_module);
 	if (!rpc) {
 		logger->Fatal("RM: RPC Channel module creation FAILED");
 		abort();
