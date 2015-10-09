@@ -20,8 +20,8 @@ PLUGIN_NAME=$3
 PLUGIN_PATH="/tmp"
 PLUGIN_NAME_LC="custom"
 
-PLUGIN_TYPE_CLASSES=(SchedPol RecipeLoader)
-PLUGIN_TYPES=(schedpol rloader)
+PLUGIN_TYPE_CLASSES=(SchedPol RecipeLoader RPC)
+PLUGIN_TYPES=(schedpol rloader rpc)
 PLUGIN_ACTIONS=(create delete list help)
 PLUGINS_BUILD_FILE_NAME="CMakeLists.txt"
 PLUGINS_CONFIG_FILE_NAME="Kconfig"
