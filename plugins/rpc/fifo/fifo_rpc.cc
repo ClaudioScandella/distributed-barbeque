@@ -55,7 +55,7 @@ FifoRPC::FifoRPC(std::string const & fifo_dir) :
 
 FifoRPC::~FifoRPC() {
 	fs::path fifo_path(conf_fifo_dir);
-	fifo_path /= "/" BBQUE_PUBLIC_FIFO;
+	fifo_path /= "/" BBQUE_RPC_PUBLIC_CHANNEL;
 
 	logger->Debug("FIFO RPC: cleaning up FIFO [%s]...",
 			fifo_path.string().c_str());
@@ -76,8 +76,7 @@ int FifoRPC::Init() {
 		return 0;
 
 	logger->Debug("FIFO RPC: channel initialization...");
-
-	fifo_path /= "/" BBQUE_PUBLIC_FIFO;
+	fifo_path /= "/" BBQUE_RPC_PUBLIC_CHANNEL;
 	logger->Debug("FIFO RPC: checking FIFO [%s]...",
 			fifo_path.string().c_str());
 

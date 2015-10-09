@@ -112,7 +112,7 @@ private:
 
 	std::string app_fifo_path = BBQUE_PATH_VAR "/";
 
-	std::string bbque_fifo_path = BBQUE_PATH_VAR "/" BBQUE_PUBLIC_FIFO;
+	std::string bbque_fifo_path = BBQUE_PATH_VAR "/" BBQUE_RPC_PUBLIC_CHANNEL;
 
 	int client_fifo_fd = 0;
 

@@ -29,8 +29,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#define BBQUE_PUBLIC_FIFO "rpc_fifo"
-
 #define BBQUE_FIFO_NAME_LENGTH 32
 
 #define BBQUE_RPC_FIFO_MAJOR_VERSION 1

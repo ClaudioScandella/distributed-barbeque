@@ -87,6 +87,10 @@
 /** The RPC channel TIMEOUT */
 #define BBQUE_RPC_TIMEOUT ${BBQUE_RPC_TIMEOUT}
 
+/** The RPC public channel file name */
+#define BBQUE_RPC_PUBLIC_CHANNEL "${CONFIG_BBQUE_RPC_PUBLIC_CHANNEL}"
+#define BBQUE_RPC_PUBLIC_CHANNEL_NAME_LENGTH   32
+
 /** The Sync protocol TIMEOUT */
 #define BBQUE_SYNCP_TIMEOUT ${BBQUE_RPC_TIMEOUT}
 
