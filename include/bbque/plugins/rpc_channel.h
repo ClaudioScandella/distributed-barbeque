@@ -69,7 +69,7 @@ public:
 	 * A call to this method is blocking until new data are available for
 	 * reading or the channel has been closed.
 	 *
-	 * @return Not negative numner of new data is available, negative
+	 * @return Not negative number of new data is available, negative
 	 * error otherwise.
 	 */
 	virtual int Poll() = 0;
