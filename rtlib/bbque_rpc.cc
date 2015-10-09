@@ -85,12 +85,12 @@ BbqueRPC * BbqueRPC::GetInstance() {
 	}
 #endif
 
-#ifdef CONFIG_BBQUE_RPC_FIFO
-	logger->Debug("Using FIFO RPC channel");
+#ifdef BBQUE_RPC_DEFAULT
+	logger->Debug("Using [%s] RPC channel", BBQUE_RPC_DEFAULT);
 	instance = new BbqueRPC_FIFO_Client();
 #else
 #error RPC Channel NOT defined
-#endif // CONFIG_BBQUE_RPC_FIFO
+#endif // BBQUE_RPC_DEFAULT
 
 	// Compilation warning fix
 	goto channel_done;
