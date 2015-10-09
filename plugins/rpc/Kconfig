@@ -1,0 +1,15 @@
+
+config BBQUE_RPC_PUBLIC_CHANNEL
+  string
+  default "rpc_fifo" if BBQUE_RPC_FIFO
+
+choice
+  prompt "Default RPC channel interface"
+  config BBQUE_RPC_DEFAULT_FIFO
+    bool "FifoRPC"
+    select BBQUE_RPC_FIFO
+##NP
+
+endchoice
+
+source barbeque/plugins/rpc/fifo/Kconfig

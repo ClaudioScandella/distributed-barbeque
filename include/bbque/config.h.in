@@ -223,6 +223,8 @@
 
 #define BBQUE_RLOADER_DEFAULT "${BBQUE_RLOADER_DEFAULT}"
 
+#define BBQUE_RPC_DEFAULT "${BBQUE_RPC_DEFAULT}"
+
 /*******************************************************************************
  * BarbequeRTRM Global Features
  ******************************************************************************/

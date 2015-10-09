@@ -134,15 +134,11 @@ endmenu
 
 menu "Run-Time Library (RTLib)"
 
-choice
-  prompt "RPC Channel"
+comment "RPC Settings"
 
-  config BBQUE_RPC_FIFO
-    bool "FIFO based"
-    ---help---
-    Use the FIFO based RPC channel
-
-endchoice
+menu "RPC Plugin"
+  source "barbeque/plugins/rpc/Kconfig"
+endmenu
 
 config BBQUE_RPC_TIMEOUT
   int "RPC Channel Timeout"
@@ -150,6 +146,8 @@ config BBQUE_RPC_TIMEOUT
   ---help---
   The amount of time (in seconds) after which a not responding application
   must be considered disabled.
+
+comment "Run-time Features"
 
 config BBQUE_RTLIB_PERF_SUPPORT
   bool "Performance Counters Profiling Support"
@@ -202,6 +200,7 @@ config BBQUE_RTLIB_UNMANAGED_SUPPORT
 
   Say NO to this option if unsure.
 
+
 menu "Performance API Configuration"
 
 config BBQUE_RTLIB_GGAP_THRESHOLD_FORWARD
@@ -239,8 +238,7 @@ config BBQUE_RTLIB_CPS_TIME_SAMPLES
 endmenu # Performance
 
 
-
-comment "Advanced Options"
+comment "Synchronization options"
 
 config BBQUE_YM_SYNC_FORCE
   bool "Synchronization Point forcing"
@@ -289,6 +287,8 @@ endmenu # RTLib Configuration
 ################################################################################
 # Advanced Options
 ################################################################################
+
+comment "Advanced Options"
 
 menu "Advanced Options"
 

@@ -1,0 +1,6 @@
+
+config BBQUE_RPC_FIFO
+    bool "FIFO based"
+    ---help---
+    Use the FIFO based RPC channel
+
