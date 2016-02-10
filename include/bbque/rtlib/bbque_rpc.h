@@ -29,6 +29,8 @@
 #include "bbque/cpp11/mutex.h"
 #include "bbque/cpp11/thread.h"
 
+#include "sys/times.h"
+
 #ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 # include "bbque/utils/perf.h"
 #endif
@@ -306,6 +308,15 @@ protected:
 			stats<tag::min, tag::max, tag::variance>> perf_samples;
 	} PerfEventStats_t;
 
+	struct ProcStatCUsage {
+		bool reset = true;
+		int nsamples = 0;
+		struct tms sample;
+		clock_t prev, prev_s, prev_u, curr;
+		double cusage = 0.0;
+		double cusage_prev = - 1.0;
+	};
+
 	typedef std::shared_ptr<PerfEventStats_t> pPerfEventStats_t;
 
 	typedef std::map<int, pPerfEventStats_t> PerfEventStatsMap_t;
@@ -458,6 +469,7 @@ protected:
 
 		/** Cycle of the last goal-gap assertion */
 		uint64_t ggap_last_cycle = 0;
+		ProcStatCUsage ps_cusage;
 
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
 			name(_name), exc_id(id), cps_ctime(BBQUE_RTLIB_CPS_TIME_SAMPLES) {
@@ -820,6 +832,9 @@ private:
 	 * @brief Update statistics for the currently selected AWM
 	 */
 	RTLIB_ExitCode_t UpdateStatistics(pregExCtx_t prec);
+
+	RTLIB_ExitCode_t UpdateCUsage(pregExCtx_t prec);
+	void InitCUsage(pregExCtx_t prec);
 
 	/**
 	 * @brief Update statistics about onMonitor execution for the currently

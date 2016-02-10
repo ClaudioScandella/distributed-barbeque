@@ -1326,6 +1326,53 @@ RTLIB_ExitCode_t BbqueRPC::UpdateStatistics(pregExCtx_t prec) {
 	return RTLIB_OK;
 }
 
+RTLIB_ExitCode_t BbqueRPC::UpdateCUsage(pregExCtx_t prec){
+	prec->ps_cusage.curr = times(&prec->ps_cusage.sample);
+
+	if (prec->ps_cusage.curr <= prec->ps_cusage.prev
+			|| prec->ps_cusage.sample.tms_stime < prec->ps_cusage.prev_s
+			|| prec->ps_cusage.sample.tms_utime < prec->ps_cusage.prev_u){
+		return RTLIB_ERROR;
+	}
+	else{
+		double measured_cusage =
+				(prec->ps_cusage.sample.tms_stime - prec->ps_cusage.prev_s) +
+				(prec->ps_cusage.sample.tms_utime - prec->ps_cusage.prev_u);
+		measured_cusage /= (prec->ps_cusage.curr - prec->ps_cusage.prev);
+		measured_cusage *= 100.0;
+
+		prec->ps_cusage.cusage =
+				prec->ps_cusage.cusage * prec->ps_cusage.nsamples;
+		prec->ps_cusage.nsamples ++;
+		prec->ps_cusage.cusage =
+				(prec->ps_cusage.cusage + measured_cusage) /
+				prec->ps_cusage.nsamples;
+
+		logger->Debug("Measured CPU Usage: %f", measured_cusage);
+		logger->Debug("Avg CPU Usage: %f over %d samples",
+				prec->ps_cusage.cusage, prec->ps_cusage.nsamples);
+	}
+
+	prec->ps_cusage.prev = prec->ps_cusage.curr;
+	prec->ps_cusage.prev_s = prec->ps_cusage.sample.tms_stime;
+	prec->ps_cusage.prev_u = prec->ps_cusage.sample.tms_utime;
+
+	return RTLIB_OK;
+}
+
+void BbqueRPC::InitCUsage(pregExCtx_t prec){
+	if (prec->ps_cusage.reset == true) {
+		prec->ps_cusage.reset = false;
+		prec->ps_cusage.nsamples = 0;
+		prec->ps_cusage.cusage = 0;
+	}
+
+	prec->ps_cusage.curr = times(&prec->ps_cusage.sample);
+	prec->ps_cusage.prev = prec->ps_cusage.curr;
+	prec->ps_cusage.prev_s = prec->ps_cusage.sample.tms_stime;
+	prec->ps_cusage.prev_u = prec->ps_cusage.sample.tms_utime;
+}
+
 RTLIB_ExitCode_t BbqueRPC::UpdateMonitorStatistics(pregExCtx_t prec) {
 	double last_monitor_ms;
 	pAwmStats_t pstats(prec->pAwmStats);
@@ -3215,6 +3262,7 @@ void BbqueRPC::NotifyPreRun(
 			PerfEnable(prec);
 		}
 	}
+	InitCUsage(prec);
 }
 
 void BbqueRPC::NotifyPostRun(
@@ -3242,6 +3290,10 @@ void BbqueRPC::NotifyPostRun(
 			PerfCollectStats(prec);
 		}
 	}
+
+	if (UpdateCUsage(prec) != RTLIB_OK)
+		logger->Error("PostRun: could not compute current CPU usage");
+
 #ifdef CONFIG_BBQUE_OPENCL
 	if (conf.profile.opencl.enabled)
 		OclCollectStats(prec->awm_id, prec->pAwmStats->ocl_events_map);
