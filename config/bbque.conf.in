@@ -107,6 +107,7 @@ penalty.mem   = 10
 ################################################################################
 [ApplicationManager]
 #ggap.threshold_optimize = ${CONFIG_BBQUE_GGAP_THRESHOLD_OPTIMIZE}
+#cusage.threshold_optimize = ${CONFIG_BBQUE_CUSAGE_THRESHOLD_OPTIMIZE}
 
 ################################################################################
 # AgentProxy Options

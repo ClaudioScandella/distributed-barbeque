@@ -87,6 +87,14 @@ ApplicationManager::ApplicationManager() :
 			 BBQUE_DEFAULT_GGAP_THRESHOLD_OPTIMIZE),
 		 "The default minimum GoalGap value which triggers an optimization")
 		;
+	opts_desc.add_options()
+		(MODULE_CONFIG".cusage.threshold_optimize",
+		 po::value<int>
+		 (&cusage_threshold_optimize)->default_value(
+			 BBQUE_DEFAULT_CUSAGE_THRESHOLD_OPTIMIZE),
+		 "The default minimum CPU Usage mismatch value which triggers an"
+		 "optimization")
+		;
 	po::variables_map opts_vm;
 	ConfigurationManager::GetInstance()
 		.ParseConfigurationFile(opts_desc, opts_vm);
@@ -1332,6 +1340,53 @@ ApplicationManager::SetGoalGapEXC(AppPtr_t papp, int gap) {
 		return AM_RESCHED_REQUIRED;
 	}
 
+ApplicationManager::ExitCode_t
+ApplicationManager::CheckCpuUsageEXC(AppPtr_t papp,
+		struct app::RuntimeProfiling_t &rt_prof) {
+	logger->Debug("Checking CPU Usage [%d] on EXC [%s]...",
+			rt_prof.measured_cpu_usage, papp->StrId());
+	/* expected_bandwidth is the maximum CPU bandwidth that is available to the
+	 * application. It is set by the bbque scheduler, and the scheduler expects
+	 * that the application uses the allocated bandwidth in an efficient way
+	 * (i.e. use all the allocated bandwidth). Else, some resources will be
+	 * taken back from the application */
+	int expected_bandwidth = rt_prof.expected_cpu_usage;
+
+	/* If the current scheduling policy is not interested in tracking
+	 * inconsistencies between allocated and used CPU bandwidth, the usage
+	 * information is not used */
+	if (expected_bandwidth == 0)
+		return AM_SUCCESS;
+
+	/* cpu_usage should match with the one barbeque expects. A difference
+	 * between said values is referred to as "bad usage" and could mean that:
+	 *
+	 * a) The application cannot use so many resources. In this case, the
+	 *    scheduler will take back some resources from the application
+	 * b) The application could use so many resources, but it is stalling.
+	 *    In this case, I'm interested in understanding whether these stalls
+	 *    are caused by memory contention
+	 *
+	 * cpu_usage and expected_cpu_usage must not be exaclty the same; there is
+	 * a reconfigurable percentage tolerance
+	 */
+	float tolerance = cusage_threshold_optimize / 100.0;
+	bool bad_usage =
+			(1.0 + tolerance) * rt_prof.measured_cpu_usage < expected_bandwidth;
+
+	/* There is not bad usage. Current CPU usage is marked as `verified`.
+	 * This means that, under the current configuration, the application is
+	 * able to exploit at least this CPU bandwidth
+	 */
+	if (!bad_usage)
+		return AM_SUCCESS;
+
+	/* If I don't know the verified CPU usage of the application, the scheduler
+	 * has not yet been able to assign a proper CPU bandwidth to the
+	 * application; a new schedule is definitely required.
+	 */
+	return AM_RESCHED_REQUIRED;
+}
 
 ApplicationManager::ExitCode_t
 ApplicationManager::GetRuntimeProfile(AppPtr_t papp,

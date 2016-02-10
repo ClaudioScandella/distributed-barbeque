@@ -397,6 +397,20 @@ config BBQUE_GGAP_THRESHOLD_OPTIMIZE
   and configured value.
   This configuration defines the default for that threshold value.
 
+config BBQUE_CUSAGE_THRESHOLD_OPTIMIZE
+  int "CPU usage Optimize Threshold"
+  default 20
+  ---help---
+  The minimum CPU usage mismatch that triggers an optimization.
+
+  Once an EXC notifies its CPU usage to the RTRM, the RTRM checks if
+  the allocated resources are effectively used. The percentage mismatch
+  (e.g. used 80 VS allocated 100 => mismatch 25%) will trigger a rescheduling
+  if higher than the threshold. Value should be greater than 0, obviously.
+  Please consider that the CPU usage of applications could be not constant.
+  Low values could lead to very frequent re-schedulings. 20 could be a safe
+  value.
+
 config BBQUE_APP_PRIO_LEVELS
   int "Number of Priority Levels"
   default 5

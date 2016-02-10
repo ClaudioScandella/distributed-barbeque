@@ -129,6 +129,11 @@ public:
 	 * @see ApplicationManagerConfIF
 	 */
 	ExitCode_t SetGoalGapEXC(AppPtr_t papp, int gap);
+	/**
+	 * @see ApplicationManagerConfIF
+	 */
+	ExitCode_t CheckCpuUsageEXC(AppPtr_t papp,
+			struct app::RuntimeProfiling_t &profile);
 
 	/**
 	 * @see ApplicationManagerConfIF
@@ -393,6 +398,10 @@ private:
 
 	/** The minimum GoalGap value which triggers an optimization */
 	int ggap_threshold_optimize;
+
+	/** The minimum mismatch between measured and allocated CPU usage that
+	 * triggers an optimization */
+	int cusage_threshold_optimize;
 
 	/** The recipe loader module used to parse recipes */
 	RecipeLoaderIF * rloader;
