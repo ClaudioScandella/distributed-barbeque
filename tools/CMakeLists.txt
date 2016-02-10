@@ -118,6 +118,17 @@ install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/development/bbquePluginDev.sh"
 	DESTINATION ${BBQUE_PATH_BBQ}
 	RENAME bbque-dev-plugin
 )
+
+#----- Deploy the Code Restyling script
+configure_file (
+	"${PROJECT_SOURCE_DIR}/tools/development/bbqueCodeStyle.sh.in"
+	"${PROJECT_BINARY_DIR}/tools/development/bbqueCodeStyle.sh"
+	@ONLY
+)
+install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/development/bbqueCodeStyle.sh"
+	DESTINATION ${BBQUE_PATH_BBQ}
+	RENAME bbque-dev-codestyler
+)
 install(FILES
 	"${PROJECT_SOURCE_DIR}/tools/development/templates/plugin_templates.tar.bz2"
 	"${PROJECT_SOURCE_DIR}/tools/development/templates/schedpol_templates.tar.bz2"

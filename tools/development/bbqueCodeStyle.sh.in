@@ -1,0 +1,47 @@
+#!/bin/bash
+
+#BOSP_BASE=${BOSP_BASE:-"/home/giuseppe/Development/BOSP"}
+BOSP_OUT=${BOSP_OUT:-@CONFIG_BOSP_RUNTIME_PATH@}
+BOSP_TEMP_PATH=$BOSP_OUT/@BBQUE_PATH_CMAKE@
+BOSP_BASE=$BOSP_OUT/../
+
+ASTYLE=$(which astyle)
+[[ $ASTYLE == "" ]] && \
+	echo "Astyle not installed (sudo apt-get install astyle)" && \
+	exit
+
+echo "=========================================================================\
+======="
+echo "╗╗   ╔╗  ╗"
+echo "╔    ╗   ╗╔"
+echo "╗╗   ╔╗     ╗"
+echo "╔╗   ╗╔      ╗"
+echo "╗╔╗   ╗╔  ╔╗╗╔"
+echo "╗╗   ╔╗ ╗╔╗"
+echo "╗     ╗  ╗"
+echo ""
+echo "█████████████"
+echo "█  ████  ███"
+echo "██████████       ╔╗ ╔╗ ╔═╗    ╔╦╗╔═╗╔═╗╦  ╔═╗"
+echo "████████         ╠╩╗╠╩╗║═╬╗ ═  ║ ║ ║║ ║║  ╚═╗"
+echo "█       █        ╚═╝╚═╝╚═╝╚    ╩ ╚═╝╚═╝╩═╝╚═╝"
+echo "=========================================================================\
+======="
+
+echo "BbqueRTRM code restyler. Based on astyle tool (http://astyle.sourceforge.net)"
+echo "Do you want code restyler to run recursively? [Y/n]"
+
+read ANS
+REC=""
+[[ $ANS != "n" ]] && [[ $ANS != "no" ]] && REC=" --recursive " && \
+echo "Recursive mode selected"
+
+echo "Specify the files to process, e.g. test.cpp"
+echo "You can also specify wildcards, e.g. *.h"
+[[ $ANS == "y" ]] && echo "Note: USE wildcards; you are in recursive mode"
+read ANS
+
+astyle --style=linux --break-closing-brackets \
+	--close-templates --max-code-length=80 --indent=force-tab --break-blocks \
+	--pad-oper --delete-empty-lines --align-pointer=middle $REC "$ANS"
+
