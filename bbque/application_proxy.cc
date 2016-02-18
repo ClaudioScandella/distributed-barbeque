@@ -1331,16 +1331,16 @@ void ApplicationProxy::RpcExcRuntimeProfileNotify(prqsSn_t prqs) {
 		case ApplicationManager::AM_SUCCESS:
 			break;
 		case ApplicationManager::AM_RESCHED_REQUIRED:
-			logger->Debug("APPs PRX: Notifing ResourceManager");
+			logger->Debug("APPs PRX: Notifying ResourceManager");
 			rm.NotifyEvent(ResourceManager::BBQ_OPTS);
 			break;
 		default:
-			RpcNAK(pcon, pmsg_hdr, bl::RPC_EXC_RESP, RTLIB_EXC_ENABLE_FAILED);
+			//RpcNAK(pcon, pmsg_hdr, bl::RPC_EXC_RESP, RTLIB_EXC_ENABLE_FAILED);
 			return;
 	}
 
 	// Sending ACK response to application
-	RpcACK(pcon, pmsg_hdr, bl::RPC_EXC_RESP);
+	//RpcACK(pcon, pmsg_hdr, bl::RPC_EXC_RESP);
 }
 
 void ApplicationProxy::RpcExcStart(prqsSn_t prqs) {

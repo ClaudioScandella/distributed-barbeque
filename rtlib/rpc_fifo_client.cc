@@ -623,8 +623,9 @@ RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_RTNotify(pregExCtx_t prec, int gap,
 
 	logger->Debug("Waiting BBQUE response...");
 
-	WAIT_RPC_RESP;
-	return (RTLIB_ExitCode_t)chResp.result;
+	return RTLIB_OK;
+	//WAIT_RPC_RESP;
+	//return (RTLIB_ExitCode_t)chResp.result;
 
 }
 
