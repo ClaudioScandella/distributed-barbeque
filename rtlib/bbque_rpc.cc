@@ -2168,9 +2168,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	}
 
 	// Update Runtime Information
-	prec->prev_ggap_acceptable =
-		(std::abs(goal_gap) > conf.asrtm.ggap_forward_threshold)
-		? false : true; // True is this Goal Gap is acceptable
+	prec->prev_ggap_acceptable = ggap_acceptable;
 	prec->ps_cusage.cusage_prev = cpu_usage;
 	prec->ps_cusage.reset = true;
 	prec->rtinfo_last_cycle = prec->cycles_count;
