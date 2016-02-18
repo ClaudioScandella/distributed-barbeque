@@ -38,7 +38,7 @@
 #undef  BBQUE_LOG_MODULE
 #define BBQUE_LOG_MODULE "rpc"
 
-#define CPU_USAGE_VARIATION_TOLERANCE 0.01
+#define CPU_USAGE_TOLERANCE 0.1
 
 namespace ba = bbque::app;
 namespace bu = bbque::utils;
@@ -2120,6 +2120,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 
 	double cycle_time_ms = (double)prec->cycle_time_value /
 						   (double)prec->cycle_time_samples;
+	float cpu_usage = prec->ps_cusage.cusage;
 	// Current distance percentage between desired and actual performance.
 	// Will become an integer at the end. No need for high precision.
 	float goal_gap = 0.0;
@@ -2136,9 +2137,6 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 		goal_gap = ((current_cps - prec->cps_goal) / prec->cps_goal) * 100;
 	}
 
-	// Conversely to Goal Gap, CPU Usage and Cycle time have already been
-	// computed
-	float cpu_usage = prec->ps_cusage.cusage;
 	// Runtime Profile = {goal_gap, cpu_usage, cycle_time}
 	logger->Debug("[%p:%s] Profile : {Goal Gap: %.2f, CPU Usage: "
 			"%.2f, Cycle Time: %.2f ms}", (void*)ech, prec->name.c_str(),
@@ -2147,29 +2145,25 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	/* Notification shall be forwarded only if one of the following is true:
 	 * 		a) Goal Gap is not acceptable (i.e. over the threshold)
 	 * 		b) Goal Gap became acceptable after last allocation
-	 * 		c) CPU usage changed from last notification
+	 * 		c) The application cannot exploit all the allocated CPU quota,
+	 * 		   i.e. CPU usage is not acceptable
 	 *
-	 * 		logically, (!gap_acc || (gap_acc && !prev_gap_acc) || cpu_changed)
+	 * 		logically, (!gap_acc || (gap_acc && !prev_gap_acc) || !cpu_acc)
 	 */
-	std::pair<float, float> cpu_usage_prev = {
-			prec->ps_cusage.cusage_prev * (1.0 - CPU_USAGE_VARIATION_TOLERANCE),
-			prec->ps_cusage.cusage_prev * (1.0 + CPU_USAGE_VARIATION_TOLERANCE)
-	};
-
 	bool ggap_acceptable =
 			std::abs(goal_gap) <= conf.asrtm.ggap_forward_threshold;
-	bool cpu_usage_changed =
-			 cpu_usage < cpu_usage_prev.first ||
-			 cpu_usage > cpu_usage_prev.second;
+	bool cpu_acceptable =
+			cpu_usage >= prec->r_proc * (1.0 - CPU_USAGE_TOLERANCE);
 
 	// De Morgan + simplifications:
-	// !gap_acc || (gap_acc && !prev_gap_acc) || cpu_changed
-	// 		=> gap_acc && !(gap_acc && !prev_gap_acc) && !cpu_changed
-	// 		=> gap_acc && (!gap_acc || prev_gap_acc) && !cpu_changed
-	//		=> gap_acc && prev_gap_acc && !cpu_changed
-	if (ggap_acceptable && prec->prev_ggap_acceptable && !cpu_usage_changed) {
-		logger->Warn("[%p:%s] Profile notification FILTERED"
+	// !gap_acc || (gap_acc && !prev_gap_acc) || !cpu_acc
+	// 		=> gap_acc && !(gap_acc && !prev_gap_acc) && cpu_acc
+	// 		=> gap_acc && (!gap_acc || prev_gap_acc) && cpu_acc
+	//		=> gap_acc && prev_gap_acc && cpu_acc
+	if (ggap_acceptable && prec->prev_ggap_acceptable && cpu_acceptable) {
+		logger->Debug("[%p:%s] Profile notification FILTERED"
 				" (no need to forward)", (void*)ech, prec->name.c_str());
+		prec->ps_cusage.reset = true;
 		return RTLIB_OK;
 	}
 
