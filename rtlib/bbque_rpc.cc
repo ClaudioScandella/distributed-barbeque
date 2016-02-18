@@ -2134,7 +2134,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	}
 	else if (prec->cps_goal > 0) {
 		float current_cps = 1000.0 / cycle_time_ms;
-		goal_gap = ((current_cps - prec->cps_goal) / prec->cps_goal) * 100;
+		goal_gap = ((current_cps - prec->cps_goal) / prec->cps_goal) * 100.0;
 	}
 
 	// Runtime Profile = {goal_gap, cpu_usage, cycle_time}
@@ -2177,7 +2177,8 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	prec->cps_last_registered = cycle_time_ms;
 
 	// Calling the low-level enable function
-	result = _RTNotify(prec, (int)goal_gap, (int)cpu_usage, (int)cycle_time_ms);
+	result = _RTNotify(prec, std::round(goal_gap), std::round(cpu_usage),
+			std::round(cycle_time_ms));
 
 	if (result != RTLIB_OK) {
 		logger->Error("[%p:%s] Profile notification FAILED (Error %d: %s)",
