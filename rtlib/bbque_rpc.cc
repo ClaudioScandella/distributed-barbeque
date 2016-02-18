@@ -1258,7 +1258,8 @@ void BbqueRPC::_SyncTimeEstimation(pregExCtx_t prec) {
 	prec->cycles_count += 1;
 
 	// Push sample into CPS estimator
-	prec->cps_ctime.update(last_cycle_ms);
+	prec->cycle_time_value += last_cycle_ms;
+	prec->cycle_time_samples ++;
 
 	// Statistic features extraction for cycle time estimation:
 	DB(
@@ -2117,6 +2118,8 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 		return RTLIB_OK;
 	}
 
+	double cycle_time_ms = (double)prec->cycle_time_value /
+						   (double)prec->cycle_time_samples;
 	// Current distance percentage between desired and actual performance.
 	// Will become an integer at the end. No need for high precision.
 	float goal_gap = 0.0;
@@ -2129,13 +2132,12 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 		prec->explicit_ggap_value = 0.0;
 	}
 	else if (prec->cps_goal > 0) {
-		float current_cps = 1000.0 / prec->cps_ctime.get();
+		float current_cps = 1000.0 / cycle_time_ms;
 		goal_gap = ((current_cps - prec->cps_goal) / prec->cps_goal) * 100;
 	}
 
 	// Conversely to Goal Gap, CPU Usage and Cycle time have already been
 	// computed
-	float cycle_time_ms = prec->cps_ctime.get();
 	float cpu_usage = prec->ps_cusage.cusage;
 	// Runtime Profile = {goal_gap, cpu_usage, cycle_time}
 	logger->Debug("[%p:%s] Profile : {Goal Gap: %.2f, CPU Usage: "
@@ -2178,6 +2180,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	prec->ps_cusage.cusage_prev = cpu_usage;
 	prec->ps_cusage.reset = true;
 	prec->rtinfo_last_cycle = prec->cycles_count;
+	prec->cps_last_registered = cycle_time_ms;
 
 	// Calling the low-level enable function
 	result = _RTNotify(prec, (int)goal_gap, (int)cpu_usage, (int)cycle_time_ms);
@@ -3126,8 +3129,14 @@ float BbqueRPC::GetCPS(
 	}
 	assert(isRegistered(prec) == true);
 
+	// If cycle was reset, return CPS up to last forward window
+	if (prec->cycle_time_samples == 0)
+		return (prec->cps_last_registered == 0.0) ?
+				0.0 : 1000.0 / prec->cps_last_registered;
+
 	// Get the current measured CPS
-	ctime = (float) prec->cps_ctime.get();
+	ctime = (float) prec->cycle_time_value / (float)prec->cycle_time_samples;
+
 	if (ctime != 0)
 		cps = 1000.0 / ctime;
 
@@ -3279,8 +3288,10 @@ void BbqueRPC::NotifyPreConfigure(
 	}
 	assert(isRegistered(prec) == true);
 
-	logger->Info("Resetting Runtime Statistics Notification counter");
+	logger->Warn("Resetting Runtime Statistics Notification counters");
 	prec->rtinfo_last_cycle = prec->cycles_count;
+	prec->cycle_time_value = 0.0;
+	prec->cycle_time_samples = 0;
 
 #ifdef CONFIG_BBQUE_OPENCL
 	pSystemResources_t local_sys(prec->systems[0]);

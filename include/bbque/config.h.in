@@ -313,17 +313,6 @@
 #define BBQUE_DEFAULT_RT_PROF_RATE_FORWARD ${CONFIG_BBQUE_RTLIB_RT_PROF_RATE_FORWARD}
 
 /**
- * @brief CPS: Cycle-time number of samples for EMA computation
- *
- * The number of samples that must be cumulated in the exponential mean
- * computation of the RTLIB "cycle-time".
- * A value equal to 1 means to get the instantaneous value of time sampled
- * during the previous execution cycle.  The higher is the value specified,
- * the slower is the variation of mean cycle time.
- */
-#define BBQUE_RTLIB_CPS_TIME_SAMPLES ${CONFIG_BBQUE_RTLIB_CPS_TIME_SAMPLES}
-
-/**
  * @brief The number of bits used to represent the EXC_ID into the UID
  *
  * Internally to the BarbequeRTRM, each application is represented by a UID

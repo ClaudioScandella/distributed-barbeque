@@ -466,9 +466,12 @@ protected:
 		/** CPS performance monitoring/control */
 		double 	cps_tstart = 0.0; // [ms] at the last cycle start time
 		float  	cps_expect = 0.0; // [ms] the expected cycle time
-		bu::EMA cps_ctime;   	  // [ms] Cycle Time on-line estimation
 		float  	cps_goal   = 0.0; // [Hz] the required CPS
 		float  	cps_max    = 0.0; // [Hz] the required maximum CPS
+		double  cycle_time_value = 0.0; // [ms] Cumulative cycle time in the current runtime profile fwd window
+		int     cycle_time_samples = 0; // Number of samples in the current runtime profile fwd window
+		double  cps_last_registered = 0.0; // CPS in the previous fwd window
+
 		// Whether RTLib is satisfied with previous Goal Gap
 		bool 	prev_ggap_acceptable = false;
 		// Applications can explicitely ask for a runtime profile notification
@@ -480,7 +483,7 @@ protected:
 		ProcStatCUsage ps_cusage;
 
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
-			name(_name), exc_id(id), cps_ctime(BBQUE_RTLIB_CPS_TIME_SAMPLES) {
+			name(_name), exc_id(id) {
 		//		rr.user_threshold = RTLIB_RR_THRESHOLD_DISABLE;
 		}
 

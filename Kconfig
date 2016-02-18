@@ -310,17 +310,6 @@ config BBQUE_RTLIB_RT_PROF_RATE_FORWARD
   (SetCPSGoal) the RTLib can periodically fire a goal gap assertion only after
   the specified number of cycles.
 
-config BBQUE_RTLIB_CPS_TIME_SAMPLES
-  int "Cycle-time Samples for Mean computation"
-  default 3
-  ---help---
-  The number of samples that must be cumulated in the exponential mean
-  computation of the RTLIB "cycle-time".
-
-  A value equal to 1 means to get the instantaneous value of time sampled
-  during the previous execution cycle.  The higher is the value specified, the
-  slower is the variation of mean cycle time.
-
 endmenu # Performance
 
 
