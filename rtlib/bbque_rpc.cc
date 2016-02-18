@@ -2200,7 +2200,6 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 RTLIB_ExitCode_t BbqueRPC::SetExplicitGGap(
 		const RTLIB_ExecutionContextHandler_t ech,
 		int ggap) {
-	RTLIB_ExitCode_t result;
 	pregExCtx_t prec;
 
 	assert(ech);
