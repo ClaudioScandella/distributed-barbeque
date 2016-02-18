@@ -1476,6 +1476,9 @@ ApplicationManager::SetRuntimeProfile(
 	rt_prof.measured_cpu_usage_prev = rt_prof.measured_cpu_usage;
 	rt_prof.ggap_percent = gap;
 	rt_prof.measured_cpu_usage = cusage;
+	// Removing fluctuation due to additional threads such as input collector,
+	// which are not included in the CPU usage count
+	rt_prof.measured_cpu_usage = std::min(cusage, rt_prof.expected_cpu_usage);
 	rt_prof.ctime_ms = ctime_ms;
 	rt_prof.is_valid = true;
 
