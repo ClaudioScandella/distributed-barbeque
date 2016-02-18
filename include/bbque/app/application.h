@@ -488,6 +488,14 @@ public:
 		rt_prof = rt_profile;
 	}
 
+	inline void SetAllocationInfo(
+				int expected_cpu_usage, int expected_goal_gap = 0) {
+		std::unique_lock<std::mutex> rt_profile_lock(rt_prof_access);
+		rt_prof.expected_cpu_usage_prev = rt_prof.expected_cpu_usage;
+		rt_prof.expected_cpu_usage = expected_cpu_usage;
+		rt_prof.ggap_percent_expected = expected_goal_gap;
+	}
+
 	/**
 	 * @brief Get a working mode descriptor
 	 *
