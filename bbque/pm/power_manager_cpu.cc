@@ -603,7 +603,6 @@ PowerManager::PMResult CPUPowerManager::GetClockFrequencyGovernor(
 PowerManager::PMResult CPUPowerManager::SetClockFrequencyGovernor(
 		br::ResourcePathPtr_t const & rp,
 		std::string const & governor) {
-	bu::IoFs::ExitCode_t result;
 	int pe_id;
 	GET_PROC_ELEMENT_ID(rp, pe_id);
 	if (pe_id < 0) {
@@ -612,6 +611,13 @@ PowerManager::PMResult CPUPowerManager::SetClockFrequencyGovernor(
 		return PowerManager::PMResult::ERR_RSRC_INVALID_PATH;
 	}
 
+	return SetClockFrequencyGovernor(pe_id, governor);
+}
+
+PowerManager::PMResult CPUPowerManager::SetClockFrequencyGovernor(
+		int pe_id,
+		std::string const & governor) {
+	bu::IoFs::ExitCode_t result;
 	std::string cpufreq_path(prefix_sys_cpu + std::to_string(pe_id) +
 			"/cpufreq/scaling_governor");
 	result = bu::IoFs::WriteValueTo<std::string>(cpufreq_path, governor);

@@ -124,7 +124,9 @@ public:
 			br::ResourcePathPtr_t const & rp,
 			std::string const & governor);
 
-
+	PMResult SetClockFrequencyGovernor(
+			int pe_id,
+			std::string const & governor);
 
 	/** Power consumption  */
 
