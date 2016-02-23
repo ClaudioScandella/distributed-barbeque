@@ -74,6 +74,8 @@ public:
 	 * @see class PowerManager
 	 */
 	PMResult SetClockFrequency(ResourcePathPtr_t const & rp, uint32_t khz);
+	PMResult SetClockFrequencyBoundaries(
+			int pe_id, uint32_t khz_min, uint32_t khz_max);
 
 	/**
 	 * @see class PowerManager

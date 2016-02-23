@@ -603,4 +603,29 @@ PowerManager::PMResult CPUPowerManager::SetClockFrequencyGovernor(
 }
 
 
+PowerManager::PMResult CPUPowerManager::SetClockFrequencyBoundaries(
+		int pe_id, uint32_t khz_min, uint32_t khz_max) {
+
+	bu::IoFs::ExitCode_t result;
+	if (pe_id < 0) {
+		logger->Warn("Frequency setting not available for PE %d",
+				pe_id);
+		return PowerManager::PMResult::ERR_RSRC_INVALID_PATH;
+	}
+
+	result = bu::IoFs::WriteValueTo<uint32_t>(
+			BBQUE_LINUX_SYS_CPU_PREFIX + std::to_string(pe_id) +
+			"/cpufreq/scaling_min_freq", khz_min);
+	if (result != bu::IoFs::ExitCode_t::OK)
+		return PMResult::ERR_SENSORS_ERROR;
+
+	result = bu::IoFs::WriteValueTo<uint32_t>(
+			BBQUE_LINUX_SYS_CPU_PREFIX + std::to_string(pe_id) +
+			"/cpufreq/scaling_max_freq", khz_max);
+	if (result != bu::IoFs::ExitCode_t::OK)
+		return PMResult::ERR_SENSORS_ERROR;
+
+	return PMResult::OK;
+}
+
 } // namespace bbque
