@@ -3193,6 +3193,12 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 			" every %d cycles",
 				prec->cps_goal, 1000.0 / prec->cps_goal,
 				conf.asrtm.rt_profile_forward_rate);
+
+	logger->Warn("Resetting Runtime Statistics Notification counters");
+	prec->rtinfo_last_cycle = prec->cycles_count - fwd_rate;
+	prec->cycle_time_value = 0.0;
+	prec->cycle_time_samples = 0;
+
 	return RTLIB_OK;
 }
 
