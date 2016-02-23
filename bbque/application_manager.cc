@@ -1403,8 +1403,10 @@ ApplicationManager::CheckCpuUsageEXC(AppPtr_t papp,
 	 * This means that, under the current configuration, the application is
 	 * able to exploit at least this CPU bandwidth
 	 */
-	if (!bad_usage)
+	if (!bad_usage) {
+		rt_prof.measured_cpu_usage = expected_bandwidth;
 		return AM_SUCCESS;
+	}
 
 	/* If I don't know the verified CPU usage of the application, the scheduler
 	 * has not yet been able to assign a proper CPU bandwidth to the
