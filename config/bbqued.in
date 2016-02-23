@@ -270,7 +270,7 @@ stop() {
 	if [ -f $BBQUE_PIDFILE ]; then
 		echo "Stopping BBQ Daemon..."
 		PID=`cat $BBQUE_PIDFILE`
-		kill -TERM $PID >/dev/null 2>&1
+		sudo kill -SIGINT $PID #>/dev/null 2>&1
 	fi
 
 	# Cleaning-up CGroup reservations
