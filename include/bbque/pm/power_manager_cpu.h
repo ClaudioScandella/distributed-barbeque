@@ -147,6 +147,9 @@ protected:
 	/*** Available clock frequencies for each processing element (core) */
 	std::map<int, std::shared_ptr<std::vector<uint32_t>> > core_freqs;
 
+	/*** Original clock frequencies, to be restored when bbque stops */
+	std::map<int, std::string> cpufreq_restore;
+
 	/*** SysFS CPU prefix path ***/
 	std::string prefix_sys_cpu;
 

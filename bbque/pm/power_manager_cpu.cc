@@ -91,6 +91,22 @@ CPUPowerManager::CPUPowerManager():
 }
 
 CPUPowerManager::~CPUPowerManager() {
+
+	for (auto pe_id_info : cpufreq_restore) {
+		logger->Notice("Restoring PE %d cpufreq bound: [%u - %u] kHz",
+				pe_id_info.first,
+				core_freqs[pe_id_info.first]->back(),
+				core_freqs[pe_id_info.first]->front());
+		SetClockFrequencyBoundaries(pe_id_info.first,
+				core_freqs[pe_id_info.first]->back(),
+				core_freqs[pe_id_info.first]->front());
+
+		logger->Notice("Restoring PE %d cpufreq governor: %s",
+				pe_id_info.first, pe_id_info.second.c_str());
+		SetClockFrequencyGovernor(pe_id_info.first, pe_id_info.second);
+	}
+
+	cpufreq_restore.clear();
 	core_ids.clear();
 	core_therms.clear();
 	core_freqs.clear();
@@ -141,6 +157,11 @@ void CPUPowerManager::InitCoreIdMapping() {
 		else
 			logger->Info("<sys.cpu%d.pe%d>: %d available frequencies",
 				cpu_id, pe_id, core_freqs[pe_id]->size());
+
+		std::string scaling_curr_governor;
+		GetClockFrequencyGovernor(pe_id, scaling_curr_governor);
+		cpufreq_restore[pe_id] = scaling_curr_governor;
+
 		++pe_id;
 	}
 }
@@ -240,7 +261,6 @@ CPUPowerManager::ExitStatus CPUPowerManager::GetLoadInfo(
 	if (!found) return CPUPowerManager::ExitStatus::ERR_GENERIC;
 	return CPUPowerManager::ExitStatus::OK;
 }
-
 
 PowerManager::PMResult CPUPowerManager::GetLoad(
 		ResourcePathPtr_t const & rp,
