@@ -152,7 +152,7 @@ rootCategory = DEBUG, raFile
 ###
 #category.bq =  	INFO
 category.bq.am =	NOTICE
-category.bq.mc =	NOTICE
+category.bq.mc =	ERROR
 category.bq.om =	NOTICE
 category.bq.cm =	INFO
 #category.bq.tpd = 	INFO
