@@ -305,11 +305,6 @@ void ResourceManager::Optimize() {
 	double period;
 
 	// Check if there is at least one application to synchronize
-	if ((!am.HasApplications(Application::READY)) &&
-			(!am.HasApplications(Application::RUNNING))) {
-		logger->Debug("NO active EXCs, re-scheduling not required");
-		return;
-	}
 
 	ra.PrintStatusReport();
 	am.PrintStatusReport();
