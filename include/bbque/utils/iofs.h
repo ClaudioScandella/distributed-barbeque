@@ -21,6 +21,7 @@
 #include <cstring>
 #include <fstream>
 #include <string>
+#include <algorithm>
 
 namespace bbque { namespace utils {
 
@@ -50,6 +51,9 @@ public:
 		}
 		fd.read(value, len);
 		fd.close();
+
+		*std::remove(value, value+strlen(value), '\n') = '\0';
+
 		return ExitCode_t::OK;
 	}
 
