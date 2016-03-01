@@ -173,7 +173,6 @@ endif (CMAKE_INSTALL_PREFIX STREQUAL "/usr/local")
 set (Boost_NO_SYSTEM_PATHS ON)
 set (Boost_DETAILED_FAILURE_MSG ON)
 set (BOOST_ROOT ${CMAKE_INSTALL_PREFIX})
-set (BOOST_INCLUDEDIR ${CMAKE_INSTALL_PREFIX})
 
 # Check for required libs and packages (headers + lib)
 find_package(Boost 1.45.0 REQUIRED system program_options filesystem serialization)
