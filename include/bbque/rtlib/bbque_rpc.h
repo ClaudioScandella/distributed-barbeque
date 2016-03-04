@@ -316,7 +316,6 @@ protected:
 		struct tms sample;
 		clock_t prev, prev_s, prev_u, curr;
 		double cusage = 0.0;
-		double cusage_prev = - 1.0;
 	};
 
 	typedef std::shared_ptr<PerfEventStats_t> pPerfEventStats_t;
