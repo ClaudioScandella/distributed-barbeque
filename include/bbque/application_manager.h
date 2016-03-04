@@ -134,12 +134,6 @@ public:
 	/**
 	 * @see ApplicationManagerConfIF
 	 */
-	ExitCode_t CheckCpuUsageEXC(AppPtr_t papp,
-			struct app::RuntimeProfiling_t &profile);
-
-	/**
-	 * @see ApplicationManagerConfIF
-	 */
 	ExitCode_t AnalyseRuntimeProfile(AppPid_t pid, uint8_t exc_id,
 			struct app::RuntimeProfiling_t &profile);
 
