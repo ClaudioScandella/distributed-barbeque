@@ -26,6 +26,7 @@
 
 // The default CFS bandwidth period [us]
 #define BBQUE_LINUXPP_CPUP_DEFAULT		100000
+#define BBQUE_LINUXPP_CPUP_MAX			1000000
 
 // Checking for kernel version requirements
 
@@ -863,7 +864,8 @@ LinuxPlatformProxy::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 	app::RuntimeProfiling_t runtime_profile =
 			pcgd->papp->GetRuntimeProfile();
 
-	int cfs_quota_us = 1000 * runtime_profile.ctime_ms;
+	uint32_t cfs_quota_us = std::min(
+			1000 * runtime_profile.ctime_ms, BBQUE_LINUXPP_CPUP_MAX);
 	if (cfs_quota_us == 0)
 		cfs_quota_us = BBQUE_LINUXPP_CPUP_DEFAULT;
 
