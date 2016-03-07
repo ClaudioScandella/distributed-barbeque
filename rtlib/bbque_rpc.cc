@@ -2118,6 +2118,11 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	double cycle_time_ms = (double)prec->cycle_time_value /
 						   (double)prec->cycle_time_samples;
 	float cpu_usage = prec->ps_cusage.cusage;
+
+	if (cpu_usage == 0.0) {
+		cpu_usage = prec->r_proc;
+	}
+
 	// Current distance percentage between desired and actual performance.
 	// Will become an integer at the end. No need for high precision.
 	float goal_gap = 0.0;
