@@ -2161,6 +2161,8 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	// CPU usage greater than the number of allocated cores -1
 	bool cpu_acceptable = (cpu_usage >= prec->systems[LOCAL_SYSTEM]->r_proc - 100.0);
 
+	if (cpu_acceptable) cpu_usage = prec->r_proc;
+
 	if (ggap_acceptable && cpu_acceptable) {
 		logger->Debug("Runtime Profile forward SKIPPED (not needed)");
 		return RTLIB_OK;
