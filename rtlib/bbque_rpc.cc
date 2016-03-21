@@ -2174,7 +2174,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	}
 
 	// Update Runtime Information
-	prec->cps_last_registered = cycle_time_ms * prec->jpc;
+	prec->cycle_time_last_registered = cycle_time_ms * prec->jpc;
 	prec->waiting_sync = true;
 
 	// Calling the low-level enable function
@@ -3127,8 +3127,8 @@ float BbqueRPC::GetCPS(
 
 	// If cycle was reset, return CPS up to last forward window
 	if (prec->cycle_time_samples == 0)
-		return (prec->cps_last_registered == 0.0) ?
-				0.0 : 1000.0 / prec->cps_last_registered;
+		return (prec->cycle_time_last_registered == 0.0) ?
+				0.0 : 1000.0 / prec->cycle_time_last_registered;
 
 	// Get the current measured CPS
 	ctime = (float) prec->cycle_time_value / (float)prec->cycle_time_samples;

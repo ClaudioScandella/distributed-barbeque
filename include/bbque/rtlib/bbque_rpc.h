@@ -489,7 +489,7 @@ protected:
 		float  	cps_max      = 0.0; // [Hz] the required maximum CPS
 		double  cycle_time_value    = 0.0; // [ms] Cumulative cycle time in the current runtime profile fwd window
 		int     cycle_time_samples  = 0;   // Number of samples in the current runtime profile fwd window
-		double  cps_last_registered = 0.0; // CPS in the previous fwd window
+		double  cycle_time_last_registered = 0.0; // CPS in the previous fwd window
 		int     jpc = 1;
 
 		// Applications can explicitely ask for a runtime profile notification
