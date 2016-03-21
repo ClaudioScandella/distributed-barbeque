@@ -152,7 +152,7 @@ static RTLIB_ExitCode_t rtlib_utils_get_resources_array(
 }
 
 /*******************************************************************************
- *    Cycles Per Second (CPS) Control Support
+ *    Cycles Per Second (CPS) and Jobs Per Secon (JPS) Control Support
  ******************************************************************************/
 
 static RTLIB_ExitCode_t rtlib_cps_set(
@@ -166,11 +166,27 @@ static float rtlib_cps_get(
 	return rpc->GetCPS(ech);
 }
 
+static float rtlib_jps_get(
+		RTLIB_ExecutionContextHandler_t ech) {
+	return rpc->GetJPS(ech);
+}
+
 static RTLIB_ExitCode_t rtlib_cps_goal_set(
 		RTLIB_ExecutionContextHandler_t ech,
 		float cps_min,
 		float cps_max) {
 	return rpc->SetCPSGoal(ech, cps_min, cps_max);
+}
+
+static RTLIB_ExitCode_t rtlib_jps_goal_set(
+		RTLIB_ExecutionContextHandler_t ech,
+		float jps_min, float jps_max, int jpc) {
+	return rpc->SetJPSGoal(ech, jps_min, jps_max, jpc);
+}
+
+static RTLIB_ExitCode_t rtlib_jps_goal_update(
+		RTLIB_ExecutionContextHandler_t ech, int jpc) {
+	return rpc->UpdateJPC(ech, jpc);
 }
 
 static RTLIB_ExitCode_t rtlib_cps_set_ctime_us(
@@ -300,6 +316,9 @@ RTLIB_ExitCode_t RTLIB_Init(const char *name, RTLIB_Services_t **rtlib) {
 	rtlib_services.CPS.Get = rtlib_cps_get;
 	rtlib_services.CPS.SetGoal = rtlib_cps_goal_set;
 	rtlib_services.CPS.SetCTimeUs = rtlib_cps_set_ctime_us;
+	rtlib_services.JPS.Get = rtlib_jps_get;
+	rtlib_services.JPS.SetGoal = rtlib_jps_goal_set;
+	rtlib_services.JPS.UpdateJPC = rtlib_jps_goal_update;
 
 	// Performance monitoring notifiers
 	rtlib_services.Notify.Setup = rtlib_notify_setup;

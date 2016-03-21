@@ -752,6 +752,39 @@ typedef float (*RTLIB_CPS_Get)(
 		RTLIB_ExecutionContextHandler_t ech);
 
 /**
+ * @brief Get the measured Jobs Per Seconds (JPS)
+ * @ingroup rtlib_sec03_plain_cps
+ *
+ * The RTLib provides you the support to monitor the actual jobs rate an
+ * application is achieving at run-time. This method allows to get an
+ * estimation of the current jobs rate.
+ *
+ * @param ech the handler of the EXC to configure
+ *
+ * @return the measured jobs rate
+ */
+typedef float (*RTLIB_JPS_Get)(
+		RTLIB_ExecutionContextHandler_t ech);
+
+/**
+ * @brief Update JPC value
+ * @ingroup rtlib_sec03_plain_cps
+ *
+ * The RTLib provides you the support to monitor the actual jobs rate an
+ * application is achieving at run-time. This method allows to get an
+ * estimation of the current jobs rate. JPS is computed using CPS and the
+ * number of executed Jobs Per Cycle (JPC). Upon changing JPC value, the
+ * application should notify it to bbque by using this function.
+ *
+ * @param ech the handler of the EXC to configure
+ * @param jpc the new value for JPC
+ *
+ * @return the measured jobs rate
+ */
+typedef RTLIB_ExitCode_t (*RTLIB_JPC_Update)(
+		RTLIB_ExecutionContextHandler_t ech, int jpc);
+
+/**
  * @brief Setup the Cycles Per Seconds (CPS) goal
  * @ingroup rtlib_sec03_plain_cps
  *
@@ -766,6 +799,22 @@ typedef float (*RTLIB_CPS_Get)(
 typedef RTLIB_ExitCode_t (*RTLIB_CPS_Goal_Set)(
 		RTLIB_ExecutionContextHandler_t ech, float cps_min, float cps_max);
 
+/**
+ * @brief Setup the Jobs Per Seconds (JPS) goal
+ * @ingroup rtlib_sec03_plain_cps
+ *
+ * The RTLib provides the support to specify a certain jobs rate goal.
+ * If the goal is not matched, a SetGoalGap request is sent to the
+ * BarbequeRTRM daemon.
+ *
+ * @param ech the handler of the EXC to configure
+ * @param jps_min the minimum required Jobs Per Seconds [Hz]
+ * @param jps_max the maximum required Jobs Per Seconds [Hz]
+ * @param jpc the number of jobs that are currently processed each cycle
+ */
+typedef RTLIB_ExitCode_t (*RTLIB_JPS_Goal_Set)(
+		RTLIB_ExecutionContextHandler_t ech,
+		float jps_min, float jps_max, int jpc);
 
 /**
  * @brief Setup the Cycles Time [us] support
@@ -1175,6 +1224,13 @@ struct RTLIB_Services {
 		RTLIB_CPS_Goal_Set SetGoal;
 		RTLIB_CPS_CTimeUs SetCTimeUs;
 	} CPS;
+
+	/* Cycles Time Control interface */
+	struct {
+		RTLIB_JPS_Get Get;
+		RTLIB_JPS_Goal_Set SetGoal;
+		RTLIB_JPC_Update UpdateJPC;
+	} JPS;
 
 	/* Performance estimation and notification interface */
 	struct {

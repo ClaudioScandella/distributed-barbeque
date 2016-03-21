@@ -393,6 +393,57 @@ public:
 	RTLIB_ExitCode_t SetCPS(float cps);
 
 /**
+ * @brief Set the jobs rate for this EXC
+ *
+ * The AEM defined by this API runs a processing cycle which corresponds to a
+ * loop of \ref onRun and \ref onMonitor calls.
+ *
+ * This method allows the application to notify bbque about the number of
+ * jobs that must be done each second. Jobs Per Second metric (JPS) is handled
+ * using the traditional CPS metric along with the current Jobs Per Cycle rate
+ * (JPC); therefore, the method needs desired JPS and current JPC as arguments.
+ * Needing information about the current JPC, this method should be called
+ * during the onConfigure phase, after you choose a parallelism level for your
+ * application.
+ *
+ * Use this method if you want to monitor JPS instead of CPS.
+ * This likely happens when cycle time is constant but, depending on how many
+ * resources the application has at its disposal (i.e. the current parallelism
+ * level of the algorithm), each cycle a given amount of jobs are performed.
+ *
+ * @return RTLIB_OK on success, RTLIB_ERROR or one of the other exit codes
+ * otherwise.
+ *
+ * @ingroup rtlib_sec02_aem_utils
+ */
+	RTLIB_ExitCode_t SetJPSGoal(float jps_min, float jps_max, int jpc);
+
+/**
+ * @brief Set jobs per cycle for this EXC
+ *
+ * The AEM defined by this API runs a processing cycle which corresponds to a
+ * loop of \ref onRun and \ref onMonitor calls.
+ *
+ * This method allows the application to notify bbque about the number of
+ * jobs that must be done each second. Jobs Per Second metric (JPS) is handled
+ * using the traditional CPS metric along with the current Jobs Per Cycle rate
+ * (JPC); therefore, the method needs desired JPS and current JPC as arguments.
+ * Needing information about the current JPC, this method should be called
+ * during the onConfigure phase, after you choose a parallelism level for your
+ * application.
+ *
+ * Use this method if you want to monitor JPS instead of CPS.
+ * This likely happens when cycle time is constant but, depending on how many
+ * resources the application has at its disposal (i.e. the current parallelism
+ * level of the algorithm), each cycle a given amount of jobs are performed.
+ *
+ * @return RTLIB_OK on success, RTLIB_ERROR or one of the other exit codes
+ * otherwise.
+ *
+ * @ingroup rtlib_sec02_aem_utils
+ */
+	RTLIB_ExitCode_t UpdateJPC(int jpc);
+/**
  * @brief Set the cycle rate goal for this EXC
  *
  * The AEM defined by this API runs a processing cycle which corresponds to a
@@ -451,6 +502,15 @@ public:
  * @ingroup rtlib_sec02_aem_utils
  */
 	float GetCPS();
+
+/**
+ * @brief Get the jobs rate for this EXC
+ *
+ * @return the current measured KPS value
+ *
+ * @ingroup rtlib_sec02_aem_utils
+ */
+	float GetJPS();
 
 /**
  * @brief Get the cycle time in [us]

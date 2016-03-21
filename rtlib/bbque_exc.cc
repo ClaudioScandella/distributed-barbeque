@@ -310,13 +310,19 @@ RTLIB_ExitCode_t BbqueEXC::GetAssignedResources(
 }
 
 /*******************************************************************************
- *    Cycles Per Second (CPS) Control Support
+ *    Cycles Per Second (CPS) and Jobs Per Second (JPS) Control Support
  ******************************************************************************/
 
 RTLIB_ExitCode_t BbqueEXC::SetCPS(float cps) {
 	DB(logger->Debug("Set cycles-rate to [%.3f] [Hz] for EXC [%s] (@%p)...",
 			cps, exc_name.c_str(), (void*)exc_hdl));
 	return rtlib->CPS.Set(exc_hdl, cps);
+}
+
+RTLIB_ExitCode_t BbqueEXC::SetJPSGoal(float jps_min, float jps_max, int jpc) {
+	DB(logger->Debug("Set jobs-rate goal to [%.3f - %.3f] [Hz] for EXC [%s] (@%p)...",
+			jps_min, jps_max, exc_name.c_str(), (void*)exc_hdl));
+	return rtlib->JPS.SetGoal(exc_hdl, jps_min, jps_max, jpc);
 }
 
 RTLIB_ExitCode_t BbqueEXC::SetCPSGoal(float cps_min, float cps_max) {
@@ -331,11 +337,24 @@ RTLIB_ExitCode_t BbqueEXC::SetCTimeUs(uint32_t us) {
 	return rtlib->CPS.SetCTimeUs(exc_hdl, us);
 }
 
+RTLIB_ExitCode_t BbqueEXC::UpdateJPC(int jpc) {
+	DB(fprintf(stderr, FD("Updating JPC [%d] [Hz] for EXC [%s] (@%p)...\n"),
+			jpc, exc_name.c_str(), (void*)exc_hdl));
+	return rtlib->JPS.UpdateJPC(exc_hdl, jpc);
+}
+
 float BbqueEXC::GetCPS() {
 	float cps = rtlib->CPS.Get(exc_hdl);
 	DB(fprintf(stderr, FD("Get cycles-rate [%.3f] [Hz] for EXC [%s] (@%p)...\n"),
 			cps, exc_name.c_str(), (void*)exc_hdl));
 	return cps;
+}
+
+float BbqueEXC::GetJPS() {
+	float jps = rtlib->JPS.Get(exc_hdl);
+	DB(fprintf(stderr, FD("Get jobs-rate [%.3f] [Hz] for EXC [%s] (@%p)...\n"),
+			jps, exc_name.c_str(), (void*)exc_hdl));
+	return jps;
 }
 
 /*******************************************************************************

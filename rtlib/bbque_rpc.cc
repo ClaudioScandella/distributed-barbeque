@@ -2116,7 +2116,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	}
 
 	double cycle_time_ms = (double)prec->cycle_time_value /
-						   (double)prec->cycle_time_samples;
+						   (double)(prec->cycle_time_samples * prec->jpc);
 	float cpu_usage = prec->ps_cusage.cusage;
 
 	if (cpu_usage == 0.0) {
@@ -2174,7 +2174,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	}
 
 	// Update Runtime Information
-	prec->cps_last_registered = cycle_time_ms;
+	prec->cps_last_registered = cycle_time_ms * prec->jpc;
 	prec->waiting_sync = true;
 
 	// Calling the low-level enable function
@@ -3142,6 +3142,22 @@ float BbqueRPC::GetCPS(
 
 }
 
+float BbqueRPC::GetJPS(
+	RTLIB_ExecutionContextHandler_t ech) {
+	pregExCtx_t prec;
+
+	// Get a reference to the EXC to control
+	assert(ech);
+	prec = getRegistered(ech);
+	if (!prec) {
+		fprintf(stderr, FE("Get CPS for EXC [%p] FAILED "
+				"(EXC not registered)\n"), (void*)ech);
+		return RTLIB_EXC_NOT_REGISTERED;
+	}
+	assert(isRegistered(prec) == true);
+	return GetCPS(ech) * prec->jpc;
+}
+
 void BbqueRPC::ForceCPS(pregExCtx_t prec) {
 	float delay_ms = 0; // [ms] delay to stick with the required FPS
 	uint32_t sleep_us;
@@ -3209,6 +3225,70 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 	ResetRuntimeProfileStats(prec);
 
 	return RTLIB_OK;
+}
+
+RTLIB_ExitCode_t BbqueRPC::UpdateJPC(
+		RTLIB_ExecutionContextHandler_t ech, int jpc) {
+
+	if (jpc == 0) {
+		logger->Error("UpdateJPC: invalid args");
+		return RTLIB_ERROR;
+	}
+
+	pregExCtx_t prec;
+
+	// Get a reference to the EXC to control
+	assert(ech);
+	prec = getRegistered(ech);
+	if (!prec) {
+		logger->Error("Unregister EXC [%p] FAILED "
+				"(EXC not registered)", (void*)ech);
+		return RTLIB_EXC_NOT_REGISTERED;
+	}
+	assert(isRegistered(prec) == true);
+
+	if (prec->jpc != jpc) {
+		// JPC changes cause JPS goal to change!
+		float correction_factor = (float)jpc / (float)(prec->jpc);
+		float new_jps_min = prec->cps_goal_min * correction_factor;
+		float new_jps_max = prec->cps_goal_max * correction_factor;
+		return SetJPSGoal(ech, new_jps_min, new_jps_max, jpc);
+	}
+
+	return RTLIB_OK;
+}
+
+RTLIB_ExitCode_t BbqueRPC::SetJPSGoal(
+		RTLIB_ExecutionContextHandler_t ech,
+		float jps_min, float jps_max, int jpc) {
+
+	if (jpc == 0) {
+		logger->Error("SetJPSGoal: JPC cannot be null");
+		return RTLIB_ERROR;
+	}
+
+	if (jps_max == 0.0) {
+		logger->Error("SetJPSGoal: invalid args (JPS Goal not set)");
+		return RTLIB_ERROR;
+	}
+
+	if (jps_min > jps_max)
+		jps_max = jps_min;
+
+	pregExCtx_t prec;
+
+	// Get a reference to the EXC to control
+	assert(ech);
+	prec = getRegistered(ech);
+	if (!prec) {
+		logger->Error("Unregister EXC [%p] FAILED "
+				"(EXC not registered)", (void*)ech);
+		return RTLIB_EXC_NOT_REGISTERED;
+	}
+	assert(isRegistered(prec) == true);
+
+	prec->jpc = jpc;
+	return SetCPSGoal(ech, jps_min, jps_max);
 }
 
 /*******************************************************************************

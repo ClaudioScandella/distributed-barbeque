@@ -205,6 +205,13 @@ public:
 	float GetCPS(RTLIB_ExecutionContextHandler_t ech);
 
 	/**
+	 * @brief Get the measured Jobs Per Second (JPS) value
+	 *
+	 * @return the measured JPS value
+	 */
+	float GetJPS(RTLIB_ExecutionContextHandler_t ech);
+
+	/**
 	 * @brief Set the required Cycles Per Second goal (CPS)
 	 *
 	 * This allows to define the required and expected cycles rate.
@@ -217,6 +224,19 @@ public:
 	RTLIB_ExitCode_t SetCPSGoal(
 			RTLIB_ExecutionContextHandler_t ech,
 			float cps_min, float cps_max);
+
+	/**
+	 * @brief Set the required Jobs Per Second goal (JPS)
+	 */
+	RTLIB_ExitCode_t SetJPSGoal(
+			RTLIB_ExecutionContextHandler_t ech,
+			float jps_min, float jps_max, int jpc);
+
+	/**
+	 * @brief Updates Jobs Per Cycle value (JPC), which is used to compute JPS
+	 */
+	RTLIB_ExitCode_t UpdateJPC(
+			RTLIB_ExecutionContextHandler_t ech, int jpc);
 
 	/**
 	 * @brief Set the required Cycle time [us]
@@ -470,6 +490,7 @@ protected:
 		double  cycle_time_value    = 0.0; // [ms] Cumulative cycle time in the current runtime profile fwd window
 		int     cycle_time_samples  = 0;   // Number of samples in the current runtime profile fwd window
 		double  cps_last_registered = 0.0; // CPS in the previous fwd window
+		int     jpc = 1;
 
 		// Applications can explicitely ask for a runtime profile notification
 		bool 	explicit_ggap_assertion = false;
