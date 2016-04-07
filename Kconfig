@@ -33,7 +33,7 @@ depends on !BBQUE_TEST_PLATFORM_DATA
 
 config BBQUE_LINUX_CG_MEMORY
   bool "Memory controller"
-  default y
+  default n
   depends on TARGET_LINUX
   depends on !BBQUE_TEST_PLATFORM_DATA
 #  depends on !TARGET_ODROID_XU
