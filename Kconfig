@@ -237,7 +237,7 @@ menu "Performance API Configuration"
 
 config BBQUE_RTLIB_GGAP_THRESHOLD_FORWARD
   int "GoalGap Forward Threshold"
-  default 20
+  default 5
   ---help---
   The minimum GoalGap value which is forwarded to BarbequeRTRM.
 
@@ -247,7 +247,7 @@ config BBQUE_RTLIB_GGAP_THRESHOLD_FORWARD
 
 config BBQUE_RTLIB_GGAP_RATE_FORWARD
   int "GoalGap Forward Rate"
-  default 1
+  default 5
   ---help---
   A periodical number of execution cycles, after which a GoalGap value can
   forwarded to BarbequeRTRM.
@@ -334,7 +334,7 @@ config BBQUE_BUILD_DEBUG
 
 config BBQUE_GGAP_THRESHOLD_OPTIMIZE
   int "GoalGap Optimize Threshold"
-  default 40
+  default 5
   ---help---
   The minimum GoalGap value which triggers an optimization.
 
