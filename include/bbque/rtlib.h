@@ -1107,6 +1107,12 @@ typedef struct RTLIB_Conf {
 
 	} profile;
 
+	// Application-Specific RTM
+	struct {
+		uint16_t rt_profile_rearm_time_ms;
+		uint16_t rt_profile_wait_for_sync_ms;
+	} asrtm;
+
 	// Unmanaged execution
 	struct {
 		bool enabled;

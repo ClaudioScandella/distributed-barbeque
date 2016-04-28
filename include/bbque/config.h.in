@@ -284,6 +284,26 @@
 #define BBQUE_RID_TYPE int16_t
 
 /**
+ * @brief The runtime profile forward rearm time
+ *
+ * Each time the Runtime Library forwards a runtime profile to the BarbequeRTRM,
+ * the forwarding is inhibited to avoid high forwarding rates. By changing
+ * this option, the inhibition time can be changed. Note that the value is
+ * expressed in milliseconds.
+ */
+#define BBQUE_DEFAULT_RTLIB_RTPROF_REARM_TIME_MS ${CONFIG_BBQUE_RTLIB_RTPROF_REARM_TIME_MS}
+
+/**
+ * @brief The runtime profile forward rearm time
+ *
+ * Each time the Runtime Library forwards a runtime profile to the BarbequeRTRM,
+ * the forwarding is inhibited until the BarbequeRTRM modifies the resource allocation.
+ * If the BarbequeRTRM does not change the allocation for a certain period of time,
+ * the Runtime Library become once again able to forward runtime profiles.
+ */
+#define BBQUE_DEFAULT_RTLIB_RTPROF_WAIT_FOR_SYNC_MS ${CONFIG_BBQUE_RTLIB_RTPROF_WAIT_FOR_SYNC_MS}
+
+/**
  * @brief The number of bits used to represent the EXC_ID into the UID
  *
  * Internally to the BarbequeRTRM, each application is represented by a UID

@@ -287,6 +287,28 @@ config BBQUE_RTLIB_UNMANAGED_SUPPORT
 
   Say NO to this option if unsure.
 
+menu "Performance API Configuration"
+
+config BBQUE_RTLIB_RTPROF_REARM_TIME_MS
+  int "Runtime Profiles Forwarding Rearm Time [ms]"
+  default 1000
+  ---help---
+  Each time the Runtime Library forwards a runtime profile to the BarbequeRTRM,
+  the forwarding is inhibited to avoid high forwarding rates. By changing
+  this option, the inhibition time can be changed. Note that the value is
+  expressed in milliseconds.
+
+config BBQUE_RTLIB_RTPROF_WAIT_FOR_SYNC_MS
+  int "Runtime Profiles Forwarding Wait For Sync Time [ms]"
+  default 5000
+  ---help---
+  Each time the Runtime Library forwards a runtime profile to the BarbequeRTRM,
+  the forwarding is inhibited until the BarbequeRTRM modifies the resource allocation.
+  If the BarbequeRTRM does not change the allocation for a certain period of time,
+  the Runtime Library become once again able to forward runtime profiles.
+
+endmenu # Performance
+
 comment "Advanced Options"
 
 config BBQUE_YM_SYNC_FORCE

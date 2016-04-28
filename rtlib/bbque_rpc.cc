@@ -138,6 +138,11 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 	conf.profile.opencl.enabled = false;
 	conf.profile.opencl.level = 0;
 
+	conf.asrtm.rt_profile_rearm_time_ms =
+			BBQUE_DEFAULT_RTLIB_RTPROF_REARM_TIME_MS;
+	conf.asrtm.rt_profile_wait_for_sync_ms =
+			BBQUE_DEFAULT_RTLIB_RTPROF_WAIT_FOR_SYNC_MS;
+
 	conf.unmanaged.enabled = false;
 	conf.unmanaged.awm_id = 0;
 
@@ -2101,15 +2106,26 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 		return RTLIB_EXC_NOT_REGISTERED;
 	}
 
-	// Forward not more than once each 500 ms
-	if (prec->cycle_time_value < 500.0) {
-		logger->Debug("Runtime Profile forward SKIPPED (too early to forward)");
+	// Check for sync timeout. If sync does not arrive before a certain
+	// time frame, notification trigger is re-armed
+	if (prec->cycle_time_value > conf.asrtm.rt_profile_wait_for_sync_ms
+			&& prec->waiting_sync == true) {
+		logger->Debug("Sync timeout: re-arming profile forwarding");
+		prec->waiting_sync = false;
+		return RTLIB_OK;
+	}
+
+	// Auto re-arm trigger after a certain timeframe
+	if (prec->cycle_time_value < conf.asrtm.rt_profile_rearm_time_ms) {
+		logger->Debug("Runtime Profile forward SKIPPED "
+				"(waiting for auto re-arm)");
 		return RTLIB_OK;
 	}
 
 	// Application can explicitly assert a Goal Gap Value
 	bool explicit_notification  = prec->explicit_ggap_assertion;
 
+	// If application is waiting for sync, implicit forward is inhibited
 	if (prec->waiting_sync == true && explicit_notification == false) {
 		logger->Debug("Runtime Profile forward SKIPPED (waiting for sync)");
 		return RTLIB_OK;
