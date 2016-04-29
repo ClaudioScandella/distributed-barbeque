@@ -307,6 +307,14 @@ config BBQUE_RTLIB_RTPROF_WAIT_FOR_SYNC_MS
   If the BarbequeRTRM does not change the allocation for a certain period of time,
   the Runtime Library become once again able to forward runtime profiles.
 
+config BBQUE_RTLIB_RTPROF_MAX_WINDOW_SIZE
+  int "Runtime Profiles Samples Window"
+  default 10
+  ---help---
+  The Runtime Library provides statistical information about cycle times (average,
+  variance, confidence intervals ...). Such statistics are rolling statistics, i.e.
+  they are computed over a number of recent values. This option sets that number.
+
 endmenu # Performance
 
 comment "Advanced Options"

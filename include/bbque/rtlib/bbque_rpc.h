@@ -487,9 +487,10 @@ protected:
 		float  	cps_goal_min = 0.0; // [Hz] the minimum required CPS
 		float  	cps_goal_max = 0.0; // [Hz] the maximum required CPS
 		float  	cps_max      = 0.0; // [Hz] the required maximum CPS
-		double  cycle_time_value    = 0.0; // [ms] Cumulative cycle time in the current runtime profile fwd window
-		int     cycle_time_samples  = 0;   // Number of samples in the current runtime profile fwd window
-		int     jpc = 1;
+		int     jpc = 1;		    // Current number of processed Jobs per Cycle
+
+		// Moving Statistics for cycle times
+		bu::MovingStats cycletime_stats;
 
 		// Applications can explicitely ask for a runtime profile notification
 		bool 	explicit_ggap_assertion = false;
@@ -503,7 +504,8 @@ protected:
 		ProcStatCUsage ps_cusage;
 
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
-			name(_name), exc_id(id) {
+			name(_name), exc_id(id),
+			cycletime_stats(conf.asrtm.rt_profile_max_window_size) {
 		//		rr.user_threshold = RTLIB_RR_THRESHOLD_DISABLE;
 		}
 

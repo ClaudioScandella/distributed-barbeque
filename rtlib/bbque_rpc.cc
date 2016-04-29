@@ -142,6 +142,8 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 			BBQUE_DEFAULT_RTLIB_RTPROF_REARM_TIME_MS;
 	conf.asrtm.rt_profile_wait_for_sync_ms =
 			BBQUE_DEFAULT_RTLIB_RTPROF_WAIT_FOR_SYNC_MS;
+	conf.asrtm.rt_profile_max_window_size =
+			BBQUE_DEFAULT_RTLIB_RTPROF_MAX_WINDOW_SIZE;
 
 	conf.unmanaged.enabled = false;
 	conf.unmanaged.awm_id = 0;
@@ -1248,8 +1250,7 @@ void BbqueRPC::_SyncTimeEstimation(pregExCtx_t prec) {
 	prec->cycles_count += 1;
 
 	// Push sample into CPS estimator
-	prec->cycle_time_value += last_cycle_ms;
-	prec->cycle_time_samples ++;
+	prec->cycletime_stats.InsertValue(last_cycle_ms);
 
 	// Statistic features extraction for cycle time estimation:
 	DB(
@@ -1393,8 +1394,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateMonitorStatistics(pregExCtx_t prec) {
 
 void BbqueRPC::ResetRuntimeProfileStats(pregExCtx_t prec) {
 	logger->Debug("SetCPSGoal: Resetting cycle time history");
-	prec->cycle_time_value = 0.0;
-	prec->cycle_time_samples = 0;
+	prec->cycletime_stats.Reset();
 	logger->Debug("SetCPSGoal: Resetting CPU quota history");
 	prec->ps_cusage.reset = true;
 	prec->waiting_sync = false;
@@ -2108,7 +2108,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 
 	// Check for sync timeout. If sync does not arrive before a certain
 	// time frame, notification trigger is re-armed
-	if (prec->cycle_time_value > conf.asrtm.rt_profile_wait_for_sync_ms
+	if (prec->cycletime_stats.GetSum() > conf.asrtm.rt_profile_wait_for_sync_ms
 			&& prec->waiting_sync == true) {
 		logger->Debug("Sync timeout: re-arming profile forwarding");
 		prec->waiting_sync = false;
@@ -2116,7 +2116,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	}
 
 	// Auto re-arm trigger after a certain timeframe
-	if (prec->cycle_time_value < conf.asrtm.rt_profile_rearm_time_ms) {
+	if (prec->cycletime_stats.GetSum() < conf.asrtm.rt_profile_rearm_time_ms) {
 		logger->Debug("Runtime Profile forward SKIPPED "
 				"(waiting for auto re-arm)");
 		return RTLIB_OK;
@@ -2131,8 +2131,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 		return RTLIB_OK;
 	}
 
-	double cycle_time_ms = (double)prec->cycle_time_value /
-						   (double)(prec->cycle_time_samples * prec->jpc);
+	double cycle_time_ms = prec->cycletime_stats.GetAverage() / prec->jpc;
 	float cpu_usage = prec->ps_cusage.cusage;
 
 	if (cpu_usage == 0.0) {
@@ -3141,12 +3140,12 @@ float BbqueRPC::GetCPS(
 	assert(isRegistered(prec) == true);
 
 	// If cycle was reset, return CPS up to last forward window
-	if (prec->cycle_time_samples == 0)
+	if (prec->cycletime_stats.GetAverage() == 0)
 		return (prec->exc_tmr.getElapsedTimeMs() == 0.0) ?
 				0.0 : 1000.0 / prec->exc_tmr.getElapsedTimeMs();
 
 	// Get the current measured CPS
-	ctime = (float) prec->cycle_time_value / (float)prec->cycle_time_samples;
+	ctime = prec->cycletime_stats.GetAverage();
 
 	if (ctime != 0)
 		cps = 1000.0 / ctime;
