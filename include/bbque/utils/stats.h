@@ -19,6 +19,8 @@
 #define BBQUE_UTILS_STATS_H_
 
 #include <memory>
+#include <cmath>
+#include <list>
 
 #include <bbque/utils/utility.h>
 
@@ -73,10 +75,141 @@ public:
 	}
 };
 
+class MovingStats {
+
+private:
+	// Max number of recent values to be stored and used to compute statistics
+	int16_t max_window_size;
+	// Current number of stored values
+	int16_t curr_window_size = 0;
+	// The stored values
+	std::list<double> values_window;
+	// The stored values, squared (for utils purposes)
+	std::list<double> squared_values_window;
+
+	// Returns the sum of the squared values, i.e. V0^2 + V1^2 + .. + VN^2
+	double GetSumSquared() {
+		if (curr_window_size == 0)
+			return 0.0;
+
+		double result;
+		for (auto value : squared_values_window)
+			result += value;
+		return result;
+	}
+
+	// Returns the average of the squared values, i.e. (V0^2 + .. + VN^2) / N
+	double GetAverageSquared() {
+		if (curr_window_size == 0)
+			return 0.0;
+		return GetSumSquared() / curr_window_size;
+	}
+
+public:
+
+	MovingStats(int8_t _max_window_size = 1) :
+		max_window_size(_max_window_size) {
+	}
+
+	// Returns the sum of the values, i.e. V0 + V1 + .. + VN
+	double GetSum() {
+
+		if (curr_window_size == 0)
+			return 0.0;
+
+		double result = 0;
+		for (auto value : values_window)
+			result += value;
+		return result;
+	}
+
+	// Returns the average of the values, i.e. (V0 + .. + VN) / N
+	double GetAverage() {
+		if (curr_window_size == 0)
+			return 0.0;
+		return GetSum() / curr_window_size;
+	}
+
+	// Return the variance, which equals to E(X^2) - E^2(X)
+	double GetVariance() {
+		if (curr_window_size == 0)
+			return 0.0;
+		return GetAverageSquared() - (GetAverage() * GetAverage());
+	}
+
+	// Standard deviation: square root of the variance
+	double GetStandartDeviation() {
+		if (curr_window_size == 0)
+			return 0.0;
+		return std::sqrt(GetVariance());
+	}
+
+	// Standard error: square root of (variance / N)
+	double GetStandardError() {
+		if (curr_window_size == 0)
+			return 0.0;
+		return std::sqrt(GetVariance() / curr_window_size);
+	}
+
+	// CI 95%: 1.96 * standard error
+	double GetConfidenceInterval95() {
+		return 1.96 * GetStandardError();
+	}
+
+	// CI 99%: 2.58 * standard error
+	double GetConfidenceInterval99() {
+		return 2.58 * GetStandardError();
+	}
+
+	uint16_t GetWindowSize() {
+		return curr_window_size;
+	}
+
+	double GetLastValue() {
+		return values_window.front();
+	}
+
+	// Clear all values
+	void Reset() {
+		curr_window_size = 0;
+		values_window.clear();
+		squared_values_window.clear();
+	}
+
+	// Changes the max number of stored values, deleting values if needs be
+	void ResetWindowSize(int16_t new_size) {
+		if (new_size > curr_window_size) {
+			values_window.resize(new_size);
+			squared_values_window.resize(new_size);
+			curr_window_size = new_size;
+		}
+		max_window_size = new_size;
+	}
+
+	// Store a new value
+	void InsertValue(double value) {
+		// If maximum value is reached, delete a value
+		if (curr_window_size == max_window_size) {
+			values_window.pop_back();
+			squared_values_window.pop_back();
+		} else
+			curr_window_size ++;
+
+		values_window.push_front(value);
+		squared_values_window.push_front(value * value);
+	}
+
+};
+
 /**
  * @brief A pointer to an EMA-defined accounter
  */
 typedef std::shared_ptr<EMA> pEma_t;
+
+/**
+ * @brief A pointer to an MovingStats-defined accounter
+ */
+typedef std::shared_ptr<MovingStats> pMovingStats_t;
 
 
 } // namespace utils
