@@ -92,7 +92,7 @@ private:
 		if (curr_window_size == 0)
 			return 0.0;
 
-		double result;
+		double result = 0.0;
 		for (auto value : squared_values_window)
 			result += value;
 		return result;
@@ -117,7 +117,7 @@ public:
 		if (curr_window_size == 0)
 			return 0.0;
 
-		double result = 0;
+		double result = 0.0;
 		for (auto value : values_window)
 			result += value;
 		return result;
