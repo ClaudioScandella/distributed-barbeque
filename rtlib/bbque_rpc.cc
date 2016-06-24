@@ -2101,6 +2101,11 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 
 	// Check SKIP conditions ///////////////////////////////////////////////////
 
+	if (prec->cycletime_stats_bbque.GetWindowSize() == 0) {
+		logger->Warn("No samples to analyse. SKIPPING");
+		return RTLIB_OK;
+	}
+
 	// Forward is inhibited for some ms after a new allocation arrived
 	int ms_from_last_reconfiguration = prec->cycletime_stats_user.GetSum();
 	if (ms_from_last_reconfiguration < conf.asrtm.rt_profile_rearm_time_ms) {
