@@ -1231,29 +1231,30 @@ bool BbqueRPC::CheckDurationTimeout(pregExCtx_t prec) {
 void BbqueRPC::_SyncTimeEstimation(pregExCtx_t prec) {
 	pAwmStats_t pstats(prec->pAwmStats);
 	std::unique_lock<std::mutex> stats_ul(pstats->stats_mtx);
-	// Use high resolution to avoid errors on next computations
-	double last_cycle_ms;
 
-	// TIMER: Get RUNNING
-	last_cycle_ms = prec->exc_tmr.getElapsedTimeMs();
+	// "real" cycletime, as seen by the user
+	double user_cycletime_ms = prec->exc_tmr.getElapsedTimeMs();
+	// Cycletime as seen by bbque, which could insert sleeps to enforce low CPS
+	double bbque_cycletime_ms =
+			user_cycletime_ms - prec->cps_enforcing_sleep_time_ms;
+	prec->cps_enforcing_sleep_time_ms = 0;
 
-	logger->Debug("Last cycle time %10.3f[ms] for EXC [%s:%02hu]",
-				last_cycle_ms, prec->name.c_str(), prec->exc_id);
+	logger->Debug("Last cycle time %10.3f[ms] (%10.3f without sleeps) for EXC "
+			"[%s:%02hu]", user_cycletime_ms, bbque_cycletime_ms,
+			prec->name.c_str(), prec->exc_id);
 
 	// Update running counters
-	pstats->time_processing += last_cycle_ms;
-	prec->time_processing += last_cycle_ms;
+	pstats->time_processing += user_cycletime_ms;
+	prec->time_processing += user_cycletime_ms;
 	CheckDurationTimeout(prec);
 
 	// Push sample into accumulator
-	pstats->cycle_samples(last_cycle_ms);
+	pstats->cycle_samples(user_cycletime_ms);
 	prec->cycles_count += 1;
 
-	// Push sample into CPS estimator
-	prec->cycletime_stats_user.InsertValue(last_cycle_ms);
-	prec->cycletime_stats_bbque.InsertValue(last_cycle_ms
-			- prec->cps_enforcing_sleep_time_ms);
-	prec->cps_enforcing_sleep_time_ms = 0;
+	// Push sample into bbque CPS estimator
+	prec->cycletime_stats_bbque.InsertValue(bbque_cycletime_ms);
+	prec->cycletime_stats_user.InsertValue(user_cycletime_ms);
 
 	// Statistic features extraction for cycle time estimation:
 	DB(
