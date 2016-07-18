@@ -502,8 +502,7 @@ protected:
 
 		// Once a runtime profile has been forwarded to bbque, there is no need
 		// to send another one before a reconfiguration happens.
-		bool waiting_sync = false;
-		uint16_t waiting_sync_timeout = 0.0;
+		int waiting_sync_timeout_ms = 0;
 
 		/** Cycle of the last goal-gap assertion */
 		ProcStatCUsage ps_cusage;

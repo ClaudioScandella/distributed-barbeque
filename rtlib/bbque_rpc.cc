@@ -1390,7 +1390,7 @@ void BbqueRPC::ResetRuntimeProfileStats(pregExCtx_t prec) {
 	logger->Debug("SetCPSGoal: Resetting CPU quota history");
 	prec->ps_cusage.reset = true;
 	prec->cpu_usage.Reset();
-	prec->waiting_sync = false;
+	prec->waiting_sync_timeout_ms = 0;
 }
 
 RTLIB_ExitCode_t BbqueRPC::GetAssignedWorkingMode(
@@ -2087,156 +2087,111 @@ RTLIB_ExitCode_t BbqueRPC::Clear(
 
 RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 		const RTLIB_ExecutionContextHandler_t ech) {
-	RTLIB_ExitCode_t result;
-	pregExCtx_t prec;
 
-	// Getting the execution context
+	// Get the execution context ///////////////////////////////////////////////
+	pregExCtx_t prec;
 	assert(ech);
 	prec = getRegistered(ech);
 	if (!prec) {
-		logger->Error("[%p] Profile notification FAILED (EXC not registered)",
+		logger->Error("[%p] RTP forward FAILED (EXC not registered)",
 					  (void*)ech);
 		return RTLIB_EXC_NOT_REGISTERED;
 	}
 
-	// Auto re-arm trigger after a certain timeframe
-	if (prec->cycletime_stats_user.GetSum()
-			< conf.asrtm.rt_profile_rearm_time_ms ||
-			prec->cycletime_stats_user.GetSum() == 0) {
-		logger->Info("Runtime Profile forward SKIPPED "
-				"(waiting for auto re-arm)");
+	// Check SKIP conditions ///////////////////////////////////////////////////
+
+	// Forward is inhibited for some ms after a new allocation arrived
+	int ms_from_last_reconfiguration = prec->cycletime_stats_user.GetSum();
+	if (ms_from_last_reconfiguration < conf.asrtm.rt_profile_rearm_time_ms) {
+		logger->Debug("RTP forward SKIPPED (inhibited for %d more ms)",
+			conf.asrtm.rt_profile_rearm_time_ms - ms_from_last_reconfiguration);
 		return RTLIB_OK;
 	}
 
-	// Application can explicitly assert a Goal Gap Value
-	bool explicit_notification  = prec->explicit_ggap_assertion;
+	// Forward is inhibited for some ms after a RTP has been forwarded.
+	prec->waiting_sync_timeout_ms -= prec->cycletime_stats_user.GetLastValue();
 
-	// If application is waiting for sync, profile forward is inhibited
-	if (prec->waiting_sync == true) {
-		// Checking for waiting_sync timeout
-		if (prec->waiting_sync_timeout
-				< prec->cycletime_stats_user.GetLastValue()) {
-			prec->waiting_sync = false;
-			prec->waiting_sync_timeout = 0;
-		} else {
-			prec->waiting_sync_timeout
-							-= prec->cycletime_stats_user.GetLastValue();
-			logger->Info("Runtime Profile forward SKIPPED (waiting sync for "
-					"max %u more ms)", prec->waiting_sync_timeout);
-			return RTLIB_OK;
-		}
-
+	if (prec->waiting_sync_timeout_ms > 0) {
+		logger->Debug("RTP forward SKIPPED (waiting sync for %d more ms)",
+				prec->waiting_sync_timeout_ms);
+		return RTLIB_OK;
 	}
 
-	double cycle_time_ms = prec->cycletime_stats_bbque.GetAverage() / prec->jpc;
-	double cycle_time_ic99 = prec->cycletime_stats_bbque.GetConfidenceInterval99();
+	prec->waiting_sync_timeout_ms = 0;
 
-	float cpu_usage = prec->cpu_usage.GetAverage();
+	// Computing RTP ///////////////////////////////////////////////////////////
+	float goal_gap = 0.0f;
+	float cpu_usage = std::max(prec->systems[LOCAL_SYSTEM]->r_proc,
+			(int32_t) (prec->cpu_usage.GetAverage() +
+					prec->cpu_usage.GetConfidenceInterval99()));
 
-	// If CPU usage was not computed (rare, but could happen on some systems),
-	// I assume all is OK. Else, I add the CI99 to the usage, thus getting the
-	// maximum expected usage
-	if (cpu_usage == 0.0)
-		cpu_usage = prec->r_proc;
-	else
-		cpu_usage += prec->cpu_usage.GetConfidenceInterval99();
+	bool compute_ggap = true;
 
-
-	// Current distance percentage between desired and actual performance.
-	// Will become an integer at the end. No need for high precision.
-	float goal_gap = 0.0;
-
-	if (explicit_notification) {
-		// Goal Gap value is the explicit one
+	// The application can assert an explicit goal gap value.
+	// In this case, goal gap is not computed. I use the asserted one.
+	if (prec->explicit_ggap_assertion) {
 		goal_gap = prec->explicit_ggap_value;
-		// Reset info about explicit Goal Gap assertion
 		prec->explicit_ggap_assertion = false;
 		prec->explicit_ggap_value = 0.0;
+		compute_ggap = false;
 	}
-	else if (prec->cps_goal_min > 0.0) {
 
-		float current_cps_average = 1000.0 / cycle_time_ms;
-		float current_cps_min = 1000.0 / (cycle_time_ms + cycle_time_ic99);
-		float current_cps_max = 1000.0 / (cycle_time_ms - cycle_time_ic99);
+	// If the application didn't declare a cps goal, the goal gap is always 0.0
+	if (prec->cps_goal_min + prec->cps_goal_max == 0.0f)
+		compute_ggap = false;
 
-		logger->Debug("CPS: %.2f, with IC95: [%.2f, %.2f]",
-				current_cps_average, current_cps_min, current_cps_max);
+	float cycle_time_avg_ms = prec->cycletime_stats_bbque.GetAverage() / prec->jpc;
+	float cycle_time_ic99_ms = prec->cycletime_stats_bbque.GetConfidenceInterval99();
 
-		if (current_cps_max >= prec->cps_goal_max) {
+	if (compute_ggap == true) {
+		// Cycles Per Second = 1 [s] / cycle_time [s]
+		float cps_avg = 1000.0 / cycle_time_avg_ms;
+		float cps_min = 1000.0 / (cycle_time_avg_ms + cycle_time_ic99_ms);
+		float cps_max = 1000.0 / (cycle_time_avg_ms - cycle_time_ic99_ms);
+		logger->Debug("CPS: %.2f, with IC99: [%.2f, %.2f]", cps_avg, cps_min, cps_max);
 
-			if (current_cps_min < prec->cps_goal_min) {
-				// Performance is more or less OK, but variance is high. Let's
-				// center the interval, at least
-				float center = prec->cps_goal_min +
-						0.5 * (prec->cps_goal_max - prec->cps_goal_min);
-				goal_gap = ((current_cps_average - center) / center) * 100.0;
-				logger->Debug("Good performance, high variance. Centering on %.2f (gap %.2f)",
-						center, goal_gap);
-			} else {
-				// Performance is too high!
-				goal_gap = ((current_cps_max - prec->cps_goal_max)
-						/ prec->cps_goal_max) * 100.0;
-				logger->Debug("High performance. Moving down to %f (gap %.2f)",
-						prec->cps_goal_max, goal_gap);
-			}
+		// Checking if the real CPS is compliant with the declared one
+		bool high_performance = (cps_max > prec->cps_goal_max);
+		bool low_performance = (cps_min < prec->cps_goal_max);
 
-		} else { // current_cps_max < prec->cps_goal_max
+		// Goal gap [%] = (real performance - ideal performance) / ideal performance
+		float ideal_performance = 1.0f;
+		float real_performance = 1.0f;
 
-			if (current_cps_min > prec->cps_goal_min) {
-				// Performance is sooo good.
-				goal_gap = 0.0;
-				logger->Debug("I definitely love this allocation :)");
-			} else {
-				// Performance is too low!
-				goal_gap = ((current_cps_min - prec->cps_goal_min)
-						/ prec->cps_goal_min) * 100.0;
-				logger->Debug("Low performance. Moving up to %f (gap %.2f)",
-						prec->cps_goal_min, goal_gap);
-			}
-
+		if (high_performance && low_performance) {
+			logger->Debug("CPS status: good performance, high variance.");
+		} else if (high_performance) {
+			// Performance is too high
+			ideal_performance = prec->cps_goal_max;
+			real_performance = cps_max;
+			logger->Debug("CPS status: high performance.");
+		} else if (low_performance) {
+			// Performance is too low
+			ideal_performance = prec->cps_goal_min;
+			real_performance = cps_min;
+			logger->Debug("CPS status: low performance.");
+		} else {
+			logger->Debug("CPS status: ideal performance.");
 		}
 
-		// Rounding down small gaps
-		if (std::abs(goal_gap) < 1) goal_gap = 0.0f;
+		goal_gap = ((real_performance - ideal_performance) / ideal_performance) * 100.0;
 
 	}
 
-	// Runtime Profile = {goal_gap, cpu_usage, cycle_time}
-	logger->Debug("[%p:%s] Profile : {Goal Gap: %.2f, CPU Usage: "
-			"%.2f, Cycle Time: %.2f ms}", (void*)ech, prec->name.c_str(),
-			goal_gap, cpu_usage, cycle_time_ms);
-
-	/* Notification shall be forwarded only if one of the following is true:
-	 * 		a) Goal Gap is not acceptable (i.e. ggap non null) and at least one
-	 * 		   second has elapsed from the last forwarding
-	 * 		b) The application cannot exploit the allocated CPU quota,
-	 * 		   i.e. CPU usage is not acceptable
-	 */
-	bool ggap_acceptable = true;
-	if (goal_gap != 0.0) {
-		logger->Debug("Goal gap not acceptable: %.2f", goal_gap);
-		ggap_acceptable = false;
-	}
-
-	// CPU usage greater than the number of allocated cores -1
-	bool cpu_acceptable = true;
-	if (cpu_usage < prec->systems[LOCAL_SYSTEM]->r_proc) {
-		logger->Debug("CPU under-utilization: %.2f vs %d", cpu_usage, prec->systems[LOCAL_SYSTEM]->r_proc);
-		cpu_acceptable = false;
-	}
-
-	if (ggap_acceptable && cpu_acceptable) {
-		logger->Debug("Runtime Profile forward SKIPPED (not needed)");
+	// If goal gap is ~ 0 and CPU quota is ~ the allocated one, do not forward
+	if (std::abs(goal_gap) < 1.0f && cpu_usage > 0.99 * prec->systems[LOCAL_SYSTEM]->r_proc)
 		return RTLIB_OK;
-	}
 
-	// Update Runtime Information
-	prec->waiting_sync = true;
-	prec->waiting_sync_timeout = conf.asrtm.rt_profile_wait_for_sync_ms;
+	// RTP forwarding //////////////////////////////////////////////////////////
 
-	// Calling the low-level enable function
-	result = _RTNotify(prec, std::round(goal_gap), std::round(cpu_usage),
-			std::round(cycle_time_ms));
+	// If complaining about performance, inhibit RTP forward for some ms
+	if (goal_gap != 0.0f)
+		prec->waiting_sync_timeout_ms = conf.asrtm.rt_profile_wait_for_sync_ms;
+
+	// Forward the RTP
+	RTLIB_ExitCode_t result =
+			_RTNotify(prec, std::round(goal_gap), std::round(cpu_usage),
+			std::round(cycle_time_avg_ms));
 
 	if (result != RTLIB_OK) {
 		logger->Error("[%p:%s] Profile notification FAILED (Error %d: %s)",
@@ -2246,7 +2201,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 
 	logger->Warn("[%p:%s] Profile notification : {Gap: %.2f, CPU: "
 			"%.2f, CTime: %.2f ms}", (void*)ech, prec->name.c_str(),
-			goal_gap, cpu_usage, cycle_time_ms);
+			goal_gap, cpu_usage, cycle_time_avg_ms);
 
 	return RTLIB_OK;
 }
