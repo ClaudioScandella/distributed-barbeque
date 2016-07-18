@@ -1074,10 +1074,11 @@ RTLIB_ExitCode_t BbqueRPC::SetCGroupPath(pregExCtx_t prec) {
 	}
 
 
-	snprintf(buff, 256, "%s/user.slice/%05d:%.6s",
+	snprintf(buff, 256, "%s/user.slice/%05d:%.6s:%02d",
 			cgMount,
 			chTrdPid,
-			prec->name.c_str());
+			prec->name.c_str(),
+			prec->exc_id);
 
 	// Check CGroups access
 	struct stat cgstat;
