@@ -860,13 +860,22 @@ LinuxPlatformProxy::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0)
 
+	app::RuntimeProfiling_t runtime_profile =
+			pcgd->papp->GetRuntimeProfile();
+
+	int cfs_quota_us = 1000 * runtime_profile.ctime_ms;
+	if (cfs_quota_us == 0)
+		cfs_quota_us = BBQUE_LINUXPP_CPUP_DEFAULT;
+
+	char const *cfs_c = std::to_string(cfs_quota_us).c_str();
+
 	if (unlikely(!cfsQuotaSupported))
 		goto jump_quota_management;
 
 	// Set the default CPU bandwidth period
 	cgroup_set_value_string(pcgd->pc_cpu,
-	BBQUE_LINUXPP_CPUP_PARAM,
-	STR(BBQUE_LINUXPP_CPUP_DEFAULT));
+			BBQUE_LINUXPP_CPUP_PARAM,
+			cfs_c);
 
 	// Set the assigned CPU bandwidth amount
 	// NOTE: if a quota is NOT assigned we have amount_cpus="0", but this
@@ -886,23 +895,23 @@ LinuxPlatformProxy::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 		goto quota_enforcing_disabled;
 	}
 
-	cpus_quota = (BBQUE_LINUXPP_CPUP_DEFAULT / 100) *
-	prlb->amount_cpus;
+	cpus_quota = (cfs_quota_us / 100) *
+			prlb->amount_cpus;
 	cgroup_set_value_int64(pcgd->pc_cpu,
 	BBQUE_LINUXPP_CPUQ_PARAM, cpus_quota);
 
 	logger->Debug("PLAT LNX: Setup CPU for [%s]: "
-	"{period [%s], quota [%lu]",
-	pcgd->papp->StrId(),
-	STR(BBQUE_LINUXPP_CPUP_DEFAULT),
-	cpus_quota);
+			"{period [%s], quota [%lu]",
+			pcgd->papp->StrId(),
+			cfs_c,
+			cpus_quota);
 
 quota_enforcing_disabled:
 
 	logger->Debug("PLAT LNX: Setup CPU for [%s]: "
-	"{period [%s], quota [-]}",
-	pcgd->papp->StrId(),
-	STR(BBQUE_LINUXPP_CPUP_DEFAULT));
+			"{period [%s], quota [-]}",
+			pcgd->papp->StrId(),
+			cfs_c);
 
 jump_quota_management:
 	// Here we jump, if CFS Quota management is not enabled on the target
