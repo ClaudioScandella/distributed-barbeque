@@ -304,15 +304,6 @@
 #define BBQUE_DEFAULT_RTLIB_RTPROF_WAIT_FOR_SYNC_MS ${CONFIG_BBQUE_RTLIB_RTPROF_WAIT_FOR_SYNC_MS}
 
 /**
- * @brief The runtime profile samples window
- *
- * The Runtime Library provides statistical information about cycle times (average,
- * variance, confidence intervals ...). Such statistics are rolling statistics, i.e.
- * they are computed over a number of recent values. This option sets that number.
- */
-#define BBQUE_DEFAULT_RTLIB_RTPROF_MAX_WINDOW_SIZE ${CONFIG_BBQUE_RTLIB_RTPROF_MAX_WINDOW_SIZE}
-
-/**
  * @brief The number of bits used to represent the EXC_ID into the UID
  *
  * Internally to the BarbequeRTRM, each application is represented by a UID

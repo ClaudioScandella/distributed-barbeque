@@ -75,128 +75,116 @@ public:
 	}
 };
 
-class MovingStats {
+class StatsAnalysis {
 
 private:
-	// Max number of recent values to be stored and used to compute statistics
-	int16_t max_window_size;
+
 	// Current number of stored values
-	int16_t curr_window_size = 0;
-	// The stored values
-	std::list<double> values_window;
-	// The stored values, squared (for utils purposes)
-	std::list<double> squared_values_window;
+	uint16_t samples_number = 0;
 
-	// Returns the sum of the squared values, i.e. V0^2 + V1^2 + .. + VN^2
-	double GetSumSquared() {
-		if (curr_window_size == 0)
-			return 0.0;
+	// The last inserted value
+	double last_value = 0.0f;
 
-		double result = 0.0;
-		for (auto value : squared_values_window)
-			result += value;
-		return result;
-	}
+	// Note: Using Welford's algorithm to compute variance
+	double mean = 0.0f;
+	double mean2 = 0.0f;
 
-	// Returns the average of the squared values, i.e. (V0^2 + .. + VN^2) / N
-	double GetAverageSquared() {
-		if (curr_window_size == 0)
-			return 0.0;
-		return GetSumSquared() / curr_window_size;
-	}
+	// Fase detection (optional)
+	bool detect_phase_changes = false;
+	bool out_of_phase = false;
 
 public:
 
-	MovingStats(int8_t _max_window_size = 1) :
-		max_window_size(_max_window_size) {
-	}
-
-	// Returns the sum of the values, i.e. V0 + V1 + .. + VN
-	double GetSum() {
-
-		if (curr_window_size == 0)
-			return 0.0;
-
-		double result = 0.0;
-		for (auto value : values_window)
-			result += value;
-		return result;
-	}
+	StatsAnalysis() {}
 
 	// Returns the average of the values, i.e. (V0 + .. + VN) / N
-	double GetAverage() {
-		if (curr_window_size == 0)
-			return 0.0;
-		return GetSum() / curr_window_size;
+	inline const double GetMean() {
+		return mean;
 	}
 
 	// Return the variance, which equals to E(X^2) - E^2(X)
-	double GetVariance() {
-		if (curr_window_size == 0)
-			return 0.0;
-		return GetAverageSquared() - (GetAverage() * GetAverage());
+	inline const double GetVariance() {
+		return samples_number < 2 ? 0.0f : mean2 / (samples_number - 1);
 	}
 
 	// Standard deviation: square root of the variance
-	double GetStandartDeviation() {
-		if (curr_window_size == 0)
-			return 0.0;
+	inline const double GetStandartDeviation() {
 		return std::sqrt(GetVariance());
 	}
 
 	// Standard error: square root of (variance / N)
-	double GetStandardError() {
-		if (curr_window_size == 0)
-			return 0.0;
-		return std::sqrt(GetVariance() / curr_window_size);
+	inline const double GetStandardError() {
+		return samples_number == 0
+				? 0.0f : GetStandartDeviation() / std::sqrt(samples_number);
 	}
 
 	// CI 95%: 1.96 * standard error
-	double GetConfidenceInterval95() {
+	inline const double GetConfidenceInterval95() {
 		return 1.96 * GetStandardError();
 	}
 
 	// CI 99%: 2.58 * standard error
-	double GetConfidenceInterval99() {
+	inline const double GetConfidenceInterval99() {
 		return 2.58 * GetStandardError();
 	}
 
-	uint16_t GetWindowSize() {
-		return curr_window_size;
+	inline const double GetSum() {
+		return GetMean() * samples_number;
 	}
 
-	double GetLastValue() {
-		return values_window.front();
+	inline const uint16_t GetWindowSize() {
+		return samples_number;
+	}
+
+	inline const double GetLastValue() {
+		return last_value;
 	}
 
 	// Clear all values
-	void Reset() {
-		curr_window_size = 0;
-		values_window.clear();
-		squared_values_window.clear();
-	}
-
-	// Changes the max number of stored values, deleting values if needs be
-	void ResetWindowSize(int16_t new_size) {
-		if (new_size > curr_window_size) {
-			values_window.resize(new_size);
-			squared_values_window.resize(new_size);
-			curr_window_size = new_size;
-		}
-		max_window_size = new_size;
+	inline void Reset() {
+		samples_number = 0;
+		last_value = 0.0f;
+		mean = 0.0f;
+		mean2 = 0.0f;
+		out_of_phase = false;
 	}
 
 	// Store a new value
 	void InsertValue(double value) {
-		// If maximum value is reached, delete a value
-		if (curr_window_size == max_window_size) {
-			values_window.pop_back();
-			squared_values_window.pop_back();
-		} else
-			curr_window_size ++;
 
-		values_window.push_front(value);
-		squared_values_window.push_front(value * value);
+// Confidence Intervals have no meaning if the number of samples is too low
+#define IC_MIN_SAMPLES 5
+
+		if (detect_phase_changes && GetWindowSize() > IC_MIN_SAMPLES) {
+			// If phase did not change, the new sample should stay in the
+			// interval [MEAN-IC99 - MEAN+IC99]
+			double min_allowed_value = GetMean() - GetConfidenceInterval99();
+			double max_allowed_value = GetMean() + GetConfidenceInterval99();
+
+			bool phase_change_detected =
+					value < min_allowed_value || value > max_allowed_value;
+
+			if (phase_change_detected)
+				Reset();
+		}
+
+		// Welford's algorithm, to compute variance without
+		// Catastrophic cancellations
+		samples_number ++;
+		double delta = value - mean;
+		mean  += delta / samples_number;
+		mean2 += delta * (value - mean);
+
+		last_value = value;
+	}
+
+	inline void EnablePhaseDetection() {
+		detect_phase_changes = true;
+	}
+
+	inline void DisablePhaseDetection() {
+		detect_phase_changes = false;
+		out_of_phase = false;
 	}
 
 };
@@ -209,7 +197,7 @@ typedef std::shared_ptr<EMA> pEma_t;
 /**
  * @brief A pointer to an MovingStats-defined accounter
  */
-typedef std::shared_ptr<MovingStats> pMovingStats_t;
+typedef std::shared_ptr<StatsAnalysis> pMovingStats_t;
 
 
 } // namespace utils

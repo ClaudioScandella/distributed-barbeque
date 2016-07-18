@@ -1111,7 +1111,6 @@ typedef struct RTLIB_Conf {
 	struct {
 		uint16_t rt_profile_rearm_time_ms;
 		uint16_t rt_profile_wait_for_sync_ms;
-		uint16_t rt_profile_max_window_size;
 	} asrtm;
 
 	// Unmanaged execution

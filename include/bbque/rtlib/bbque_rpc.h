@@ -490,10 +490,10 @@ protected:
 
 		// Moving Statistics for cycle times (user-side):
 		// 		onRun + onMonitor + ForceCPS sleep
-		bu::MovingStats cycletime_stats_user;
+		bu::StatsAnalysis cycletime_stats_user;
 		// Moving Statistics for cycle times (bbque-side):
 		// 		onRun + onMonitor
-		bu::MovingStats cycletime_stats_bbque;
+		bu::StatsAnalysis cycletime_stats_bbque;
 		double last_cycletime_ms = 0.0;
 
 		// Applications can explicitely ask for a runtime profile notification
@@ -506,14 +506,13 @@ protected:
 
 		/** Cycle of the last goal-gap assertion */
 		ProcStatCUsage ps_cusage;
-		bu::MovingStats cpu_usage;
+		bu::StatsAnalysis cpu_usage;
 
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
-			name(_name), exc_id(id),
-			cycletime_stats_user(conf.asrtm.rt_profile_max_window_size),
-			cycletime_stats_bbque(conf.asrtm.rt_profile_max_window_size),
-			cpu_usage(conf.asrtm.rt_profile_max_window_size){
-		//		rr.user_threshold = RTLIB_RR_THRESHOLD_DISABLE;
+			name(_name), exc_id(id) {
+			cycletime_stats_bbque.EnablePhaseDetection();
+			cycletime_stats_user.EnablePhaseDetection();
+			cpu_usage.EnablePhaseDetection();
 		}
 
 		~RegisteredExecutionContext() {

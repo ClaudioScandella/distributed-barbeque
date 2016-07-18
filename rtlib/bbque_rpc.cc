@@ -142,8 +142,6 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 			BBQUE_DEFAULT_RTLIB_RTPROF_REARM_TIME_MS;
 	conf.asrtm.rt_profile_wait_for_sync_ms =
 			BBQUE_DEFAULT_RTLIB_RTPROF_WAIT_FOR_SYNC_MS;
-	conf.asrtm.rt_profile_max_window_size =
-			BBQUE_DEFAULT_RTLIB_RTPROF_MAX_WINDOW_SIZE;
 
 	conf.unmanaged.enabled = false;
 	conf.unmanaged.awm_id = 0;
@@ -1275,7 +1273,6 @@ void BbqueRPC::_SyncTimeEstimation(pregExCtx_t prec) {
 	prec->exc_tmr.start();
 
 }
-
 void BbqueRPC::SyncTimeEstimation(pregExCtx_t prec) {
 	pAwmStats_t pstats(prec->pAwmStats);
 	// Check if we already ran on this AWM
@@ -1345,7 +1342,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateCPUBandwidthStats(pregExCtx_t prec){
 	prec->cpu_usage.InsertValue(measured_cusage);
 
 	logger->Debug("Measured CPU Usage: %f", measured_cusage);
-	logger->Debug("Avg CPU Usage: %f", prec->cpu_usage.GetAverage());
+	logger->Debug("Avg CPU Usage: %f", prec->cpu_usage.GetMean());
 
 	prec->ps_cusage.prev = prec->ps_cusage.curr;
 	prec->ps_cusage.prev_s = prec->ps_cusage.sample.tms_stime;
@@ -1385,7 +1382,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateMonitorStatistics(pregExCtx_t prec) {
 
 void BbqueRPC::ResetRuntimeProfileStats(pregExCtx_t prec) {
 	logger->Debug("SetCPSGoal: Resetting cycle time history");
-	prec->last_cycletime_ms = prec->cycletime_stats_user.GetAverage();
+	prec->last_cycletime_ms = prec->cycletime_stats_user.GetMean();
 	prec->cycletime_stats_user.Reset();
 	prec->cycletime_stats_bbque.Reset();
 	logger->Debug("SetCPSGoal: Resetting CPU quota history");
@@ -2128,7 +2125,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	// Computing RTP ///////////////////////////////////////////////////////////
 	float goal_gap = 0.0f;
 	float cpu_usage = std::max(prec->systems[LOCAL_SYSTEM]->r_proc,
-			(int32_t) (prec->cpu_usage.GetAverage() +
+			(int32_t) (prec->cpu_usage.GetMean() +
 					prec->cpu_usage.GetConfidenceInterval99()));
 
 	bool compute_ggap = true;
@@ -2146,7 +2143,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	if (prec->cps_goal_min + prec->cps_goal_max == 0.0f)
 		compute_ggap = false;
 
-	float cycle_time_avg_ms = prec->cycletime_stats_bbque.GetAverage() / prec->jpc;
+	float cycle_time_avg_ms = prec->cycletime_stats_bbque.GetMean() / prec->jpc;
 	float cycle_time_ic99_ms = prec->cycletime_stats_bbque.GetConfidenceInterval99();
 
 	if (compute_ggap == true) {
@@ -3144,12 +3141,12 @@ float BbqueRPC::GetCPS(
 	assert(isRegistered(prec) == true);
 
 	// If cycle was reset, return CPS up to last forward window
-	if (prec->cycletime_stats_user.GetAverage() == 0.0)
+	if (prec->cycletime_stats_user.GetMean() == 0.0)
 		return (prec->last_cycletime_ms == 0.0) ?
 				0.0 : 1000.0 / prec->last_cycletime_ms;
 
 	// Get the current measured CPS
-	ctime = prec->cycletime_stats_user.GetAverage();
+	ctime = prec->cycletime_stats_user.GetMean();
 
 	if (ctime != 0)
 		cps = 1000.0 / ctime;
