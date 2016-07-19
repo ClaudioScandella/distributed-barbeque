@@ -39,6 +39,7 @@
 #define BBQUE_LOG_MODULE "rpc"
 
 #define CPU_USAGE_TOLERANCE 0.1
+#define LOCAL_SYSTEM 0
 
 namespace ba = bbque::app;
 namespace bu = bbque::utils;
@@ -1344,6 +1345,9 @@ RTLIB_ExitCode_t BbqueRPC::UpdateCUsage(pregExCtx_t prec){
 		measured_cusage /= (prec->ps_cusage.curr - prec->ps_cusage.prev);
 		measured_cusage *= 100.0;
 
+		if (measured_cusage > prec->systems[LOCAL_SYSTEM]->r_proc)
+			measured_cusage = prec->systems[LOCAL_SYSTEM]->r_proc;
+
 		prec->ps_cusage.cusage =
 				prec->ps_cusage.cusage * prec->ps_cusage.nsamples;
 		prec->ps_cusage.nsamples ++;
@@ -2153,7 +2157,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	bool ggap_acceptable =
 			std::abs(goal_gap) <= conf.asrtm.ggap_forward_threshold;
 	bool cpu_acceptable =
-			cpu_usage >= prec->r_proc * (1.0 - CPU_USAGE_TOLERANCE);
+			cpu_usage >= prec->systems[LOCAL_SYSTEM]->r_proc * (1.0 - CPU_USAGE_TOLERANCE);
 
 	// De Morgan + simplifications:
 	// !gap_acc || (gap_acc && !prev_gap_acc) || !cpu_acc
