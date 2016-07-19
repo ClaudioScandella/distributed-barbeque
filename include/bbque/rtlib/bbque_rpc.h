@@ -845,8 +845,8 @@ private:
 	 */
 	RTLIB_ExitCode_t UpdateStatistics(pregExCtx_t prec);
 
-	RTLIB_ExitCode_t UpdateCUsage(pregExCtx_t prec);
-	void InitCUsage(pregExCtx_t prec);
+	RTLIB_ExitCode_t UpdateCPUBandwidthStats(pregExCtx_t prec);
+	void InitCPUBandwidthStats(pregExCtx_t prec);
 
 	/**
 	 * @brief Update statistics about onMonitor execution for the currently

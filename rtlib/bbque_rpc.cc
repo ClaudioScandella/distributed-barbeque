@@ -1330,7 +1330,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateStatistics(pregExCtx_t prec) {
 	return RTLIB_OK;
 }
 
-RTLIB_ExitCode_t BbqueRPC::UpdateCUsage(pregExCtx_t prec){
+RTLIB_ExitCode_t BbqueRPC::UpdateCPUBandwidthStats(pregExCtx_t prec){
 	prec->ps_cusage.curr = times(&prec->ps_cusage.sample);
 
 	if (prec->ps_cusage.curr <= prec->ps_cusage.prev
@@ -1367,7 +1367,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateCUsage(pregExCtx_t prec){
 	return RTLIB_OK;
 }
 
-void BbqueRPC::InitCUsage(pregExCtx_t prec){
+void BbqueRPC::InitCPUBandwidthStats(pregExCtx_t prec){
 	if (prec->ps_cusage.reset == true) {
 		prec->ps_cusage.reset = false;
 		prec->ps_cusage.nsamples = 0;
@@ -1400,6 +1400,12 @@ RTLIB_ExitCode_t BbqueRPC::UpdateMonitorStatistics(pregExCtx_t prec) {
 		_count, _min, _max, _avg, _var);
 	)
 	return RTLIB_OK;
+}
+
+void BbqueRPC::ResetProfileForwardingStats(pregExCtx_t prec) {
+	prec->rtinfo_last_cycle = prec->cycles_count;
+	prec->cycle_time_value = 0.0;
+	prec->cycle_time_samples = 0;
 }
 
 RTLIB_ExitCode_t BbqueRPC::GetAssignedWorkingMode(
@@ -3290,11 +3296,6 @@ void BbqueRPC::NotifyPreConfigure(
 	}
 	assert(isRegistered(prec) == true);
 
-	logger->Warn("Resetting Runtime Statistics Notification counters");
-	prec->rtinfo_last_cycle = prec->cycles_count;
-	prec->cycle_time_value = 0.0;
-	prec->cycle_time_samples = 0;
-
 #ifdef CONFIG_BBQUE_OPENCL
 	pSystemResources_t local_sys(prec->systems[0]);
 	assert(local_sys != nullptr);
@@ -3321,6 +3322,9 @@ void BbqueRPC::NotifyPostConfigure(
 	// CPS Enforcing initialization
 	if ((prec->cps_expect != 0) || (prec->cps_tstart == 0))
 		prec->cps_tstart = bbque_tmr.getElapsedTimeMs();
+
+	// Resetting Runtime Statistics counters
+	ResetProfileForwardingStats(prec);
 
 	(void)ech;
 
@@ -3354,7 +3358,7 @@ void BbqueRPC::NotifyPreRun(
 			PerfEnable(prec);
 		}
 	}
-	InitCUsage(prec);
+	InitCPUBandwidthStats(prec);
 }
 
 void BbqueRPC::NotifyPostRun(
@@ -3383,8 +3387,8 @@ void BbqueRPC::NotifyPostRun(
 		}
 	}
 
-	if (UpdateCUsage(prec) != RTLIB_OK)
-		logger->Error("PostRun: could not compute current CPU usage");
+	if (UpdateCPUBandwidthStats(prec) != RTLIB_OK)
+		logger->Error("PostRun: could not compute current CPU bandwidth");
 
 #ifdef CONFIG_BBQUE_OPENCL
 	if (conf.profile.opencl.enabled)
