@@ -1331,27 +1331,20 @@ RTLIB_ExitCode_t BbqueRPC::UpdateCPUBandwidthStats(pregExCtx_t prec){
 			|| prec->ps_cusage.sample.tms_utime < prec->ps_cusage.prev_u){
 		return RTLIB_ERROR;
 	}
-	else{
-		double measured_cusage =
-				(prec->ps_cusage.sample.tms_stime - prec->ps_cusage.prev_s) +
-				(prec->ps_cusage.sample.tms_utime - prec->ps_cusage.prev_u);
-		measured_cusage /= (prec->ps_cusage.curr - prec->ps_cusage.prev);
-		measured_cusage *= 100.0;
 
-		if (measured_cusage > prec->systems[LOCAL_SYSTEM]->r_proc)
-			measured_cusage = prec->systems[LOCAL_SYSTEM]->r_proc;
+	double measured_cusage =
+			(prec->ps_cusage.sample.tms_stime - prec->ps_cusage.prev_s) +
+			(prec->ps_cusage.sample.tms_utime - prec->ps_cusage.prev_u);
+	measured_cusage /= (prec->ps_cusage.curr - prec->ps_cusage.prev);
+	measured_cusage *= 100.0;
 
-		prec->ps_cusage.cusage =
-				prec->ps_cusage.cusage * prec->ps_cusage.nsamples;
-		prec->ps_cusage.nsamples ++;
-		prec->ps_cusage.cusage =
-				(prec->ps_cusage.cusage + measured_cusage) /
-				prec->ps_cusage.nsamples;
+	if (measured_cusage > prec->systems[LOCAL_SYSTEM]->r_proc)
+		measured_cusage = prec->systems[LOCAL_SYSTEM]->r_proc;
 
-		logger->Debug("Measured CPU Usage: %f", measured_cusage);
-		logger->Debug("Avg CPU Usage: %f over %d samples",
-				prec->ps_cusage.cusage, prec->ps_cusage.nsamples);
-	}
+	prec->cpu_usage.InsertValue(measured_cusage);
+
+	logger->Debug("Measured CPU Usage: %f", measured_cusage);
+	logger->Debug("Avg CPU Usage: %f", prec->cpu_usage.GetAverage());
 
 	prec->ps_cusage.prev = prec->ps_cusage.curr;
 	prec->ps_cusage.prev_s = prec->ps_cusage.sample.tms_stime;
@@ -1361,12 +1354,6 @@ RTLIB_ExitCode_t BbqueRPC::UpdateCPUBandwidthStats(pregExCtx_t prec){
 }
 
 void BbqueRPC::InitCPUBandwidthStats(pregExCtx_t prec){
-	if (prec->ps_cusage.reset == true) {
-		prec->ps_cusage.reset = false;
-		prec->ps_cusage.nsamples = 0;
-		prec->ps_cusage.cusage = 0;
-	}
-
 	prec->ps_cusage.curr = times(&prec->ps_cusage.sample);
 	prec->ps_cusage.prev = prec->ps_cusage.curr;
 	prec->ps_cusage.prev_s = prec->ps_cusage.sample.tms_stime;
@@ -1402,6 +1389,7 @@ void BbqueRPC::ResetRuntimeProfileStats(pregExCtx_t prec) {
 	prec->cycletime_stats_bbque.Reset();
 	logger->Debug("SetCPSGoal: Resetting CPU quota history");
 	prec->ps_cusage.reset = true;
+	prec->cpu_usage.Reset();
 	prec->waiting_sync = false;
 }
 
@@ -2141,11 +2129,18 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	}
 
 	double cycle_time_ms = prec->cycletime_stats_bbque.GetAverage() / prec->jpc;
-	float cpu_usage = prec->ps_cusage.cusage;
+	double cycle_time_ic99 = prec->cycletime_stats_bbque.GetConfidenceInterval99();
 
-	if (cpu_usage == 0.0) {
+	float cpu_usage = prec->cpu_usage.GetAverage();
+
+	// If CPU usage was not computed (rare, but could happen on some systems),
+	// I assume all is OK. Else, I add the CI99 to the usage, thus getting the
+	// maximum expected usage
+	if (cpu_usage == 0.0)
 		cpu_usage = prec->r_proc;
-	}
+	else
+		cpu_usage += prec->cpu_usage.GetConfidenceInterval99();
+
 
 	// Current distance percentage between desired and actual performance.
 	// Will become an integer at the end. No need for high precision.
@@ -2159,20 +2154,51 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 		prec->explicit_ggap_value = 0.0;
 	}
 	else if (prec->cps_goal_min > 0.0) {
-		float current_cps = 1000.0 / cycle_time_ms;
-		float cps_threshold = 0.0;
 
-		if (current_cps < prec->cps_goal_min)
-			cps_threshold = prec->cps_goal_min;
-		else if (prec->cps_goal_max > 0.0 && current_cps > prec->cps_goal_max)
-			cps_threshold = prec->cps_goal_max;
+		float current_cps_average = 1000.0 / cycle_time_ms;
+		float current_cps_min = 1000.0 / (cycle_time_ms + cycle_time_ic99);
+		float current_cps_max = 1000.0 / (cycle_time_ms - cycle_time_ic99);
 
-		if (cps_threshold > 0.0) {
-			goal_gap = ((current_cps - cps_threshold) / cps_threshold) * 100.0;
-			// Values near 0 would be lost when casting to integer, anyway ...
-			if (std::abs(goal_gap) < 1.0)
+		logger->Debug("CPS: %.2f, with IC95: [%.2f, %.2f]",
+				current_cps_average, current_cps_min, current_cps_max);
+
+		if (current_cps_max >= prec->cps_goal_max) {
+
+			if (current_cps_min < prec->cps_goal_min) {
+				// Performance is more or less OK, but variance is high. Let's
+				// center the interval, at least
+				float center = prec->cps_goal_min +
+						0.5 * (prec->cps_goal_max - prec->cps_goal_min);
+				goal_gap = ((current_cps_average - center) / center) * 100.0;
+				logger->Debug("Good performance, high variance. Centering on %.2f (gap %.2f)",
+						center, goal_gap);
+			} else {
+				// Performance is too high!
+				goal_gap = ((current_cps_max - prec->cps_goal_max)
+						/ prec->cps_goal_max) * 100.0;
+				logger->Debug("High performance. Moving down to %f (gap %.2f)",
+						prec->cps_goal_max, goal_gap);
+			}
+
+		} else { // current_cps_max < prec->cps_goal_max
+
+			if (current_cps_min > prec->cps_goal_min) {
+				// Performance is sooo good.
 				goal_gap = 0.0;
+				logger->Debug("I definitely love this allocation :)");
+			} else {
+				// Performance is too low!
+				goal_gap = ((current_cps_min - prec->cps_goal_min)
+						/ prec->cps_goal_min) * 100.0;
+				logger->Debug("Low performance. Moving up to %f (gap %.2f)",
+						prec->cps_goal_min, goal_gap);
+			}
+
 		}
+
+		// Rounding down small gaps
+		if (std::abs(goal_gap) < 1) goal_gap = 0.0f;
+
 	}
 
 	// Runtime Profile = {goal_gap, cpu_usage, cycle_time}
@@ -2186,11 +2212,18 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	 * 		b) The application cannot exploit the allocated CPU quota,
 	 * 		   i.e. CPU usage is not acceptable
 	 */
-	bool ggap_acceptable = (goal_gap == 0.0);
-	// CPU usage greater than the number of allocated cores -1
-	bool cpu_acceptable = (cpu_usage >= prec->systems[LOCAL_SYSTEM]->r_proc - 100.0);
+	bool ggap_acceptable = true;
+	if (goal_gap != 0.0) {
+		logger->Debug("Goal gap not acceptable: %.2f", goal_gap);
+		ggap_acceptable = false;
+	}
 
-	if (cpu_acceptable) cpu_usage = prec->r_proc;
+	// CPU usage greater than the number of allocated cores -1
+	bool cpu_acceptable = true;
+	if (cpu_usage < prec->systems[LOCAL_SYSTEM]->r_proc) {
+		logger->Debug("CPU under-utilization: %.2f vs %d", cpu_usage, prec->systems[LOCAL_SYSTEM]->r_proc);
+		cpu_acceptable = false;
+	}
 
 	if (ggap_acceptable && cpu_acceptable) {
 		logger->Debug("Runtime Profile forward SKIPPED (not needed)");

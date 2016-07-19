@@ -332,10 +332,8 @@ protected:
 
 	struct ProcStatCUsage {
 		bool reset = true;
-		int nsamples = 0;
 		struct tms sample;
 		clock_t prev, prev_s, prev_u, curr;
-		double cusage = 0.0;
 	};
 
 	typedef std::shared_ptr<PerfEventStats_t> pPerfEventStats_t;
@@ -509,11 +507,13 @@ protected:
 
 		/** Cycle of the last goal-gap assertion */
 		ProcStatCUsage ps_cusage;
+		bu::MovingStats cpu_usage;
 
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
 			name(_name), exc_id(id),
 			cycletime_stats_user(conf.asrtm.rt_profile_max_window_size),
-			cycletime_stats_bbque(conf.asrtm.rt_profile_max_window_size){
+			cycletime_stats_bbque(conf.asrtm.rt_profile_max_window_size),
+			cpu_usage(conf.asrtm.rt_profile_max_window_size){
 		//		rr.user_threshold = RTLIB_RR_THRESHOLD_DISABLE;
 		}
 
