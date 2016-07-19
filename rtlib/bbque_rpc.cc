@@ -1250,7 +1250,10 @@ void BbqueRPC::_SyncTimeEstimation(pregExCtx_t prec) {
 	prec->cycles_count += 1;
 
 	// Push sample into CPS estimator
-	prec->cycletime_stats.InsertValue(last_cycle_ms);
+	prec->cycletime_stats_user.InsertValue(last_cycle_ms);
+	prec->cycletime_stats_bbque.InsertValue(last_cycle_ms
+			- prec->cps_enforcing_sleep_time_ms);
+	prec->cps_enforcing_sleep_time_ms = 0;
 
 	// Statistic features extraction for cycle time estimation:
 	DB(
@@ -1394,7 +1397,9 @@ RTLIB_ExitCode_t BbqueRPC::UpdateMonitorStatistics(pregExCtx_t prec) {
 
 void BbqueRPC::ResetRuntimeProfileStats(pregExCtx_t prec) {
 	logger->Debug("SetCPSGoal: Resetting cycle time history");
-	prec->cycletime_stats.Reset();
+	prec->last_cycletime_ms = prec->cycletime_stats_user.GetAverage();
+	prec->cycletime_stats_user.Reset();
+	prec->cycletime_stats_bbque.Reset();
 	logger->Debug("SetCPSGoal: Resetting CPU quota history");
 	prec->ps_cusage.reset = true;
 	prec->waiting_sync = false;
@@ -2106,18 +2111,11 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 		return RTLIB_EXC_NOT_REGISTERED;
 	}
 
-	// Check for sync timeout. If sync does not arrive before a certain
-	// time frame, notification trigger is re-armed
-	if (prec->cycletime_stats.GetSum() > conf.asrtm.rt_profile_wait_for_sync_ms
-			&& prec->waiting_sync == true) {
-		logger->Debug("Sync timeout: re-arming profile forwarding");
-		prec->waiting_sync = false;
-		return RTLIB_OK;
-	}
-
 	// Auto re-arm trigger after a certain timeframe
-	if (prec->cycletime_stats.GetSum() < conf.asrtm.rt_profile_rearm_time_ms) {
-		logger->Debug("Runtime Profile forward SKIPPED "
+	if (prec->cycletime_stats_user.GetSum()
+			< conf.asrtm.rt_profile_rearm_time_ms ||
+			prec->cycletime_stats_user.GetSum() == 0) {
+		logger->Info("Runtime Profile forward SKIPPED "
 				"(waiting for auto re-arm)");
 		return RTLIB_OK;
 	}
@@ -2125,13 +2123,24 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	// Application can explicitly assert a Goal Gap Value
 	bool explicit_notification  = prec->explicit_ggap_assertion;
 
-	// If application is waiting for sync, implicit forward is inhibited
-	if (prec->waiting_sync == true && explicit_notification == false) {
-		logger->Debug("Runtime Profile forward SKIPPED (waiting for sync)");
-		return RTLIB_OK;
+	// If application is waiting for sync, profile forward is inhibited
+	if (prec->waiting_sync == true) {
+		// Checking for waiting_sync timeout
+		if (prec->waiting_sync_timeout
+				< prec->cycletime_stats_user.GetLastValue()) {
+			prec->waiting_sync = false;
+			prec->waiting_sync_timeout = 0;
+		} else {
+			prec->waiting_sync_timeout
+							-= prec->cycletime_stats_user.GetLastValue();
+			logger->Info("Runtime Profile forward SKIPPED (waiting sync for "
+					"max %u more ms)", prec->waiting_sync_timeout);
+			return RTLIB_OK;
+		}
+
 	}
 
-	double cycle_time_ms = prec->cycletime_stats.GetAverage() / prec->jpc;
+	double cycle_time_ms = prec->cycletime_stats_bbque.GetAverage() / prec->jpc;
 	float cpu_usage = prec->ps_cusage.cusage;
 
 	if (cpu_usage == 0.0) {
@@ -2190,6 +2199,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 
 	// Update Runtime Information
 	prec->waiting_sync = true;
+	prec->waiting_sync_timeout = conf.asrtm.rt_profile_wait_for_sync_ms;
 
 	// Calling the low-level enable function
 	result = _RTNotify(prec, std::round(goal_gap), std::round(cpu_usage),
@@ -3140,12 +3150,12 @@ float BbqueRPC::GetCPS(
 	assert(isRegistered(prec) == true);
 
 	// If cycle was reset, return CPS up to last forward window
-	if (prec->cycletime_stats.GetAverage() == 0)
-		return (prec->exc_tmr.getElapsedTimeMs() == 0.0) ?
-				0.0 : 1000.0 / prec->exc_tmr.getElapsedTimeMs();
+	if (prec->cycletime_stats_user.GetAverage() == 0.0)
+		return (prec->last_cycletime_ms == 0.0) ?
+				0.0 : 1000.0 / prec->last_cycletime_ms;
 
 	// Get the current measured CPS
-	ctime = prec->cycletime_stats.GetAverage();
+	ctime = prec->cycletime_stats_user.GetAverage();
 
 	if (ctime != 0)
 		cps = 1000.0 / ctime;
@@ -3178,6 +3188,9 @@ void BbqueRPC::ForceCPS(pregExCtx_t prec) {
 	float cycle_time;
 	double tnow; // [s] at the call time
 
+	// Reset sleep time from previous cycle
+	prec->cps_enforcing_sleep_time_ms = 0;
+
 	// Timing initialization
 	if (unlikely(prec->cps_tstart == 0)) {
 		// The first frame is used to setup the start time
@@ -3196,6 +3209,8 @@ void BbqueRPC::ForceCPS(pregExCtx_t prec) {
 		sleep_us = 1e3 * static_cast<uint32_t>(delay_ms);
 		logger->Debug("Cycle Time: %3.3f[ms], ET: %3.3f[ms], Sleep time %u [us]",
 					cycle_time, prec->cps_expect, sleep_us);
+
+		prec->cps_enforcing_sleep_time_ms = delay_ms;
 		usleep(sleep_us);
 	}
 
@@ -3230,11 +3245,13 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 		logger->Notice("Set cycle-rate Goal to %.3f - inf [Hz]"
 				" (%.3f to inf [ms])",
 				prec->cps_goal_min, 1000.0 / prec->cps_goal_min);
-	else
+	else {
 		logger->Notice("Set cycle-rate Goal to %.3f - %.3f [Hz]"
 				" (%.3f to %.3f [ms])",
 				prec->cps_goal_min, prec->cps_goal_max,
 				1000.0 / prec->cps_goal_max, 1000.0 / prec->cps_goal_min);
+		SetCPS(ech, prec->cps_goal_max);
+	}
 
 	ResetRuntimeProfileStats(prec);
 
@@ -3526,12 +3543,14 @@ void BbqueRPC::NotifyPostMonitor(
 
 	// Update monitoring statistics
 	UpdateMonitorStatistics(prec);
-	// Forward runtime statistics to the BarbequeRTRM
-	ForwardRuntimeProfile(ech);
 
 	// CPS Enforcing
 	if (prec->cps_expect != 0)
 		ForceCPS(prec);
+
+	// Forward runtime statistics to the BarbequeRTRM
+	ForwardRuntimeProfile(ech);
+
 }
 
 #ifdef CONFIG_BBQUE_OPENCL

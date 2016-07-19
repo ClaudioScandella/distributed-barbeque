@@ -487,10 +487,16 @@ protected:
 		float  	cps_goal_min = 0.0; // [Hz] the minimum required CPS
 		float  	cps_goal_max = 0.0; // [Hz] the maximum required CPS
 		float  	cps_max      = 0.0; // [Hz] the required maximum CPS
+		uint16_t cps_enforcing_sleep_time_ms = 0; // [us] time spent sleeping to enforce CPS
 		int     jpc = 1;		    // Current number of processed Jobs per Cycle
 
-		// Moving Statistics for cycle times
-		bu::MovingStats cycletime_stats;
+		// Moving Statistics for cycle times (user-side):
+		// 		onRun + onMonitor + ForceCPS sleep
+		bu::MovingStats cycletime_stats_user;
+		// Moving Statistics for cycle times (bbque-side):
+		// 		onRun + onMonitor
+		bu::MovingStats cycletime_stats_bbque;
+		double last_cycletime_ms = 0.0;
 
 		// Applications can explicitely ask for a runtime profile notification
 		bool 	explicit_ggap_assertion = false;
@@ -499,13 +505,15 @@ protected:
 		// Once a runtime profile has been forwarded to bbque, there is no need
 		// to send another one before a reconfiguration happens.
 		bool waiting_sync = false;
+		uint16_t waiting_sync_timeout = 0.0;
 
 		/** Cycle of the last goal-gap assertion */
 		ProcStatCUsage ps_cusage;
 
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
 			name(_name), exc_id(id),
-			cycletime_stats(conf.asrtm.rt_profile_max_window_size) {
+			cycletime_stats_user(conf.asrtm.rt_profile_max_window_size),
+			cycletime_stats_bbque(conf.asrtm.rt_profile_max_window_size){
 		//		rr.user_threshold = RTLIB_RR_THRESHOLD_DISABLE;
 		}
 
