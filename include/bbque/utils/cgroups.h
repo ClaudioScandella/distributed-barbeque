@@ -72,7 +72,7 @@ public:
 	};
 
 	struct CGData {
-		struct cgroup *pcg;
+		struct cgroup *cgroup_handler;
 		struct cgroup_controller *pc_cpuset;
 		struct cgroup_controller *pc_cpu;
 		struct cgroup_controller *pc_cpuacct;
@@ -102,10 +102,10 @@ public:
 
 	static bool Exists(const char *cgpath);
 
-	static CGResult Read(const char *cgpath, CGSetup &cgsetup);
+	static CGResult Read(const char *cgpath, CGSetup &cgroup_data);
 
 	static CGResult CloneFromParent(const char *cgpath);
-	static CGResult Create(const char *cgpath, const CGSetup &cgsetup);
+	static CGResult Create(const char *cgpath, const CGSetup &cgroup_data);
 	static CGResult Delete(const char *cgpath);
 
 	static CGResult AttachMe(const char *cgpath);
