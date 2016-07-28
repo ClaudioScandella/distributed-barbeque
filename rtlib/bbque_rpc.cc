@@ -419,7 +419,7 @@ RTLIB_ExitCode_t BbqueRPC::SetupCGroup(
 	if (! exc)
 		return RTLIB_EXC_NOT_REGISTERED;
 
-	// Setup the control CGroup
+	// Setup the control CGroup using the EXC private function
 	return CGroupSetup(exc);
 }
 
@@ -791,33 +791,36 @@ RTLIB_ExitCode_t BbqueRPC::CGroupInit()
 		bu::CGroups::CloneFromParent("/user.slice");
 	}
 
+	// If not present, setup the "master" BBQUE CGroup as a clone
+	// of the root CGroup
+	if (bu::CGroups::Exists("/user.slice/res") == false) {
+		logger->Info("Setup [/user.slice/res] mdev CGroup");
+		bu::CGroups::CloneFromParent("/user.slice/res");
+	}
+
 	return RTLIB_OK;
 }
 
 RTLIB_ExitCode_t BbqueRPC::CGroupSetup(pRegisteredEXC_t exc)
 {
-	char cgpath[] = "/user.slice/12345:APPLICATION_NAME";
+	char cgpath[] = "/user.slice/res/12345:APPLICATION_NAME:00";
 
 	if (! rtlib_configuration.cgroup.enabled)
 		return RTLIB_OK;
 
-	// Check ROOT persmissions
+	// Check ROOT permissions
 	if (::getuid() != 0) {
 		logger->Fatal("CGroup create failure (Error: missing root privileges)");
 		return RTLIB_ERROR;
 	}
 
 	// Setup the application specific CGroup
-	snprintf(cgpath, sizeof (cgpath), "/user.slice/%05d:%s", channel_thread_pid,
-		application_name);
+	snprintf(cgpath, sizeof (cgpath), "/user.slice/res/%05d:%.6s:%02d",
+		channel_thread_pid,
+		application_name,
+		exc->id
+		);
 	logger->Notice("Setup CGroup [%s]...", cgpath);
-
-	// For the time being, CGroup forcing for UNMANAGED applications is
-	// supported just for singe EXC applications
-	if (exc->id != 0) {
-		logger->Warn("CGroup forcing with muiltiple EXCs");
-		goto do_attach;
-	}
 
 	// Set CGroup based on RTLib Configuration
 	cgsetup.cpuset.cpus           = rtlib_configuration.cgroup.cpuset.cpus;
@@ -933,7 +936,7 @@ RTLIB_ExitCode_t BbqueRPC::SetCGroupPath(pRegisteredEXC_t exc)
 		return RTLIB_EXC_CGROUP_NONE;
 	}
 
-	snprintf(buff, 256, "%s/user.slice/%05d:%.6s:%02d",
+	snprintf(buff, 256, "%s/user.slice/res/%05d:%.6s:%02d",
 		cgMount,
 		channel_thread_pid,
 		exc->name.c_str(),
