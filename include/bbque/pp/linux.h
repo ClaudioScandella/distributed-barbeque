@@ -158,7 +158,7 @@ private:
 
 	typedef struct CGroupData : public bu::PluginData_t {
 		ba::AppPtr_t papp; /** The controlled application */
-#define BBQUE_LINUXPP_CGROUP_PATH_MAX 128 // "user.slice/12345:ABCDEF:00";
+#define BBQUE_LINUXPP_CGROUP_PATH_MAX 128 // "user.slice/res/12345:ABCDEF:00";
 		char cgpath[BBQUE_LINUXPP_CGROUP_PATH_MAX];
 		struct cgroup *pcg;
 		struct cgroup_controller *pc_cpu;
@@ -170,7 +170,7 @@ private:
 			papp(pa), pcg(NULL), pc_cpu(NULL),
 			pc_cpuset(NULL), pc_memory(NULL) {
 			snprintf(cgpath, BBQUE_LINUXPP_CGROUP_PATH_MAX,
-					BBQUE_LINUXPP_CGROUP"/%s",
+					BBQUE_LINUXPP_RESOURCES"/%s",
 					papp->StrId());
 		}
 
