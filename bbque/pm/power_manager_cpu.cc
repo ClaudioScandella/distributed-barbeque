@@ -496,13 +496,14 @@ PowerManager::PMResult CPUPowerManager::GetAvailableFrequencies(
 
 	// Extracting the selected CPU from the resource path. -1 if error
 	int pe_id = rp->GetID(br::ResourceType::PROC_ELEMENT);
+
 	if (pe_id < 0)
 		return PowerManager::PMResult::ERR_RSRC_INVALID_PATH;
 
 	// Extracting available frequencies
 	if (core_freqs[pe_id] == nullptr) {
-		logger->Warn("List of frequencies not available for %s",
-				rp->ToString().c_str());
+		logger->Warn("List of frequencies not available for PE %d",
+				pe_id);
 	}
 	freqs = *(core_freqs[pe_id]);
 

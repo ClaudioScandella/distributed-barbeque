@@ -104,6 +104,8 @@ public:
 	 */
 	PMResult GetAvailableFrequencies(
 			ResourcePathPtr_t const & rp, std::vector<uint32_t> &freqs);
+	PMResult GetAvailableFrequencies(
+			int pe_id, std::vector<uint32_t> &freqs);
 
 	/**
 	 * @see class PowerManager
