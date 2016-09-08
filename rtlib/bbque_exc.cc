@@ -319,10 +319,10 @@ RTLIB_ExitCode_t BbqueEXC::SetCPS(float cps) {
 	return rtlib->CPS.Set(exc_hdl, cps);
 }
 
-RTLIB_ExitCode_t BbqueEXC::SetCPSGoal(float cps, uint16_t fwd_rate) {
-	DB(logger->Debug("Set cycles-rate goal to [%.3f] [Hz] for EXC [%s] (@%p)...",
-			cps, exc_name.c_str(), (void*)exc_hdl));
-	return rtlib->CPS.SetGoal(exc_hdl, cps, fwd_rate);
+RTLIB_ExitCode_t BbqueEXC::SetCPSGoal(float cps_min, float cps_max) {
+	DB(logger->Debug("Set cycles-rate goal to [%.3f - %.3f] [Hz] for EXC [%s] (@%p)...",
+			cps_min, cps_max, exc_name.c_str(), (void*)exc_hdl));
+	return rtlib->CPS.SetGoal(exc_hdl, cps_min, cps_max);
 }
 
 RTLIB_ExitCode_t BbqueEXC::SetCTimeUs(uint32_t us) {

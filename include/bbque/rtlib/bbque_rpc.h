@@ -216,8 +216,7 @@ public:
 	 */
 	RTLIB_ExitCode_t SetCPSGoal(
 			RTLIB_ExecutionContextHandler_t ech,
-			float cps,
-			uint16_t fwd_rate);
+			float cps_min, float cps_max);
 
 	/**
 	 * @brief Set the required Cycle time [us]
@@ -464,22 +463,24 @@ protected:
 		double mon_tstart = 0; // [ms] at the last monitoring start time
 
 		/** CPS performance monitoring/control */
-		double 	cps_tstart = 0.0; // [ms] at the last cycle start time
-		float  	cps_expect = 0.0; // [ms] the expected cycle time
-		float  	cps_goal   = 0.0; // [Hz] the required CPS
-		float  	cps_max    = 0.0; // [Hz] the required maximum CPS
-		double  cycle_time_value = 0.0; // [ms] Cumulative cycle time in the current runtime profile fwd window
-		int     cycle_time_samples = 0; // Number of samples in the current runtime profile fwd window
+		double 	cps_tstart   = 0.0; // [ms] at the last cycle start time
+		float  	cps_expect   = 0.0; // [ms] the expected cycle time
+		float  	cps_goal_min = 0.0; // [Hz] the minimum required CPS
+		float  	cps_goal_max = 0.0; // [Hz] the maximum required CPS
+		float  	cps_max      = 0.0; // [Hz] the required maximum CPS
+		double  cycle_time_value    = 0.0; // [ms] Cumulative cycle time in the current runtime profile fwd window
+		int     cycle_time_samples  = 0;   // Number of samples in the current runtime profile fwd window
 		double  cps_last_registered = 0.0; // CPS in the previous fwd window
 
-		// Whether RTLib is satisfied with previous Goal Gap
-		bool 	prev_ggap_acceptable = false;
 		// Applications can explicitely ask for a runtime profile notification
 		bool 	explicit_ggap_assertion = false;
 		float 	explicit_ggap_value = 0.0;
 
+		// Once a runtime profile has been forwarded to bbque, there is no need
+		// to send another one before a reconfiguration happens.
+		bool waiting_sync = false;
+
 		/** Cycle of the last goal-gap assertion */
-		uint64_t rtinfo_last_cycle = 0;
 		ProcStatCUsage ps_cusage;
 
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
@@ -495,6 +496,8 @@ protected:
 	} RegisteredExecutionContext_t;
 
 	typedef std::shared_ptr<RegisteredExecutionContext_t> pregExCtx_t;
+
+	void ResetRuntimeProfileStats(pregExCtx_t prec);
 
 	//--- AWM Validity
 	inline bool isAwmValid(pregExCtx_t prec) const {

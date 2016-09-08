@@ -400,13 +400,6 @@ private:
 	/** The logger used by the application manager */
 	std::unique_ptr<bu::Logger> logger;
 
-	/** The minimum GoalGap value which triggers an optimization */
-	int ggap_threshold_optimize;
-
-	/** The minimum mismatch between measured and allocated CPU usage that
-	 * triggers an optimization */
-	int cusage_threshold_optimize;
-
 	/** The recipe loader module used to parse recipes */
 	RecipeLoaderIF * rloader;
 

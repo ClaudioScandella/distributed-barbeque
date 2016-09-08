@@ -287,33 +287,6 @@ config BBQUE_RTLIB_UNMANAGED_SUPPORT
 
   Say NO to this option if unsure.
 
-menu "Performance API Configuration"
-
-config BBQUE_RTLIB_GGAP_THRESHOLD_FORWARD
-  int "GoalGap Forward Threshold"
-  default 5
-  ---help---
-  The minimum GoalGap value which is forwarded to BarbequeRTRM.
-
-  Once an EXC asserts a GoalGap, the RTLib can decide to do not forward this
-  request if it is not greater than a predefined and configured value.
-  This configuration defines the default for that threshold value.
-
-config BBQUE_RTLIB_RT_PROF_RATE_FORWARD
-  int "Runtime Profile Forward Rate"
-  default 1
-  ---help---
-  A periodical number of execution cycles, after which Runtime Statistics of
-  the application are forwarded to BarbequeRTRM.
-
-  Once an EXC explicitly asserts a GoalGap, or set a performance goal
-  (SetCPSGoal) the RTLib can periodically fire a goal gap assertion only after
-  the specified number of cycles.
-
-endmenu # Performance
-
-
-
 comment "Advanced Options"
 
 config BBQUE_YM_SYNC_FORCE
@@ -374,31 +347,6 @@ config BBQUE_BUILD_DEBUG
 
   This will produce a version of both the daemon and the RTLib with much more
   logging messages and debug symbols, which is suitable for debugging purposes.
-
-config BBQUE_GGAP_THRESHOLD_OPTIMIZE
-  int "GoalGap Optimize Threshold"
-  default 5
-  ---help---
-  The minimum GoalGap value which triggers an optimization.
-
-  Once an EXC asserts a GoalGap, an optimization event is generated within
-  the BarbequeRTRM only if the asserted value is greater than a predefined
-  and configured value.
-  This configuration defines the default for that threshold value.
-
-config BBQUE_CUSAGE_THRESHOLD_OPTIMIZE
-  int "CPU usage Optimize Threshold"
-  default 20
-  ---help---
-  The minimum CPU usage mismatch that triggers an optimization.
-
-  Once an EXC notifies its CPU usage to the RTRM, the RTRM checks if
-  the allocated resources are effectively used. The percentage mismatch
-  (e.g. used 80 VS allocated 100 => mismatch 25%) will trigger a rescheduling
-  if higher than the threshold. Value should be greater than 0, obviously.
-  Please consider that the CPU usage of applications could be not constant.
-  Low values could lead to very frequent re-schedulings. 20 could be a safe
-  value.
 
 config BBQUE_APP_PRIO_LEVELS
   int "Number of Priority Levels"

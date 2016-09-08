@@ -78,29 +78,6 @@ ApplicationManager::ApplicationManager() :
 	logger = bu::Logger::GetLogger(APPLICATION_MANAGER_NAMESPACE);
 	assert(logger);
 
-	//---------- Loading module configuration
-	po::options_description opts_desc("Application Manager Options");
-	opts_desc.add_options()
-		(MODULE_CONFIG".ggap.threshold_optimize",
-		 po::value<int>
-		 (&ggap_threshold_optimize)->default_value(
-			 BBQUE_DEFAULT_GGAP_THRESHOLD_OPTIMIZE),
-		 "The default minimum GoalGap value which triggers an optimization")
-		;
-	opts_desc.add_options()
-		(MODULE_CONFIG".cusage.threshold_optimize",
-		 po::value<int>
-		 (&cusage_threshold_optimize)->default_value(
-			 BBQUE_DEFAULT_CUSAGE_THRESHOLD_OPTIMIZE),
-		 "The default minimum CPU Usage mismatch value which triggers an"
-		 "optimization")
-		;
-	po::variables_map opts_vm;
-	ConfigurationManager::GetInstance()
-		.ParseConfigurationFile(opts_desc, opts_vm);
-	logger->Notice("GoalGap optimization threshold: %d",
-			ggap_threshold_optimize);
-
 	//  Get the recipe loader instance
 	std::string rloader_plugin_id(
 			RECIPE_LOADER_NAMESPACE "." BBQUE_RLOADER_DEFAULT);
@@ -1329,7 +1306,7 @@ ApplicationManager::CheckGoalGapEXC(AppPtr_t papp,
 	// FIXME the reschedule should be activated based on some
 	// configuration parameter or policy decision
 	// Check for the need of a new schedule request
-	if (std::abs(rt_prof.ggap_percent) > ggap_threshold_optimize)
+	if (rt_prof.ggap_percent != 0)
 		return AM_RESCHED_REQUIRED;
 
 	return AM_SUCCESS;

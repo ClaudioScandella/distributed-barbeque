@@ -760,14 +760,11 @@ typedef float (*RTLIB_CPS_Get)(
  * BarbequeRTRM daemon.
  *
  * @param ech the handler of the EXC to configure
- * @param cps the required Cycles Per Seconds [Hz]
- * @param fwd_rate the number of cycles after which RTLib can periodically
- * assert the goal-gap to the BarbequeRTRM daemon
+ * @param cps_min the minimum required Cycles Per Seconds [Hz]
+ * @param cps_max the maximum required Cycles Per Seconds [Hz]
  */
 typedef RTLIB_ExitCode_t (*RTLIB_CPS_Goal_Set)(
-		RTLIB_ExecutionContextHandler_t ech,
-		float cps,
-		uint16_t fwd_rate);
+		RTLIB_ExecutionContextHandler_t ech, float cps_min, float cps_max);
 
 
 /**
@@ -1060,13 +1057,6 @@ typedef struct RTLIB_Conf {
 		} opencl;
 
 	} profile;
-
-	// Application-Specific RTM
-	struct {
-		int ggap_forward_threshold;
-		uint16_t rt_profile_forward_rate;
-	} asrtm;
-
 
 	// Unmanaged execution
 	struct {

@@ -410,8 +410,13 @@ public:
  * @ingroup rtlib_sec02_aem_utils
  */
 	RTLIB_ExitCode_t SetCPSGoal(
-			float cps,
-			uint16_t fwd_rate = BBQUE_DEFAULT_RT_PROF_RATE_FORWARD);
+			float cps_min, float cps_max);
+
+	// SetCPSGoal specifying only a minimum value
+	inline RTLIB_ExitCode_t SetCPSGoal(float cps) {
+		return SetCPSGoal(cps, 0.0);
+	}
+
 
 /**
  * @brief Set the cycle time for this EXC
