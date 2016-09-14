@@ -34,7 +34,7 @@ MpiRun::MpiRun(
         const std::vector<const char *> &mpirunArguments) :
 	BbqueEXC(name, recipe, rtlib), cmd_arguments(mpirunArguments) {
 
-    mpirun_logger->Info("bbque-mpirun unique identifier (UID): %u", GetUid());
+    mpirun_logger->Info("bbque-mpirun unique identifier (UID): %u", GetUniqueID());
 }
 
 MpiRun::~MpiRun() {

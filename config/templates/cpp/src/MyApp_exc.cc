@@ -32,7 +32,7 @@ MyApp::MyApp(std::string const & name,
 	// acquisition, especially threads creation, should be palced into the
 	// new onSetup() method.
 
-	logger->Info("EXC Unique IDentifier (UID): %u", GetUid());
+	logger->Info("EXC Unique IDentifier (UID): %u", GetUniqueID());
 
 }
 

@@ -28,9 +28,14 @@
 
 using bbque::rtlib::BbqueEXC;
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
-typedef std::vector<GenericWindowIF*> GoalsList;
+typedef std::vector<GenericWindowIF *> GoalsList;
 
 /**
  * @brief Application-Specific Run-time Manager
@@ -40,7 +45,8 @@ typedef std::vector<GenericWindowIF*> GoalsList;
  * This class provides the ApplicationRTM, used to communicate between the
  * applications and Barbeque
  */
-class RunTimeManager {
+class RunTimeManager
+{
 
 public:
 
@@ -52,9 +58,9 @@ public:
 	 * @param opManager Pointer to the OPManager of an Execution Context.
 	 * It is used to to have a knowledge of operating points
 	 */
-	RunTimeManager(BbqueEXC *bbqexc, OPManager &opManager)
-			: bbqexc(bbqexc), opManager(opManager) {
-
+	RunTimeManager(BbqueEXC * bbqexc, OPManager & opManager)
+		: bbqexc(bbqexc), opManager(opManager)
+	{
 	}
 
 	/**
@@ -67,19 +73,19 @@ public:
 	 * @param goalsList Reference to a list of goals to register for the use
 	 * with RunTimeManager
 	 */
-	RunTimeManager(BbqueEXC *bbqexc, OPManager &opManager,
-			GoalsList &goalsList)
-			: bbqexc(bbqexc),
-			  opManager(opManager),
-			  goalsList(goalsList) {
-
+	RunTimeManager(BbqueEXC * bbqexc, OPManager & opManager,
+				   GoalsList & goalsList)
+		: bbqexc(bbqexc),
+		  opManager(opManager),
+		  goalsList(goalsList)
+	{
 	}
 
 	/**
 	 * @brief Sets the GoalsList to use inside RunTimeManager
 	 * @param goalsList reference to a list of goals
 	 */
-	void setGoals(GoalsList &goalsList);
+	void setGoals(GoalsList & goalsList);
 
 	/**
 	 * @brief Checks the goals registered within the AS-RTM
@@ -92,7 +98,7 @@ public:
 	 * @return a value indicating whether all the goals have been achieved
 	 * or not
 	 */
-	bool checkGoals(GoalInfoList &goalsInfo);
+	bool checkGoals(GoalInfoList & goalsInfo);
 
 
 	/**
@@ -122,10 +128,10 @@ public:
 	 * @param switchThreshold threshold corresponding to the max absolute
 	 * relative error after which adjusting a constraint of an achieved goal
 	 */
-	void adjustConstraints(const OperatingPoint &currentOp,
-			       const GoalInfoList &goalsInfo,
-			       OPFilterList &opFilters,
-			       float switchThreshold = 100.0);
+	void adjustConstraints(const OperatingPoint & currentOp,
+						   const GoalInfoList & goalsInfo,
+						   OPFilterList & opFilters,
+						   float switchThreshold = 100.0);
 
 	/**
 	 * @brief Gets the maximum NAP and relative error of goals
@@ -138,9 +144,9 @@ public:
 	 * @param maxRelativeError output parameter for the max (respect to the
 	 * absolute value) relative error of all the goals
 	 */
-	void getNapAndRelativeError(const GoalInfoList &goalsInfo,
-				    uint8_t &maxNap,
-				    float &maxRelativeError);
+	void getNapAndRelativeError(const GoalInfoList & goalsInfo,
+								uint8_t & maxNap,
+								float & maxRelativeError);
 
 	/**
 	 * @brief Gets next valid OP
@@ -169,8 +175,8 @@ public:
 	 * @param switchThreshold threshold corresponding to the max absolute
 	 * relative error after which adjusting a constraint of an achieved goal
 	 */
-	bool getNextOp(OperatingPoint& op, OPFilterList &opFilters,
-		       float switchThreshold = 100.0);
+	bool getNextOp(OperatingPoint & op, OPFilterList & opFilters,
+				   float switchThreshold = 100.0);
 
 	/**
 	 * @brief Gets next valid OP
@@ -192,7 +198,7 @@ public:
 	 * is an absolute relative error, a switchThreshold equal to 1.0
 	 * corresponds to adjusting the constraints whenever the monitored
 	 * application metric is double its required goal.
-	 * 
+	 *
 	 * @param op output parameter in which to save the OP
 	 * @param opFilters reference to the list of constraints to satisfy.
 	 * it will be adjusted if needed (a goal is not achieved)
@@ -200,15 +206,15 @@ public:
 	 * @param switchThreshold threshold corresponding to the max absolute
 	 * relative error after which adjusting a constraint of an achieved goal
 	 */
-	bool getNextOp(OperatingPoint& op, OPFilterList &opFilters,
-		       const GoalInfoList &goalsInfo,
-		       float switchThreshold = 100.0);
+	bool getNextOp(OperatingPoint & op, OPFilterList & opFilters,
+				   const GoalInfoList & goalsInfo,
+				   float switchThreshold = 100.0);
 
 private:
 	/**
 	 * Pointer to a BbqueEXC. It is be used to communicate with Barbeque
 	 */
-	BbqueEXC *bbqexc;
+	BbqueEXC * bbqexc;
 
 	/**
 	 * OPManager of an Execution Context. It is used to have a knowledge of

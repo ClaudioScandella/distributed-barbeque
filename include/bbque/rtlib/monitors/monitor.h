@@ -25,7 +25,12 @@
 
 #include <bbque/monitors/generic_window.h>
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @brief A generic monitor
@@ -36,7 +41,8 @@ namespace bbque { namespace rtlib { namespace as {
  * classes of metrics specific monitors such as time and throughput monitors.
  */
 template <typename dataType>
-class Monitor {
+class Monitor
+{
 public:
 
 	/**
@@ -55,10 +61,10 @@ public:
 	 * @param windowSize Number of elements in the window of values
 	 */
 	virtual uint16_t newGoal(std::string metricName,
-				 DataFunction fType,
-				 ComparisonFunction cType,
-				 dataType goal,
-				 uint16_t windowSize = defaultWindowSize);
+							 DataFunction fType,
+							 ComparisonFunction cType,
+							 dataType goal,
+							 uint16_t windowSize = defaultWindowSize);
 
 	/**
 	 * @brief Creates a new monitor with a window keeping track of old values
@@ -68,8 +74,8 @@ public:
 	 * @param windowSize Number of elements in the window of values
 	 */
 	virtual uint16_t newGoal(std::string metricName,
-				 typename GenericWindow<dataType>::TargetsPtr targets,
-				 uint16_t windowSize = defaultWindowSize);
+							 typename GenericWindow<dataType>::TargetsPtr targets,
+							 uint16_t windowSize = defaultWindowSize);
 
 	/**
 	 * @brief Creates a monitor (without goals) with a window keeping track
@@ -93,7 +99,7 @@ public:
 	 * @param relativeErrors Output parameter for the relative errors of
 	 * each of the targets of the goal
 	 */
-	virtual bool checkGoal(uint16_t id, std::vector<float> &relativeErrors);
+	virtual bool checkGoal(uint16_t id, std::vector<float> & relativeErrors);
 
 
 	/**
@@ -128,7 +134,7 @@ public:
 	 *
 	 * @param id Identifies a monitor and its corresponding window
 	 */
-	GenericWindow<dataType>* getWindow(uint16_t id);
+	GenericWindow<dataType> * getWindow(uint16_t id);
 
 	/**
 	 * @brief Returns the maximum value from the window
@@ -181,20 +187,24 @@ protected:
 };
 
 template <typename dataType>
-inline GenericWindow<dataType>* Monitor <dataType>::getWindow(uint16_t id) {
+inline GenericWindow<dataType> * Monitor <dataType>::getWindow(uint16_t id)
+{
 	if (goalList.find(id) != goalList.end())
 		return goalList[id];
+
 	return NULL;
 }
 
 template <typename dataType>
-inline uint16_t Monitor <dataType>::getUniqueId() const {
+inline uint16_t Monitor <dataType>::getUniqueId() const
+{
 	static uint16_t id = 0;
 	return id++;
 }
 
 template <typename dataType>
-Monitor <dataType>::~Monitor() {
+Monitor <dataType>::~Monitor()
+{
 	typename std::map<uint16_t, GenericWindow<dataType>*>::iterator it;
 
 	for (it = goalList.begin(); it != goalList.end(); ++it)
@@ -205,43 +215,42 @@ Monitor <dataType>::~Monitor() {
 
 template <typename dataType>
 inline uint16_t Monitor <dataType>::newGoal(std::string metricName,
-					    DataFunction fType,
-					    ComparisonFunction cType,
-					    dataType goal,
-					    uint16_t windowSize) {
+		DataFunction fType,
+		ComparisonFunction cType,
+		dataType goal,
+		uint16_t windowSize)
+{
 	typename GenericWindow<dataType>::Target target(fType, cType, goal);
 	typename GenericWindow<dataType>::TargetsPtr targets (
-			new typename GenericWindow<dataType>::Targets());
+		new typename GenericWindow<dataType>::Targets());
 	targets->push_back(target);
-
 	return Monitor::newGoal(metricName, targets, windowSize);
 }
 
 template <typename dataType>
 inline uint16_t Monitor <dataType>::newGoal(std::string metricName,
 		typename GenericWindow<dataType>::TargetsPtr targets,
-		uint16_t windowSize) {
-	GenericWindow<dataType>* gWindow =
+		uint16_t windowSize)
+{
+	GenericWindow<dataType> * gWindow =
 		new GenericWindow<dataType>(metricName, targets, windowSize);
-
 	uint16_t id = getUniqueId();
 	goalList[id] = gWindow;
-
 	return id;
 }
 
 template <typename dataType>
-inline uint16_t Monitor <dataType>::newEmptyGoal(uint16_t windowSize) {
-	GenericWindow<dataType>* gWindow = new GenericWindow<dataType>(windowSize);
-
+inline uint16_t Monitor <dataType>::newEmptyGoal(uint16_t windowSize)
+{
+	GenericWindow<dataType> * gWindow = new GenericWindow<dataType>(windowSize);
 	uint16_t id = getUniqueId();
 	goalList[id] = gWindow;
-
 	return id;
 }
 
 template <typename dataType>
-inline bool Monitor <dataType>::checkGoal(uint16_t id) {
+inline bool Monitor <dataType>::checkGoal(uint16_t id)
+{
 	if (goalList.find(id) == goalList.end())
 		return false;
 
@@ -250,7 +259,8 @@ inline bool Monitor <dataType>::checkGoal(uint16_t id) {
 
 template <typename dataType>
 inline bool Monitor <dataType>::checkGoal(uint16_t id,
-					  std::vector<float> &relativeErrors) {
+		std::vector<float> & relativeErrors)
+{
 	if (goalList.find(id) == goalList.end()) {
 		relativeErrors.clear();
 		relativeErrors.push_back(0);
@@ -261,7 +271,8 @@ inline bool Monitor <dataType>::checkGoal(uint16_t id,
 }
 
 template <typename dataType>
-inline GoalInfoPtr Monitor <dataType>::fullCheckGoal(uint16_t id) {
+inline GoalInfoPtr Monitor <dataType>::fullCheckGoal(uint16_t id)
+{
 	//TODO add error handling for the case below
 	//if (goalList.find(id) == goalList.end())
 	//	(Time to switch to exceptions?)
@@ -269,66 +280,83 @@ inline GoalInfoPtr Monitor <dataType>::fullCheckGoal(uint16_t id) {
 }
 
 template <typename dataType>
-inline void Monitor <dataType>::deleteGoal(uint16_t id) {
+inline void Monitor <dataType>::deleteGoal(uint16_t id)
+{
 	delete goalList[id];
 	goalList.erase(id);
 }
 
 template <typename dataType>
-inline void Monitor <dataType>::resetGoal(uint16_t id) {
+inline void Monitor <dataType>::resetGoal(uint16_t id)
+{
 	goalList[id]->clear();
 }
 
 template <typename dataType>
-inline dataType Monitor <dataType>::getMax(uint16_t id) const {
+inline dataType Monitor <dataType>::getMax(uint16_t id) const
+{
 	typename std::map<uint16_t, GenericWindow<dataType>*>::const_iterator it;
 	it = goalList.find(id);
+
 	if (it != goalList.end())
 		return it->second->getMax();
+
 	//TODO think about a better way
-	fprintf(stderr,"Goal not found! Return value has no meaning!\n");
+	fprintf(stderr, "Goal not found! Return value has no meaning!\n");
 	return 0;
 }
 
 template <typename dataType>
-inline dataType Monitor <dataType>::getMin(uint16_t id) const {
+inline dataType Monitor <dataType>::getMin(uint16_t id) const
+{
 	typename std::map<uint16_t, GenericWindow<dataType>*>::const_iterator it;
 	it = goalList.find(id);
+
 	if (it != goalList.end())
 		return it->second->getMin();
+
 	//TODO think about a better way
-	fprintf(stderr,"Goal not found! Return value has no meaning!\n");
+	fprintf(stderr, "Goal not found! Return value has no meaning!\n");
 	return 0;
 }
 
 template <typename dataType>
-inline dataType Monitor <dataType>::getAverage(uint16_t id) const {
+inline dataType Monitor <dataType>::getAverage(uint16_t id) const
+{
 	typename std::map<uint16_t, GenericWindow<dataType>*>::const_iterator it;
 	it = goalList.find(id);
+
 	if (it != goalList.end())
 		return it->second->getAverage();
+
 	//TODO think about a better way
-	fprintf(stderr,"Goal not found! Return value has no meaning!\n");
+	fprintf(stderr, "Goal not found! Return value has no meaning!\n");
 	return 0;
 }
 
 template <typename dataType>
-inline dataType Monitor <dataType>::getVariance(uint16_t id) const {
+inline dataType Monitor <dataType>::getVariance(uint16_t id) const
+{
 	typename std::map<uint16_t, GenericWindow<dataType>*>::const_iterator it;
 	it = goalList.find(id);
+
 	if (it != goalList.end())
 		return it->second->getVariance();
+
 	//TODO think about a better way
-	fprintf(stderr,"Goal not found! Return value has no meaning!\n");
+	fprintf(stderr, "Goal not found! Return value has no meaning!\n");
 	return 0;
 }
 
 template <typename dataType>
-inline void Monitor <dataType>::addElement(uint16_t id, dataType element) {
+inline void Monitor <dataType>::addElement(uint16_t id, dataType element)
+{
 	typename std::map<uint16_t, GenericWindow<dataType>*>::const_iterator it;
 	it = goalList.find(id);
+
 	if (it == goalList.end())
 		return;
+
 	it->second->addElement(element);
 }
 

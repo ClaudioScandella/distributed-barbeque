@@ -20,7 +20,10 @@
 
 #include "bbque/rtlib.h"
 
-namespace bbque { namespace rtlib {
+namespace bbque
+{
+namespace rtlib
+{
 
 /**
  * @class BbqueRPC_UNMANAGED_Client
@@ -35,7 +38,8 @@ namespace bbque { namespace rtlib {
  * NOTE: Unmanaged clients always get assigned AWM 0.
  *
  */
-class BbqueRPC_UNMANAGED_Client : public BbqueRPC {
+class BbqueRPC_UNMANAGED_Client : public BbqueRPC
+{
 
 public:
 
@@ -45,61 +49,70 @@ public:
 
 protected:
 
-	RTLIB_ExitCode_t _Init(const char *name) {
+	RTLIB_ExitCode_t _Init(const char * name)
+	{
 		// Remove compilation warning
-		setChId(gettid(), name);
+		SetChannelThreadID(gettid(), name);
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _Register(pregExCtx_t prec) {
+	RTLIB_ExitCode_t _Register(pRegisteredEXC_t exc)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _Unregister(pregExCtx_t prec) {
+	RTLIB_ExitCode_t _Unregister(pRegisteredEXC_t exc)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _Enable(pregExCtx_t prec) {
+	RTLIB_ExitCode_t _Enable(pRegisteredEXC_t exc)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _Disable(pregExCtx_t prec) {
+	RTLIB_ExitCode_t _Disable(pRegisteredEXC_t exc)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _ScheduleRequest(pregExCtx_t prec) {
+	RTLIB_ExitCode_t _ScheduleRequest(pRegisteredEXC_t exc)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _Set(pregExCtx_t prec,
-			RTLIB_Constraint* constraints, uint8_t count) {
+	RTLIB_ExitCode_t _Set(pRegisteredEXC_t exc,
+						  RTLIB_Constraint * constraints, uint8_t count)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		(void)count;
 		(void)constraints;
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _Clear(pregExCtx_t prec) {
+	RTLIB_ExitCode_t _Clear(pRegisteredEXC_t exc)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _RTNotify(pregExCtx_t prec, int gap,
-			int cusage, int ctime_ms) {
+	RTLIB_ExitCode_t _RTNotify(pRegisteredEXC_t exc, int gap,
+							   int cusage, int ctime_ms)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		(void)gap;
 		(void)cusage;
 		(void)ctime_ms;
@@ -108,55 +121,59 @@ protected:
 
 	void _Exit() {}
 
-/******************************************************************************
- * Runtime profiling
- ******************************************************************************/
+	/******************************************************************************
+	 * Runtime profiling
+	 ******************************************************************************/
 
 	RTLIB_ExitCode_t _GetRuntimeProfileResp(
-			rpc_msg_token_t token,
-			pregExCtx_t prec,
-			uint32_t exc_time,
-			uint32_t mem_time) {
+		rpc_msg_token_t token,
+		pRegisteredEXC_t exc,
+		uint32_t exc_time,
+		uint32_t mem_time)
+	{
 		// Remove compilation warning
 		(void)token;
-		(void)prec;
+		(void)exc;
 		(void)exc_time;
 		(void)mem_time;
 		return RTLIB_OK;
 	}
 
-/******************************************************************************
- * Synchronization Protocol Messages
- ******************************************************************************/
+	/******************************************************************************
+	 * Synchronization Protocol Messages
+	 ******************************************************************************/
 
 	RTLIB_ExitCode_t _SyncpPreChangeResp(
-			rpc_msg_token_t token,
-			pregExCtx_t prec,
-			uint32_t syncLatency) {
+		rpc_msg_token_t token,
+		pRegisteredEXC_t exc,
+		uint32_t syncLatency)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		(void)token;
 		(void)syncLatency;
 		return RTLIB_OK;
 	}
 
 	RTLIB_ExitCode_t _SyncpSyncChangeResp(
-			rpc_msg_token_t token,
-			pregExCtx_t prec,
-			RTLIB_ExitCode_t sync) {
+		rpc_msg_token_t token,
+		pRegisteredEXC_t exc,
+		RTLIB_ExitCode_t sync)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		(void)token;
 		(void)sync;
 		return RTLIB_OK;
 	}
 
 	RTLIB_ExitCode_t _SyncpPostChangeResp(
-			rpc_msg_token_t token,
-			pregExCtx_t prec,
-			RTLIB_ExitCode_t result) {
+		rpc_msg_token_t token,
+		pRegisteredEXC_t exc,
+		RTLIB_ExitCode_t result)
+	{
 		// Remove compilation warning
-		(void)prec;
+		(void)exc;
 		(void)token;
 		(void)result;
 		return RTLIB_OK;

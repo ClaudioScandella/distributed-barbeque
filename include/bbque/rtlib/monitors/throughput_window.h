@@ -22,7 +22,12 @@
 
 #include <bbque/monitors/generic_window.h>
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @brief A THROUGHPUT data window
@@ -32,7 +37,8 @@ namespace bbque { namespace rtlib { namespace as {
  * This class provides a window specifically created for the throughpput
  * monitor.
  */
-class ThroughputWindow : public GenericWindow <double> {
+class ThroughputWindow : public GenericWindow <double>
+{
 public:
 
 	typedef std::vector<ThroughputWindow::Target> Targets;
@@ -42,18 +48,20 @@ public:
 	 * @brief Initializes internal variables
 	 */
 	ThroughputWindow(std::string metricName,
-			 TargetsPtr targets,
-			 uint16_t windowSize = defaultWindowSize):
-				GenericWindow<double>(metricName,
-						      targets,
-						      windowSize) {
+					 TargetsPtr targets,
+					 uint16_t windowSize = defaultWindowSize):
+		GenericWindow<double>(metricName,
+							  targets,
+							  windowSize)
+	{
 	}
 
 	/**
 	 * @brief Initializes internal variables
 	 */
 	ThroughputWindow(uint16_t windowSize = defaultWindowSize):
-		GenericWindow<double>(windowSize) {
+		GenericWindow<double>(windowSize)
+	{
 	}
 
 	/**

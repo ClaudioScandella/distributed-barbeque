@@ -25,7 +25,12 @@
 
 #include <memory>
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @brief A TIME monitor
@@ -37,14 +42,16 @@ namespace bbque { namespace rtlib { namespace as {
  * complete gestion of the windows of old values it also offers a basically
  * monitor without any advance features.
  */
-class TimeMonitor : public Monitor <uint32_t> {
+class TimeMonitor : public Monitor <uint32_t>
+{
 public:
 
 	/**
 	 * @brief Default constructor of the class
 	 */
 	TimeMonitor() :
-		started(false) {
+		started(false)
+	{
 	}
 
 	/**
@@ -56,7 +63,7 @@ public:
 	 * @param windowSize Number of elements in window of values
 	 */
 	uint16_t newGoal(std::string metricName, uint32_t goal,
-			 uint16_t windowSize = defaultWindowSize);
+					 uint16_t windowSize = defaultWindowSize);
 
 	/**
 	 * @brief Creates a new monitor with a window containing an history of
@@ -69,10 +76,10 @@ public:
 	 * @param windowSize Number of elements in window of values
 	 */
 	uint16_t newGoal(std::string metricName,
-			 DataFunction fType,
-			 ComparisonFunction cType,
-			 uint32_t goal,
-			 uint16_t windowSize = defaultWindowSize);
+					 DataFunction fType,
+					 ComparisonFunction cType,
+					 uint32_t goal,
+					 uint16_t windowSize = defaultWindowSize);
 
 	/**
 	 * @brief Creates a new monitor with a window keeping track of old values
@@ -82,8 +89,8 @@ public:
 	 * @param windowSize Number of elements in the window of values
 	 */
 	uint16_t newGoal(std::string metricName,
-			 TimeWindow::TargetsPtr targets,
-			 uint16_t windowSize = defaultWindowSize);
+					 TimeWindow::TargetsPtr targets,
+					 uint16_t windowSize = defaultWindowSize);
 
 	/**
 	 * @brief Creates a monitor (without goals) with a window keeping track

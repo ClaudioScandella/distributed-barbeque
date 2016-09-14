@@ -40,8 +40,8 @@ namespace bac = boost::accumulators;
 
 typedef class RTLIB_OCL_QueueProf RTLIB_OCL_QueueProf_t;
 typedef std::array<bac::accumulator_set<double,
-					bac::stats<bac::tag::sum, bac::tag::min, bac::tag::max,
-					bac::tag::variance, bac::tag::mean> >,3> AccArray_t;
+		bac::stats<bac::tag::sum, bac::tag::min, bac::tag::max,
+		bac::tag::variance, bac::tag::mean>>, 3> AccArray_t;
 typedef std::map<cl_command_type, AccArray_t> CmdProf_t;
 typedef std::shared_ptr<RTLIB_OCL_QueueProf_t> QueueProfPtr_t;
 typedef std::shared_ptr<CmdProf_t> CmdProfPtr_t;
@@ -85,7 +85,7 @@ static const cl_command_type memory_trans_cmds[] = {
 	CL_COMMAND_READ_BUFFER_RECT      ,
 	CL_COMMAND_WRITE_BUFFER_RECT
 #ifdef CL_API_SUFFIX__VERSION_1_2
-,
+	,
 	CL_COMMAND_COPY_BUFFER_RECT      ,
 	CL_COMMAND_MIGRATE_MEM_OBJECTS   ,
 	CL_COMMAND_FILL_BUFFER           ,
@@ -99,13 +99,18 @@ static const cl_command_type memory_trans_cmds[] = {
  *
  * @brief Collect events profiling info for an OpenCL command queue
  */
-class RTLIB_OCL_QueueProf {
+class RTLIB_OCL_QueueProf
+{
 public:
-	~RTLIB_OCL_QueueProf() {
+	~RTLIB_OCL_QueueProf()
+	{
 		std::map<void *, cl_event>::iterator it_ev;
 		cl_uint ref_count;
+
 		for (it_ev = events.begin(); it_ev != events.end(); it_ev++) {
-			clGetEventInfo(it_ev->second, CL_EVENT_REFERENCE_COUNT, sizeof(cl_uint), &ref_count, NULL);
+			clGetEventInfo(it_ev->second, CL_EVENT_REFERENCE_COUNT, sizeof(cl_uint),
+						   &ref_count, NULL);
+
 			if (ref_count > 0)
 				clReleaseEvent(it_ev->second);
 		}

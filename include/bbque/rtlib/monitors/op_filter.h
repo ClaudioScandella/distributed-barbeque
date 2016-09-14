@@ -21,7 +21,12 @@
 #include <string>
 #include <vector>
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @brief Useful definition for a comparison function (via a functor)
@@ -32,7 +37,8 @@ typedef std::function<bool(double, double)> ComparisonFunctor;
  * @brief Contains useful functors needed for comparison purposes with names
  * easy to remember
  */
-namespace ComparisonFunctors{
+namespace ComparisonFunctors
+{
 
 const ComparisonFunctor Less = std::less<double>();
 const ComparisonFunctor Greater = std::greater<double>();
@@ -52,7 +58,8 @@ const ComparisonFunctor GreaterOrEqual = std::greater_equal<double>();
  * OPFilterList, it's possible to filter out from a set of operating poins the
  * unwanted ones.
  */
-class OPFilter{
+class OPFilter
+{
 public:
 	/**
 	 * @brief Name of the metric to filter
@@ -79,8 +86,8 @@ public:
 	 * @param value Upper or Lower bound for the metric
 	 */
 	OPFilter(std::string name, ComparisonFunctor cFunction, double value):
-			 name(name), cFunction(cFunction), value(value) {
-
+		name(name), cFunction(cFunction), value(value)
+	{
 	}
 };
 

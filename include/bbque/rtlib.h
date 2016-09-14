@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012  Politecnico di Milano
+ * Copyright (C) 2012-2016  Politecnico di Milano
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,29 +32,21 @@ extern "C" {
  * @brief The RTLib main version
  * @ingroup rtlib_sec03_plain_services
  *
- * This version is checked at library initialization time with respect to the
- * verions of the Barbeque RTRM instance running on the target system.
- * A Major version metch is required in order to properly setup the
- * communication with the RTRM, otherwise the library initilization will
- * fails.
+ * It must match against the BarbequeRTRM main version
  */
 #define RTLIB_VERSION_MAJOR 1
 
 /**
  * @brief The RTLib revision version
  * @ingroup rtlib_sec03_plain_services
- *
- * The mainor version is increased at each internal library updated which do
- * not preclude backward compatibilities.
  */
-#define RTLIB_VERSION_MINOR 3
+#define RTLIB_VERSION_MINOR 4
 
 /**
  * @brief The maximum length for an "application" name
  * @ingroup rtlib_sec03_plain_exc
  *
- * The application name is used mainly for debugging and tracing purposes in
- * order to uniquely identify an application within the Barbeque RTRM.
+ * Name of the applications
  */
 #define RTLIB_APP_NAME_LENGTH 32
 
@@ -62,8 +54,8 @@ extern "C" {
  * The maximum length for an "execution context" name
  * @ingroup rtlib_sec03_plain_exc
  *
- * Each Execution Context (EXC) an application register is associated to a
- * name which is mainly used for debugging and tracing purposes.
+ * Each application spawns 1+ Execution Context; hence, each EXC must have
+ * its own name.
  */
 #define RTLIB_EXC_NAME_LENGTH 32
 
@@ -71,24 +63,20 @@ extern "C" {
  * @brief The maximum length for a recipe name
  * @ingroup rtlib_sec03_plain_exc
  *
- * Each EXC is associated to a recipe file describing the application working
- * modes, their expected Quaility-of-Service and the correponding resourcec
- * demand. The recipe name is used to identify and load the corresponding
- * recipe from within a system folder where all recipes should be deployed
- * when the application is installed.
- *
- * Recipes filename are expected to end with the ".recipe" extension. However,
- * the name indicated by an application should <i>not</i> include the
- * extension and it could have the maximum lenght defined by this constant.
+ * Each EXC got its own recipe. The recipe contains the optimal resource
+ * allocations (aka Applications Working Modes or AWMs) that have been
+ * find using a Design Space Exploration phase. Note that not all the scheduling
+ * policies use recipes, but, for compatibility's sake, all EXCs must provide
+ * the Resource Manager with a resources.
  */
 #define RTLIB_RECIPE_NAME_LENGTH 64
 
 /**
  * @brief the maximum length for hostnames
  *
- * When barbeque runs in distributed environment, it will send the systems
- * list to the applications, and foreach system, it sends the hostname and
- * assigned resoruces.
+ * When the BarbequeRTRM runs in distributed environment, it notifies resource
+ * assignment to applications by sending them a list of assigned resources
+ * for each system. Hence, hostnames must be tracked.
  */
 #define RTLIB_MAX_HOSTNAME_LENGTH 256
 
@@ -96,7 +84,7 @@ extern "C" {
 typedef struct RTLIB_Services RTLIB_Services_t;
 typedef struct RTLIB_APIVersion RTLIB_APIVersion_t;
 typedef struct RTLIB_WorkingModeParams  RTLIB_WorkingModeParams_t;
-typedef struct RTLIB_ExecutionContextParams RTLIB_ExecutionContextParams_t;
+typedef struct RTLIB_EXCParameters RTLIB_EXCParameters_t;
 typedef struct RTLIB_Constraint RTLIB_Constraint_t;
 
 
@@ -129,14 +117,14 @@ typedef enum RTLIB_ExitCode {
 
 	/** Success (no errors) */
 	RTLIB_OK = 0,
-	/** Uspecified (generic) error */
+	/** Unspecified (generic) error */
 	RTLIB_ERROR,
 	/** RTLib Version does not match that of the Barbeque RTRM */
 	RTLIB_VERSION_MISMATCH,
 	/** No new working mode error */
 	RTLIB_NO_WORKING_MODE,
 
-//---- Barbeque Communicaiton errors
+//---- Barbeque Communication errors
 
 	/** Failed to setup the channel to connect the Barbeque RTRM */
 	RTLIB_BBQUE_CHANNEL_SETUP_FAILED,
@@ -173,7 +161,7 @@ typedef enum RTLIB_ExitCode {
 	RTLIB_EXC_NOT_STARTED,
 	/** The Execution Context Start Failed */
 	RTLIB_EXC_ENABLE_FAILED,
-	/** The Execution Context is not currentyl enabled */
+	/** The Execution Context is not currently enabled */
 	RTLIB_EXC_NOT_ENABLED,
 	/** The Execution Context Stop Failed */
 	RTLIB_EXC_DISABLE_FAILED,
@@ -218,53 +206,32 @@ typedef enum RTLIB_ExitCode {
  * @ingroup rtlib_sec03_plain_constr
  */
 typedef enum RTLIB_ConstraintOperation {
-	/** Remove the specified consraint */
+	/** Remove the specified constraint */
 	CONSTRAINT_REMOVE = 0,
-	/** Add the specified consraint */
+	/** Add the specified constraint */
 	CONSTRAINT_ADD
 } RTLIB_ConstraintOperation_t;
 
 /**
  * @brief The possible boundary asserted by a resource constraint.
  * @ingroup rtlib_sec03_plain_constr
+ *
+ * The EXC can constrain its resource allocation, i.e. it can tell the
+ * BarbequeRTRM not to take into account some of the AWMs contained in the
+ * recipe.
  */
 typedef enum RTLIB_ConstraintType {
 	/** Targets AWMs lower or equal to the specified one */
 	LOWER_BOUND = 0,
-	/** Targets AWMs higer or equal to the specified one */
+	/** Targets AWMs higher or equal to the specified one */
 	UPPER_BOUND,
 	/** Targets the specified AWM */
 	EXACT_VALUE
 } RTLIB_ConstraintType_t;
 
 /**
- * @brief The kind of a synchronization point.
+ * @brief The synchronization flavor.
  * @ingroup rtlib_sec03_plain_exc
- *
- * The Barbeque RTRM is able to manage applicaitons which could have multiple
- * Synchronization Points (SP) at different time-frame granulatiry level. Mainly it
- * allows to distinguis between two kind of synchronization points: stateless
- * and statefull.
- *
- * <ul>
- *   <li>
- * A <i>stateless synchronization point (SLSP)</i> happens when the application could
- * be reconfigured with almost zero overhead. This happens when the
- * application has not a currently valida state saved on Barbeque managed
- * resources.
- *   </li>
- *   <li>
- * A <i>statefull synchronization point(SFSP)</i> happens when the application reach
- * a point in which can switch to a different working mode, but this requires
- * some preparational activity in order to save the current state to avoid
- * losing some of the work being already completed. Status saving will
- * probably introduce overheads which could impact on the platform
- * synchronization latency.
- *   </li>
- * </ul>
- *
- * For example, considering a video deconding application, a SFSP is reached
- * every time a frame is decoded, while we are on a SFSP at each keyframe.
  */
 typedef enum RTLIB_SyncType {
 	/** @brief A stateless synchronization point.
@@ -272,11 +239,11 @@ typedef enum RTLIB_SyncType {
 	 * the current working mode could be switched without saving any current
 	 * status, thus this is usually associated to a lower switching overhead */
 	RTLIB_SYNC_STATELESS = 0,
-	/** @brief A statefull synchronization point.
-	 * When an application is on a STATEFULL synchronization point, switching
+	/** @brief A stateful synchronization point.
+	 * When an application is on a STATEFUL synchronization point, switching
 	 * the current working mode requires to save some status. This could
-	 * incurr on an higer switching overhead */
-	RTLIB_SYNC_STATEFULL
+	 * incur on an higher switching overhead */
+	RTLIB_SYNC_STATEFUL
 } RTLIB_SyncType_t;
 
 
@@ -301,28 +268,20 @@ typedef enum RTLIB_ResourceType {
  * @brief The recipe of an Execution Context (EXC).
  * @ingroup rtlib_sec03_plain_exc
  *
- * Each EXC that an application could register to the Barbeque run-time
- * resource manager, is identified and described by a corresponding "recipe".
- * A recipe collects a detailed description of resource amount required by
- * each working mode of the application.
- *
  * @note This name must never exceed the size specified by
  * RTLIB_RECIPE_NAME_LENGTH
  */
-typedef const char* RTLIB_Recipe_t;
+typedef const char * RTLIB_Recipe_t;
 
 /**
  * @brief An "execution context" handler.
  * @ingroup rtlib_sec03_plain_exc
  *
- * This handler could be used to uniquely identify a previously registered
- * execution context. Such an handler is passed back to the application by the
+ * This handler must be used to uniquely identify a previously registered
+ * execution context. Such a handler is passed back to the application by the
  * resource manager each time it needs to communicate some information.
- * The application could eventually "associate" more data to this handler by
- * embedding the handler within a custom data structure and using the
- * \a container_of macro to cast an handler to the containing structure.
  */
-typedef RTLIB_ExecutionContextParams_t* RTLIB_ExecutionContextHandler_t;
+typedef RTLIB_EXCParameters_t * RTLIB_EXCHandler_t;
 
 
 /*******************************************************************************
@@ -343,21 +302,21 @@ struct RTLIB_APIVersion {
 
 typedef struct RTLIB_SystemResources {
 
-    /** The system ID **/
-    int16_t sys_id =0;
-    /** Number of CPU (processors) assigned */
-    int16_t nr_cpus  = 0;
-    /** Number of processing elements assigned */
-    int16_t nr_procs = 0;
-    /** Amount of processing quota assigned */
-    int32_t r_proc = 0;
-    /** Amount of memory assigned */
-    int32_t r_mem = 0;
+	/** The system ID **/
+	int16_t sys_id = 0;
+	/** Number of CPU (processors) assigned */
+	int16_t number_cpus  = 0;
+	/** Number of processing elements assigned */
+	int16_t number_proc_elements = 0;
+	/** Amount of processing quota assigned */
+	int32_t cpu_bandwidth = 0;
+	/** Amount of memory assigned */
+	int32_t mem_bandwidth = 0;
 #ifdef CONFIG_BBQUE_OPENCL
-    int32_t r_gpu = 0;
-    int32_t r_acc = 0;
-    /** The ID of the assigned OpenCL device */
-    uint8_t dev_id;
+	int32_t gpu_bandwidth = 0;
+	int32_t accelerator_bandwidth = 0;
+	/** The ID of the assigned OpenCL device */
+	uint8_t ocl_device_id;
 #endif
 
 } RTLIB_SystemResources_t;
@@ -370,12 +329,12 @@ struct RTLIB_WorkingModeParams {
 	/** The ID of the working mode */
 	int8_t awm_id;
 	/** The set of platform supported services */
-	const RTLIB_Services_t* services;
+	const RTLIB_Services_t * services;
 
 	/** Number of systems **/
 	int16_t nr_sys;
 	/** The array of systems containing resources **/
-	RTLIB_SystemResources_t* systems;
+	RTLIB_SystemResources_t * systems;
 };
 
 /**
@@ -386,13 +345,13 @@ struct RTLIB_WorkingModeParams {
  * upon library initialization (e.g. version, interfacing functions, and
  * programming language).
  */
-struct RTLIB_ExecutionContextParams {
-        /** The "execution context" implemented API version */
-        RTLIB_APIVersion_t version;
-        /** The application code language */
-        RTLIB_ProgrammingLanguage_t language;
-		/** The identifier of the "execution context" recipe */
-		RTLIB_Recipe_t recipe;
+struct RTLIB_EXCParameters {
+	/** The "execution context" implemented API version */
+	RTLIB_APIVersion_t version;
+	/** The application code language */
+	RTLIB_ProgrammingLanguage_t language;
+	/** The identifier of the "execution context" recipe */
+	RTLIB_Recipe_t recipe;
 };
 
 /**
@@ -442,9 +401,17 @@ struct RTLIB_Constraint {
  * Barbeque run-time manager is a independent entity which require access to
  * computation fabric resources based on its proper "working modes".
  */
-typedef RTLIB_ExecutionContextHandler_t (*RTLIB_Register_t)(
-		const char* name,
-		const RTLIB_ExecutionContextParams_t *params);
+typedef RTLIB_EXCHandler_t (*RTLIB_Register_t)(
+	const char * name,
+	const RTLIB_EXCParameters_t * params);
+
+/**
+ * @brief Sets up cgroups for this exc
+ * @ingroup rtlib_sec03_plain_exc
+ *
+ */
+typedef RTLIB_ExitCode_t (*RTLIB_SetupCGroups_t)(
+	const RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Pointer to an EXC enabling function
@@ -465,7 +432,7 @@ typedef RTLIB_ExecutionContextHandler_t (*RTLIB_Register_t)(
  * an AWM assigned.
  */
 typedef RTLIB_ExitCode_t (*RTLIB_Enable_t)(
-		const RTLIB_ExecutionContextHandler_t ech);
+	const RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Pointer to an EXC disabling function.
@@ -485,7 +452,7 @@ typedef RTLIB_ExitCode_t (*RTLIB_Enable_t)(
  * this EXC as soon as possible.
  */
 typedef RTLIB_ExitCode_t (*RTLIB_Disable_t)(
-		const RTLIB_ExecutionContextHandler_t ech);
+	const RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Pointer to an EXC un-registration function.
@@ -498,7 +465,7 @@ typedef RTLIB_ExitCode_t (*RTLIB_Disable_t)(
  * @param ech the handler of the EXCs to undergister.
  */
 typedef void (*RTLIB_Unregister_t)(
-		const RTLIB_ExecutionContextHandler_t ech);
+	const RTLIB_EXCHandler_t exc_handler);
 
 /**@}*/
 
@@ -516,32 +483,32 @@ typedef void (*RTLIB_Unregister_t)(
  *
  * An execution context (EXC) could assert a constraint to the Barbeque RTRM, so
  * that it could do the best to schedule for this EXC a working mode which is
- * compliant with the requitement. An application could assert a set of
+ * compliant with the requirement. An application could assert a set of
  * constraints at run-time to invalidate certain working modes.
  *
  * @param constraints a vector of constraints to be asserted
  * @param count the number of constraint to be asserted
  *
- * @note the Barbeque RTRM will do the best to satisfay a constraint
+ * @note the Barbeque RTRM will do the best to satisfy a constraint
  * requirements, however, it is worth to notice that, since we are in a mixed
  * workload scenario, it could be not possible to achieve such a result.
  * Thus, an application asserting a constraint <em>must</em> wait for a
- * confermative responce from Barbeque before accessing the required
- * resources, this is particularely critical in the case the EXC want to
- * increase the used resource (i.e. setting a lower bound higer than the
- * warking mode currently in use).
+ * confirm response from Barbeque before accessing the required
+ * resources, this is particularly critical in the case the EXC want to
+ * increase the used resource (i.e. setting a lower bound higher than the
+ * working mode currently in use).
  */
 typedef RTLIB_ExitCode_t (*RTLIB_SetConstraints_t)(
-		RTLIB_ExecutionContextHandler_t ech,
-		RTLIB_Constraint_t *constraints,
-		uint8_t count);
+	RTLIB_EXCHandler_t exc_handler,
+	RTLIB_Constraint_t * constraints,
+	uint8_t count);
 
 /**
  * @brief Pointer to an EXC contraint release function.
  * @ingroup rtlib_sec03_plain_constr
  */
 typedef RTLIB_ExitCode_t (*RTLIB_ClearConstraints_t)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Pointer to an EXC Goal Gap assert function.
@@ -558,21 +525,20 @@ typedef RTLIB_ExitCode_t (*RTLIB_ClearConstraints_t)(
  * application.
  *
  * The "Goal Gap" (GG) is represented as an integer percentage, i.e. an
- * integer number in the range (0,100]. The higer the gap the more resources
- * are required by the application, with repsect to the resoures corresponding
+ * integer number in the range (0,100]. The higher the gap the more resources
+ * are required by the application, with respect to the resources corresponding
  * to the currently assigned AWM.
  *
- * By issuing such a call, the applicaiton is giving just an hit to the
+ * By issuing such a call, the application is giving just an hit to the
  * Barbeque RTRM scheduler. This means that, as soon as it will be possible,
- * it will try to assign an higer value AWM to the demanding application.
+ * it will try to assign an higher value AWM to the demanding application.
  *
  * @param gap the Goal Gap (GG) percentage, to be represented as a number in
  * the range (0,100].
  */
 typedef RTLIB_ExitCode_t (*RTLIB_SetGoalGap_t)(
-		RTLIB_ExecutionContextHandler_t ech,
-		int gap);
-
+	RTLIB_EXCHandler_t exc_handler,
+	int gap);
 /**@}*/
 
 /**
@@ -587,19 +553,19 @@ typedef RTLIB_ExitCode_t (*RTLIB_SetGoalGap_t)(
  * @brief Synchronization point notification and AWM authorization.
  * @ingroup rtlib_sec03_plain_rtm
  *
- * An execution context (EXC) is enchouraged to support the Barbeque RTRM by
+ * An execution context (EXC) is encouraged to support the Barbeque RTRM by
  * notifying the reaching of a synchronization point. A synchronization point
  * is a point during the workload processing, when the EXC is on a consistent
  * state, i.e. a changing of working mode has the lower impact on both
  * performances and workload trashing. Some example of synchronization point
- * could be: the end of a frame deconding for a video decoding application,
+ * could be: the end of a frame decoding for a video decoding application,
  * the end of a packet processing for networking applications.  The execution
  * context is required to notify these events to the RTLib which in turns
  * could exploit them to better arrange working modes reconfiguration among
- * all the active applicatons.
+ * all the active applications.
  *
  * Moreover, in a Run-Time Resource Managed system the Barbeque RTRM has the
- * role to assigne an Operating Point to each active application. Thus, each
+ * role to assigned an Operating Point to each active application. Thus, each
  * application is required to call this method every time a Working Mode
  * change could be expected, i.e. at each synchronization point or when a
  * working mode should be initially assigned after the EXC has been enabled.
@@ -620,8 +586,8 @@ typedef RTLIB_ExitCode_t (*RTLIB_SetGoalGap_t)(
  * @param st the kind of this synchronization point
  *
  * @return RTLIB_OK if a working mode has been assigned, RTLIB_EXC_GWM_FAILED
- * if a working mode could not been assinged. A value between
- * RTLIB_EXC_GWM_START and RTLIB_EXC_GWM_BLOCKED if a reconfiguraiton is
+ * if a working mode could not been assigned. A value between
+ * RTLIB_EXC_GWM_START and RTLIB_EXC_GWM_BLOCKED if a reconfiguration is
  * required. Please not that, in each of this last cases, the application is
  * expected to perform the required re-configuration and then to call this
  * method again to get the authorization on using it. Indeed, this second call
@@ -633,9 +599,9 @@ typedef RTLIB_ExitCode_t (*RTLIB_SetGoalGap_t)(
  * call until a new working mode has been assigned to it.
  */
 typedef RTLIB_ExitCode_t (*RTLIB_GetWorkingMode_t)(
-		RTLIB_ExecutionContextHandler_t ech,
-		RTLIB_WorkingModeParams_t *wm,
-		RTLIB_SyncType_t st);
+	RTLIB_EXCHandler_t exc_handler,
+	RTLIB_WorkingModeParams_t * wm,
+	RTLIB_SyncType_t st);
 
 /**@}*/
 
@@ -659,7 +625,7 @@ typedef RTLIB_ExitCode_t (*RTLIB_GetWorkingMode_t)(
  * This function return a reference to the string representing this
  * identified, which could be conveniently used to support logging.
  */
-typedef const char* (*RTLIB_Utils_GetChUid)();
+typedef const char * (*RTLIB_Utils_GetCharUniqueID)();
 
 /**
  * @brief The type used to represent application UIDs
@@ -673,8 +639,7 @@ typedef BBQUE_UID_TYPE AppUid_t;
  * Every EXC of an application is identified within BBQ by a unique identified
  * (UID), which could be recovered with by using this method.
  */
-typedef AppUid_t (*RTLIB_Utils_GetUid)(
-		RTLIB_ExecutionContextHandler_t ech);
+typedef AppUid_t (*RTLIB_Utils_GetUniqueID)(RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Get the amount of resources assigned by the BarbequeRTRM
@@ -685,10 +650,10 @@ typedef AppUid_t (*RTLIB_Utils_GetUid)(
  * assigned amount.
  */
 typedef RTLIB_ExitCode_t (*RTLIB_Utils_GetResources) (
-		RTLIB_ExecutionContextHandler_t ech,
-		const RTLIB_WorkingModeParams_t *wm,
-		RTLIB_ResourceType_t r_type,
-		int32_t & r_amount);
+	RTLIB_EXCHandler_t exc_handler,
+	const RTLIB_WorkingModeParams_t * working_mode_params,
+	RTLIB_ResourceType_t resource_type,
+	int32_t & resource_amount);
 
 /**
  * @brief Get the amount of resources assigned by the BarbequeRTRM to the
@@ -700,11 +665,15 @@ typedef RTLIB_ExitCode_t (*RTLIB_Utils_GetResources) (
  * assigned amount.
  */
 typedef RTLIB_ExitCode_t (*RTLIB_Utils_GetResourcesArray) (
-        RTLIB_ExecutionContextHandler_t ech,
-        const RTLIB_WorkingModeParams_t *wm,
-        RTLIB_ResourceType_t r_type,
-        int32_t * res_array,
-        uint16_t array_size);
+	RTLIB_EXCHandler_t exc_handler,
+	const RTLIB_WorkingModeParams_t * working_mode_params,
+	RTLIB_ResourceType_t resource_type,
+	int32_t * assignment_per_system,
+	uint16_t number_of_systems);
+
+typedef void (*RTLIB_Utils_StartPCountersMonitoring) (
+	RTLIB_EXCHandler_t exc_handler);
+
 
 /**@}*/
 
@@ -733,8 +702,8 @@ typedef RTLIB_ExitCode_t (*RTLIB_Utils_GetResourcesArray) (
  * @param cps the required Cycles Per Seconds [Hz]
  */
 typedef RTLIB_ExitCode_t (*RTLIB_CPS_Set)(
-		RTLIB_ExecutionContextHandler_t ech,
-		float cps);
+	RTLIB_EXCHandler_t exc_handler,
+	float cycles_per_second);
 
 /**
  * @brief Get the measured Cycles Per Seconds (CPS)
@@ -749,7 +718,7 @@ typedef RTLIB_ExitCode_t (*RTLIB_CPS_Set)(
  * @return the measured cycle rate
  */
 typedef float (*RTLIB_CPS_Get)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Get the measured Jobs Per Seconds (JPS)
@@ -764,7 +733,7 @@ typedef float (*RTLIB_CPS_Get)(
  * @return the measured jobs rate
  */
 typedef float (*RTLIB_JPS_Get)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Update JPC value
@@ -782,7 +751,7 @@ typedef float (*RTLIB_JPS_Get)(
  * @return the measured jobs rate
  */
 typedef RTLIB_ExitCode_t (*RTLIB_JPC_Update)(
-		RTLIB_ExecutionContextHandler_t ech, int jpc);
+	RTLIB_EXCHandler_t exc_handler, int jpc);
 
 /**
  * @brief Setup the Cycles Per Seconds (CPS) goal
@@ -797,7 +766,7 @@ typedef RTLIB_ExitCode_t (*RTLIB_JPC_Update)(
  * @param cps_max the maximum required Cycles Per Seconds [Hz]
  */
 typedef RTLIB_ExitCode_t (*RTLIB_CPS_Goal_Set)(
-		RTLIB_ExecutionContextHandler_t ech, float cps_min, float cps_max);
+	RTLIB_EXCHandler_t exc_handler, float cps_min, float cps_max);
 
 /**
  * @brief Setup the Jobs Per Seconds (JPS) goal
@@ -807,14 +776,14 @@ typedef RTLIB_ExitCode_t (*RTLIB_CPS_Goal_Set)(
  * If the goal is not matched, a SetGoalGap request is sent to the
  * BarbequeRTRM daemon.
  *
- * @param ech the handler of the EXC to configure
+ * @param exc_handler the handler of the EXC to configure
  * @param jps_min the minimum required Jobs Per Seconds [Hz]
  * @param jps_max the maximum required Jobs Per Seconds [Hz]
  * @param jpc the number of jobs that are currently processed each cycle
  */
 typedef RTLIB_ExitCode_t (*RTLIB_JPS_Goal_Set)(
-		RTLIB_ExecutionContextHandler_t ech,
-		float jps_min, float jps_max, int jpc);
+	RTLIB_EXCHandler_t exc_handler,
+	float jps_min, float jps_max, int jpc);
 
 /**
  * @brief Setup the Cycles Time [us] support
@@ -829,8 +798,8 @@ typedef RTLIB_ExitCode_t (*RTLIB_JPS_Goal_Set)(
  * @param cps the required Cycles Per Seconds [Hz]
  */
 typedef RTLIB_ExitCode_t (*RTLIB_CPS_CTimeUs)(
-		RTLIB_ExecutionContextHandler_t ech,
-		uint32_t us);
+	RTLIB_EXCHandler_t exc_handler,
+	uint32_t us);
 
 /**@}*/
 
@@ -846,33 +815,6 @@ typedef RTLIB_ExitCode_t (*RTLIB_CPS_CTimeUs)(
  * @{
  */
 
-/**
- * @brief Setup the RTLib notification support
- * @ingroup rtlib_sec03_plain_perf
- *
- * Before using notification handler, an application must call this method to
- * allow the run-time library to properly initialize the performance
- * monitoring support. This method must be called from the main thread that
- * want to be monitored and profiled.
- *
- * @param ech the handler of the EXC to configure
- */
-typedef void (*RTLIB_Notify_Setup)(
-		RTLIB_ExecutionContextHandler_t ech);
-
-/**
- * @brief Notify the RTLib an EXC has been initialized
- * @ingroup rtlib_sec03_plain_perf
- *
- * Once an EXC has been properly configured and initialized, an application is
- * encouraged to notify the run-time library by calling this method.  This
- * could be used by the RTLib implementation to properly enable resources
- * required to monitor application perforamnces.
- *
- * @param ech the handler of the EXC to configure
- */
-typedef void (*RTLIB_Notify_Init)(
-		RTLIB_ExecutionContextHandler_t ech);
 
 /**
  * @brief Notify the RTLib an EXC has completed
@@ -886,13 +828,13 @@ typedef void (*RTLIB_Notify_Init)(
  * @param ech the handler of the EXC to configure
   */
 typedef void (*RTLIB_Notify_Exit)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Notify the RTLib a "reconfiguration" is starting
  * @ingroup rtlib_sec03_plain_perf
  *
- * Once a working mode reconfiguration is srarting, an application is
+ * Once a working mode reconfiguration is starting, an application is
  * encouraged to notify the run-time library by calling this method. This
  * could be used by the RTLib implementation to collect suitable information
  * and statistics on reconfigurations.
@@ -900,7 +842,7 @@ typedef void (*RTLIB_Notify_Exit)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PreConfigure)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Notify the RTLib a "reconfiguration" has completed
@@ -914,7 +856,7 @@ typedef void (*RTLIB_Notify_PreConfigure)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PostConfigure)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Notify the RTLib a "run" is starting
@@ -928,7 +870,7 @@ typedef void (*RTLIB_Notify_PostConfigure)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PreRun)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 
 /**
@@ -943,7 +885,7 @@ typedef void (*RTLIB_Notify_PreRun)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PostRun)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Notify the RTLib a "monitor" is starting
@@ -957,7 +899,7 @@ typedef void (*RTLIB_Notify_PostRun)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PreMonitor)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 
 /**
@@ -972,7 +914,7 @@ typedef void (*RTLIB_Notify_PreMonitor)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PostMonitor)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Notify the RTLib a "suspend" is starting
@@ -986,7 +928,7 @@ typedef void (*RTLIB_Notify_PostMonitor)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PreSuspend)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 
 /**
@@ -1001,7 +943,7 @@ typedef void (*RTLIB_Notify_PreSuspend)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PostSuspend)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 /**
  * @brief Notify the RTLib a "resume" is starting
@@ -1015,7 +957,7 @@ typedef void (*RTLIB_Notify_PostSuspend)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PreResume)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 
 /**
@@ -1030,7 +972,7 @@ typedef void (*RTLIB_Notify_PreResume)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PostResume)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 
 /**
@@ -1045,7 +987,7 @@ typedef void (*RTLIB_Notify_PostResume)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_Release)(
-		RTLIB_ExecutionContextHandler_t ech);
+	RTLIB_EXCHandler_t exc_handler);
 
 /**@}*/
 
@@ -1066,95 +1008,86 @@ typedef void (*RTLIB_Notify_Release)(
  */
 
 #define BBQUE_RTLIB_OPTS_TAG_MAX 6
-typedef struct RTLIB_Conf {
+typedef struct RTLIB_Config {
 
 	// Profiling configuration
-	struct profile {
-		bool enabled;
+	struct profiling {
+		bool enabled = false;
 
 		struct {
-			bool global;
-			bool overheads;
-			bool no_kernel;
-			bool big_num;
-			int  detailed_run;
-			int  raw;
-		} perf;
+			bool global       = false;
+			bool overheads    = false;
+			bool no_kernel    = false;
+			bool big_num      = false;
+			int  detailed_run = 0;
+			int  raw          = 0;
+		} perf_counters;
 
 		struct {
-			bool file;
-
-			// MOST format output
-			struct {
-				bool enabled;
-				// NOTE: The array +2 is due to:
-				// - the ending namespace separator ":"
-				// - the string NULL terminator
-				const char *tag;
-			} MOST;
+			bool file = false;
 
 			// CSV format output
 			struct {
-				bool enabled;
-				const char *separator;
+				bool enabled          = false;
+				const char * separator = " ";
 			} CSV;
 		} output;
 
 		struct {
-			bool enabled;
-			int  level;
+			bool enabled = false;
+			int  level   = 0;
 		} opencl;
 
 	} profile;
 
 	// Application-Specific RTM
 	struct {
-		uint16_t rt_profile_rearm_time_ms;
-		uint16_t rt_profile_wait_for_sync_ms;
-	} asrtm;
+		uint16_t rt_profile_rearm_time_ms =
+			BBQUE_DEFAULT_RTLIB_RTPROF_REARM_TIME_MS;
+		uint16_t rt_profile_wait_for_sync_ms =
+			BBQUE_DEFAULT_RTLIB_RTPROF_WAIT_FOR_SYNC_MS;
+	} runtime_profiling;
 
 	// Unmanaged execution
 	struct {
-		bool enabled;
-		int  awm_id;
+		bool enabled = false;
+		int  awm_id  = 0;
 	} unmanaged;
 
 	// CGroup enforcing
 	struct {
-		bool enabled;
+		bool enabled = false;
 
 		// CUPSET Contoller
 		struct {
-			char *cpus;
-			char *mems;
+			char * cpus = nullptr;
+			char * mems = nullptr;
 		} cpuset;
 
 		// CPU Controller
 		struct {
-			char *cfs_period_us;
-			char *cfs_quota_us;
+			char * cfs_period_us = nullptr;
+			char * cfs_quota_us  = nullptr;
 		} cpu;
 
 		// MEMORY Contoller
 		struct {
-			char *limit_in_bytes;
+			char * limit_in_bytes = nullptr;
 		} memory;
 
 	} cgroup;
 
 	// Processing duration
 	struct {
-		bool enabled;
-		bool time_limit;
-		uint32_t cycles;
-		uint32_t millis;
+		bool enabled    = false;
+		bool time_limit = false;
+		uint32_t max_cycles_before_termination = 0;
+		uint32_t max_ms_before_termination = 0;
 	} duration;
 
 } RTLIB_Conf_t;
 
-
 /**@}*/
-
 
 /*******************************************************************************
  *    RTLib Services Descriptor (RSD)
@@ -1181,15 +1114,16 @@ struct RTLIB_Services {
 	/** Current version of the plugins API */
 	RTLIB_APIVersion_t version;
 	/** The RTLib configuration */
-	const RTLIB_Conf_t *conf;
+	const RTLIB_Conf_t * config;
 	/** Execution contexts registration
 	 * Applications use this function at RTLib library initialization
 	 * time to register each "execution context" they want. */
 	RTLIB_Register_t Register;
+	RTLIB_SetupCGroups_t SetupCGroups;
 	/** Execution contexts scheduing
 	 * Applications use this function to ask resources for a specified EXCs
 	 * (ar all the registered ones).*/
-	RTLIB_Enable_t Enable;
+	RTLIB_Enable_t EnableEXC;
 	/** Notify synchronization and get the assigned Working Mode.
 	 * Applications call this method, during the initialization or after a
 	 * false returning sync, to get a reference to the new assigned
@@ -1199,9 +1133,9 @@ struct RTLIB_Services {
 	 * context could set a boundary on a set of working modes to consider
 	 * at run-time for resource scheduling. The Barbeque RTRM resource
 	 * scheduling of working modes should satisfying these requirement. */
-	RTLIB_SetConstraints_t SetConstraints;
+	RTLIB_SetConstraints_t SetAWMConstraints;
 	/** Constraints removal on recipe working modes */
-	RTLIB_ClearConstraints_t ClearConstraints;
+	RTLIB_ClearConstraints_t ClearAWMConstraints;
 	/** Goal Gap (GG) assertion on recipe working modes An execution
 	 * context could sssert a goal gap relative to the currently assigned
 	 * AWM if the expected QoS level is lower that its actual value. */
@@ -1217,10 +1151,11 @@ struct RTLIB_Services {
 
 	/* Utility function interface */
 	struct {
-		RTLIB_Utils_GetChUid GetChUid;
-		RTLIB_Utils_GetUid GetUid;
+		RTLIB_Utils_GetCharUniqueID GetUniqueID_String;
+		RTLIB_Utils_GetUniqueID GetUniqueID;
 		RTLIB_Utils_GetResources GetResources;
 		RTLIB_Utils_GetResourcesArray GetResourcesArray;
+		RTLIB_Utils_StartPCountersMonitoring MonitorPerfCounters;
 	} Utils;
 
 	/* Cycles Time Control interface */
@@ -1228,7 +1163,7 @@ struct RTLIB_Services {
 		RTLIB_CPS_Set Set;
 		RTLIB_CPS_Get Get;
 		RTLIB_CPS_Goal_Set SetGoal;
-		RTLIB_CPS_CTimeUs SetCTimeUs;
+		RTLIB_CPS_CTimeUs SetMinCycleTime_us;
 	} CPS;
 
 	/* Cycles Time Control interface */
@@ -1240,10 +1175,6 @@ struct RTLIB_Services {
 
 	/* Performance estimation and notification interface */
 	struct {
-		/** Setup notifier */
-		RTLIB_Notify_Setup Setup;
-		/** Initialization notifier */
-		RTLIB_Notify_Init Init;
 		/** Finalization notifier */
 		RTLIB_Notify_Exit Exit;
 		/** Pre-Configuration notifier */
@@ -1259,15 +1190,6 @@ struct RTLIB_Services {
 		/** Post-Monitor notifier */
 		RTLIB_Notify_PostMonitor PostMonitor;
 		/** Pre-Suspend notifier */
-		RTLIB_Notify_PreSuspend PreSuspend;
-		/** Post-Suspend notifier */
-		RTLIB_Notify_PostSuspend PostSuspend;
-		/** Pre-Resume notifier */
-		RTLIB_Notify_PreResume PreResume;
-		/** Post-Resume notifier */
-		RTLIB_Notify_PostResume PostResume;
-		/** Release notifier */
-		RTLIB_Notify_Release Release;
 	} Notify;
 };
 
@@ -1294,7 +1216,7 @@ struct RTLIB_Services {
  * RTLIB_CHANNEL_SETUP_FAILED if the library failed to setup a communication
  * channel with the Barbeque RTRM instance.
  */
-RTLIB_ExitCode_t RTLIB_Init(const char* name, RTLIB_Services_t **services);
+RTLIB_ExitCode_t RTLIB_Init(const char * name, RTLIB_Services_t ** services);
 
 /**@}*/
 
@@ -1315,8 +1237,8 @@ RTLIB_ExitCode_t RTLIB_Init(const char* name, RTLIB_Services_t **services);
  * advanced suspension/hibernation features.
  */
 typedef RTLIB_ExitCode_t (*RTLIB_Stop_t)(
-		RTLIB_ExecutionContextHandler_t ech,
-		struct timespec timeout);
+	RTLIB_EXCHandler_t exc_handler,
+	struct timespec timeout);
 
 /*******************************************************************************
  *    RTLib Utils
@@ -1334,13 +1256,14 @@ typedef RTLIB_ExitCode_t (*RTLIB_Stop_t)(
  * @brief A stringified rapresentation of error messages
  * @ingroup rtlib_sec03_plain_services
  */
-extern const char *RTLIB_errorStr[];
+extern const char * RTLIB_errorStr[];
 
 /**
  * @brief Get a string description for the specified RTLib error
  * @ingroup rtlib_sec03_plain_services
  */
-inline char const *RTLIB_ErrorStr(RTLIB_ExitCode_t result) {
+inline char const * RTLIB_ErrorStr(RTLIB_ExitCode_t result)
+{
 	assert(result < RTLIB_EXIT_CODE_COUNT);
 	return RTLIB_errorStr[result];
 }

@@ -22,7 +22,12 @@
 
 #include <bbque/monitors/generic_window.h>
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @class TimeWindow
@@ -31,7 +36,8 @@ namespace bbque { namespace rtlib { namespace as {
  * @details
  * This class provides a window specifically created for the time monitor.
  */
-class TimeWindow : public GenericWindow <uint32_t> {
+class TimeWindow : public GenericWindow <uint32_t>
+{
 public:
 
 	typedef std::vector<TimeWindow::Target> Targets;
@@ -41,18 +47,20 @@ public:
 	 * @brief Initializes internal variables
 	 */
 	TimeWindow(std::string metricName,
-		   TargetsPtr targets,
-		   uint16_t windowSize = defaultWindowSize) :
-			   GenericWindow<uint32_t>(metricName,
-						   targets,
-						   windowSize) {
+			   TargetsPtr targets,
+			   uint16_t windowSize = defaultWindowSize) :
+		GenericWindow<uint32_t>(metricName,
+								targets,
+								windowSize)
+	{
 	}
 
 	/**
 	 * @brief Initializes internal variables
 	 */
 	TimeWindow(uint16_t windowSize = defaultWindowSize) :
-			GenericWindow<uint32_t>(windowSize) {
+		GenericWindow<uint32_t>(windowSize)
+	{
 	}
 	/**
 	 * @brief The start time of the basic time monitor

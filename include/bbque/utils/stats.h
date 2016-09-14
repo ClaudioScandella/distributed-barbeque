@@ -98,45 +98,45 @@ public:
 	StatsAnalysis() {}
 
 	// Returns the average of the values, i.e. (V0 + .. + VN) / N
-	inline const double GetMean() {
+	inline double GetMean() {
 		return mean;
 	}
 
 	// Return the variance, which equals to E(X^2) - E^2(X)
-	inline const double GetVariance() {
+	inline double GetVariance() {
 		return samples_number < 2 ? 0.0f : mean2 / (samples_number - 1);
 	}
 
 	// Standard deviation: square root of the variance
-	inline const double GetStandartDeviation() {
+	inline double GetStandartDeviation() {
 		return std::sqrt(GetVariance());
 	}
 
 	// Standard error: square root of (variance / N)
-	inline const double GetStandardError() {
+	inline double GetStandardError() {
 		return samples_number == 0
 				? 0.0f : GetStandartDeviation() / std::sqrt(samples_number);
 	}
 
 	// CI 95%: 1.96 * standard error
-	inline const double GetConfidenceInterval95() {
+	inline double GetConfidenceInterval95() {
 		return 1.96 * GetStandardError();
 	}
 
 	// CI 99%: 2.58 * standard error
-	inline const double GetConfidenceInterval99() {
+	inline double GetConfidenceInterval99() {
 		return 2.58 * GetStandardError();
 	}
 
-	inline const double GetSum() {
+	inline double GetSum() {
 		return GetMean() * samples_number;
 	}
 
-	inline const uint16_t GetWindowSize() {
+	inline uint16_t GetWindowSize() {
 		return samples_number;
 	}
 
-	inline const double GetLastValue() {
+	inline double GetLastValue() {
 		return last_value;
 	}
 

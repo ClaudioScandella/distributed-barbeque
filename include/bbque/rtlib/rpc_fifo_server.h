@@ -41,7 +41,10 @@
 #define FIFO_PYL_OFFSET(RPC_TYPE)\
 	offsetof(bbque::rtlib::rpc_fifo_ ## RPC_TYPE ## _t, pyl)
 
-namespace bbque { namespace rtlib {
+namespace bbque
+{
+namespace rtlib
+{
 
 /**
  * @brief The RPC FIFO message header

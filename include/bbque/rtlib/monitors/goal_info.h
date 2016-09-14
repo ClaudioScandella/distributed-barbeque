@@ -24,9 +24,15 @@
 
 #include <bbque/monitors/op_filter.h>
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
-typedef class GoalInfo {
+typedef class GoalInfo
+{
 public:
 
 	/**
@@ -64,8 +70,8 @@ public:
 	/**
 	 * Default constructor of the class
 	 */
-	GoalInfo() {
-
+	GoalInfo()
+	{
 	}
 
 	/**
@@ -98,31 +104,39 @@ public:
 typedef std::shared_ptr<GoalInfo> GoalInfoPtr;
 typedef std::vector<GoalInfoPtr> GoalInfoList;
 
-inline GoalInfo::GoalInfo(uint8_t nTargets) {
+inline GoalInfo::GoalInfo(uint8_t nTargets)
+{
 	achieved.reserve(nTargets);
 	relativeErrors.reserve(nTargets);
 	naps.reserve(nTargets);
 }
 
-inline bool GoalInfo::isAchieved() {
+inline bool GoalInfo::isAchieved()
+{
 	std::vector<bool>::iterator it;
 	it = std::find(achieved.begin(), achieved.end(), false);
+
 	if (it == achieved.end())
 		return true;
+
 	return false;
 }
 
-inline uint8_t GoalInfo::getMaxNap() {
+inline uint8_t GoalInfo::getMaxNap()
+{
 	return *max_element(naps.begin(), naps.end());
 }
 
-inline float GoalInfo::getMaxRelativeError() {
+inline float GoalInfo::getMaxRelativeError()
+{
 	std::vector<double>::const_iterator it;
 	double maxValue = 0;
-	for (it=relativeErrors.begin();it!=relativeErrors.end();++it) {
+
+	for (it = relativeErrors.begin(); it != relativeErrors.end(); ++it) {
 		if (fabs(*it) > fabs(maxValue))
 			maxValue = (*it);
 	}
+
 	return maxValue;
 }
 

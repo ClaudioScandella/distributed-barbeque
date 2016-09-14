@@ -28,7 +28,10 @@
 
 #include <sys/epoll.h>
 
-namespace bbque { namespace rtlib {
+namespace bbque
+{
+namespace rtlib
+{
 
 /**
  * @class BbqueRPC_FIFO_Client
@@ -44,7 +47,8 @@ namespace bbque { namespace rtlib {
  * @see bbque/rtlib.h
  * @see bbque/rtlib/rpc_messages.h
  */
-class BbqueRPC_FIFO_Client : public BbqueRPC {
+class BbqueRPC_FIFO_Client : public BbqueRPC
+{
 
 public:
 
@@ -54,60 +58,61 @@ public:
 
 protected:
 
-	RTLIB_ExitCode_t _Init(const char *name);
+	RTLIB_ExitCode_t _Init(const char * name);
 
-	RTLIB_ExitCode_t _Register(pregExCtx_t prec);
+	RTLIB_ExitCode_t _Register(pRegisteredEXC_t exc);
 
-	RTLIB_ExitCode_t _Unregister(pregExCtx_t prec);
+	RTLIB_ExitCode_t _Unregister(pRegisteredEXC_t exc);
 
-	RTLIB_ExitCode_t _Enable(pregExCtx_t prec);
+	RTLIB_ExitCode_t _Enable(pRegisteredEXC_t exc);
 
-	RTLIB_ExitCode_t _Disable(pregExCtx_t prec);
+	RTLIB_ExitCode_t _Disable(pRegisteredEXC_t exc);
 
-	RTLIB_ExitCode_t _ScheduleRequest(pregExCtx_t prec);
+	RTLIB_ExitCode_t _ScheduleRequest(pRegisteredEXC_t exc);
 
-	RTLIB_ExitCode_t _Set(pregExCtx_t prec,
-			RTLIB_Constraint* constraints, uint8_t count);
+	RTLIB_ExitCode_t _Set(pRegisteredEXC_t exc,
+						  RTLIB_Constraint * constraints, uint8_t count);
 
-	RTLIB_ExitCode_t _Clear(pregExCtx_t prec);
+	RTLIB_ExitCode_t _Clear(pRegisteredEXC_t exc);
 
-	RTLIB_ExitCode_t _RTNotify(pregExCtx_t prec, int gap,
-			int cusage, int ctime_ms);
+	RTLIB_ExitCode_t _RTNotify(pRegisteredEXC_t exc, int gap,
+							   int cusage, int ctime_ms);
 
 	void _Exit();
 
-	inline uint32_t RpcMsgToken() {
-		return chTrdPid;
+	inline uint32_t RpcMsgToken()
+	{
+		return channel_thread_pid;
 	}
 
-/******************************************************************************
- * Runtime profile timing
- ******************************************************************************/
+	/******************************************************************************
+	 * Runtime profile timing
+	 ******************************************************************************/
 
 	RTLIB_ExitCode_t _GetRuntimeProfileResp(
 		rpc_msg_token_t token,
-		pregExCtx_t prec,
+		pRegisteredEXC_t exc,
 		uint32_t exc_time,
 		uint32_t mem_time);
 
-/******************************************************************************
- * Synchronization Protocol Messages
- ******************************************************************************/
+	/******************************************************************************
+	 * Synchronization Protocol Messages
+	 ******************************************************************************/
 
 	RTLIB_ExitCode_t _SyncpPreChangeResp(
-			rpc_msg_token_t token,
-			pregExCtx_t prec,
-			uint32_t syncLatency);
+		rpc_msg_token_t token,
+		pRegisteredEXC_t exc,
+		uint32_t syncLatency);
 
 	RTLIB_ExitCode_t _SyncpSyncChangeResp(
-			rpc_msg_token_t token,
-			pregExCtx_t prec,
-			RTLIB_ExitCode_t sync);
+		rpc_msg_token_t token,
+		pRegisteredEXC_t exc,
+		RTLIB_ExitCode_t sync);
 
 	RTLIB_ExitCode_t _SyncpPostChangeResp(
-			rpc_msg_token_t token,
-			pregExCtx_t prec,
-			RTLIB_ExitCode_t result);
+		rpc_msg_token_t token,
+		pRegisteredEXC_t exc,
+		RTLIB_ExitCode_t result);
 
 private:
 
@@ -164,11 +169,11 @@ private:
 
 	RTLIB_ExitCode_t ChannelSetup();
 
-	RTLIB_ExitCode_t ChannelPair(const char *name);
+	RTLIB_ExitCode_t ChannelPair(const char * name);
 
 	void ChannelFetch();
 
-	void ChannelTrd(const char *name);
+	void ChannelTrd(const char * name);
 
 	void RpcBbqResp();
 

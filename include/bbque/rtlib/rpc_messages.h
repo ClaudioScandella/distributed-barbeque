@@ -22,7 +22,10 @@
 
 #define RPC_PKT_SIZE(type) sizeof(bbque::rtlib::rpc_msg_##type##_t)
 
-namespace bbque { namespace rtlib {
+namespace bbque
+{
+namespace rtlib
+{
 
 /**
  * @brief The RPC message identifier
@@ -234,31 +237,31 @@ typedef struct rpc_msg_BBQ_SYNCP_PRECHANGE {
 	/** The selected AWM */
 	int8_t awm;
 
-    /** The number of systems assigned, that corresponds
-     * to the number of subsequent rpc_msg_BBQ_SYNCP_PRECHANGE_SYSTEM_t
-     * messages **/
-    uint16_t nr_sys;
+	/** The number of systems assigned, that corresponds
+	 * to the number of subsequent rpc_msg_BBQ_SYNCP_PRECHANGE_SYSTEM_t
+	 * messages **/
+	uint16_t nr_sys;
 
 } rpc_msg_BBQ_SYNCP_PRECHANGE_t;
 
 typedef struct rpc_msg_BBQ_SYNCP_PRECHANGE_SYSTEM {
 
-    /** The system number */
-    int16_t sys_id;
+	/** The system number */
+	int16_t sys_id;
 
-    /** Number of CPU (processors) assigned */
-    int16_t nr_cpus;
-    /** Number of processing elements assigned */
-    int16_t nr_procs;
-    /** Amount of processing quota assigned */
-    int32_t r_proc;
-    /** Amount of memory assigned */
-    int32_t r_mem;
+	/** Number of CPU (processors) assigned */
+	int16_t nr_cpus;
+	/** Number of processing elements assigned */
+	int16_t nr_procs;
+	/** Amount of processing quota assigned */
+	int32_t r_proc;
+	/** Amount of memory assigned */
+	int32_t r_mem;
 #ifdef CONFIG_BBQUE_OPENCL
-    int32_t r_gpu;
-    int32_t r_acc;
-    /** Assigned OpenCL device */
-    int8_t dev;
+	int32_t r_gpu;
+	int32_t r_acc;
+	/** Assigned OpenCL device */
+	int8_t dev;
 #endif
 
 } rpc_msg_BBQ_SYNCP_PRECHANGE_SYSTEM_t;
@@ -362,13 +365,14 @@ typedef struct rpc_msg_BBQ_GET_PROFILE {
  * @brief A stringified rapresentation of RPC messages
  * @ingroup rtlib_sec03_plain_services
  */
-extern const char *RPC_messageStr[];
+extern const char * RPC_messageStr[];
 
 /**
  * @brief Get a string description for the specified RTLib error
  * @ingroup rtlib_sec03_plain_services
  */
-inline char const *RPC_MessageStr(uint8_t typ) {
+inline char const * RPC_MessageStr(uint8_t typ)
+{
 	assert(typ < RPC_BBQ_MSGS_COUNT);
 	return RPC_messageStr[typ];
 }

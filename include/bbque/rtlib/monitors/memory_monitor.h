@@ -20,7 +20,12 @@
 
 #include <bbque/monitors/monitor.h>
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @class MemoryMonitor
@@ -29,7 +34,8 @@ namespace bbque { namespace rtlib { namespace as {
  * @details
  * This class provides a monitor on application memory usage.
  */
-class MemoryMonitor: public Monitor <uint32_t> {
+class MemoryMonitor: public Monitor <uint32_t>
+{
 public:
 
 	/**
@@ -50,7 +56,7 @@ public:
 	 * @param windowSize Number of elements in the window of values
 	 */
 	uint16_t newGoal(std::string metricName, uint32_t goal,
-			 uint16_t windowSize = defaultWindowSize);
+					 uint16_t windowSize = defaultWindowSize);
 
 	/**
 	 * @brief Extracts current memory usage

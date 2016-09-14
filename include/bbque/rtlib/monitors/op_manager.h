@@ -28,7 +28,12 @@
 #include <bbque/monitors/metric_priority.h>
 #include <bbque/monitors/op_filter.h>
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @brief Operating points manager
@@ -41,14 +46,16 @@ namespace bbque { namespace rtlib { namespace as {
  * possible to move between different operating points according to priorities
  * and filters given by the user.
  */
-class OPManager {
+class OPManager
+{
 
 public:
 
 	/**
 	 * @brief Constructor of the class
 	 */
-	OPManager() {
+	OPManager()
+	{
 		vectorId = 0;
 	}
 
@@ -58,9 +65,10 @@ public:
 	 * @param opList List of operating points
 	 */
 	OPManager(OperatingPointsList opList, PrioritiesList metricsPriorities)
-			: operatingPoints(opList) {
-				vectorId = 0;
-				setPolicy(metricsPriorities);
+		: operatingPoints(opList)
+	{
+		vectorId = 0;
+		setPolicy(metricsPriorities);
 	}
 
 	/**
@@ -69,7 +77,7 @@ public:
 	 * @param op Reference to an OperatingPoint where to save the result
 	 * @return True if a point has been found, otherwise False
 	 */
-	bool getCurrentOP(OperatingPoint &op);
+	bool getCurrentOP(OperatingPoint & op);
 
 	/**
 	 * @brief Returns an higher operating point from the list.
@@ -80,7 +88,7 @@ public:
 	 * @param op Reference to an OperatingPoint where to save the result
 	 * @return True if a point has been found, otherwise False
 	 */
-	bool getHigherOP(OperatingPoint &op);
+	bool getHigherOP(OperatingPoint & op);
 
 	/**
 	 * @brief Returns a lower operating point from the list.
@@ -91,7 +99,7 @@ public:
 	 * @param op Reference to an OperatingPoint where to save the result
 	 * @return True if a point has been found, otherwise False
 	 */
-	bool getLowerOP(OperatingPoint &op);
+	bool getLowerOP(OperatingPoint & op);
 
 	/**
 	 * @brief Returns the current operating point from the list that respects
@@ -101,7 +109,7 @@ public:
 	 * @param opFilters Reference to a filter list
 	 * @return True if a point has been found, otherwise False
 	 */
-	bool getCurrentOP(OperatingPoint &op, const OPFilterList &opFilters);
+	bool getCurrentOP(OperatingPoint & op, const OPFilterList & opFilters);
 
 	/**
 	 * @brief Returns an higher operating point from the list that respects
@@ -114,7 +122,7 @@ public:
 	 * @param opFilters Reference to a filter list
 	 * @return True if a point has been found, otherwise False
 	 */
-	bool getHigherOP(OperatingPoint &op, const OPFilterList &opFilters);
+	bool getHigherOP(OperatingPoint & op, const OPFilterList & opFilters);
 
 	/**
 	 * @brief Returns a lower operating point from the list that respects
@@ -127,7 +135,7 @@ public:
 	 * @param opFilters Reference to a filter list
 	 * @return True if a point has been found, otherwise False
 	 */
-	bool getLowerOP(OperatingPoint &op, const OPFilterList &opFilters);
+	bool getLowerOP(OperatingPoint & op, const OPFilterList & opFilters);
 
 	/**
 	 * @brief Gets the next OperatingPoint
@@ -136,7 +144,7 @@ public:
 	 * @param opFilters Reference to a filter list
 	 * @return True if a point has been found, otherwise False
 	 */
-	bool getNextOP(OperatingPoint &op, const OPFilterList &opFilters);
+	bool getNextOP(OperatingPoint & op, const OPFilterList & opFilters);
 
 	/**
 	 * @brief Set an ordering policy for operating points
@@ -146,12 +154,13 @@ public:
 	 * with the first element of the list corrisponding the metric with the
 	 * highest priority,
 	 */
-	void setPolicy(PrioritiesList &orderingStrategy);
+	void setPolicy(PrioritiesList & orderingStrategy);
 
 	/**
 	 * @brief Getter for the list of operating points
 	 */
-	OperatingPointsList getOperatingPoints() const {
+	OperatingPointsList getOperatingPoints() const
+	{
 		return operatingPoints;
 	}
 
@@ -176,14 +185,15 @@ private:
 	 * @param opFilters List of constraints to that OperatingPoint
 	 * @return True if the point is valid, False otherwise
 	 */
-	bool isValidOP(const OperatingPoint &op,
-		       const OPFilterList &opFilters) const;
+	bool isValidOP(const OperatingPoint & op,
+				   const OPFilterList & opFilters) const;
 
 	/**
 	 * @class operatingPointsComparator
 	 * @brief Defines a functor used to sort operating points
 	 */
-	class operatingPointsComparator{
+	class operatingPointsComparator
+	{
 
 	public:
 		/**
@@ -192,8 +202,9 @@ private:
 		 * @param orderingStrategy PrioritiesList giving the sorting
 		 * order of the operating points
 		 */
-		operatingPointsComparator(PrioritiesList &orderingStrategy)
-				:metricsPriorities(orderingStrategy) {
+		operatingPointsComparator(PrioritiesList & orderingStrategy)
+			: metricsPriorities(orderingStrategy)
+		{
 		}
 
 		/**
@@ -206,8 +217,8 @@ private:
 		 * @return  True if op1 goes before op2 in the specific strict
 		 * weak ordering defined, False otherwise.
 		 */
-		bool operator()(const OperatingPoint &op1,
-				const OperatingPoint &op2) const;
+		bool operator()(const OperatingPoint & op1,
+						const OperatingPoint & op2) const;
 
 	private:
 		/**

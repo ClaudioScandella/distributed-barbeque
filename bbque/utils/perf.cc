@@ -59,10 +59,6 @@ int Perf::EventOpen(struct perf_event_attr *attr,
 		unsigned long flags) {
 	int result;
 
-	DB(fprintf(stderr, FD("Adding new PERF counter [%" PRIu32 ":%llu], GL [%d], "
-					"for Task [%d] on CPU [%d]...\n"),
-					attr->type, attr->config, group_fd, pid, cpu));
-
 	attr->size = sizeof(*attr);
 	result = syscall(__NR_perf_event_open, attr, pid, cpu,
 			group_fd, flags);
@@ -125,9 +121,6 @@ int Perf::Enable() {
 	}
 
 	prctl(PR_TASK_PERF_EVENTS_ENABLE);
-	//::ioctl(GroupLeader(), PERF_EVENT_IOC_ENABLE);
-	DB(fprintf(stderr, FD("PERF counters (GL:%d) ENABLED\n"),
-			GroupLeader()));
 
 	return 0;
 }
@@ -140,9 +133,6 @@ int Perf::Disable() {
 	}
 
 	prctl(PR_TASK_PERF_EVENTS_DISABLE);
-	//::ioctl(GroupLeader(), PERF_EVENT_IOC_DISABLE);
-	DB(fprintf(stderr, FD("PERF counters (GL:%d) DISABLED\n"),
-				GroupLeader()));
 
 	return 0;
 }
@@ -184,17 +174,6 @@ uint64_t Perf::Update(int id, bool delta) {
 	UPDATE_DELTA(value);
 	UPDATE_DELTA(time_enabled);
 	UPDATE_DELTA(time_running);
-
-	DB(fprintf(stderr, FD("Counter [%d:%" PRIu32 ":%llu]: "
-					"cV [%" PRIu64 "], cE [%" PRIu64 "], cR [%" PRIu64 "] "
-					"dV [%" PRIu64 "], dE [%" PRIu64 "], dR [%" PRIu64 "]\n"),
-				prc->fd, prc->attr.type, prc->attr.config,
-				prc->count.value,
-				prc->count.time_enabled,
-				prc->count.time_running,
-				prc->delta.value,
-				prc->delta.time_enabled,
-				prc->delta.time_running));
 
 	if (delta)
 		return (prc->delta).value;

@@ -18,7 +18,12 @@
 #ifndef BBQUE_METRIC_PRIORITY_H_
 #define BBQUE_METRIC_PRIORITY_H_
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @brief Useful redefinition of a comparison function (via a functor) used by
@@ -29,7 +34,8 @@ typedef std::function<bool(double, double)> SortingFunction;
 /**
  * @brief Contains useful functors needed for the sort function
  */
-namespace SortingOrder {
+namespace SortingOrder
+{
 
 const SortingFunction LowestToHighest = std::less<double>();
 const SortingFunction HighestToLowest = std::greater<double>();
@@ -45,7 +51,8 @@ const SortingFunction HighestToLowest = std::greater<double>();
  * for metrics. Using a list of these elements, it is possible to define a full
  * ordering of operating points, useful for runtime management purposes.
  */
-class MetricPriority{
+class MetricPriority
+{
 public:
 	/**
 	 * @brief Name of the metric
@@ -64,7 +71,8 @@ public:
 	 * @param cFun Functor representing the comparison function used by sort
 	 */
 	MetricPriority(std::string mName, SortingFunction cFun)
-			:metricName(mName),comparisonFunction(cFun){
+		: metricName(mName), comparisonFunction(cFun)
+	{
 	}
 };
 

@@ -22,7 +22,12 @@
 #include <string>
 #include <vector>
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @class  Operating point class definition
@@ -33,7 +38,8 @@ namespace bbque { namespace rtlib { namespace as {
  * Every operating point is defined by its own application parameters and a set
  * of metrics that describe the performance/behavior obtained using that set.
  */
-class OperatingPoint {
+class OperatingPoint
+{
 public:
 	/**
 	 * @brief List of parameters identified by their names and values
@@ -46,34 +52,40 @@ public:
 	std::map<std::string, double>  metrics;
 
 
-	OperatingPoint(){
-
+	OperatingPoint()
+	{
 	}
 
-	OperatingPoint(const OperatingPoint &op){
+	OperatingPoint(const OperatingPoint & op)
+	{
 		*this = op;
 	}
 
 	OperatingPoint(std::map<std::string, double> parameters,
-		       std::map<std::string, double>  metrics) :
-			       parameters(parameters),
-			       metrics(metrics) {
+				   std::map<std::string, double>  metrics) :
+		parameters(parameters),
+		metrics(metrics)
+	{
 	}
 
-	OperatingPoint & operator=(const OperatingPoint &rhs){
+	OperatingPoint & operator=(const OperatingPoint & rhs)
+	{
 		if (this != &rhs) {
 			this->parameters = rhs.parameters;
 			this->metrics = rhs.metrics;
 		}
+
 		return *this;
 	}
 
-	bool operator==(const OperatingPoint &other) const {
+	bool operator==(const OperatingPoint & other) const
+	{
 		return ( (this->parameters == other.parameters) &&
-		         (this->metrics == other.metrics) );
+				 (this->metrics == other.metrics) );
 	}
 
-	bool operator!=(const OperatingPoint &other) const {
+	bool operator!=(const OperatingPoint & other) const
+	{
 		return !(*this == other);
 	}
 };

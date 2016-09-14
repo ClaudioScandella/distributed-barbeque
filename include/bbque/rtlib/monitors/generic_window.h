@@ -39,12 +39,17 @@
 
 namespace bac = boost::accumulators;
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @class Name of the metric used for goal checking
  */
-enum class DataFunction:uint8_t {
+enum class DataFunction : uint8_t {
 	Max = 0,
 	Min,
 	Average,
@@ -54,7 +59,7 @@ enum class DataFunction:uint8_t {
 /**
  * @brief Name of comparison (less, greater, etc) used for goal checking
  */
-enum class ComparisonFunction:uint8_t {
+enum class ComparisonFunction : uint8_t {
 	Greater = 0,
 	GreaterOrEqual,
 	Less,
@@ -74,7 +79,8 @@ const uint16_t defaultWindowSize = 100;
  * @details
  * This class provides a general interface common for every GenericWindow class
  */
-class GenericWindowIF {
+class GenericWindowIF
+{
 
 public:
 
@@ -97,7 +103,7 @@ public:
 	 * @param relativeErrors output parameter for the vector of relative
 	 * errors
 	 */
-	virtual bool checkGoal(std::vector<float> &relativeErrors) = 0;
+	virtual bool checkGoal(std::vector<float> & relativeErrors) = 0;
 
 	/**
 	 * @brief Check if the goal has been achieved
@@ -143,7 +149,8 @@ public:
  * values and manage them by provided utility functions.
  */
 template <typename dataType>
-class GenericWindow: public GenericWindowIF {
+class GenericWindow: public GenericWindowIF
+{
 
 public:
 
@@ -155,7 +162,8 @@ public:
 	 *
 	 * @brief Defines a target for a goal
 	 */
-	class Target{
+	class Target
+	{
 	public:
 		/**
 		 * @brief Constructor of the Target class
@@ -166,11 +174,12 @@ public:
 		 *
 		 */
 		Target(DataFunctor dataFunction,
-		       ComparisonFunctor comparisonFunction,
-		       dataType goalValue) :
-				dataFunction(dataFunction),
-				comparisonFunction(comparisonFunction),
-				goalValue(goalValue) {
+			   ComparisonFunctor comparisonFunction,
+			   dataType goalValue) :
+			dataFunction(dataFunction),
+			comparisonFunction(comparisonFunction),
+			goalValue(goalValue)
+		{
 		}
 
 		/**
@@ -182,9 +191,10 @@ public:
 		 *
 		 */
 		Target(DataFunction dFun,
-		       ComparisonFunction cFun,
-		       dataType goalValue) :
-				goalValue(goalValue) {
+			   ComparisonFunction cFun,
+			   dataType goalValue) :
+			goalValue(goalValue)
+		{
 			comparisonFunction =
 				comparisonFunctions[static_cast<uint8_t>(cFun)];
 			dataFunction =
@@ -216,21 +226,24 @@ public:
 	 * @brief Initializes internal variables
 	 */
 	GenericWindow(std::string metricName,
-		      TargetsPtr targets,
-		      uint16_t windowSize = defaultWindowSize) :
+				  TargetsPtr targets,
+				  uint16_t windowSize = defaultWindowSize) :
 		metricName(metricName),
-		goalTargets(targets) {
-			setCapacity(windowSize);
+		goalTargets(targets)
+	{
+		setCapacity(windowSize);
 	}
 
 	/**
 	 * @brief Initializes internal variables
 	 */
-	GenericWindow(uint16_t windowSize = defaultWindowSize) {
+	GenericWindow(uint16_t windowSize = defaultWindowSize)
+	{
 		setCapacity(windowSize);
 	}
 
-	virtual ~GenericWindow() {
+	virtual ~GenericWindow()
+	{
 	}
 
 	/**
@@ -279,7 +292,7 @@ public:
 	 * @param relativeErrors output parameter for the vector of relative
 	 * errors
 	 */
-	virtual bool checkGoal(std::vector<float> &relativeErrors);
+	virtual bool checkGoal(std::vector<float> & relativeErrors);
 
 	/**
 	 * @brief Removes all values from the window
@@ -330,7 +343,8 @@ public:
 	 * @brief Checks if the window of data is full (according to the
 	 * resultWindowSize variable)
 	 */
-	bool isFull() {
+	bool isFull()
+	{
 		return windowBuffer.size() == resultsWindowSize;
 	}
 
@@ -376,34 +390,38 @@ protected:
 template <typename dataType>
 const std::function<dataType(GenericWindow <dataType>*)>
 GenericWindow<dataType>::dataFunctions[4] = {
-		&GenericWindow<dataType>::getMax,
-		&GenericWindow<dataType>::getMin,
-		&GenericWindow<dataType>::getAverage,
-		&GenericWindow<dataType>::getVariance
+	&GenericWindow<dataType>::getMax,
+	&GenericWindow<dataType>::getMin,
+	&GenericWindow<dataType>::getAverage,
+	&GenericWindow<dataType>::getVariance
 };
 
 template <typename dataType>
 const std::function<bool(dataType, dataType)>
 GenericWindow<dataType>::comparisonFunctions[4] = {
-		std::greater<dataType>(),
-		std::greater_equal<dataType>(),
-		std::less<dataType>(),
-		std::less_equal<dataType>()
+	std::greater<dataType>(),
+	std::greater_equal<dataType>(),
+	std::less<dataType>(),
+	std::less_equal<dataType>()
 };
 
 template <typename dataType>
-inline typename GenericWindow<dataType>::TargetsPtr GenericWindow<dataType>::getTargets() {
+inline typename GenericWindow<dataType>::TargetsPtr
+GenericWindow<dataType>::getTargets()
+{
 	return goalTargets;
 }
 
 template <typename dataType>
-inline bool GenericWindow<dataType>::checkGoal() {
+inline bool GenericWindow<dataType>::checkGoal()
+{
 	bool result = true;
 	typename std::vector<Target>::iterator it = goalTargets->begin();
+
 	while (result && it != goalTargets->end()) {
 		result = it->comparisonFunction(
-				 it->dataFunction(this),
-				 it->goalValue);
+					 it->dataFunction(this),
+					 it->goalValue);
 		++it;
 	}
 
@@ -411,14 +429,15 @@ inline bool GenericWindow<dataType>::checkGoal() {
 }
 
 template <typename dataType>
-inline bool GenericWindow<dataType>::checkGoal(std::vector<float> &relativeErrors) {
+inline bool GenericWindow<dataType>::checkGoal(std::vector<float> &
+		relativeErrors)
+{
 	typename std::vector<Target>::iterator it;
 	bool result = true;
 	double goalValue;
 	double dfResult;
 	double absoluteError;
 	double relativeError;
-
 	// Forces a removal of all the content, in order to prevent
 	// unpredictability of the output
 	relativeErrors.clear();
@@ -434,12 +453,9 @@ inline bool GenericWindow<dataType>::checkGoal(std::vector<float> &relativeError
 		 */
 		goalValue = it->goalValue;
 		dfResult  = it->dataFunction(this);
-
 		absoluteError = dfResult - goalValue;
 		relativeError = absoluteError / goalValue;
-
 		result = result && it->comparisonFunction(dfResult, goalValue);
-
 		relativeErrors.push_back(relativeError);
 	}
 
@@ -447,18 +463,16 @@ inline bool GenericWindow<dataType>::checkGoal(std::vector<float> &relativeError
 }
 
 template <typename dataType>
-inline GoalInfoPtr GenericWindow<dataType>::fullCheckGoal() {
+inline GoalInfoPtr GenericWindow<dataType>::fullCheckGoal()
+{
 	bool result;
 	uint8_t nap = 0;
 	double goalValue;
 	double dfResult;
 	double absoluteError;
 	double relativeError;
-
 	GoalInfoPtr goalInfo(new GoalInfo(goalTargets->size()));
-
 	goalInfo->metricName = metricName;
-
 	typename std::vector<Target>::iterator it;
 
 	for (it = goalTargets->begin(); it != goalTargets->end(); ++it) {
@@ -471,20 +485,18 @@ inline GoalInfoPtr GenericWindow<dataType>::fullCheckGoal() {
 		 */
 		goalValue = it->goalValue;
 		dfResult  = it->dataFunction(this);
-
 		absoluteError = dfResult - goalValue;
 		relativeError = absoluteError / goalValue;
-
 		result = it->comparisonFunction(dfResult, goalValue);
+
 		if (!result)
-			nap = 100*fabs(absoluteError / (dfResult + goalValue));
+			nap = 100 * fabs(absoluteError / (dfResult + goalValue));
 
 		goalInfo->achieved.push_back(result);
 		goalInfo->targetGoals.push_back(goalValue);
 		goalInfo->relativeErrors.push_back(relativeError);
 		goalInfo->observedValues.push_back(dfResult);
 		goalInfo->naps.push_back(nap);
-
 	}
 
 	return goalInfo;
@@ -498,21 +510,24 @@ inline GoalInfoPtr GenericWindow<dataType>::fullCheckGoal() {
 			    windowBuffer.end(), acc);
 
 template <typename dataType>
-inline dataType GenericWindow<dataType>::getMax() const {
+inline dataType GenericWindow<dataType>::getMax() const
+{
 	bac::accumulator_set<dataType, bac::features<bac::tag::max>> acc;
 	GW_ACCUMULATE();
 	return (bac::extract::max(acc));
 }
 
 template <typename dataType>
-inline dataType GenericWindow<dataType>::getMin() const {
+inline dataType GenericWindow<dataType>::getMin() const
+{
 	bac::accumulator_set<dataType, bac::features<bac::tag::min>> acc;
 	GW_ACCUMULATE();
 	return (bac::extract::min(acc));
 }
 
 template <typename dataType>
-inline dataType GenericWindow<dataType>::getAverage() const {
+inline dataType GenericWindow<dataType>::getAverage() const
+{
 	bac::accumulator_set<dataType,
 		bac::features<bac::tag::mean(bac::immediate)>> acc;
 	GW_ACCUMULATE();
@@ -520,48 +535,56 @@ inline dataType GenericWindow<dataType>::getAverage() const {
 }
 
 template <typename dataType>
-inline dataType GenericWindow<dataType>::getVariance() const {
+inline dataType GenericWindow<dataType>::getVariance() const
+{
 	bac::accumulator_set<dataType, bac::features<bac::tag::variance>> acc;
 	GW_ACCUMULATE();
 	return (bac::extract::variance(acc));
 }
 
 template <typename dataType>
-inline dataType GenericWindow<dataType>::getLastElement() const {
+inline dataType GenericWindow<dataType>::getLastElement() const
+{
 	return (windowBuffer.back());
 }
 
 template <typename dataType>
-inline void GenericWindow<dataType>::setResultsWindow(uint16_t resultSize) {
+inline void GenericWindow<dataType>::setResultsWindow(uint16_t resultSize)
+{
 	resultsWindowSize = resultSize;
 }
 
 template <typename dataType>
-void GenericWindow<dataType>::addElement(dataType element) {
+void GenericWindow<dataType>::addElement(dataType element)
+{
 	std::lock_guard<std::mutex> lg(windowMutex);
 	windowBuffer.push_back(element);
 }
 
 template <typename dataType>
-void GenericWindow<dataType>::clear() {
+void GenericWindow<dataType>::clear()
+{
 	std::lock_guard<std::mutex> lg(windowMutex);
 	windowBuffer.clear();
 }
 
 template <typename dataType>
-void GenericWindow<dataType>::setGoal(TargetsPtr targets) {
+void GenericWindow<dataType>::setGoal(TargetsPtr targets)
+{
 	goalTargets = targets;
 }
 
 template <typename dataType>
-void GenericWindow<dataType>::setCapacity(uint16_t windowSize) {
+void GenericWindow<dataType>::setCapacity(uint16_t windowSize)
+{
 	std::lock_guard<std::mutex> lg(windowMutex);
 	windowBuffer.set_capacity(windowSize);
 	resultsWindowSize = windowSize;
 }
 
 template <typename dataType>
-inline void GenericWindow <dataType>::resetResultsWindow() {
+inline void GenericWindow <dataType>::resetResultsWindow()
+{
 	resultsWindowSize = windowBuffer.capacity();
 }
 

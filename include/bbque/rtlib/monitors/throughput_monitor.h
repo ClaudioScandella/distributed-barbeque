@@ -23,7 +23,12 @@
 #include <bbque/monitors/monitor.h>
 #include <bbque/monitors/throughput_window.h>
 
-namespace bbque { namespace rtlib { namespace as {
+namespace bbque
+{
+namespace rtlib
+{
+namespace as
+{
 
 /**
  * @class ThroughputMonitor
@@ -35,14 +40,16 @@ namespace bbque { namespace rtlib { namespace as {
  * complete handling of previous old values, it also offers a basic monitor
  * without any advanced feature.
  */
-class ThroughputMonitor : public Monitor <double> {
+class ThroughputMonitor : public Monitor <double>
+{
 public:
 
 	/**
 	 * @brief Default constructor of the class
 	 */
 	ThroughputMonitor() :
-		started(false) {
+		started(false)
+	{
 	}
 
 	/**
@@ -54,7 +61,7 @@ public:
 	 * @param windowSize Number of elements in the window of values
 	 */
 	uint16_t newGoal(std::string metricName, double goal,
-			 uint16_t windowSize = defaultWindowSize);
+					 uint16_t windowSize = defaultWindowSize);
 
 	/**
 	 * @brief Creates a new monitor with a window containing an history of
@@ -68,10 +75,10 @@ public:
 	 * @param windowSize Number of elements in window of values
 	 */
 	uint16_t newGoal(std::string metricName,
-			 DataFunction fType,
-			 ComparisonFunction cType,
-			 double goal,
-			 uint16_t windowSize = defaultWindowSize);
+					 DataFunction fType,
+					 ComparisonFunction cType,
+					 double goal,
+					 uint16_t windowSize = defaultWindowSize);
 
 	/**
 	 * @brief Creates a new monitor with a window keeping track of previous
@@ -82,8 +89,8 @@ public:
 	 * @param windowSize Number of elements in the window of values
 	 */
 	uint16_t newGoal(std::string metricName,
-			 ThroughputWindow::TargetsPtr targets,
-			 uint16_t windowSize = defaultWindowSize);
+					 ThroughputWindow::TargetsPtr targets,
+					 uint16_t windowSize = defaultWindowSize);
 
 	/**
 	 * @brief Creates a monitor (without goals) with a window keeping track
@@ -162,7 +169,7 @@ private:
 	 *
 	 * @param data Amount of data analyzed in that amount of time
 	 */
-	double _getThroughput(const double &data);
+	double _getThroughput(const double & data);
 
 	/**
 	 * @brief Starts a new basic throughput monitor (locked)
@@ -176,7 +183,7 @@ private:
 	 * @param id Identifies monitor and corresponding list
 	 * @param data Amount of data analyzed in that amount of time
 	 */
-	void _stop(uint16_t id, const double &data);
+	void _stop(uint16_t id, const double & data);
 };
 
 } // namespace as

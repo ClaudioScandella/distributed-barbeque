@@ -214,8 +214,8 @@ CCheckEXC::onMonitor() {
 //fprintf(stderr, "Constraints count: %d, tot size: %d Bytes\n",
 //		CheckSteps[checkStep-1].count,
 //		sizeof(*(CheckSteps[checkStep-1].pcons)));
-	ClearConstraints();
-	SetConstraints(CheckSteps[checkStep-1].pcons,
+	ClearAWMConstraints();
+	SetAWMConstraints(CheckSteps[checkStep-1].pcons,
 			CheckSteps[checkStep-1].count);
 
 

@@ -82,7 +82,7 @@ CGroups::CGResult CGroups::Init(const char *logname) {
 					controller[id], result, cgroup_strerror(result));
 			mounts[id] = nullptr;
 		} else {
-			logger->Notice("CGroup controller [%s] available at [%s]",
+			logger->Debug("CGroup controller [%s] available at [%s]",
 				controller[id], mounts[id]);
 		}
 

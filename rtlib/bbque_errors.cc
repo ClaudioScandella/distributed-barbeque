@@ -15,8 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-const char *RTLIB_errorStr[] = {
-
+const char * RTLIB_errorStr[] = {
 	//RTLIB_OK
 	"Success (no errors)",
 	//RTLIB_ERROR
@@ -26,7 +25,7 @@ const char *RTLIB_errorStr[] = {
 	//RTLIB_NO_WORKING_MODE
 	"No new working mode error",
 
-//---- Barbeque Communicaiton errors
+	//---- Barbeque Communicaiton errors
 
 	//RTLIB_BBQUE_CHANNEL_SETUP_FAILED
 	"Failed to setup the channel to connect the Barbeque RTRM",
@@ -47,7 +46,7 @@ const char *RTLIB_errorStr[] = {
 	//RTLIB_BBQUE_UNREACHABLE
 	"The Barbeque RTRM is not available",
 
-//---- EXC Management errors
+	//---- EXC Management errors
 
 	//RTLIB_EXC_DUPLICATE
 	"The Execution Context Duplicated",
@@ -70,9 +69,9 @@ const char *RTLIB_errorStr[] = {
 	//RTLIB_EXC_GWM_FAILED
 	"Failed to get a working mode",
 
-//---- Reconfiguration actions required for an EXC
-// NOTE these values should match (in number and order) those defined by the
-//	    ApplicationStatusIF::SyncState_t
+	//---- Reconfiguration actions required for an EXC
+	// NOTE these values should match (in number and order) those defined by the
+	//	    ApplicationStatusIF::SyncState_t
 
 	//RTLIB_EXC_GWM_START
 	"Start running on the assigned AWM",
@@ -85,7 +84,7 @@ const char *RTLIB_errorStr[] = {
 	//RTLIB_EXC_GWM_BLOCKED
 	"EXC suspended (resources not available)",
 
-//---- Internal values not exposed to applications
+	//---- Internal values not exposed to applications
 
 	//RTLIB_EXC_SYNC_MODE
 	"The EXC is in sync mode",
