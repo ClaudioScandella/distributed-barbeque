@@ -38,6 +38,8 @@
 #undef  BBQUE_LOG_MODULE
 #define BBQUE_LOG_MODULE "rpc"
 
+#define CPU_USAGE_VARIATION_TOLERANCE 0.01
+
 namespace ba = bbque::app;
 namespace bu = bbque::utils;
 
@@ -137,8 +139,8 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions() {
 
 	conf.asrtm.ggap_forward_threshold =
 		BBQUE_DEFAULT_GGAP_THRESHOLD_FORWARD;
-	conf.asrtm.ggap_forward_rate =
-		BBQUE_DEFAULT_GGAP_RATE_FORWARD;
+	conf.asrtm.rt_profile_forward_rate =
+		BBQUE_DEFAULT_RT_PROF_RATE_FORWARD;
 
 	conf.unmanaged.enabled = false;
 	conf.unmanaged.awm_id = 0;
@@ -2087,9 +2089,114 @@ RTLIB_ExitCode_t BbqueRPC::Clear(
 	return RTLIB_OK;
 }
 
-RTLIB_ExitCode_t BbqueRPC::GGap(
+RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
+		const RTLIB_ExecutionContextHandler_t ech) {
+	RTLIB_ExitCode_t result;
+	pregExCtx_t prec;
+
+	// Getting the execution context
+	assert(ech);
+	prec = getRegistered(ech);
+	if (!prec) {
+		logger->Error("[%p] Profile notification FAILED (EXC not registered)",
+					  (void*)ech);
+		return RTLIB_EXC_NOT_REGISTERED;
+	}
+
+	// Application can explicitly assert a Goal Gap Value
+	bool explicit_notification  = prec->explicit_ggap_assertion;
+	// Notifications are sent only once every `rt_profile_forward_rate` cycles.
+	int  cycles_till_forwarding = conf.asrtm.rt_profile_forward_rate -
+								  prec->cycles_count + prec->rtinfo_last_cycle;
+
+	// Note: if forwarding is explicit, the forward rate check is bypassed
+	if (cycles_till_forwarding > 0 && !explicit_notification) {
+		logger->Debug("[%p:%s] Profile notification FILTERED "
+				"(under forward rate, %d cycles remaining)",
+				(void*)ech, prec->name.c_str(), cycles_till_forwarding);
+		return RTLIB_OK;
+	}
+
+	// Current distance percentage between desired and actual performance.
+	// Will become an integer at the end. No need for high precision.
+	float goal_gap = 0.0;
+
+	if (explicit_notification) {
+		// Goal Gap value is the explicit one
+		goal_gap = prec->explicit_ggap_value;
+		// Reset info about explicit Goal Gap assertion
+		prec->explicit_ggap_assertion = false;
+		prec->explicit_ggap_value = 0.0;
+	}
+	else if (prec->cps_goal > 0) {
+		float current_cps = 1000.0 / prec->cps_ctime.get();
+		goal_gap = ((current_cps - prec->cps_goal) / prec->cps_goal) * 100;
+	}
+
+	// Conversely to Goal Gap, CPU Usage and Cycle time have already been
+	// computed
+	float cycle_time_ms = prec->cps_ctime.get();
+	float cpu_usage = prec->ps_cusage.cusage;
+	// Runtime Profile = {goal_gap, cpu_usage, cycle_time}
+	logger->Debug("[%p:%s] Profile : {Goal Gap: %.2f, CPU Usage: "
+			"%.2f, Cycle Time: %.2f ms}", (void*)ech, prec->name.c_str(),
+			goal_gap, cpu_usage, cycle_time_ms);
+
+	/* Notification shall be forwarded only if one of the following is true:
+	 * 		a) Goal Gap is not acceptable (i.e. over the threshold)
+	 * 		b) Goal Gap became acceptable after last allocation
+	 * 		c) CPU usage changed from last notification
+	 *
+	 * 		logically, (!gap_acc || (gap_acc && !prev_gap_acc) || cpu_changed)
+	 */
+	std::pair<float, float> cpu_usage_prev = {
+			prec->ps_cusage.cusage_prev * (1.0 - CPU_USAGE_VARIATION_TOLERANCE),
+			prec->ps_cusage.cusage_prev * (1.0 + CPU_USAGE_VARIATION_TOLERANCE)
+	};
+
+	bool ggap_acceptable =
+			std::abs(goal_gap) <= conf.asrtm.ggap_forward_threshold;
+	bool cpu_usage_changed =
+			 cpu_usage < cpu_usage_prev.first ||
+			 cpu_usage > cpu_usage_prev.second;
+
+	// De Morgan + simplifications:
+	// !gap_acc || (gap_acc && !prev_gap_acc) || cpu_changed
+	// 		=> gap_acc && !(gap_acc && !prev_gap_acc) && !cpu_changed
+	// 		=> gap_acc && (!gap_acc || prev_gap_acc) && !cpu_changed
+	//		=> gap_acc && prev_gap_acc && !cpu_changed
+	if (ggap_acceptable && prec->prev_ggap_acceptable && !cpu_usage_changed) {
+		logger->Warn("[%p:%s] Profile notification FILTERED"
+				" (no need to forward)", (void*)ech, prec->name.c_str());
+		return RTLIB_OK;
+	}
+
+	// Update Runtime Information
+	prec->prev_ggap_acceptable =
+		(std::abs(goal_gap) > conf.asrtm.ggap_forward_threshold)
+		? false : true; // True is this Goal Gap is acceptable
+	prec->ps_cusage.cusage_prev = cpu_usage;
+	prec->ps_cusage.reset = true;
+	prec->rtinfo_last_cycle = prec->cycles_count;
+
+	// Calling the low-level enable function
+	result = _RTNotify(prec, (int)goal_gap, (int)cpu_usage, (int)cycle_time_ms);
+
+	if (result != RTLIB_OK) {
+		logger->Error("[%p:%s] Profile notification FAILED (Error %d: %s)",
+				(void*)ech, prec->name.c_str(), result,RTLIB_ErrorStr(result));
+		return RTLIB_EXC_ENABLE_FAILED;
+	}
+	logger->Notice("[%p:%s] Profile notification : {Gap: %.2f, CPU: "
+			"%.2f, CTime: %.2f ms}", (void*)ech, prec->name.c_str(),
+			goal_gap, cpu_usage, cycle_time_ms);
+
+	return RTLIB_OK;
+}
+
+RTLIB_ExitCode_t BbqueRPC::SetExplicitGGap(
 		const RTLIB_ExecutionContextHandler_t ech,
-		int percent) {
+		int ggap) {
 	RTLIB_ExitCode_t result;
 	pregExCtx_t prec;
 
@@ -2101,40 +2208,8 @@ RTLIB_ExitCode_t BbqueRPC::GGap(
 		return RTLIB_EXC_NOT_REGISTERED;
 	}
 
-	// Goal-Gap filtering based on pre-configured reactivity value
-	if ((prec->cycles_count - prec->ggap_last_cycle)
-			< conf.asrtm.ggap_forward_rate) {
-		logger->Debug("Set Goal-Gap [%2d] FILTERED for EXC [%p] "
-				"(Lower than reactivity cycle count [%d])",
-				percent, (void*)ech,
-				conf.asrtm.ggap_forward_rate);
-		return RTLIB_OK;
-	}
-
-	// Goal-Gap filtering based on pre-configured threshold value
-	if (unlikely(std::abs(percent) < conf.asrtm.ggap_forward_threshold)) {
-		logger->Debug("Set Goal-Gap [%2d] FILTERED for EXC [%p] "
-				"(Lower than threshold value [%d])",
-				percent, (void*)ech,
-				conf.asrtm.ggap_forward_threshold);
-		return RTLIB_OK;
-	}
-
-	// Check the application is not in sync
-	if (isSyncMode(prec))
-		return RTLIB_OK;
-
-	// Calling the low-level enable function
-	result = _GGap(prec, percent);
-	if (result != RTLIB_OK) {
-		logger->Error("Set Goal-Gap for EXC [%p:%s] FAILED (Error %d: %s)",
-				(void*)ech, prec->name.c_str(), result,RTLIB_ErrorStr(result));
-		return RTLIB_EXC_ENABLE_FAILED;
-	}
-	logger->Notice("Set Goal-Gap for EXC [%p:%s] = %.d", (void*)ech,
-			prec->name.c_str(), percent);
-
-	prec->ggap_last_cycle = prec->cycles_count;
+	prec->explicit_ggap_assertion = true;
+	prec->explicit_ggap_value = ggap;
 	return RTLIB_OK;
 }
 
@@ -3112,11 +3187,11 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 
 	// Keep track of the maximum required CPS
 	prec->cps_goal = cps;
-	conf.asrtm.ggap_forward_rate = fwd_rate;
+	conf.asrtm.rt_profile_forward_rate = fwd_rate;
 	logger->Notice("Set cycle-rate Goal (CPS) @ %.3f[Hz] (%.3f[ms])"
 			" every %d cycles",
 				prec->cps_goal, 1000.0 / prec->cps_goal,
-				conf.asrtm.ggap_forward_rate);
+				conf.asrtm.rt_profile_forward_rate);
 	return RTLIB_OK;
 }
 
@@ -3203,6 +3278,10 @@ void BbqueRPC::NotifyPreConfigure(
 		return;
 	}
 	assert(isRegistered(prec) == true);
+
+	logger->Info("Resetting Runtime Statistics Notification counter");
+	prec->rtinfo_last_cycle = prec->cycles_count;
+
 #ifdef CONFIG_BBQUE_OPENCL
 	pSystemResources_t local_sys(prec->systems[0]);
 	assert(local_sys != nullptr);
@@ -3337,16 +3416,8 @@ void BbqueRPC::NotifyPostMonitor(
 
 	// Update monitoring statistics
 	UpdateMonitorStatistics(prec);
-
-	// Send a goal-gap is the CPS goal is set
-	if (prec->cps_goal > 0) {
-		float curr_cps = 1000.0 / prec->cps_ctime.get();
-		int ctime_gap_percent =
-			((curr_cps - prec->cps_goal) / prec->cps_goal)*100;
-		logger->Debug("GetCPS: %.3f GoalCPS: %.3f GGap: %d",
-				curr_cps, prec->cps_goal, ctime_gap_percent);
-		GGap(ech, ctime_gap_percent);
-	}
+	// Forward runtime statistics to the BarbequeRTRM
+	ForwardRuntimeProfile(ech);
 
 	// CPS Enforcing
 	if (prec->cps_expect != 0)

@@ -1320,25 +1320,50 @@ ApplicationManager::ClearConstraintsEXC(AppPid_t pid, uint8_t exc_id) {
 }
 
 ApplicationManager::ExitCode_t
-ApplicationManager::SetGoalGapEXC(AppPtr_t papp, int gap) {
-	Application::ExitCode_t result;
-
+ApplicationManager::CheckGoalGapEXC(AppPtr_t papp,
+		struct app::RuntimeProfiling_t &rt_prof) {
 	// Define the contraints for this execution context
-	logger->Debug("Setting Goal-Gap [%d] on EXC [%s]...", gap, papp->StrId());
-
-	// Set the Goal-Gap for the specified application
-	result = papp->SetGoalGap(gap);
-	if (result != Application::APP_SUCCESS)
-		return AM_ABORT;
+	logger->Debug("Checking Goal-Gap [%d] on EXC [%s]...",
+			rt_prof.ggap_percent, papp->StrId());
 
 	// FIXME the reschedule should be activated based on some
 	// configuration parameter or policy decision
 	// Check for the need of a new schedule request
-	if (std::abs(gap) > ggap_threshold_optimize) {
-		logger->Warn("Re-schedule required for [%s], GoalGap [%2d]",
-				papp->StrId(), gap);
+	if (std::abs(rt_prof.ggap_percent) > ggap_threshold_optimize)
 		return AM_RESCHED_REQUIRED;
+
+	return AM_SUCCESS;
+}
+
+ApplicationManager::ExitCode_t
+ApplicationManager::AnalyseRuntimeProfile(AppPtr_t papp,
+		struct app::RuntimeProfiling_t &rt_prof) {
+
+	if (CheckGoalGapEXC(papp, rt_prof) == AM_RESCHED_REQUIRED ||
+		CheckCpuUsageEXC(papp, rt_prof) == AM_RESCHED_REQUIRED)
+		return AM_RESCHED_REQUIRED;
+
+	return AM_SUCCESS;
+}
+
+ApplicationManager::ExitCode_t
+ApplicationManager::AnalyseRuntimeProfile(AppPid_t pid, uint8_t exc_id,
+		struct app::RuntimeProfiling_t &rt_prof) {
+	AppPtr_t papp;
+
+	// Find the required EXC
+	papp = GetApplication(Application::Uid(pid, exc_id));
+	if (!papp) {
+		logger->Warn("Check RT Info for EXC [%d:*:%d] FAILED "
+				"(Error: EXC not found)");
+		assert(papp);
+		return AM_EXC_NOT_FOUND;
 	}
+
+	// Set constraints for this EXC
+	return AnalyseRuntimeProfile(papp, rt_prof);
+
+}
 
 ApplicationManager::ExitCode_t
 ApplicationManager::CheckCpuUsageEXC(AppPtr_t papp,
@@ -1405,7 +1430,6 @@ ApplicationManager::SetRuntimeProfile(AppPtr_t papp,
 ApplicationManager::ExitCode_t
 ApplicationManager::GetRuntimeProfile(
 		AppPid_t pid, uint8_t exc_id, struct app::RuntimeProfiling_t &profile) {
-ApplicationManager::SetGoalGapEXC(AppPid_t pid, uint8_t exc_id, int gap) {
 	AppPtr_t papp;
 	// Find the required EXC
 	papp = GetApplication(Application::Uid(pid, exc_id));
@@ -1427,14 +1451,15 @@ ApplicationManager::SetRuntimeProfile(
 	// Find the required EXC
 	papp = GetApplication(Application::Uid(pid, exc_id));
 	if (!papp) {
-		logger->Warn("Set Goal-Gap for EXC [%d:*:%d] FAILED "
+		logger->Warn("Set Runtime Profile for EXC [%d:*:%d] FAILED "
 				"(Error: EXC not found)");
 		assert(papp);
 		return AM_EXC_NOT_FOUND;
 	}
 
 	// Set constraints for this EXC
-	return SetGoalGapEXC(papp, gap);
+	return SetRuntimeProfile(papp, profile);
+}
 
 ApplicationManager::ExitCode_t
 ApplicationManager::SetRuntimeProfile(

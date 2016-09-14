@@ -42,15 +42,14 @@ const char *RPC_messageStr[] = {
 	"ESet",
 	//RPC_EXC_CLEAR
 	"EClear",
-	//RPC_EXC_GGAP
-	"ENap",
 	//RPC_EXC_STOP
 	"EStop",
 	//RPC_EXC_REGISTER
 	"EReg",
+	//RPC_EXC_RTNOTIFY
+	"ERunt",
 	//RPC_EXC_UNREGISTER
 	"EUnreg",
-
 	//RPC_EXC_RESP
 	"EResp",
 	//RPC_EXC_MSGS_COUNT

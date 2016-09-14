@@ -137,9 +137,12 @@ public:
 	RTLIB_ExitCode_t Clear(
 			const RTLIB_ExecutionContextHandler_t ech);
 
-	RTLIB_ExitCode_t GGap(
+	RTLIB_ExitCode_t ForwardRuntimeProfile(
+			const RTLIB_ExecutionContextHandler_t ech);
+
+	RTLIB_ExitCode_t SetExplicitGGap(
 			const RTLIB_ExecutionContextHandler_t ech,
-			int percent);
+			int ggap);
 
 	RTLIB_ExitCode_t GetWorkingMode(
 			RTLIB_ExecutionContextHandler_t ech,
@@ -461,14 +464,19 @@ protected:
 		double mon_tstart = 0; // [ms] at the last monitoring start time
 
 		/** CPS performance monitoring/control */
-		double cps_tstart = 0; // [ms] at the last cycle start time
-		float  cps_expect = 0; // [ms] the expected cycle time
-		bu::EMA cps_ctime;     // [ms] Cycle Time on-line estimation
-		float  cps_goal   = 0; // [Hz] the required CPS
-		float  cps_max    = 0; // [Hz] the required maximum CPS
+		double 	cps_tstart = 0.0; // [ms] at the last cycle start time
+		float  	cps_expect = 0.0; // [ms] the expected cycle time
+		bu::EMA cps_ctime;   	  // [ms] Cycle Time on-line estimation
+		float  	cps_goal   = 0.0; // [Hz] the required CPS
+		float  	cps_max    = 0.0; // [Hz] the required maximum CPS
+		// Whether RTLib is satisfied with previous Goal Gap
+		bool 	prev_ggap_acceptable = false;
+		// Applications can explicitely ask for a runtime profile notification
+		bool 	explicit_ggap_assertion = false;
+		float 	explicit_ggap_value = 0.0;
 
 		/** Cycle of the last goal-gap assertion */
-		uint64_t ggap_last_cycle = 0;
+		uint64_t rtinfo_last_cycle = 0;
 		ProcStatCUsage ps_cusage;
 
 		RegisteredExecutionContext(const char *_name, uint8_t id) :
@@ -665,7 +673,8 @@ protected:
 
 	virtual RTLIB_ExitCode_t _Clear(pregExCtx_t prec) = 0;
 
-	virtual RTLIB_ExitCode_t _GGap(pregExCtx_t prec, int percent) = 0;
+	virtual RTLIB_ExitCode_t _RTNotify(pregExCtx_t prec, int percent,
+			int cusage, int ctime_ms) = 0;
 
 	virtual RTLIB_ExitCode_t _ScheduleRequest(pregExCtx_t prec) = 0;
 

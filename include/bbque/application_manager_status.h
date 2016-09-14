@@ -162,6 +162,8 @@ public:
 		/** Execution of a method interrupted by an unexpected state in an
 		 * internal data structure state */
 		AM_DATA_CORRUPT,
+		/** Execution of a method interrupted but without critical errors */
+		AM_SKIPPING,
 		/** Method forced to exit */
 		AM_ABORT
 	};

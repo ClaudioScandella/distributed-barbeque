@@ -411,7 +411,7 @@ public:
  */
 	RTLIB_ExitCode_t SetCPSGoal(
 			float cps,
-			uint16_t fwd_rate = BBQUE_DEFAULT_GGAP_RATE_FORWARD);
+			uint16_t fwd_rate = BBQUE_DEFAULT_RT_PROF_RATE_FORWARD);
 
 /**
  * @brief Set the cycle time for this EXC

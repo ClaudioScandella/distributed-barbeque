@@ -755,9 +755,11 @@ Application::ExitCode_t Application::ScheduleCommit() {
 		// having a value higher than the previous one
 		if (schedule.awm &&
 				(schedule.awm->Value() < schedule.next_awm->Value())) {
-			logger->Debug("ScheduleCommit: resetting GoalGap (%d%c) on [%s]",
-					ggap_percent, '%', StrId());
-			ggap_percent = 0;
+
+			logger->Debug("Resetting GoalGap (%d%c) on [%s]",
+					rt_prof.ggap_percent, '%', StrId());
+			rt_prof.ggap_percent = 0;
+
 		}
 
 		schedule.awm = schedule.next_awm;

@@ -128,7 +128,9 @@ public:
 	/**
 	 * @see ApplicationManagerConfIF
 	 */
-	ExitCode_t SetGoalGapEXC(AppPtr_t papp, int gap);
+	ExitCode_t CheckGoalGapEXC(AppPtr_t papp,
+			struct app::RuntimeProfiling_t &profile);
+
 	/**
 	 * @see ApplicationManagerConfIF
 	 */
@@ -138,7 +140,15 @@ public:
 	/**
 	 * @see ApplicationManagerConfIF
 	 */
-	ExitCode_t SetGoalGapEXC(AppPid_t pid, uint8_t exc_id, int gap);
+	ExitCode_t AnalyseRuntimeProfile(AppPid_t pid, uint8_t exc_id,
+			struct app::RuntimeProfiling_t &profile);
+
+	/**
+	 * @see ApplicationManagerConfIF
+	 */
+	ExitCode_t AnalyseRuntimeProfile(AppPtr_t papp,
+			struct app::RuntimeProfiling_t &profile);
+
 	/**
 	 * @see ApplicationManagerConfIF
 	 */

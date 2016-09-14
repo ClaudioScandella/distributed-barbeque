@@ -71,7 +71,8 @@ protected:
 
 	RTLIB_ExitCode_t _Clear(pregExCtx_t prec);
 
-	RTLIB_ExitCode_t _GGap(pregExCtx_t prec, int gap);
+	RTLIB_ExitCode_t _RTNotify(pregExCtx_t prec, int gap,
+			int cusage, int ctime_ms);
 
 	void _Exit();
 

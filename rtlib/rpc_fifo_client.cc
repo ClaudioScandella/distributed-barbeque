@@ -591,31 +591,35 @@ RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_Clear(pregExCtx_t prec) {
 	return (RTLIB_ExitCode_t)chResp.result;
 }
 
-RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_GGap(pregExCtx_t prec, int gap) {
+RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_RTNotify(pregExCtx_t prec, int gap,
+		int cpu_usage, int cycle_time_ms) {
 	std::unique_lock<std::mutex> chCommand_ul(chCommand_mtx);
-	rpc_fifo_EXC_GGAP_t rf_EXC_GGAP = {
+	rpc_fifo_EXC_RTNOTIFY_t rf_EXC_RTNOTIFY = {
 		{
-			FIFO_PKT_SIZE(EXC_GGAP),
-			FIFO_PYL_OFFSET(EXC_GGAP),
-			RPC_EXC_GGAP
+			FIFO_PKT_SIZE(EXC_RTNOTIFY),
+			FIFO_PYL_OFFSET(EXC_RTNOTIFY),
+			RPC_EXC_RTNOTIFY
 		},
 		{
 			{
-				RPC_EXC_GGAP,
+				RPC_EXC_RTNOTIFY,
 				RpcMsgToken(),
 				chTrdPid,
 				prec->exc_id
 			},
 			gap,
+			cpu_usage,
+			cycle_time_ms,
 		}
 	};
 
 	logger->Debug("Set Goal-Gap for EXC [%d:%d]...",
-				rf_EXC_GGAP.pyl.hdr.app_pid,
-				rf_EXC_GGAP.pyl.hdr.exc_id);
+			rf_EXC_RTNOTIFY.pyl.hdr.app_pid,
+			rf_EXC_RTNOTIFY.pyl.hdr.exc_id);
 
 	// Sending RPC Request
-	RPC_FIFO_SEND(EXC_GGAP);
+	if (!isSyncMode(prec))
+		RPC_FIFO_SEND(EXC_RTNOTIFY);
 
 	logger->Debug("Waiting BBQUE response...");
 

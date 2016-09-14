@@ -305,12 +305,12 @@
 
 #define BBQUE_DEFAULT_CUSAGE_THRESHOLD_OPTIMIZE ${CONFIG_BBQUE_CUSAGE_THRESHOLD_OPTIMIZE}
 /**
- * @brief The GoalGap Forward Rate
+ * @brief The Runtime Information Forward Rate
  *
- * The RTLib can be configured to forward a goal-gap only every N cycles.
+ * The RTLib can be configured to forward Runtime Information only every N cycles.
  * Where N is the value of this paramenter.
  */
-#define BBQUE_DEFAULT_GGAP_RATE_FORWARD ${CONFIG_BBQUE_RTLIB_GGAP_RATE_FORWARD}
+#define BBQUE_DEFAULT_RT_PROF_RATE_FORWARD ${CONFIG_BBQUE_RTLIB_RT_PROF_RATE_FORWARD}
 
 /**
  * @brief CPS: Cycle-time number of samples for EMA computation

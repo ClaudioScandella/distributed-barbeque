@@ -118,7 +118,7 @@ static RTLIB_ExitCode_t rtlib_clear(
 static RTLIB_ExitCode_t rtlib_ggap(
 		RTLIB_ExecutionContextHandler_t ech,
 		int gap) {
-	return rpc->GGap(ech, gap);
+	return rpc->SetExplicitGGap(ech, gap);
 }
 
 /*******************************************************************************

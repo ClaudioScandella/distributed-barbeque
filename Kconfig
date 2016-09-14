@@ -299,12 +299,12 @@ config BBQUE_RTLIB_GGAP_THRESHOLD_FORWARD
   request if it is not greater than a predefined and configured value.
   This configuration defines the default for that threshold value.
 
-config BBQUE_RTLIB_GGAP_RATE_FORWARD
-  int "GoalGap Forward Rate"
-  default 5
+config BBQUE_RTLIB_RT_PROF_RATE_FORWARD
+  int "Runtime Profile Forward Rate"
+  default 1
   ---help---
-  A periodical number of execution cycles, after which a GoalGap value can
-  forwarded to BarbequeRTRM.
+  A periodical number of execution cycles, after which Runtime Statistics of
+  the application are forwarded to BarbequeRTRM.
 
   Once an EXC explicitly asserts a GoalGap, or set a performance goal
   (SetCPSGoal) the RTLib can periodically fire a goal gap assertion only after

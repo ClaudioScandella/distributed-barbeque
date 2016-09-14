@@ -96,10 +96,13 @@ protected:
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _GGap(pregExCtx_t prec, int gap) {
+	RTLIB_ExitCode_t _RTNotify(pregExCtx_t prec, int gap,
+			int cusage, int ctime_ms) {
 		// Remove compilation warning
 		(void)prec;
 		(void)gap;
+		(void)cusage;
+		(void)ctime_ms;
 		return RTLIB_OK;
 	}
 
