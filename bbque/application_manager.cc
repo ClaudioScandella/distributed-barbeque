@@ -1483,32 +1483,32 @@ ApplicationManager::SetRuntimeProfile(
 	rt_prof.is_valid = true;
 
 	if (rt_prof.ggap_percent < 0) {
-		// updating lower boundary level
+		// Update lower bound value and age
 		rt_prof.allocation_feedback.cpu_reaction_lower =
 				{rt_prof.measured_cpu_usage, rt_prof.ggap_percent};
-		// Updating boundaries eta
 		rt_prof.allocation_feedback.cpu_reaction_age.first = 0;
 
-		if (rt_prof.allocation_feedback.cpu_reaction_age.second >= 0) {
-			if (rt_prof.allocation_feedback.cpu_reaction_lower.first >=
-					rt_prof.allocation_feedback.cpu_reaction_upper.first)
+		// Invalidate the other bound if necessary
+		if (rt_prof.allocation_feedback.cpu_reaction_lower.first >=
+					rt_prof.allocation_feedback.cpu_reaction_upper.first) {
 				rt_prof.allocation_feedback.cpu_reaction_age.second = -1;
-			else
-				rt_prof.allocation_feedback.cpu_reaction_age.second ++;
+				rt_prof.allocation_feedback.cpu_reaction_upper.first = -1;
 		}
+		// If valid, update the other bound age
+		else if (rt_prof.allocation_feedback.cpu_reaction_age.second >= 0)
+			rt_prof.allocation_feedback.cpu_reaction_age.second ++;
+
 	} else {
-		// updating upper boundary level
+		// Update upper bound value and age
 		rt_prof.allocation_feedback.cpu_reaction_upper =
 				{rt_prof.measured_cpu_usage, rt_prof.ggap_percent};
-		// Updating boundaries eta
 		rt_prof.allocation_feedback.cpu_reaction_age.second = 0;
 
-		if (rt_prof.allocation_feedback.cpu_reaction_age.first >= 0) {
-			if (rt_prof.allocation_feedback.cpu_reaction_lower.first >=
-					rt_prof.allocation_feedback.cpu_reaction_upper.first)
+		// Invalidate the other bound if necessary
+		if (rt_prof.allocation_feedback.cpu_reaction_lower.first >=
+					rt_prof.allocation_feedback.cpu_reaction_upper.first) {
 				rt_prof.allocation_feedback.cpu_reaction_age.first = -1;
-			else
-				rt_prof.allocation_feedback.cpu_reaction_age.first ++;
+				rt_prof.allocation_feedback.cpu_reaction_lower.first = -1;
 		}
 	}
 
