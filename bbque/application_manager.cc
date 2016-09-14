@@ -1409,32 +1409,29 @@ ApplicationManager::SetRuntimeProfile(
 
 	if (rt_prof.ggap_percent < 0) {
 		// Update lower bound value and age
-		rt_prof.allocation_feedback.cpu_reaction_lower =
-				{rt_prof.measured_cpu_usage, rt_prof.ggap_percent};
-		rt_prof.allocation_feedback.cpu_reaction_age.first = 0;
+		rt_prof.gap_history.lower_cpu = rt_prof.measured_cpu_usage;
+		rt_prof.gap_history.lower_gap = rt_prof.ggap_percent;
+		rt_prof.gap_history.lower_age = 0;
 
 		// Invalidate the other bound if necessary
-		if (rt_prof.allocation_feedback.cpu_reaction_lower.first >=
-					rt_prof.allocation_feedback.cpu_reaction_upper.first) {
-				rt_prof.allocation_feedback.cpu_reaction_age.second = -1;
-				rt_prof.allocation_feedback.cpu_reaction_upper.first = -1;
-		}
+		if (rt_prof.gap_history.upper_cpu <= rt_prof.gap_history.lower_cpu)
+			rt_prof.gap_history.upper_age = -1;
 		// If valid, update the other bound age
-		else if (rt_prof.allocation_feedback.cpu_reaction_age.second >= 0)
-			rt_prof.allocation_feedback.cpu_reaction_age.second ++;
+		else if (rt_prof.gap_history.upper_age >= 0)
+			rt_prof.gap_history.upper_age ++;
 
 	} else {
 		// Update upper bound value and age
-		rt_prof.allocation_feedback.cpu_reaction_upper =
-				{rt_prof.measured_cpu_usage, rt_prof.ggap_percent};
-		rt_prof.allocation_feedback.cpu_reaction_age.second = 0;
+		rt_prof.gap_history.upper_cpu = rt_prof.measured_cpu_usage;
+		rt_prof.gap_history.upper_gap = rt_prof.ggap_percent;
+		rt_prof.gap_history.upper_age = 0;
 
 		// Invalidate the other bound if necessary
-		if (rt_prof.allocation_feedback.cpu_reaction_lower.first >=
-					rt_prof.allocation_feedback.cpu_reaction_upper.first) {
-				rt_prof.allocation_feedback.cpu_reaction_age.first = -1;
-				rt_prof.allocation_feedback.cpu_reaction_lower.first = -1;
-		}
+		if (rt_prof.gap_history.lower_cpu > rt_prof.gap_history.upper_cpu)
+			rt_prof.gap_history.lower_age = -1;
+		// If valid, update the lower bound age
+		else if (rt_prof.gap_history.lower_age >= 0)
+			rt_prof.gap_history.lower_age ++;
 	}
 
 	// Checking if a new schedule is needed

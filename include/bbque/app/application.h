@@ -72,10 +72,13 @@ struct RuntimeProfiling_t {
 	int ggap_percent_expected = 0;
 
 	struct {
-		std::pair<int, int> cpu_reaction_upper = {-1 , -1}; // Res Alloc, GGap
-		std::pair<int, int> cpu_reaction_lower = {-1 , -1}; // Res Alloc, GGap
-		std::pair<int, int> cpu_reaction_age = {-1, -1};
-	} allocation_feedback;
+		int upper_cpu = -1;
+		int upper_gap = -1;
+		int upper_age = -1;
+		int lower_cpu = -1;
+		int lower_gap = -1;
+		int lower_age = -1;
+	} gap_history;
 
 	/** The current CPU Usage of an application. It should be received as a
 	 * feedback from the rtlib. */
