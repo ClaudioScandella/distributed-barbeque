@@ -51,25 +51,25 @@ void manage_v_arg(std::string arg, plp_data_t* data) {
 
 	switch (bhash(arg.substr(0,pos).c_str())) {
 	case bhash("BBQUE_UID"):
-		data->uid = content;
+		data->user_id = content;
 		break;
 	case bhash("BBQUE_GID"):
-		data->guid = content;
+		data->group_id = content;
 		break;
 	case bhash("BBQUE_CPUP"):
-		data->cpup = content;
+		data->cfs_cpu_period = content;
 		break;
 	case bhash("BBQUE_PLAT_CPUS"):
-		data->plat_cpus = content;
+		data->system_cpuset = content;
 		break;
 	case bhash("BBQUE_PLAT_MEMS"):
-		data->plat_mems = content;
+		data->system_mems = content;
 		break;
 	case bhash("BBQUE_FEAT_CPUQ"):
-		data->feat_cpuq = content;
+		data->cpu_controller_available = content;
 		break;
 	case bhash("BBQUE_FEAT_MEMC"):
-		data->feat_memc = content;
+		data->memory_controller_available = content;
 		break;
 
 	default:
@@ -86,9 +86,9 @@ int plpxml(int argc, char** argv) {
 	plp_data_t data;
 
 	// Default values:
-	data.uid  = "root";
-	data.guid = "root";
-	data.cpup = "100000";
+	data.user_id  = "root";
+	data.group_id = "root";
+	data.cfs_cpu_period = "100000";
 
 
 	// First of all search for -v arguments and the last filename

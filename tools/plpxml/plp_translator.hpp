@@ -29,13 +29,13 @@ namespace tools {
 
 
 typedef struct plp_data_s {
-	std::string  uid;
-	std::string guid;
-	std::string cpup;
-	std::string plat_cpus;
-	std::string plat_mems;
-	std::string feat_cpuq;
-	std::string feat_memc;
+	std::string user_id;
+	std::string group_id;
+	std::string cfs_cpu_period;
+	std::string system_cpuset;
+	std::string system_mems;
+	std::string cpu_controller_available;
+	std::string memory_controller_available;
 } plp_data_t;
 
 class PLPTranslator {
@@ -50,14 +50,14 @@ private:
 	const plp_data_t data;
 
 	rapidxml::xml_document<>  systems_doc;
-	rapidxml::xml_document<> localsys_doc;
+	rapidxml::xml_document<>  localsys_doc;
 
-	std::bitset<MAX_ALLOWED_PES> host_pes;
-	std::bitset<MAX_ALLOWED_PES> mdev_pes;
-	std::bitset<MAX_ALLOWED_PES> host_mems;
-	std::bitset<MAX_ALLOWED_PES> mdev_mems;
-	std::bitset<MAX_ALLOWED_PES> mdev_currentcpu_pes;
-	std::bitset<MAX_ALLOWED_PES> mdev_currentcpu_mems;
+	std::bitset<MAX_ALLOWED_PES> host_proc_elements;
+	std::bitset<MAX_ALLOWED_PES> mdev_proc_elements;
+	std::bitset<MAX_ALLOWED_PES> host_memory_nodes;
+	std::bitset<MAX_ALLOWED_PES> mdev_memory_nodes;
+	std::bitset<MAX_ALLOWED_PES> mdev_node_proc_elements;
+	std::bitset<MAX_ALLOWED_PES> mdev_node_memory_nodes;
 	std::unordered_map<std::string, long> memories_size;
 
 	std::string explore_systems (const std::string &filename);

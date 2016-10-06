@@ -220,23 +220,23 @@ void PLPTranslator::add_pe(
 	}
 
 	if (type==HOST) {
-		host_pes[pe_id_int] = 1;
-		host_mems[mem_id_int] = 1;
+		host_proc_elements[pe_id_int] = 1;
+		host_memory_nodes[mem_id_int] = 1;
 	} else {
-		mdev_pes[pe_id_int] = 1;
-		mdev_mems[mem_id_int] = 1;
-		mdev_currentcpu_pes[pe_id_int] = 1;
-		mdev_currentcpu_mems[mem_id_int] = 1;
+		mdev_proc_elements[pe_id_int] = 1;
+		mdev_memory_nodes[mem_id_int] = 1;
+		mdev_node_proc_elements[pe_id_int] = 1;
+		mdev_node_memory_nodes[mem_id_int] = 1;
 	}
 }
 
 std::string PLPTranslator::get_output() const noexcept {
 
 	// Now I create the string like "1-3,4-9" for cpus and memory
-	std::string host_pes_str  = bitset_to_string(this->host_pes);
-	std::string host_mems_str = bitset_to_string(this->host_mems);
-	std::string mdev_pes_str  = bitset_to_string(this->mdev_pes);
-	std::string mdev_mems_str = bitset_to_string(this->mdev_mems);
+	std::string host_pes_str  = bitset_to_string(this->host_proc_elements);
+	std::string host_mems_str = bitset_to_string(this->host_memory_nodes);
+	std::string mdev_pes_str  = bitset_to_string(this->mdev_proc_elements);
+	std::string mdev_mems_str = bitset_to_string(this->mdev_memory_nodes);
 
 	return std::string("") +
 
@@ -244,12 +244,12 @@ std::string PLPTranslator::get_output() const noexcept {
 	       "group user.slice {\n"
 	       "    perm {\n"
 	       "        task {\n"
-	       "            uid = root ;\n"
-	       "            gid = root ;\n"
+	       "            uid = " + data.user_id  + ";\n"
+	       "            gid = " + data.group_id + ";\n"
 	       "        }\n"
 	       "        admin {\n"
-	       "            uid = root ;\n"
-	       "            gid = root ;\n"
+	       "            uid = " + data.user_id  + ";\n"
+	       "            gid = " + data.group_id + ";\n"
 	       "        }\n"
 	       "    }\n"
 	       "\n"
@@ -259,8 +259,8 @@ std::string PLPTranslator::get_output() const noexcept {
 	       "# cpuset to hold all the jobs, and construct child cpusets for each individual\n"
 	       "# job which are not hardwall cpusets.\n"
 	       "    cpuset {\n"
-	       "        cpuset.cpus = \"" + data.plat_cpus + "\";\n"
-	       "        cpuset.mems = \"" + data.plat_mems + "\";\n"
+	       "        cpuset.cpus = \"" + data.system_cpuset + "\";\n"
+	       "        cpuset.mems = \"" + data.system_mems + "\";\n"
 	       "        cpuset.cpu_exclusive = \"1\";\n"
 	       "        cpuset.mem_exclusive = \"1\";\n"
 	       "    }\n"
@@ -270,12 +270,12 @@ std::string PLPTranslator::get_output() const noexcept {
 	       "group user.slice/host {\n"
 	       "    perm {\n"
 	       "        task {\n"
-	       "            uid = root ;\n"
-	       "            gid = root ;\n"
+	       "            uid = " + data.user_id  + ";\n"
+	       "            gid = " + data.group_id + ";\n"
 	       "        }\n"
 	       "        admin {\n"
-	       "            uid = root ;\n"
-	       "            gid = root ;\n"
+	       "            uid = " + data.user_id  + ";\n"
+	       "            gid = " + data.group_id + ";\n"
 	       "        }\n"
 	       "    }\n"
 	       "    cpuset {\n"
@@ -288,12 +288,12 @@ std::string PLPTranslator::get_output() const noexcept {
 	       "group user.slice/res {\n"
 	       "    perm {\n"
 	       "        task {\n"
-	       "            uid = " + data.uid  + ";\n"
-	       "            gid = " + data.guid + ";\n"
+	       "            uid = " + data.user_id  + ";\n"
+	       "            gid = " + data.group_id + ";\n"
 	       "        }\n"
 	       "        admin {\n"
-	       "            uid = " + data.uid  + ";\n"
-	       "            gid = " + data.guid + ";\n"
+	       "            uid = " + data.user_id  + ";\n"
+	       "            gid = " + data.group_id + ";\n"
 	       "        }\n"
 	       "    }\n"
 	       "    cpuset {\n"
@@ -307,10 +307,10 @@ std::string PLPTranslator::get_output() const noexcept {
 void PLPTranslator::commit_mdev(const std::string & memory_id) {
 	static int n = 0;
 
-	std::string mdev_pes_str  = bitset_to_string(this->mdev_currentcpu_pes);
-	std::string mdev_mems_str = bitset_to_string(this->mdev_currentcpu_mems);
+	std::string mdev_pes_str  = bitset_to_string(this->mdev_node_proc_elements);
+	std::string mdev_mems_str = bitset_to_string(this->mdev_node_memory_nodes);
 
-	if (this->mdev_currentcpu_pes.count() == 0)
+	if (this->mdev_node_proc_elements.count() == 0)
 		return;
 
 	subnodes +=  std::string("") +
@@ -318,12 +318,12 @@ void PLPTranslator::commit_mdev(const std::string & memory_id) {
 	             "group user.slice/res/node"+ std::to_string(++n) +" {\n"
 	             "    perm {\n"
 	             "        task {\n"
-	             "            uid = root ;\n"
-	             "            gid = root ;\n"
+	             "            uid = " + data.user_id  + ";\n"
+	             "            gid = " + data.group_id + ";\n"
 	             "        }\n"
 	             "        admin {\n"
-	             "            uid = root ;\n"
-	             "            gid = root ;\n"
+	             "            uid = " + data.user_id  + ";\n"
+	             "            gid = " + data.group_id + ";\n"
 	             "        }\n"
 	             "    }\n"
 	             "    cpuset {\n"
@@ -332,7 +332,7 @@ void PLPTranslator::commit_mdev(const std::string & memory_id) {
 	             "    }\n"
 	             "    cpu {\n"
 	             "        cpu.cfs_period_us = \"100000\";\n"
-	             "        cpu.cfs_quota_us =  \"" + std::to_string(quota_sum*1000/this->mdev_currentcpu_pes.count()) + "\";\n"
+	             "        cpu.cfs_quota_us =  \"" + std::to_string(quota_sum*1000/this->mdev_node_proc_elements.count()) + "\";\n"
 	             "    }\n"
 	             "    memory {\n"
 	             "        memory.limit_in_bytes = \"" + std::to_string(memories_size[memory_id]) + "\";\n"
@@ -340,8 +340,8 @@ void PLPTranslator::commit_mdev(const std::string & memory_id) {
 	             "}\n"
 	             ;
 
-	this->mdev_currentcpu_pes.reset();
-	this->mdev_currentcpu_mems.reset();
+	this->mdev_node_proc_elements.reset();
+	this->mdev_node_memory_nodes.reset();
 	quota_sum=0;
 }
 
