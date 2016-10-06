@@ -326,6 +326,11 @@
  */
 #define BBQUE_AGENT_PROXY_PORT_DEFAULT ${CONFIG_BBQUE_AGENT_PROXY_PORT_DEFAULT}
 
+/** Optimization deferrables values */
+#define BBQUE_RM_OPT_REQUEST_DEFER_MS ${CONFIG_BBQUE_RM_OPT_REQUEST_DEFER_MS}
+#define BBQUE_RM_OPT_EXC_STOP_DEFER_MS ${CONFIG_BBQUE_RM_OPT_EXC_STOP_DEFER_MS}
+#define BBQUE_RM_OPT_EXC_START_DEFER_MS ${CONFIG_BBQUE_RM_OPT_EXC_START_DEFER_MS}
+
 /* A global variable to signal if we are running as a daemon */
 extern unsigned char daemonized;
 

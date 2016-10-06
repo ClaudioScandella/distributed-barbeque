@@ -411,7 +411,7 @@ void ResourceManager::EvtExcStart() {
 		DB(logger->Warn("Overdue processing of a START event"));
 		return;
 	}
-	timeout = 100 + (100 * papp->Priority());
+	timeout = BBQUE_RM_OPT_EXC_START_DEFER_MS;
 	optimize_dfr.Schedule(milliseconds(timeout));
 
 	// Collecing execution metrics
@@ -427,14 +427,8 @@ void ResourceManager::EvtExcStop() {
 	// Reset timer for START event execution time collection
 	RM_RESET_TIMING(rm_tmr);
 
-	// This is a simple oprimization triggering policy based on the
-	// number of applications READY to run.
-	// When an application terminates we check for the presence of READY
-	// applications waiting to start, if there are a new optimization run
-	// is scheduled before than the case in which all applications are
-	// runnig.
-	// TODO: make this policy more tunable via the configuration file
-	timeout = 500 - (50 * (am.AppsCount(ApplicationStatusIF::READY) % 8));
+	// This is a simple optimization triggering policy
+	timeout = BBQUE_RM_OPT_EXC_STOP_DEFER_MS;
 	optimize_dfr.Schedule(milliseconds(timeout));
 
 	// Collecing execution metrics
@@ -469,10 +463,7 @@ void ResourceManager::EvtBbqOpts() {
 	// Explicit applications requests for optimization are delayed by
 	// default just to increase the chance for aggregation of multiple
 	// requests
-	// TODO: make this policy more tunable via the configuration file
-	timeout = 500;
-	if (am.AppsCount(ApplicationStatusIF::READY))
-		timeout = 250;
+	timeout = BBQUE_RM_OPT_REQUEST_DEFER_MS;
 	optimize_dfr.Schedule(milliseconds(timeout));
 
 	// Collecing execution metrics

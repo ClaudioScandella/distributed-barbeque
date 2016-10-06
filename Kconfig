@@ -214,6 +214,38 @@ config BBQUE_SP_COWS_BINDING
 endmenu
 
 ################################################################################
+# Optimization Options
+################################################################################
+menu "Optimization Options"
+
+config BBQUE_RM_OPT_REQUEST_DEFER_MS
+  int "Ms to wait before activating a new optimization, on app request"
+  default 50
+  ---help---
+  When an application asks barbeque for a new resource allocation,
+  barbeque waits some milliseconds in order to aggregate requests from
+  other apps as well (if any).
+
+
+config BBQUE_RM_OPT_EXC_STOP_DEFER_MS
+  int "Ms to wait before activating a new optimization, on app termination"
+  default 50
+  ---help---
+  Some milliseconds after an application terminates, barbeque triggers
+  an optimization
+
+config BBQUE_RM_OPT_EXC_START_DEFER_MS
+  int "Ms to wait before activating an optimization, on app start"
+  default 50
+  ---help---
+  Some milliseconds after an application starts, barbeque triggers
+  an optimization
+
+
+endmenu
+
+
+################################################################################
 # Recipe loader
 ################################################################################
 
