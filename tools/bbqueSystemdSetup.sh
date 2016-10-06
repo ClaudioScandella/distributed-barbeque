@@ -3,24 +3,17 @@
 echo "Systemd configuration files patch: cpuset, cpu, cpuacct, memory"
 echo "controllers hierarchy unification"
 
-if [[ "$(pidof systemd)" == "" ]]; then
+if [ ! -f /etc/systemd/system.conf ]; then
         echo "Systemd does not appear to be up and running"
         exit
 else
         SDV=$(systemd --version | head -n1 | awk '{print $2}')
         echo "Systemd version = $SDV"
 
-        if [ "$SDV" != "225" ]; then
-                echo "This patch is needed for systemd version 225 to properly"
-                echo "co-exist with The BarbequeRTRM."
-                echo "You should not need it for versions higher"
-                echo "than that, and you may not need it for versions lower"
-                echo "than that. Apply the patch only if you cannot start"
-                echo -e "barbeque due to mount errors.\n"
-                read -p "Continue anyway? [y/N] " ANS
+        echo "[WARNING] This is an experimental patch. Apply it only if you "
+        echo -e "cannot start barbeque due to mount errors.\n"
+        read -p "Continue anyway? [y/N] " ANS
 
-                [ "$ANS" != "y" ] && [ "$ANS" != "Y" ] && exit
-        fi
 fi
 
 cat /etc/systemd/system.conf | sed -r 's/.*JoinControllers.*/JoinControllers=cpu,cpuset,cpuacct,memory net_cls,net_prio/g' > systemdconf.bbque.tmp
@@ -32,7 +25,9 @@ if [ "$(cat systemdconf.bbque.diff)" == "" ]; then
         exit
 fi
 
-echo -e "\nProposed changes:\n"
+echo -e "\nIn order for the BarbequeRTRM and systemd to co-exist peacefully,"
+echo  "We propose the following changes in the systemd configuration file"
+echo -e "[/etc/systemd/system.conf ] :\n"
 cat systemdconf.bbque.diff
 echo -e "\n"
 
