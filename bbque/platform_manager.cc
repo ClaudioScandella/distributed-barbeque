@@ -345,9 +345,10 @@ PlatformManager::ExitCode_t PlatformManager::MapResources(
 	logger->Debug("Mapping: Resources binding includes %d systems", systems.Count());
 
 	bool is_local  = false;
-	bool is_remote = false;
 
 #ifdef CONFIG_BBQUE_DIST_MODE
+	bool is_remote = false;
+
 	// Check if application is local or remote.
 	for (int i = 0; i < systems.Count(); i++) {
 		if (systems.Test(i)) {
@@ -361,12 +362,12 @@ PlatformManager::ExitCode_t PlatformManager::MapResources(
 			}
 		}
 	}
-#else
-			is_local = true;
-#endif
 
 	// yes, obviously we need at least one type of resource
 	assert( is_local || is_remote );
+#else
+			is_local = true;
+#endif
 
 	// If the application was previously mapped, it means that it must have
 	// platform data loaded
