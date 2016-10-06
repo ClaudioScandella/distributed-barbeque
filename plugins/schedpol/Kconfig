@@ -22,6 +22,9 @@ choice
   config BBQUE_SCHEDPOL_DEFAULT_GRIDBALANCE
     bool "GridBalance"
     select BBQUE_SCHEDPOL_GRIDBALANCE
+  config BBQUE_SCHEDPOL_DEFAULT_PERDETEMP
+    depends on BBQUE_SCHEDPOL_PERDETEMP
+    bool "Perdetemp"
 ##NP
 
 endchoice
@@ -33,3 +36,4 @@ source barbeque/plugins/schedpol/cloves/Kconfig
 source barbeque/plugins/schedpol/tempura/Kconfig
 source barbeque/plugins/schedpol/scallop/Kconfig
 source barbeque/plugins/schedpol/gridbalance/Kconfig
+source barbeque/plugins/schedpol/perdetemp/Kconfig
