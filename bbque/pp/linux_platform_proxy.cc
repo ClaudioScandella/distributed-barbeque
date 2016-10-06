@@ -235,26 +235,65 @@ LinuxPlatformProxy::MapResources(AppPtr_t papp, ResourceAssignmentMapPtr_t pres,
 			return PLATFORM_MAPPING_FAILED;
 		}
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-		// Set cgroup setup data. It will be sent to the application
-		// CPU core set
-		br::ResourceBitset core_ids(br::ResourceBinder::GetMask(
-										pres, br::ResourceType::PROC_ELEMENT,
-										br::ResourceType::CPU, node_id, papp, rvt));
-		// Memory nodes
-		br::ResourceBitset mem_ids(br::ResourceBinder::GetMask(pres,
-								   br::ResourceType::PROC_ELEMENT,
-								   br::ResourceType::MEMORY, node_id, papp, rvt));
-		papp->SetCGroupSetupData(core_ids.ToULong(), mem_ids.ToULong());
-		logger->Warn("ulongs are %u %u", core_ids.ToULong(), mem_ids.ToULong());
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 		// Configure the CGroup based on resource bindings
 		SetupCGroup(pcgd, prlb, excl, true);
 	}
 	logger->Debug("PLAT LNX: CGroup resource mapping DONE!");
+
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+	logger->Debug("PLAT LNX: Distributed actuation: retrieving masks and ranking");
+
+	br::ResourceBitset proc_elements =
+	        br::ResourceBinder::GetMask(
+		pres,
+		br::ResourceType::PROC_ELEMENT,
+		br::ResourceType::CPU,
+		R_ID_ANY,
+		papp,
+		rvt);
+
+	br::ResourceBitset mem_nodes =
+	        br::ResourceBinder::GetMask(
+		pres,
+		br::ResourceType::MEMORY,
+		br::ResourceType::CPU,
+		R_ID_ANY,
+		papp,
+		rvt);
+
+
+	// Processing elements that have been allocated exclusively
+	br::ResourceBitset proc_elements_exclusive = proc_elements;
+	proc_elements_exclusive.Reset();
+
+	for (BBQUE_RID_TYPE pe_id = proc_elements.FirstSet();
+		 pe_id <= proc_elements.LastSet(); pe_id++) {
+
+		// Skip if this processing element is not allocated to this app
+		if (! proc_elements.Test(pe_id))
+			continue;
+
+		// Getting a reference to the resource status
+		std::string path = "sys.cpu.pe" + std::to_string(pe_id);
+		br::ResourcePtr_t resource = *(ra.GetResources(path).begin());
+
+		// If allocation is exclusive, set the bit
+		if(resource->ApplicationsCount(rvt) == 1)
+			proc_elements_exclusive.Set(pe_id);
+
+	}
+
+	logger->Debug("[%d] pes %s (isolated %s), mems %s",
+			papp->Pid(),
+			proc_elements.ToString().c_str(),
+			proc_elements_exclusive.ToString().c_str(),
+			mem_nodes.ToString().c_str());
+
+	papp->SetCGroupSetupData(proc_elements.ToULong(), mem_nodes.ToULong(), proc_elements_exclusive.ToULong());
+#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+
 	return PLATFORM_OK;
 }
-
 
 LinuxPlatformProxy::ExitCode_t
 LinuxPlatformProxy::GetResourceMapping(

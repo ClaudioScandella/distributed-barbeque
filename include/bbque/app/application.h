@@ -271,9 +271,11 @@ public:
 
 #ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	inline void SetCGroupSetupData(
-		unsigned long cpu_ids, unsigned long mem_ids)
+		unsigned long cpu_ids, unsigned long mem_ids,
+		unsigned long cpu_ids_isolation)
 	{
 		cgroup_data.cpu_ids = cpu_ids;
+		cgroup_data.cpus_ids_isolation = cpu_ids_isolation;
 		cgroup_data.mem_ids = mem_ids;
 	}
 

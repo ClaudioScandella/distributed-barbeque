@@ -151,10 +151,16 @@ CGroups::CGResult CGroups::Read(const char * cgroup_path, CGSetup & cgroup_data)
 			return CGResult::GET_FAILED;
 		}
 
+		char *cpuset_cpus;
+		char *cpuset_mems;
+
 		cgroup_get_value_string(cpuset_controller, "cpuset.cpus",
-								&cgroup_data.cpuset.cpus);
+						&cpuset_cpus);
 		cgroup_get_value_string(cpuset_controller, "cpuset.mems",
-								&cgroup_data.cpuset.mems);
+						&cpuset_mems);
+
+		cgroup_data.cpuset.cpus = std::string(cpuset_cpus);
+		cgroup_data.cpuset.mems = std::string(cpuset_mems);
 	}
 
 	if (mounts[CGC::CPU]) {
@@ -166,10 +172,16 @@ CGroups::CGResult CGroups::Read(const char * cgroup_path, CGSetup & cgroup_data)
 			return CGResult::GET_FAILED;
 		}
 
+		char *cpu_cfs_period_us;
+		char *cpu_cfs_quota_us;
+
 		cgroup_get_value_string(cpu_controller, "cpu.cfs_period_us",
-								&cgroup_data.cpu.cfs_period_us);
+						&cpu_cfs_period_us);
 		cgroup_get_value_string(cpu_controller, "cpu.cfs_quota_us",
-								&cgroup_data.cpu.cfs_quota_us);
+						&cpu_cfs_quota_us);
+
+		cgroup_data.cpu.cfs_period_us = std::string(cpu_cfs_period_us);
+		cgroup_data.cpu.cfs_quota_us = std::string(cpu_cfs_quota_us);
 	}
 
 	if (mounts[CGC::MEMORY]) {
@@ -181,8 +193,11 @@ CGroups::CGResult CGroups::Read(const char * cgroup_path, CGSetup & cgroup_data)
 			return CGResult::GET_FAILED;
 		}
 
+		char *mem_limit_in_bytes;
 		cgroup_get_value_string(memory_controller, "memory.limit_in_bytes",
-								&cgroup_data.memory.limit_in_bytes);
+						&mem_limit_in_bytes);
+
+		cgroup_data.memory.limit_in_bytes = std::string(mem_limit_in_bytes);
 	}
 
 	cgroup_free(&cgroup_handler);
@@ -217,8 +232,9 @@ CGroups::CGResult CGroups::WriteCgroup(
 
 	struct cgroup_controller * cpu_controller;
 
+	cpuset_controller = cgroup_add_controller(cgroup_handler, "cpuset");
+
 	if (mounts[CGC::CPUSET]) {
-		cpuset_controller = cgroup_add_controller(cgroup_handler, "cpuset");
 
 		if (! cpuset_controller) {
 			logger->Error("CGroups::WriteCgroup::cgroup_get_controller CPUSET [%s] FAILED",
@@ -227,9 +243,11 @@ CGroups::CGResult CGroups::WriteCgroup(
 		}
 
 		cgroup_set_value_string(cpuset_controller, "cpuset.cpus",
-								cgroup_data.cpuset.cpus);
+						cgroup_data.cpuset.cpus.c_str());
 		cgroup_set_value_string(cpuset_controller, "cpuset.mems",
-								cgroup_data.cpuset.mems);
+						cgroup_data.cpuset.mems.c_str());
+	} else {
+		cpuset_controller = cgroup_get_controller(cgroup_handler, "cpuset");
 	}
 
 	if (mounts[CGC::CPU]) {
@@ -242,9 +260,9 @@ CGroups::CGResult CGroups::WriteCgroup(
 		}
 
 		cgroup_set_value_string(cpu_controller, "cpu.cfs_period_us",
-								cgroup_data.cpu.cfs_period_us);
+						cgroup_data.cpu.cfs_period_us.c_str());
 		cgroup_set_value_string(cpu_controller, "cpu.cfs_quota_us",
-								cgroup_data.cpu.cfs_quota_us);
+						cgroup_data.cpu.cfs_quota_us.c_str());
 	}
 
 	if (mounts[CGC::MEMORY]) {
@@ -257,7 +275,7 @@ CGroups::CGResult CGroups::WriteCgroup(
 		}
 
 		cgroup_set_value_string(memory_controller, "memory.limit_in_bytes",
-								cgroup_data.memory.limit_in_bytes);
+						cgroup_data.memory.limit_in_bytes.c_str());
 	}
 
 	if (pid == 0) {

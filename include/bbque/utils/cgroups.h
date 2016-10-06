@@ -82,19 +82,19 @@ public:
 	struct CGSetup {
 		// CPUSET controller
 		struct {
-			char *cpus = nullptr;
-			char *mems = nullptr;
+			std::string cpus;
+			std::string mems;
 		} cpuset;
 		// CPU controller
 		struct {
-			char *cfs_period_us = nullptr;
-			char *cfs_quota_us  = nullptr;
+			std::string cfs_period_us;
+			std::string cfs_quota_us;
 #define CGSETUP_CPU_CFS_QUOTA_NOLIMITS "-1"
 		} cpu;
 		// MEMORY controller
 		struct {
 #define CGSETUP_MEMORY_NOLIMITS "18446744073709551615"
-			char *limit_in_bytes = nullptr;
+			std::string limit_in_bytes;
 		} memory;
 	};
 

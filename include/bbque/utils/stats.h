@@ -118,6 +118,11 @@ public:
 				? 0.0f : GetStandartDeviation() / std::sqrt(samples_number);
 	}
 
+	// CI 90%: 1.96 * standard error
+	inline double GetConfidenceInterval90() {
+		return 1.645 * GetStandardError();
+	}
+
 	// CI 95%: 1.96 * standard error
 	inline double GetConfidenceInterval95() {
 		return 1.96 * GetStandardError();

@@ -172,6 +172,10 @@ public:
 	RTLIB_ExitCode_t ForwardRuntimeProfile(
 		const RTLIB_EXCHandler_t exc_handler);
 
+	//TODO document me
+	RTLIB_ExitCode_t UpdateAllocation(
+		const RTLIB_EXCHandler_t exc_handler);
+
 	/**
 	 * @brief Set an explicit Goal Gap
 	 *
@@ -526,10 +530,24 @@ protected:
 		pAwmStats_t current_awm_stats;
 
 #ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-		struct CGroupSetupData {
-			unsigned long cpu_ids_ulong = 0;
-			unsigned long mem_ids_ulong = 0;
-		} cgroup_setup_data;
+		struct CGroupBudgetInfo {
+		    float cpu_budget_isolation = 0.0;
+		    float cpu_budget_shared = 0.0;
+		    std::string memory_limit_bytes;
+		    std::string cpuset_cpus_isolation;
+		    std::string cpuset_cpus_global;
+		    std::string cpuset_mems;
+		} cg_budget;
+		struct CGroupAllocationInfo {
+		    float cpu_budget = 0.0;
+		    std::string memory_limit_bytes;
+		    std::string cpuset_cpus;
+		    std::string cpuset_mems;
+		} cg_current_allocation;
+		struct RT_Profile {
+		    float cpu_goal_gap = 0.0f;
+		    bool rtp_forward = false;
+		} runtime_profiling;
 #endif
 
 		double mon_tstart = 0; // [ms] at the last monitoring start time
@@ -565,6 +583,7 @@ protected:
 		// Once a runtime profile has been forwarded to bbque, there is no need
 		// to send another one before a reconfiguration happens.
 		int waiting_sync_timeout_ms = 0;
+		bool is_waiting_for_sync = false;
 
 		/** Cycle of the last goal-gap assertion */
 		CpuUsageStats cpu_usage_info;
@@ -1002,7 +1021,7 @@ private:
 	/**
 	 * @brief Updates the CGroup of the specified EXC
 	 */
-	RTLIB_ExitCode_t CGroupUpdate(pRegisteredEXC_t exc);
+	RTLIB_ExitCode_t CGroupCommitAllocation(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief Log memory usage report

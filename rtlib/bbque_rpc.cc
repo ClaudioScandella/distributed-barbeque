@@ -881,7 +881,7 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCreate(pRegisteredEXC_t exc, int pid)
 	return RTLIB_OK;
 }
 
-RTLIB_ExitCode_t BbqueRPC::CGroupUpdate(pRegisteredEXC_t exc)
+RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 {
 	// Proceed only in case of cgroup support and dynamic assignment
 	if (! rtlib_configuration.cgroup_support.enabled ||
@@ -889,61 +889,72 @@ RTLIB_ExitCode_t BbqueRPC::CGroupUpdate(pRegisteredEXC_t exc)
 		return RTLIB_OK;
 
 #ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-	// Getting cpu ids, which are currently in the form of unsigned long.
-	// The unsigned long represents the assigned resource bitset,
-	// e.g. `9` means `1001`, i.e. cores 0 and 3
-	std::string cpus_str = "";
-
-	for (int core_id = 0; core_id < BBQUE_MAX_R_ID_NUM; core_id ++) {
-		if ( (1ll << core_id) & exc->cgroup_setup_data.cpu_ids_ulong) {
-			if (cpus_str != "")
-				cpus_str += ",";
-
-			cpus_str += std::to_string(core_id);
-		}
-	}
-
-	// Getting mem ids
-	std::string mems_str = "";
-
-	for (int mem_id = 0; mem_id < BBQUE_MAX_R_ID_NUM; mem_id ++) {
-		if ( (1ll << mem_id) & exc->cgroup_setup_data.mem_ids_ulong) {
-			if (mems_str != "")
-				mems_str += ",";
-
-			mems_str += std::to_string(mem_id);
-		}
-	}
 
 	bu::CGroups::CGSetup cgsetup;
 	const char * cgroup_path = exc->cgroup_path.c_str();
 	// Reading previous values
 	bu::CGroups::Read(cgroup_path, cgsetup);
-	// Computing cfs values according to new cpu bandwidth allocation
-	float    cycle_time_avg_us = 1000.0f *
-								 exc->cycletime_analyser_system.GetMean() / exc->jpc;
-	uint32_t cfs_period_us = std::min((uint32_t) MAX_ALLOWED_CFS_PERIOD,
-									  (uint32_t) cycle_time_avg_us);
 
-	if (cfs_period_us == 0) cfs_period_us = DEFAULT_CFS_PERIOD;
+	// CPUSET representing the allocated processing elements
+	logger->Debug("Updating cpuset.cpus: %s -> %s",
+		 cgsetup.cpuset.cpus.c_str(),
+		 exc->cg_current_allocation.cpuset_cpus.c_str());
 
-	uint32_t cfs_quota_us =
-		(uint32_t) ((double) exc->resource_assignment[0]->cpu_bandwidth / 100.0) *
-		cfs_period_us;
-	int32_t  memory_bandwidth = exc->resource_assignment[0]->mem_bandwidth;
-	char * cpu_ids = const_cast<char *> (cpus_str.c_str());
-	char * mem_ids = const_cast<char *> (mems_str.c_str());
-	char * cfs_per = const_cast<char *> (std::to_string(cfs_period_us).c_str());
-	char * cfs_qta = const_cast<char *> (std::to_string(cfs_quota_us).c_str());
-	char * mem_bwt = const_cast<char *> (std::to_string(memory_bandwidth).c_str());
-	cgsetup.cpuset.cpus = cpu_ids;
+	cgsetup.cpuset.cpus = exc->cg_current_allocation.cpuset_cpus;
 
-	if (mems_str != "") cgsetup.cpuset.mems = mem_ids;
+	// MEMS representing the allocated memory nodes, if any
+	if (exc->cg_current_allocation.cpuset_mems != "") {
+		logger->Debug("Updating cpuset.mems: %s -> %s",
+			cgsetup.cpuset.mems.c_str(),
+			 exc->cg_current_allocation.cpuset_mems.c_str());
 
-	cgsetup.cpu.cfs_period_us = cfs_per;
-	cgsetup.cpu.cfs_quota_us = cfs_qta;
+		cgsetup.cpuset.mems = exc->cg_current_allocation.cpuset_mems;
+	} else
+		logger->Debug("Keeping previous cpuset.mems value: %s",
+				cgsetup.cpuset.mems.c_str());
 
-	if (memory_bandwidth > 0) cgsetup.memory.limit_in_bytes = mem_bwt;
+
+	// CFS_PERIOD: the period over which cpu bandwidth. limit is enforced
+	uint32_t cycletime_mean_us = 1000u * exc->cycletime_analyser_system.GetMean();
+	if (cycletime_mean_us == 0 || cycletime_mean_us > MAX_ALLOWED_CFS_PERIOD)
+		cycletime_mean_us = DEFAULT_CFS_PERIOD;
+
+	logger->Debug("Updating cpu.cfs_period_us: %s to %u",
+		cgsetup.cpu.cfs_period_us.c_str(),
+		cycletime_mean_us);
+
+	cgsetup.cpu.cfs_period_us = std::to_string(cycletime_mean_us);
+
+	// CFS_quota: the enforced CPU bandwidth wrt the period
+	// note: getting rid of floats, here (multiplying by 100))
+	uint32_t cpu_allocation = 100u * exc->cg_current_allocation.cpu_budget;
+	uint32_t cfs_quota = cycletime_mean_us * cpu_allocation;
+	cfs_quota /= 100u;
+
+	logger->Debug("Updating cpu.cfs_quota_us: %s to %s",
+		cgsetup.cpu.cfs_quota_us.c_str(),
+		std::to_string(cfs_quota).c_str());
+
+	cgsetup.cpu.cfs_quota_us = std::to_string(cfs_quota);
+
+	// Memory limit in bytes
+	if (exc->cg_current_allocation.memory_limit_bytes != "") {
+		logger->Debug("Updating memory.limit_in_bytes: %s -> %s",
+			cgsetup.memory.limit_in_bytes.c_str(),
+			exc->cg_current_allocation.memory_limit_bytes.c_str());
+
+		cgsetup.memory.limit_in_bytes = exc->cg_current_allocation.memory_limit_bytes;
+	} else
+		logger->Debug("Keeping previous memory.limit_in_bytes value: %s",
+				cgsetup.memory.limit_in_bytes.c_str());
+
+
+	logger->Debug("Cgroup write: [pes %s] [mem %s - %s bytes] [cfs %s/%s]",
+		cgsetup.cpuset.cpus.c_str(),
+		cgsetup.cpuset.mems.c_str(),
+		cgsetup.memory.limit_in_bytes.c_str(),
+		cgsetup.cpu.cfs_quota_us.c_str(),
+		cgsetup.cpu.cfs_period_us.c_str());
 
 	bu::CGroups::WriteCgroup(cgroup_path, cgsetup, channel_thread_pid);
 #endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
@@ -1179,6 +1190,7 @@ void BbqueRPC::ResetRuntimeProfileStats(pRegisteredEXC_t exc)
 	exc->cpu_usage_info.reset_timestamp = true;
 	exc->cpu_usage_analyser.Reset();
 	exc->waiting_sync_timeout_ms = 0;
+	exc->is_waiting_for_sync = false;
 }
 
 RTLIB_ExitCode_t BbqueRPC::GetAssignedWorkingMode(
@@ -1686,10 +1698,6 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 	// Set the new required AWM (if not being blocked)
 	if (exc->event != RTLIB_EXC_GWM_BLOCKED) {
 		exc->current_awm_id = msg.awm;
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-		exc->cgroup_setup_data.cpu_ids_ulong = msg.cpu_ids;
-		exc->cgroup_setup_data.mem_ids_ulong = msg.mem_ids;
-#endif
 
 		for (uint16_t i = 0; i < systems.size(); i ++) {
 			pSystemResources_t tmp = std::make_shared<RTLIB_SystemResources_t>();
@@ -1705,6 +1713,120 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 #endif
 			exc->resource_assignment[i] = tmp;
 		}
+
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+
+	// Initializing budget info:
+	exc->cg_budget.cpuset_cpus_isolation = ""; // PEs allocated in isolation
+	exc->cg_budget.cpuset_cpus_global    = ""; // All the allocated PEs
+	exc->cg_budget.cpuset_mems           = ""; // Allocated mem nodes
+	exc->cg_budget.memory_limit_bytes    = ""; // Allocated memory bw (bytes)
+	exc->cg_budget.cpu_budget_isolation  = 0.0;
+	exc->cg_budget.cpu_budget_shared = 0.0;
+
+	unsigned long proc_elements = msg.cpu_ids;
+	unsigned long proc_elements_isolation = msg.cpu_ids_isolation;
+	unsigned long mem_nodes = msg.mem_ids;
+
+	////////////////////////////////////////////////////////////////////////
+	// Retrieving processing elements info /////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+
+	// All the proc elements that have been assigned to the application
+	for (int pe_id = 0; pe_id < BBQUE_MAX_R_ID_NUM; pe_id ++) {
+
+		// Skip if this processing element is NOT assigned to this app
+		if (! ((1ll << pe_id) & proc_elements))
+			continue;
+
+		// Adding the processing element id in the global control group
+		// setup string, which contains a comma-separated list of ids
+		exc->cg_budget.cpuset_cpus_global +=
+			(exc->cg_budget.cpuset_cpus_global == "")
+			? std::to_string(pe_id)
+			: "," + std::to_string(pe_id);
+	}
+
+	// Setting the global PE bandwidth as the global available one
+	exc->cg_budget.cpu_budget_shared =
+		(double) exc->resource_assignment[0]->cpu_bandwidth / 100.0f;
+
+	// Proc elements that have been EXCLUSIVELY assigned to application
+	for (int pe_id = 0; pe_id < BBQUE_MAX_R_ID_NUM; pe_id ++) {
+
+		// Skip if this processing element is NOT exclusively to this app
+		if (! ((1ll << pe_id) & proc_elements_isolation))
+			continue;
+
+		// Adding the processing element id in the global control group
+		// setup string, which contains a comma-separated list of ids
+		exc->cg_budget.cpuset_cpus_isolation +=
+			(exc->cg_budget.cpuset_cpus_isolation == "")
+			? std::to_string(pe_id)
+			: "," + std::to_string(pe_id);
+
+		exc->cg_budget.cpu_budget_isolation++;
+	}
+
+	// If one of the pes list is empty, it means that the proc elements
+	// are all either shared or isolated. Hence, there is only a valid list.
+	if (exc->cg_budget.cpuset_cpus_isolation == "")
+		exc->cg_budget.cpuset_cpus_isolation =
+			exc->cg_budget.cpuset_cpus_global;
+
+	if (exc->cg_budget.cpuset_cpus_global == "")
+		exc->cg_budget.cpuset_cpus_global =
+			exc->cg_budget.cpuset_cpus_isolation;
+
+	if (exc->cg_budget.cpu_budget_isolation > exc->cg_budget.cpu_budget_shared)
+		exc->cg_budget.cpu_budget_isolation = exc->cg_budget.cpu_budget_shared;
+
+	////////////////////////////////////////////////////////////////////////
+	// Retrieving memory nodes info ////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	for (int mem_id = 0; mem_id < BBQUE_MAX_R_ID_NUM; mem_id ++) {
+
+		// Skip if this memory node is NOT assigned to this app
+		if (! ((1ll << mem_id) & mem_nodes))
+			continue;
+
+		// Adding the memory node id in the global control group
+		// setup string, which contains a comma-separated list of ids
+		exc->cg_budget.cpuset_mems +=
+			(exc->cg_budget.cpuset_mems == "")
+			? std::to_string(mem_id)
+			: "," + std::to_string(mem_id);
+	}
+
+	// Setting the global memory bandwidth as the global available one
+	exc->cg_budget.memory_limit_bytes =
+		(exc->resource_assignment[0]->mem_bandwidth)
+		? std::to_string(exc->resource_assignment[0]->mem_bandwidth)
+		: "";
+
+	logger->Debug("New allocation: [PE shared - %s isolation - %s - bw %.2f "
+		"- %.2f] [mem: %s - %s bytes]]",
+		exc->cg_budget.cpuset_cpus_global.c_str(),
+		exc->cg_budget.cpuset_cpus_isolation.c_str(),
+		exc->cg_budget.cpu_budget_shared,
+		exc->cg_budget.cpu_budget_isolation,
+		(exc->cg_budget.cpuset_mems == "")
+			? "unchanged" : exc->cg_budget.cpuset_mems.c_str(),
+		exc->cg_budget.memory_limit_bytes.c_str());
+
+	if (exc->cycles_count == 0) {
+		// On first cycle, apply all the budget
+		exc->cg_current_allocation.cpu_budget =
+			exc->cg_budget.cpu_budget_shared;
+		exc->cg_current_allocation.cpuset_cpus =
+			exc->cg_budget.cpuset_cpus_global;
+		exc->cg_current_allocation.cpuset_mems =
+			exc->cg_budget.cpuset_mems;
+		exc->cg_current_allocation.memory_limit_bytes =
+			exc->cg_budget.memory_limit_bytes;
+	}
+
+#endif
 
 		logger->Info("SyncP_1 (Pre-Change) EXC [%d], Action [%d], Assigned AWM [%d]",
 					 msg.hdr.exc_id, msg.event, msg.awm);
@@ -1912,6 +2034,172 @@ RTLIB_ExitCode_t BbqueRPC::ClearAWMConstraints(
 	return RTLIB_OK;
 }
 
+RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
+	const RTLIB_EXCHandler_t exc_handler)
+{
+	// Get the execution context ///////////////////////////////////////////////
+	pRegisteredEXC_t exc;
+	assert(exc_handler);
+	exc = getRegistered(exc_handler);
+
+	if (! exc) {
+		logger->Error("[%p] RTP forward FAILED (EXC not registered)",
+					  (void *) exc_handler);
+		return RTLIB_EXC_NOT_REGISTERED;
+	}
+
+	// Check SKIP conditions ///////////////////////////////////////////////
+
+	// Allocation is not changed if there are not enough samples to compute
+	// meaningful statistics
+	if (exc->cycletime_analyser_system.GetWindowSize() == 0) {
+		logger->Debug("UpdateAllocation: No samples to analyse. SKIPPING.");
+		return RTLIB_OK;
+	}
+
+	float goal_gap = 0.0f;
+	exc->runtime_profiling.cpu_goal_gap = 0.0f;
+
+	// Compute Goal Gap ////////////////////////////////////////////////////
+	if (exc->cps_goal_min + exc->cps_goal_max > 0.0f && ! exc->explicit_ggap_assertion) {
+		// Milliseconds per cycle
+		float avg_cycletime_ms = exc->cycletime_analyser_system.GetMean();
+		float min_cycletime_ms = avg_cycletime_ms - exc->cycletime_analyser_system.GetConfidenceInterval99();
+		float max_cycletime_ms = avg_cycletime_ms + exc->cycletime_analyser_system.GetConfidenceInterval99();
+
+		if (avg_cycletime_ms == 0.0f) {
+			logger->Warn("Cycle time computation not available. Skipping.");
+			return RTLIB_OK;
+		}
+
+		float cps_avg = 1000.0f / avg_cycletime_ms;
+		float cps_min = 1000.0f / max_cycletime_ms;
+		float cps_max = 1000.0f / min_cycletime_ms;
+
+		// In case of jpc API usage, cps must be multiplied by the
+		// number of processed jobs per cycle
+		cps_avg *= exc->jpc;
+		cps_min *= exc->jpc;
+		cps_max *= exc->jpc;
+
+		float target_cps;
+		float current_cps;
+		bool  bad_allocation = false;
+
+		if (exc->cps_goal_min == exc->cps_goal_max) {
+			// There isn't a max CPS goal
+			target_cps = exc->cps_goal_min;
+			current_cps = cps_min;
+			bad_allocation = current_cps < target_cps;
+		} else if (exc->cps_goal_min == 0) {
+			// There isn't a min CPS goal
+			target_cps = exc->cps_goal_max;
+			current_cps = cps_max;
+			bad_allocation = current_cps > target_cps;
+		} else {
+			target_cps =
+				0.5f * (exc->cps_goal_min + exc->cps_goal_max);
+			current_cps = cps_avg;
+			bad_allocation =
+				(current_cps < exc->cps_goal_min) ||
+				(current_cps > exc->cps_goal_max);
+		}
+
+		if (bad_allocation) {
+			// Goal gap [%] = (real performance - ideal performance) / ideal performance
+			goal_gap = (current_cps - target_cps) / target_cps;
+			// Constraining gap to avoid harsh allocation changes:
+			// Never request less than half the budget
+			goal_gap = std::max(-0.33f, goal_gap);
+		}
+
+		logger->Debug("Performance goal gap is %f", 100.0f * goal_gap);
+
+	} else if (exc->explicit_ggap_assertion){
+		goal_gap = exc->explicit_ggap_value;
+		exc->explicit_ggap_assertion = false;
+		exc->explicit_ggap_value = 0.0;
+		logger->Debug("Performance goal gap (EXPLICIT) is %f", 100.0f * goal_gap);
+	} else
+		return RTLIB_OK;
+
+	// Real CPU usage according to the statistical analysis
+	float avg_cpu_usage = exc->cpu_usage_analyser.GetMean();
+	float ideal_cpu_usage = avg_cpu_usage / (1.0f + goal_gap);
+
+	// Use Goal Gap to change Allocation ///////////////////////////////////
+	if (goal_gap != 0.0f) {
+		if (ideal_cpu_usage == 0.0f) {
+			logger->Debug("CPU quota computation not available. Skipping.");
+			return RTLIB_OK;
+		}
+
+		logger->Debug("Updating CPU allocation: %f -> %f",
+					avg_cpu_usage, ideal_cpu_usage);
+
+		// Actuate the ideal_allocation choice
+		if (ideal_cpu_usage / 100.0f > exc->cg_budget.cpu_budget_shared)
+			logger->Debug("Total budget: SATURATION");
+
+		exc->cg_current_allocation.cpu_budget =
+			std::min(ideal_cpu_usage / 100.0f, exc->cg_budget.cpu_budget_shared);
+		exc->cg_current_allocation.cpuset_cpus =
+			(exc->cg_current_allocation.cpu_budget <= exc->cg_budget.cpu_budget_isolation)
+			? exc->cg_budget.cpuset_cpus_isolation
+			: exc->cg_budget.cpuset_cpus_global;
+
+		logger->Debug("Applying CGroup configuration: CPU %.2f/%.2f",
+			100.0f * exc->cg_current_allocation.cpu_budget,
+			100.0f * exc->cg_budget.cpu_budget_shared);
+		CGroupCommitAllocation(exc);
+	}
+
+	// Check that I have enough samples for CPU stats computing
+	if (exc->cpu_usage_analyser.GetWindowSize() < 10) {
+		logger->Debug("Not enough samples to compute CPU usage stats.");
+		return RTLIB_OK;
+	}
+
+	// Set Runtime Profile Forwarding flag if saturated ////////////////////
+	// Reset the flag
+	exc->runtime_profiling.rtp_forward = false;
+	// CPU usage for the next cycle will be less than this value with 90% probability
+	float cpu_usage_90 = ideal_cpu_usage +
+		exc->cpu_usage_analyser.GetConfidenceInterval90();
+	// CPU usage for the next cycle will be less than this value with 99% probability
+	float cpu_usage_99 = ideal_cpu_usage +
+		exc->cpu_usage_analyser.GetConfidenceInterval99();
+
+
+	// Maximum CPU usage as decreed by the BarbequeRTRM
+	float cpu_usage_budget = 100.0f * exc->cg_budget.cpu_budget_shared;
+
+	// I want the CPU budget to be enough from 90 to 95% of the time
+	if (cpu_usage_budget > cpu_usage_99 && goal_gap >= 0.0f) {
+		logger->Debug("CPU budget too high: should be %f but it is %f",
+			cpu_usage_99, cpu_usage_budget);
+		exc->runtime_profiling.rtp_forward = true;
+		exc->runtime_profiling.cpu_goal_gap = 100.0f *
+			(cpu_usage_budget - cpu_usage_99) / cpu_usage_99;
+	} else if (cpu_usage_budget < cpu_usage_90) {
+		logger->Debug("CPU budget too low: should be %f but it is %f",
+			cpu_usage_90, cpu_usage_budget);
+		exc->runtime_profiling.rtp_forward = true;
+		exc->runtime_profiling.cpu_goal_gap = 100.0f *
+			(cpu_usage_budget - cpu_usage_90) / cpu_usage_90;
+	}
+
+	logger->Debug("CPU budget goal gap is %f",
+		exc->runtime_profiling.cpu_goal_gap);
+
+	// Constraining gap to avoid harsh allocation changes:
+	// Never request less than half the budget
+	exc->runtime_profiling.cpu_goal_gap =
+		std::max(-33.3f, exc->runtime_profiling.cpu_goal_gap);
+
+return RTLIB_OK;
+}
+
 RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	const RTLIB_EXCHandler_t exc_handler)
 {
@@ -1927,116 +2215,42 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	}
 
 	// Check SKIP conditions ///////////////////////////////////////////////////
-	if (exc->cycletime_analyser_system.GetWindowSize() == 0) {
-		logger->Warn("No samples to analyse. SKIPPING");
-		return RTLIB_OK;
-	}
 
-	// Forward is inhibited for some ms after a new allocation arrived
-	int ms_from_last_reconfiguration = exc->cycletime_analyser_user.GetSum();
+	// Ggap computing is inhibited for some ms when the application is
+	// assigned a new set of resources
+	int ms_from_last_allocation = exc->cycletime_analyser_user.GetSum();
 
-	if (ms_from_last_reconfiguration <
-		rtlib_configuration.runtime_profiling.rt_profile_rearm_time_ms) {
-		logger->Debug("RTP forward SKIPPED (inhibited for %d more ms)",
+	if (ms_from_last_allocation <
+		rtlib_configuration.runtime_profiling.rt_profile_rearm_time_ms
+		&& exc->is_waiting_for_sync) {
+		logger->Info("RTP forward SKIPPED (inhibited for %d more ms)",
 					  rtlib_configuration.runtime_profiling.rt_profile_rearm_time_ms -
-					  ms_from_last_reconfiguration);
+					  ms_from_last_allocation);
 		return RTLIB_OK;
 	}
+
+	exc->is_waiting_for_sync = false;
 
 	// Forward is inhibited for some ms after a RTP has been forwarded.
 	exc->waiting_sync_timeout_ms -= exc->cycletime_analyser_user.GetLastValue();
 
 	if (exc->waiting_sync_timeout_ms > 0) {
-		logger->Debug("RTP forward SKIPPED (waiting sync for %d more ms)",
+		logger->Info("RTP forward SKIPPED (waiting sync for %d more ms)",
 					  exc->waiting_sync_timeout_ms);
 		return RTLIB_OK;
 	}
 
-	exc->waiting_sync_timeout_ms = 0;
-	// Computing RTP ///////////////////////////////////////////////////////////
-	float goal_gap = 0.0f;
-	// CPU allocation according to the resource manager. Thanks to Control
-	// Groups, the real CPU usage cannot be higher than this value
-	int32_t cpu_allocation = 0;
-
-	// CPU allocation for each system
-	for (auto system : exc->resource_assignment) {
-		auto resource_allocation = system.second;
-		cpu_allocation += resource_allocation->cpu_bandwidth;
-	}
-
 	// Real CPU usage according to the statistical analysis
-	float cpu_usage = std::max(cpu_allocation,
-							   (int32_t) (exc->cpu_usage_analyser.GetMean() +
-										  exc->cpu_usage_analyser.GetConfidenceInterval99()));
-	bool compute_ggap = true;
-
-	// The application can assert an explicit goal gap value.
-	// In this case, goal gap is not computed: I use the asserted one.
-	if (exc->explicit_ggap_assertion) {
-		goal_gap = exc->explicit_ggap_value;
-		exc->explicit_ggap_assertion = false;
-		exc->explicit_ggap_value = 0.0;
-		compute_ggap = false;
-	}
-
-	// If the application didn't declare a cps goal, the goal gap is always 0.0
-	if (exc->cps_goal_min + exc->cps_goal_max == 0.0f)
-		compute_ggap = false;
-
-	float cycle_time_avg_ms = exc->cycletime_analyser_system.GetMean() / exc->jpc;
-	float cycle_time_ic99_ms =
+	float cpu_usage = 100.0f * exc->cg_budget.cpu_budget_shared;
+	float goal_gap = exc->runtime_profiling.cpu_goal_gap;
+	float cycle_time_avg_ms = exc->cycletime_analyser_system.GetMean() +
 		exc->cycletime_analyser_system.GetConfidenceInterval99();
-	logger->Debug("COMPUTING GGAP. cycle_time_avg_ms: %f", cycle_time_avg_ms);
 
-	if (compute_ggap == true) {
-		// Cycles Per Second = 1 [s] / cycle_time [s]
-		float cps_avg = 1000.0 / cycle_time_avg_ms;
-		float cps_min = 1000.0 / (cycle_time_avg_ms + cycle_time_ic99_ms);
-		float cps_max = 1000.0 / (cycle_time_avg_ms - cycle_time_ic99_ms);
-		logger->Debug("CPS: %.2f, with IC99: [%.2f, %.2f]", cps_avg, cps_min, cps_max);
-		// Checking if the real CPS is compliant with the declared one
-		bool high_performance = (cps_max > exc->cps_goal_max);
-		bool low_performance = (cps_min < exc->cps_goal_max);
-		// Goal gap [%] = (real performance - ideal performance) / ideal performance
-		float ideal_performance = 1.0f;
-		float real_performance = 1.0f;
-
-		if (high_performance && low_performance) {
-			logger->Debug("CPS status: good performance, high variance.");
-		}
-		else if (high_performance) {
-			// Performance is too high
-			ideal_performance = exc->cps_goal_max;
-			real_performance = cps_max;
-			logger->Debug("CPS status: high performance.");
-		}
-		else if (low_performance) {
-			// Performance is too low
-			ideal_performance = exc->cps_goal_min;
-			real_performance = cps_min;
-			logger->Debug("CPS status: low performance.");
-		}
-		else {
-			logger->Debug("CPS status: ideal performance.");
-		}
-
-		goal_gap = ((real_performance - ideal_performance) / ideal_performance) * 100.0;
-	}
-
-	// If goal gap is ~ 0 and CPU quota is ~ the allocated one, do not forward
-	if (std::abs(goal_gap) < 1.0f
-		&& cpu_usage > 0.99 * cpu_allocation)
-		return RTLIB_OK;
-
-	// RTP forwarding //////////////////////////////////////////////////////////
-
-	// If complaining about performance, inhibit RTP forward for some ms
-	if (goal_gap != 0.0f)
-		exc->waiting_sync_timeout_ms =
+	exc->waiting_sync_timeout_ms =
 			rtlib_configuration.runtime_profiling.rt_profile_wait_for_sync_ms;
+	exc->is_waiting_for_sync = true;
 
-	logger->Warn("[%p:%s] Profile notification : {Gap: %.2f, CPU: "
+	logger->Debug("[%p:%s] Profile notification : {Gap: %.2f, CPU: "
 				 "%.2f, CTime: %.2f ms}", (void *) exc_handler, exc->name.c_str(),
 				 goal_gap, cpu_usage, cycle_time_avg_ms);
 	// Forward the RTP
@@ -3120,9 +3334,6 @@ void BbqueRPC::NotifyPreConfigure(
 	logger->Debug("NotifyPreConfigure - OCL Device: %d", local_sys->ocl_device_id);
 	OclSetDevice(local_sys->ocl_device_id, exc->event);
 #endif
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-	CGroupUpdate(exc);
-#endif
 }
 
 void BbqueRPC::NotifyPostConfigure(
@@ -3152,6 +3363,11 @@ void BbqueRPC::NotifyPostConfigure(
 	// Clear pre-run OpenCL command events
 	OclClearStats();
 #endif
+
+	if (exc->cycles_count == 0) {
+		logger->Debug("First cycle: applying all resource budget.");
+		CGroupCommitAllocation(exc);
+	}
 }
 
 void BbqueRPC::NotifyPreRun(
@@ -3282,9 +3498,19 @@ void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler)
 	if (exc->cps_expected != 0)
 		ForceCPS(exc);
 
-	// Forward runtime statistics to the BarbequeRTRM
-	if (! rtlib_configuration.unmanaged.enabled)
+	if (rtlib_configuration.unmanaged.enabled)
+		return;
+
+	// Compute the ideal resource allocation for the application,
+	// given its history
+	UpdateAllocation(exc_handler);
+
+	// Check is there is a goal gap
+	if (abs(exc->runtime_profiling.cpu_goal_gap) > 1.0f) {
+		logger->Debug("Goal gap forwarding (ggap %f)", exc->runtime_profiling.cpu_goal_gap);
 		ForwardRuntimeProfile(exc_handler);
+	} else
+		logger->Debug("No goal gap forwarding (ggap 0)");
 }
 
 #ifdef CONFIG_BBQUE_OPENCL
