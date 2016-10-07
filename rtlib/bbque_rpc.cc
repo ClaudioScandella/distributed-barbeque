@@ -916,7 +916,7 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 
 	// CFS_PERIOD: the period over which cpu bandwidth. limit is enforced
 	uint32_t cycletime_mean_us = 1000u * exc->cycletime_analyser_system.GetMean();
-	if (cycletime_mean_us == 0 || cycletime_mean_us > MAX_ALLOWED_CFS_PERIOD)
+	//if (cycletime_mean_us == 0 || cycletime_mean_us > MAX_ALLOWED_CFS_PERIOD)
 		cycletime_mean_us = DEFAULT_CFS_PERIOD;
 
 	logger->Debug("Updating cpu.cfs_period_us: %s to %u",
