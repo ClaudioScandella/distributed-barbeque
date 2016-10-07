@@ -48,7 +48,6 @@ typedef std::shared_ptr<WorkingMode> AwmPtr_t;
 /** List of WorkingMode pointers */
 typedef std::list<AwmPtr_t> AwmPtrList_t;
 
-
 /**
  * @brief Provide interfaces to query application information
  *
@@ -390,10 +389,8 @@ public:
 
 	/**
 	 * @brief SetRuntime Profile information for this app
-	 * @brief Return the current value for the Goal-Gap
 	 */
 	virtual void SetRuntimeProfile(struct RuntimeProfiling_t rt_profile) = 0;
-	virtual int GetGoalGap() const = 0;
 
 	/**
 	 * @brief Statics about a specific resource usage requirement

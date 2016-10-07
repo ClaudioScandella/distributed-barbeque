@@ -1053,22 +1053,6 @@ void Application::ClearWorkingModeConstraints() {
 			awms.enabled_list.size());
 }
 
-Application::ExitCode_t Application::SetGoalGap(int percent) {
-	// A Goal-Gap could be assigned only for applications already running
-	if (State() != RUNNING) {
-		logger->Warn("SetGoalGap [%d] on EXC [%s] FAILED "
-				"(Error: EXC not running)",
-				percent, StrId());
-		return APP_ABORT;
-	}
-
-	ggap_percent = percent;
-
-	logger->Info("Setting Goal-Gap [%d] for EXC [%s]", ggap_percent, StrId());
-
-	return APP_SUCCESS;
-}
-
 void Application::RebuildEnabledWorkingModes() {
 	// Clear the list
 	awms.enabled_list.clear();

@@ -486,11 +486,6 @@ public:
 	inline void SetRuntimeProfile(struct RuntimeProfiling_t rt_profile) {
 		std::unique_lock<std::mutex> rt_profile_lock(rt_prof_access);
 		rt_prof = rt_profile;
-	/**
-	 * @brief Return the current value for the Goal-Gap
-	 */
-	inline int GetGoalGap() const {
-		return ggap_percent;
 	}
 
 	/**
@@ -577,8 +572,6 @@ private:
 	 */
 	RuntimeProfiling_t rt_prof;
 	std::mutex rt_prof_access;
-	/** The current Goal-Gap value, must be in [-100,100] */
-	int ggap_percent = 0;
 
 	/**
 	 * Platform Specifica Data properly initialized
