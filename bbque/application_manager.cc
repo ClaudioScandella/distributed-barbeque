@@ -1332,13 +1332,43 @@ ApplicationManager::SetGoalGapEXC(AppPtr_t papp, int gap) {
 		return AM_RESCHED_REQUIRED;
 	}
 
+
+ApplicationManager::ExitCode_t
+ApplicationManager::GetRuntimeProfile(AppPtr_t papp,
+		struct app::RuntimeProfiling_t &profile) {
+	profile = papp->GetRuntimeProfile();
 	return AM_SUCCESS;
 }
 
 ApplicationManager::ExitCode_t
+ApplicationManager::SetRuntimeProfile(AppPtr_t papp,
+		struct app::RuntimeProfiling_t profile) {
+	papp->SetRuntimeProfile(profile);
+	return AM_SUCCESS;
+}
+
+ApplicationManager::ExitCode_t
+ApplicationManager::GetRuntimeProfile(
+		AppPid_t pid, uint8_t exc_id, struct app::RuntimeProfiling_t &profile) {
 ApplicationManager::SetGoalGapEXC(AppPid_t pid, uint8_t exc_id, int gap) {
 	AppPtr_t papp;
+	// Find the required EXC
+	papp = GetApplication(Application::Uid(pid, exc_id));
+	if (!papp) {
+		logger->Warn("Get Runtime Profile for EXC [%d:*:%d] FAILED "
+				"(Error: EXC not found)");
+		assert(papp);
+		return AM_EXC_NOT_FOUND;
+	}
 
+	// Set constraints for this EXC
+	return GetRuntimeProfile(papp, profile);
+}
+
+ApplicationManager::ExitCode_t
+ApplicationManager::SetRuntimeProfile(
+		AppPid_t pid, uint8_t exc_id, struct app::RuntimeProfiling_t profile) {
+	AppPtr_t papp;
 	// Find the required EXC
 	papp = GetApplication(Application::Uid(pid, exc_id));
 	if (!papp) {
@@ -1351,7 +1381,66 @@ ApplicationManager::SetGoalGapEXC(AppPid_t pid, uint8_t exc_id, int gap) {
 	// Set constraints for this EXC
 	return SetGoalGapEXC(papp, gap);
 
+ApplicationManager::ExitCode_t
+ApplicationManager::SetRuntimeProfile(
+		AppPid_t pid, uint8_t exc_id, int gap, int cusage, int ctime_ms) {
+	ExitCode_t result;
+	// Getting current runtime profile information
+	struct app::RuntimeProfiling_t rt_prof;
+	result = GetRuntimeProfile(pid, exc_id, rt_prof);
+	if (result != AM_SUCCESS)
+		return AM_ABORT;
+
+	// Updating runtime information with the received values
+	rt_prof.ggap_percent_prev = rt_prof.ggap_percent;
+	rt_prof.measured_cpu_usage_prev = rt_prof.measured_cpu_usage;
+	rt_prof.ggap_percent = gap;
+	rt_prof.measured_cpu_usage = cusage;
+	rt_prof.ctime_ms = ctime_ms;
+	rt_prof.is_valid = true;
+
+	if (rt_prof.ggap_percent < 0) {
+		// updating lower boundary level
+		rt_prof.allocation_feedback.cpu_reaction_lower =
+				{rt_prof.measured_cpu_usage, rt_prof.ggap_percent};
+		// Updating boundaries eta
+		rt_prof.allocation_feedback.cpu_reaction_age.first = 0;
+
+		if (rt_prof.allocation_feedback.cpu_reaction_age.second >= 0) {
+			if (rt_prof.allocation_feedback.cpu_reaction_lower.first >=
+					rt_prof.allocation_feedback.cpu_reaction_upper.first)
+				rt_prof.allocation_feedback.cpu_reaction_age.second = -1;
+			else
+				rt_prof.allocation_feedback.cpu_reaction_age.second ++;
+		}
+	} else {
+		// updating upper boundary level
+		rt_prof.allocation_feedback.cpu_reaction_upper =
+				{rt_prof.measured_cpu_usage, rt_prof.ggap_percent};
+		// Updating boundaries eta
+		rt_prof.allocation_feedback.cpu_reaction_age.second = 0;
+
+		if (rt_prof.allocation_feedback.cpu_reaction_age.first >= 0) {
+			if (rt_prof.allocation_feedback.cpu_reaction_lower.first >=
+					rt_prof.allocation_feedback.cpu_reaction_upper.first)
+				rt_prof.allocation_feedback.cpu_reaction_age.first = -1;
+			else
+				rt_prof.allocation_feedback.cpu_reaction_age.first ++;
+		}
+	}
+
+	// Checking if a new schedule is needed
+	result = AnalyseRuntimeProfile(pid, exc_id, rt_prof);
+
+	if (result == AM_ABORT)
+		return AM_ABORT;
+
+	// Saving the new values for the application
+	SetRuntimeProfile(pid, exc_id, rt_prof);
+	return result;
 }
+
+
 /*******************************************************************************
  *  EXC Enabling
  ******************************************************************************/

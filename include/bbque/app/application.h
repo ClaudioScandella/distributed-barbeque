@@ -60,6 +60,36 @@ typedef std::shared_ptr<Recipe> RecipePtr_t;
 /** Pair contained in the resource constraints map  */
 typedef std::pair<br::ResourcePathPtr_t, ConstrPtr_t> ConstrPair_t;
 
+/**
+ * @brief Collect the runtime profiling data from the RTLib
+ */
+struct RuntimeProfiling_t {
+	bool is_valid = false;
+
+	/** The current Goal-Gap value, must be in [-100,100] */
+	int ggap_percent = 0;
+	int ggap_percent_prev = 0;
+	int ggap_percent_expected = 0;
+
+	struct {
+		std::pair<int, int> cpu_reaction_upper = {-1 , -1}; // Res Alloc, GGap
+		std::pair<int, int> cpu_reaction_lower = {-1 , -1}; // Res Alloc, GGap
+		std::pair<int, int> cpu_reaction_age = {-1, -1};
+	} allocation_feedback;
+
+	/** The current CPU Usage of an application. It should be received as a
+	 * feedback from the rtlib. */
+	int measured_cpu_usage = 0;
+	int measured_cpu_usage_prev = 0;
+
+	int ctime_ms = 0;
+
+	/** The maximum CPU Usage allocated to an application. It should be
+	 * set by the scheduling policy and optionally compared with the variable
+	 * `measured_cpu_usage` */
+	int expected_cpu_usage = 0;
+	int expected_cpu_usage_prev = 0;
+};
 
 /**
  * @class ApplicationConfIF
@@ -441,18 +471,21 @@ public:
 	 */
 	void ClearWorkingModeConstraints();
 
-	/**
-	 * @brief Set the current Goal-Gap
-	 *
-	 * Once an application has an assigned AWM it expect a certain QoS.
-	 * If the expected QoS value could not be reached, the application
-	 * could assert a Goal Gap which could than used by a scheduling
-	 * policy to sponsor the selection of an higher value AWM.
-	 *
-	 * @param percent the asserted GoalGap value, 0 to reset the Goal Gap.
-	 */
-	ExitCode_t SetGoalGap(int percent);
+	inline RuntimeProfiling_t GetRuntimeProfile(
+			bool mark_acknowledged = false) {
 
+		std::unique_lock<std::mutex> rt_profile_lock(rt_prof_access);
+		RuntimeProfiling_t data = rt_prof;
+
+		if (mark_acknowledged)
+			rt_prof.is_valid = false;
+
+		return data;
+	}
+
+	inline void SetRuntimeProfile(struct RuntimeProfiling_t rt_profile) {
+		std::unique_lock<std::mutex> rt_profile_lock(rt_prof_access);
+		rt_prof = rt_profile;
 	/**
 	 * @brief Return the current value for the Goal-Gap
 	 */
@@ -539,6 +572,11 @@ private:
 	/** Current scheduling informations */
 	SchedulingInfo_t schedule;
 
+	/**
+	 * @brief Store profiling information collected at runtime
+	 */
+	RuntimeProfiling_t rt_prof;
+	std::mutex rt_prof_access;
 	/** The current Goal-Gap value, must be in [-100,100] */
 	int ggap_percent = 0;
 

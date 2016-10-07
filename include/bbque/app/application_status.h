@@ -378,8 +378,21 @@ public:
 	virtual AwmPtr_t const & HighValueAWM() = 0;
 
 	/**
+	 * @brief Get Runtime Profile information for this app
+	 *
+	 * @param mark_outdated if true, mark runtime profile as outdated, aka
+	 * already read and not useful anymore
+	 *
+	 * @return runtime information collected during app execution
+	 */
+	virtual struct RuntimeProfiling_t GetRuntimeProfile(
+			bool mark_outdated = false) = 0;
+
+	/**
+	 * @brief SetRuntime Profile information for this app
 	 * @brief Return the current value for the Goal-Gap
 	 */
+	virtual void SetRuntimeProfile(struct RuntimeProfiling_t rt_profile) = 0;
 	virtual int GetGoalGap() const = 0;
 
 	/**
