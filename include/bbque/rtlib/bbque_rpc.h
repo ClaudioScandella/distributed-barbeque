@@ -592,9 +592,9 @@ protected:
 		RegisteredExecutionContext(const char * _name, uint8_t id) :
 			name(_name), id(id)
 		{
-			cycletime_analyser_system.EnablePhaseDetection();
-			cycletime_analyser_user.EnablePhaseDetection();
-			cpu_usage_analyser.EnablePhaseDetection();
+			//cycletime_analyser_system.EnablePhaseDetection();
+			//cycletime_analyser_user.EnablePhaseDetection();
+			//cpu_usage_analyser.EnablePhaseDetection();
 		}
 
 		~RegisteredExecutionContext()
