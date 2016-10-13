@@ -544,11 +544,11 @@ protected:
 		    std::string cpuset_cpus;
 		    std::string cpuset_mems;
 		} cg_current_allocation;
+#endif
 		struct RT_Profile {
 		    float cpu_goal_gap = 0.0f;
 		    bool rtp_forward = false;
 		} runtime_profiling;
-#endif
 
 		double mon_tstart = 0; // [ms] at the last monitoring start time
 

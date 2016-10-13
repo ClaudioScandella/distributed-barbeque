@@ -2048,24 +2048,26 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		return RTLIB_EXC_NOT_REGISTERED;
 	}
 
+	// Init ggap info
+	float goal_gap = 0.0f;
+	exc->runtime_profiling.cpu_goal_gap = 0.0f;
+
 	// Check SKIP conditions ///////////////////////////////////////////////
 
 	// Allocation is not changed if there are not enough samples to compute
 	// meaningful statistics
-	if (exc->cycletime_analyser_system.GetWindowSize() == 0) {
+	float cycletime_ic99 = exc->cycletime_analyser_system.GetConfidenceInterval99();
+	if (exc->cycletime_analyser_system.GetWindowSize() == 0 || cycletime_ic99 == 0) {
 		logger->Debug("UpdateAllocation: No samples to analyse. SKIPPING.");
 		return RTLIB_OK;
 	}
-
-	float goal_gap = 0.0f;
-	exc->runtime_profiling.cpu_goal_gap = 0.0f;
 
 	// Compute Goal Gap ////////////////////////////////////////////////////
 	if (exc->cps_goal_min + exc->cps_goal_max > 0.0f && ! exc->explicit_ggap_assertion) {
 		// Milliseconds per cycle
 		float avg_cycletime_ms = exc->cycletime_analyser_system.GetMean();
-		float min_cycletime_ms = avg_cycletime_ms - exc->cycletime_analyser_system.GetConfidenceInterval99();
-		float max_cycletime_ms = avg_cycletime_ms + exc->cycletime_analyser_system.GetConfidenceInterval99();
+		float min_cycletime_ms = avg_cycletime_ms - cycletime_ic99;
+		float max_cycletime_ms = avg_cycletime_ms + cycletime_ic99;
 
 		if (avg_cycletime_ms == 0.0f) {
 			logger->Warn("Cycle time computation not available. Skipping.");
@@ -2123,9 +2125,16 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	} else
 		return RTLIB_OK;
 
+#ifndef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+	// If CGroup handling happens at global resource manager level,
+	// Just set the goal gap. It willb e forwarded to bbque and used
+	// to change allocation.
+	exc->runtime_profiling.cpu_goal_gap = 100.0f * goal_gap;
+#else
 	// Real CPU usage according to the statistical analysis
 	float avg_cpu_usage = exc->cpu_usage_analyser.GetMean();
 	float ideal_cpu_usage = avg_cpu_usage / (1.0f + goal_gap);
+
 
 	// Use Goal Gap to change Allocation ///////////////////////////////////
 	if (goal_gap != 0.0f) {
@@ -2196,6 +2205,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	// Never request less than half the budget
 	exc->runtime_profiling.cpu_goal_gap =
 		std::max(-33.3f, exc->runtime_profiling.cpu_goal_gap);
+#endif
 
 return RTLIB_OK;
 }
@@ -2241,7 +2251,11 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	}
 
 	// Real CPU usage according to the statistical analysis
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	float cpu_usage = 100.0f * exc->cg_budget.cpu_budget_shared;
+#else
+	float cpu_usage = 100.0f *  exc->resource_assignment[0]->cpu_bandwidth / 100.0f;
+#endif
 	float goal_gap = exc->runtime_profiling.cpu_goal_gap;
 	float cycle_time_avg_ms = exc->cycletime_analyser_system.GetMean() +
 		exc->cycletime_analyser_system.GetConfidenceInterval99();
