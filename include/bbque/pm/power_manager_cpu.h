@@ -142,6 +142,7 @@ protected:
 
 	/*** Mapping processing elements / CPU cores */
 	std::map<int,int> core_ids;
+	std::map<int,int> socket_ids;
 
 	/*** Mapping system CPU cores to thermal sensors path */
 	std::map<int, std::shared_ptr<std::string>> core_therms;
