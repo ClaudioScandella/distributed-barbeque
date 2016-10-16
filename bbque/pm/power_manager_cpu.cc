@@ -119,6 +119,7 @@ CPUPowerManager::~CPUPowerManager() {
 void CPUPowerManager::InitCoreIdMapping() {
 	bu::IoFs::ExitCode_t result;
 	int cpu_id = 0;
+	int sock_id = 0;
 	int pe_id  = 0;
 	// CPU <--> Core id mapping:
 	// CPU is commonly used to reference the cores while in the BarbequeRTRM
@@ -138,7 +139,13 @@ void CPUPowerManager::InitCoreIdMapping() {
 		std::string freq_av_filepath(
 				BBQUE_LINUX_SYS_CPU_PREFIX + std::to_string(pe_id) +
 				"/topology/core_id");
+
+		std::string physical_package_id(
+                               BBQUE_LINUX_SYS_CPU_PREFIX + std::to_string(pe_id) +
+                               "/topology/physical_package_id");
+
 		if (!boost::filesystem::exists(freq_av_filepath)) break;
+		if (!boost::filesystem::exists(physical_package_id)) break;
 
 		// Processing element <-> CPU id
 		logger->Debug("Reading... %s", freq_av_filepath.c_str());
@@ -147,8 +154,18 @@ void CPUPowerManager::InitCoreIdMapping() {
 			logger->Error("Failed in reading %s", freq_av_filepath.c_str());
 			break;
 		}
+
+               logger->Debug("Reading... %s", physical_package_id.c_str());
+               result = bu::IoFs::ReadIntValueFrom<int>(physical_package_id, sock_id);
+               if (result != bu::IoFs::OK) {
+                       logger->Error("Failed in reading %s", physical_package_id.c_str());
+                       break;
+               }
+
+
 		logger->Debug("<sys.cpu%d.pe%d> cpufreq reference found", cpu_id, pe_id);
 		core_ids[pe_id] = cpu_id;
+		socket_ids[pe_id] = sock_id;
 
 		// Available frequencies per core
 		core_freqs[pe_id] = std::make_shared<std::vector<uint32_t>>();
@@ -193,6 +210,10 @@ void CPUPowerManager::InitTemperatureSensors(std::string const & prefix_coretemp
 			continue;
 
 		cpu_id = std::stoi(core_label.substr(5));
+
+               if (core_therms.find(cpu_id) != core_therms.end())
+                       cpu_id += 8;
+
 		core_therms[cpu_id] = std::make_shared<std::string>(
 				prefix_coretemp + std::to_string(sensor_id) +
 				"_input");
@@ -383,7 +404,7 @@ CPUPowerManager::GetTemperaturePerCore(int pe_id, uint32_t & celsius) {
 
 	// We may have the same sensor for more than one processing element, the
 	// sensor is referenced at "core" level
-	int core_id = core_ids[pe_id];
+	int core_id = core_ids[pe_id] + 8 * socket_ids[pe_id];
 	if (core_therms[core_id] == nullptr) {
 		logger->Debug("GetTemperature: sensor for <pe%d> not available", pe_id);
 		return PMResult::ERR_INFO_NOT_SUPPORTED;
