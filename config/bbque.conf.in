@@ -28,7 +28,7 @@
 # Resource Manager Options
 ################################################################################
 [ResourceManager]
-#opt_interval = 0
+opt_interval = 2000
 
 ################################################################################
 # Binding Manager Options
@@ -40,17 +40,16 @@ domains = cpu,gpu
 # PlatformProxy Options
 ################################################################################
 [PowerMonitor]
-log.enabled   = 0
+log.enabled   = 1
 log.dir       = /tmp
-period_ms     = 1000
+period_ms     = 500
 temp.critical = 75
 nr_threads    = 2
 
 [PowerManager]
-nr_sockets   = 1
+nr_sockets   = 2
 temp.socket0 = /sys/devices/platform/coretemp.0/hwmon/hwmon0
-#temp.socket1 = /sys/devices/platform/coretemp.1/hwmon/hwmon1
-
+temp.socket1 = /sys/devices/platform/coretemp.1/hwmon/hwmon1
 
 # CGroups CFS bandwidht enforcement parameters
 [LinuxPlatformProxy]
