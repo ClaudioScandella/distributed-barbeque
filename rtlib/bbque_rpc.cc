@@ -1180,8 +1180,14 @@ RTLIB_ExitCode_t BbqueRPC::UpdateMonitorStatistics(pRegisteredEXC_t exc)
 	return RTLIB_OK;
 }
 
-void BbqueRPC::ResetRuntimeProfileStats(pRegisteredEXC_t exc)
+void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler)
 {
+        pRegisteredEXC_t exc;
+        // Get a reference to the EXC to control
+        assert(exc_handler);
+        exc = getRegistered(exc_handler);
+        assert(isRegistered(exc) == true);
+
 	logger->Debug("SetCPSGoal: Resetting cycle time history");
 	exc->last_cycletime_ms = exc->cycletime_analyser_user.GetMean();
 	exc->cycletime_analyser_user.Reset();
@@ -3224,7 +3230,6 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 		SetCPS(exc_handler, exc->cps_goal_max);
 	}
 
-	//ResetRuntimeProfileStats(exc);
 	return RTLIB_OK;
 }
 
@@ -3366,7 +3371,6 @@ void BbqueRPC::NotifyPostConfigure(
 		exc->cycle_start_time_ms = bbque_tmr.getElapsedTimeMs();
 
 	// Resetting Runtime Statistics counters
-	ResetRuntimeProfileStats(exc);
 	(void) exc_handler;
 #ifdef CONFIG_BBQUE_OPENCL
 	// Clear pre-run OpenCL command events

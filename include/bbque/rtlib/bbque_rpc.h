@@ -280,6 +280,9 @@ public:
 	RTLIB_ExitCode_t SetCPSGoal(RTLIB_EXCHandler_t exc_handler,
 								float cps_min, float cps_max);
 
+
+	void ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler);
+
 	/**
 	 * @brief Set the required Jobs Per Second goal (JPS)
 	 */
@@ -606,8 +609,6 @@ protected:
 	} RegisteredExecutionContext_t;
 
 	typedef std::shared_ptr<RegisteredExecutionContext_t> pRegisteredEXC_t;
-
-	void ResetRuntimeProfileStats(pRegisteredEXC_t exc);
 
 	//--- AWM Validity
 	inline bool isAwmValid(pRegisteredEXC_t exc) const
