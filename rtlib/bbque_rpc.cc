@@ -2078,12 +2078,6 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		float cps_min = 1000.0f / max_cycletime_ms;
 		float cps_max = 1000.0f / min_cycletime_ms;
 
-		// In case of jpc API usage, cps must be multiplied by the
-		// number of processed jobs per cycle
-		cps_avg *= exc->jpc;
-		cps_min *= exc->jpc;
-		cps_max *= exc->jpc;
-
 		float target_cps;
 		float current_cps;
 		bool  bad_allocation = false;
@@ -2118,7 +2112,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		logger->Debug("Performance goal gap is %f", 100.0f * goal_gap);
 
 	} else if (exc->explicit_ggap_assertion){
-		goal_gap = exc->explicit_ggap_value;
+		goal_gap = exc->explicit_ggap_value / 100.0f;
 		exc->explicit_ggap_assertion = false;
 		exc->explicit_ggap_value = 0.0;
 		logger->Debug("Performance goal gap (EXPLICIT) is %f", 100.0f * goal_gap);
@@ -3230,7 +3224,7 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 		SetCPS(exc_handler, exc->cps_goal_max);
 	}
 
-	ResetRuntimeProfileStats(exc);
+	//ResetRuntimeProfileStats(exc);
 	return RTLIB_OK;
 }
 
@@ -3256,11 +3250,11 @@ RTLIB_ExitCode_t BbqueRPC::UpdateJPC(
 	assert(isRegistered(exc) == true);
 
 	if (exc->jpc != jpc) {
-		// JPC changes cause JPS goal to change!
-		float correction_factor = (float) jpc / (float) (exc->jpc);
-		float new_jps_min = exc->cps_goal_min * correction_factor;
-		float new_jps_max = exc->cps_goal_max * correction_factor;
-		return SetJPSGoal(exc_handler, new_jps_min, new_jps_max, jpc);
+		float correction_factor = (float) (exc->jpc) / (float) jpc;
+		float new_cps_min = exc->cps_goal_min * correction_factor;
+		float new_cps_max = exc->cps_goal_max * correction_factor;
+		exc->jpc = jpc;
+		return SetCPSGoal(exc_handler, new_cps_min, new_cps_max);
 	}
 
 	return RTLIB_OK;
@@ -3296,7 +3290,8 @@ RTLIB_ExitCode_t BbqueRPC::SetJPSGoal(
 
 	assert(isRegistered(exc) == true);
 	exc->jpc = jpc;
-	return SetCPSGoal(exc_handler, jps_min, jps_max);
+
+	return SetCPSGoal(exc_handler, jps_min / jpc, jps_max / jpc);
 }
 
 /*******************************************************************************
