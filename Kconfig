@@ -62,6 +62,15 @@ config BBQUE_LINUX_CG_MEMORY
   Enable the Control Groups memory controller for enforcing the memory
   assignment control.
 
+config BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+  bool "CGroups handled at RTLIb level"
+  default n
+  depends on TARGET_LINUX
+  depends on !BBQUE_TEST_PLATFORM_DATA
+  ---help---
+  Control Groups are written by the RTLib rather than the Platform Proxy.
+  Indeed, what is written into the CGroups is nonetheless decided by Barbeque.
+
 endmenu # Linux Control Groups
 
 

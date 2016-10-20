@@ -525,6 +525,13 @@ protected:
 		/** Statistics of currently selected AWM */
 		pAwmStats_t current_awm_stats;
 
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+		struct CGroupSetupData {
+			unsigned long cpu_ids_ulong = 0;
+			unsigned long mem_ids_ulong = 0;
+		} cgroup_setup_data;
+#endif
+
 		double mon_tstart = 0; // [ms] at the last monitoring start time
 
 		/** CPS performance monitoring/control */
@@ -975,12 +982,12 @@ private:
 	/**
 	 * @brief Initialize CGroup support
 	 */
-	RTLIB_ExitCode_t CGroupInit();
+	RTLIB_ExitCode_t CGroupCheckInitialization();
 
 	/**
 	 * @brief Create a CGroup for the specifed EXC
 	 */
-	RTLIB_ExitCode_t CGroupSetup(pRegisteredEXC_t exc);
+	RTLIB_ExitCode_t CGroupPathSetup(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief Delete the CGroup of the specified EXC
@@ -988,9 +995,14 @@ private:
 	RTLIB_ExitCode_t CGroupDelete(pRegisteredEXC_t exc);
 
 	/**
-	 * @brief Setup the path of the application CGroup
+	 * @brief Create a CGroup of the specified EXC
 	 */
-	RTLIB_ExitCode_t SetCGroupPath(pRegisteredEXC_t exc);
+	RTLIB_ExitCode_t CGroupCreate(pRegisteredEXC_t exc, int pid);
+
+	/**
+	 * @brief Updates the CGroup of the specified EXC
+	 */
+	RTLIB_ExitCode_t CGroupUpdate(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief Log memory usage report

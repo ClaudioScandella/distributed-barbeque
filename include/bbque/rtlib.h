@@ -87,7 +87,6 @@ typedef struct RTLIB_WorkingModeParams  RTLIB_WorkingModeParams_t;
 typedef struct RTLIB_EXCParameters RTLIB_EXCParameters_t;
 typedef struct RTLIB_Constraint RTLIB_Constraint_t;
 
-
 /*******************************************************************************
  *    RTLib Types
  ******************************************************************************/
@@ -1056,7 +1055,13 @@ typedef struct RTLIB_Config {
 
 	// CGroup enforcing
 	struct {
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+		bool enabled = true;
+#else
 		bool enabled = false;
+#endif
+
+		bool static_configuration = false;
 
 		// CUPSET Contoller
 		struct {
@@ -1075,7 +1080,7 @@ typedef struct RTLIB_Config {
 			char * limit_in_bytes = nullptr;
 		} memory;
 
-	} cgroup;
+	} cgroup_support;
 
 	// Processing duration
 	struct {

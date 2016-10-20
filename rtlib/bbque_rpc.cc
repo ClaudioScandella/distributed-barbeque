@@ -38,6 +38,10 @@
 #undef  BBQUE_LOG_MODULE
 #define BBQUE_LOG_MODULE "rpc"
 
+// cpu controller does not support periods > 1s (1000000 us))
+#define MAX_ALLOWED_CFS_PERIOD 1000000
+#define DEFAULT_CFS_PERIOD 100000
+
 namespace ba = bbque::app;
 namespace bu = bbque::utils;
 
@@ -198,7 +202,8 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions()
 				break;
 			}
 
-			rtlib_configuration.cgroup.enabled = true;
+			rtlib_configuration.cgroup_support.enabled = true;
+			rtlib_configuration.cgroup_support.static_configuration = true;
 			// Format:
 			// [:]C <cpus> <cfs_period> <cfs_quota> <mems> <mem_bytes>
 			next = option + 1;
@@ -207,40 +212,42 @@ RTLIB_ExitCode_t BbqueRPC::ParseOptions()
 			next = strchr(pos, ' ');
 			*next = 0;
 			cg_cpuset_cpus = pos;
-			rtlib_configuration.cgroup.cpuset.cpus = (char *) cg_cpuset_cpus.c_str();
+			rtlib_configuration.cgroup_support.cpuset.cpus = (char *)
+					cg_cpuset_cpus.c_str();
 			pos = ++ next;
 			next = strchr(pos, ' ');
 			*next = 0;
 			cg_cpu_cfs_period_us = pos;
-			rtlib_configuration.cgroup.cpu.cfs_period_us = (char *)
-				cg_cpu_cfs_period_us.c_str();
+			rtlib_configuration.cgroup_support.cpu.cfs_period_us = (char *)
+					cg_cpu_cfs_period_us.c_str();
 			pos = ++ next;
 			next = strchr(pos, ' ');
 			*next = 0;
 			cg_cpu_cfs_quota_us  = pos;
-			rtlib_configuration.cgroup.cpu.cfs_quota_us = (char *)
-				cg_cpu_cfs_quota_us.c_str();
+			rtlib_configuration.cgroup_support.cpu.cfs_quota_us = (char *)
+					cg_cpu_cfs_quota_us.c_str();
 			pos = ++ next;
 			next = strchr(pos, ' ');
 			*next = 0;
 			cg_cpuset_mems = pos;
-			rtlib_configuration.cgroup.cpuset.mems = (char *) cg_cpuset_mems.c_str();
+			rtlib_configuration.cgroup_support.cpuset.mems = (char *)
+					cg_cpuset_mems.c_str();
 			pos = ++ next; //next = strchr(pos, ' '); *next = 0;
 			cg_memory_limit_in_bytes = pos;
-			rtlib_configuration.cgroup.memory.limit_in_bytes = (char *)
-				cg_memory_limit_in_bytes.c_str();
+			rtlib_configuration.cgroup_support.memory.limit_in_bytes = (char *)
+					cg_memory_limit_in_bytes.c_str();
 			// Report CGroup configuration
 			logger->Debug("CGroup Forcing Setup:");
 			logger->Debug("   cpuset.cpus............. %s",
-				rtlib_configuration.cgroup.cpuset.cpus);
+						  rtlib_configuration.cgroup_support.cpuset.cpus);
 			logger->Debug("   cpuset.mems............. %s",
-				rtlib_configuration.cgroup.cpuset.mems);
+						  rtlib_configuration.cgroup_support.cpuset.mems);
 			logger->Debug("   cpu.cfs_period_us....... %s",
-				rtlib_configuration.cgroup.cpu.cfs_period_us);
+						  rtlib_configuration.cgroup_support.cpu.cfs_period_us);
 			logger->Debug("   cpu.cfs_quota_us........ %s",
-				rtlib_configuration.cgroup.cpu.cfs_quota_us);
+						  rtlib_configuration.cgroup_support.cpu.cfs_quota_us);
 			logger->Debug("   memory.limit_in_bytes... %s",
-				rtlib_configuration.cgroup.memory.limit_in_bytes);
+						  rtlib_configuration.cgroup_support.memory.limit_in_bytes);
 			logger->Warn("Enabling CGroup FORCING mode");
 			break;
 #endif // CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT
@@ -351,7 +358,7 @@ RTLIB_ExitCode_t BbqueRPC::InitializeApplication(const char * name)
 	// Initialize CGroup support. Note Per-APP cgroups will be mounted during
 	// Configuration phase
 	logger->Debug("Initializing libcgroup");
-	exitCode = CGroupInit();
+	exitCode = CGroupCheckInitialization();
 
 	if (exitCode != RTLIB_OK) {
 		logger->Error("CGroup initialization FAILED");
@@ -420,7 +427,7 @@ RTLIB_ExitCode_t BbqueRPC::SetupCGroup(
 		return RTLIB_EXC_NOT_REGISTERED;
 
 	// Setup the control CGroup using the EXC private function
-	return CGroupSetup(exc);
+	return CGroupPathSetup(exc);
 }
 
 BbqueRPC::pRegisteredEXC_t BbqueRPC::getRegistered(
@@ -769,20 +776,14 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 
 #ifdef CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT
 
-RTLIB_ExitCode_t BbqueRPC::CGroupInit()
+RTLIB_ExitCode_t BbqueRPC::CGroupCheckInitialization()
 {
 	bu::CGroups::CGSetup cgsetup;
 	// Initialize CGroup Library
 	bu::CGroups::Init(BBQUE_LOG_MODULE);
 
-	if (likely(! rtlib_configuration.cgroup.enabled))
+	if (likely(! rtlib_configuration.cgroup_support.enabled))
 		return RTLIB_OK;
-
-	// Check ROOT persmissions
-	if (::getuid() != 0) {
-		logger->Fatal("CGroup create failure (Error: missing root privileges)");
-		return RTLIB_ERROR;
-	}
 
 	// If not present, setup the "master" BBQUE CGroup as a clone
 	// of the root CGroup
@@ -801,58 +802,21 @@ RTLIB_ExitCode_t BbqueRPC::CGroupInit()
 	return RTLIB_OK;
 }
 
-RTLIB_ExitCode_t BbqueRPC::CGroupSetup(pRegisteredEXC_t exc)
+RTLIB_ExitCode_t BbqueRPC::CGroupPathSetup(pRegisteredEXC_t exc)
 {
-	char cgpath[] = "/user.slice/res/12345:APPLICATION_NAME:00";
-
-	if (! rtlib_configuration.cgroup.enabled)
+	if (! rtlib_configuration.cgroup_support.enabled)
 		return RTLIB_OK;
 
-	// Check ROOT permissions
-	if (::getuid() != 0) {
-		logger->Fatal("CGroup create failure (Error: missing root privileges)");
-		return RTLIB_ERROR;
-	}
-
+	char cgpath[] = "/user.slice/res/12345:APPLICATION_NAME:00";
 	// Setup the application specific CGroup
 	snprintf(cgpath, sizeof (cgpath), "/user.slice/res/%05d:%.6s:%02d",
-		channel_thread_pid,
-		application_name,
-		exc->id
-		);
-	logger->Notice("Setup CGroup [%s]...", cgpath);
-
-	// Set CGroup based on RTLib Configuration
-	cgsetup.cpuset.cpus           = rtlib_configuration.cgroup.cpuset.cpus;
-	cgsetup.cpuset.mems           = rtlib_configuration.cgroup.cpuset.mems;
-	cgsetup.cpu.cfs_period_us     = rtlib_configuration.cgroup.cpu.cfs_period_us;
-	cgsetup.cpu.cfs_quota_us      = rtlib_configuration.cgroup.cpu.cfs_quota_us;
-	cgsetup.memory.limit_in_bytes =
-		rtlib_configuration.cgroup.memory.limit_in_bytes;
-
-	// Setup CGroup PATH
-	if (bu::CGroups::Create(cgpath, cgsetup) !=
-	bu::CGroups::CGResult::OK) {
-		logger->Error("CGroup setup [%s] FAILED");
-		return RTLIB_ERROR;
-	}
-
-do_attach:
-	// Report CGroup configuration
-	logger->Notice("Forcing EXC [%d] into CGroup [%s]:",
-		exc->id, cgpath);
-	logger->Notice("   cpuset.cpus............. %s",
-		cgsetup.cpuset.cpus);
-	logger->Notice("   cpuset.mems............. %s",
-		cgsetup.cpuset.mems);
-	logger->Notice("   cpu.cfs_period_us....... %s",
-		cgsetup.cpu.cfs_period_us);
-	logger->Notice("   cpu.cfs_quota_us........ %s",
-		cgsetup.cpu.cfs_quota_us);
-	logger->Notice("   memory.limit_in_bytes... %s",
-		cgsetup.memory.limit_in_bytes);
-	// Attach the EXC to this CGroup
-	bu::CGroups::AttachMe(cgpath);
+			 channel_thread_pid,
+			 application_name,
+			 exc->id);
+	logger->Notice("CGroup of EXC %.05d:%s is: %s",
+				   channel_thread_pid,
+				   application_name,
+				   cgpath);
 	// Keep track of the configured CGroup path
 	exc->cgroup_path = cgpath;
 	return RTLIB_OK;
@@ -862,7 +826,7 @@ RTLIB_ExitCode_t BbqueRPC::CGroupDelete(pRegisteredEXC_t exc)
 {
 	bu::CGroups::CGSetup cgsetup;
 
-	if (! rtlib_configuration.cgroup.enabled)
+	if (! rtlib_configuration.cgroup_support.enabled)
 		return RTLIB_OK;
 
 	if (exc->cgroup_path.empty()) {
@@ -882,87 +846,118 @@ RTLIB_ExitCode_t BbqueRPC::CGroupDelete(pRegisteredEXC_t exc)
 	return RTLIB_OK;
 }
 
-RTLIB_ExitCode_t BbqueRPC::SetCGroupPath(pRegisteredEXC_t exc)
+RTLIB_ExitCode_t BbqueRPC::CGroupCreate(pRegisteredEXC_t exc, int pid)
 {
-	uint8_t count = 0;
-#define BBQUE_RPC_CGOUPS_PATH_MAX 128
-	char cgMount[BBQUE_RPC_CGOUPS_PATH_MAX];
-	char buff[256];
-	char * pd, *ps;
-	FILE * procfd;
-	procfd = ::fopen("/proc/mounts", "r");
+	if (! rtlib_configuration.cgroup_support.enabled)
+		return RTLIB_OK;
 
-	if (! procfd) {
-		logger->Error("Mounts read FAILED (Error %d: %s)",
-			errno, strerror(errno));
-		return RTLIB_EXC_CGROUP_NONE;
+	bu::CGroups::CGSetup cgsetup;
+	const char * cgroup_path = exc->cgroup_path.c_str();
+
+	if (rtlib_configuration.cgroup_support.static_configuration) {
+		logger->Warn("Setting up fixed configuration CGroups values");
+		cgsetup.cpuset.cpus =
+			rtlib_configuration.cgroup_support.cpuset.cpus;
+		cgsetup.cpuset.mems =
+			rtlib_configuration.cgroup_support.cpuset.mems;
+		cgsetup.cpu.cfs_period_us =
+			rtlib_configuration.cgroup_support.cpu.cfs_period_us;
+		cgsetup.cpu.cfs_quota_us =
+			rtlib_configuration.cgroup_support.cpu.cfs_quota_us;
+		cgsetup.memory.limit_in_bytes =
+			rtlib_configuration.cgroup_support.memory.limit_in_bytes;
+	}
+	else {
+		bu::CGroups::Read("/user.slice/res", cgsetup);
 	}
 
-	// Find CGroups mount point
-	cgMount[0] = 0;
+	// Setup CGroup PATH
+	if (bu::CGroups::WriteCgroup(cgroup_path, cgsetup, 0) !=
+		bu::CGroups::CGResult::OK) {
+		logger->Error("CGroup setup [%s] FAILED");
+		return RTLIB_ERROR;
+	}
 
-	for (; ; ) {
-		if (! fgets(buff, 256, procfd))
-			break;
+	return RTLIB_OK;
+}
 
-		if (strncmp("bbque_cgroups ", buff, 14))
-			continue;
+RTLIB_ExitCode_t BbqueRPC::CGroupUpdate(pRegisteredEXC_t exc)
+{
+	// Proceed only in case of cgroup support and dynamic assignment
+	if (! rtlib_configuration.cgroup_support.enabled ||
+		rtlib_configuration.cgroup_support.static_configuration)
+		return RTLIB_OK;
 
-		// copy mountpoint
-		// NOTE: no spaces are allows on mountpoint
-		ps = buff + 14;
-		pd = cgMount;
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+	// Getting cpu ids, which are currently in the form of unsigned long.
+	// The unsigned long represents the assigned resource bitset,
+	// e.g. `9` means `1001`, i.e. cores 0 and 3
+	std::string cpus_str = "";
 
-		while ((count < BBQUE_RPC_CGOUPS_PATH_MAX - 1) && (*ps != ' ')) {
-			*pd = * ps;
-			++ pd;
-			++ ps;
-			++ count;
+	for (int core_id = 0; core_id < BBQUE_MAX_R_ID_NUM; core_id ++) {
+		if ( (1ll << core_id) & exc->cgroup_setup_data.cpu_ids_ulong) {
+			if (cpus_str != "")
+				cpus_str += ",";
+
+			cpus_str += std::to_string(core_id);
 		}
-
-		cgMount[count] = 0;
-		break;
 	}
 
-	if (count == BBQUE_RPC_CGOUPS_PATH_MAX) {
-		logger->Error("CGroups mount identification FAILED"
-			"(Error: path longer than %d chars)",
-			BBQUE_RPC_CGOUPS_PATH_MAX - 1);
-		return RTLIB_EXC_CGROUP_NONE;
+	// Getting mem ids
+	std::string mems_str = "";
+
+	for (int mem_id = 0; mem_id < BBQUE_MAX_R_ID_NUM; mem_id ++) {
+		if ( (1ll << mem_id) & exc->cgroup_setup_data.mem_ids_ulong) {
+			if (mems_str != "")
+				mems_str += ",";
+
+			mems_str += std::to_string(mem_id);
+		}
 	}
 
-	if (! cgMount[0]) {
-		logger->Error("CGroups mount identification FAILED");
-		return RTLIB_EXC_CGROUP_NONE;
-	}
+	bu::CGroups::CGSetup cgsetup;
+	const char * cgroup_path = exc->cgroup_path.c_str();
+	// Reading previous values
+	bu::CGroups::Read(cgroup_path, cgsetup);
+	// Computing cfs values according to new cpu bandwidth allocation
+	float    cycle_time_avg_us = 1000.0f *
+								 exc->cycletime_analyser_system.GetMean() / exc->jpc;
+	uint32_t cfs_period_us = std::min((uint32_t) MAX_ALLOWED_CFS_PERIOD,
+									  (uint32_t) cycle_time_avg_us);
 
-	snprintf(buff, 256, "%s/user.slice/res/%05d:%.6s:%02d",
-		cgMount,
-		channel_thread_pid,
-		exc->name.c_str(),
-		exc->id);
-	// Check CGroups access
-	struct stat cgstat;
+	if (cfs_period_us == 0) cfs_period_us = DEFAULT_CFS_PERIOD;
 
-	if (stat(buff, &cgstat)) {
-		logger->Error("CGroup [%s] access FAILED (Error %d: %s)",
-			buff, errno, strerror(errno));
-		return RTLIB_EXC_CGROUP_NONE;
-	}
+	uint32_t cfs_quota_us =
+		(uint32_t) ((double) exc->resource_assignment[0]->cpu_bandwidth / 100.0) *
+		cfs_period_us;
+	int32_t  memory_bandwidth = exc->resource_assignment[0]->mem_bandwidth;
+	char * cpu_ids = const_cast<char *> (cpus_str.c_str());
+	char * mem_ids = const_cast<char *> (mems_str.c_str());
+	char * cfs_per = const_cast<char *> (std::to_string(cfs_period_us).c_str());
+	char * cfs_qta = const_cast<char *> (std::to_string(cfs_quota_us).c_str());
+	char * mem_bwt = const_cast<char *> (std::to_string(memory_bandwidth).c_str());
+	cgsetup.cpuset.cpus = cpu_ids;
 
-	pathCGroup = std::string(buff);
-	logger->Warn("Application CGroup: %s", pathCGroup.c_str());
+	if (mems_str != "") cgsetup.cpuset.mems = mem_ids;
+
+	cgsetup.cpu.cfs_period_us = cfs_per;
+	cgsetup.cpu.cfs_quota_us = cfs_qta;
+
+	if (memory_bandwidth > 0) cgsetup.memory.limit_in_bytes = mem_bwt;
+
+	bu::CGroups::WriteCgroup(cgroup_path, cgsetup, channel_thread_pid);
+#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	return RTLIB_OK;
 }
 
 #else
 
-RTLIB_ExitCode_t BbqueRPC::CGroupInit()
+RTLIB_ExitCode_t BbqueRPC::CGroupCheckInitialization()
 {
 	return RTLIB_OK;
 }
 
-RTLIB_ExitCode_t BbqueRPC::CGroupSetup(pRegisteredEXC_t exc)
+RTLIB_ExitCode_t BbqueRPC::CGroupPathSetup(pRegisteredEXC_t exc)
 {
 	(void) exc;
 	return RTLIB_OK;
@@ -974,11 +969,18 @@ RTLIB_ExitCode_t BbqueRPC::CGroupDelete(pRegisteredEXC_t exc)
 	return RTLIB_OK;
 }
 
-RTLIB_ExitCode_t BbqueRPC::SetCGroupPath(pRegisteredEXC_t exc)
+RTLIB_ExitCode_t BbqueRPC::CGroupCreate(pRegisteredEXC_t exc)
 {
 	(void) exc;
 	return RTLIB_OK;
 }
+
+RTLIB_ExitCode_t BbqueRPC::CGroupAttachEXC(pRegisteredEXC_t exc)
+{
+	(void) exc;
+	return RTLIB_OK;
+}
+
 #endif // CONFIG_BBQUE_RTLIB_CGROUPS_SUPPPORT
 
 void BbqueRPC::DumpStats(pRegisteredEXC_t exc, bool verbose)
@@ -1047,7 +1049,8 @@ bool BbqueRPC::CheckDurationTimeout(pRegisteredEXC_t exc)
 	if (! rtlib_configuration.duration.time_limit)
 		return false;
 
-	if (exc->processing_time_ms >= rtlib_configuration.duration.max_ms_before_termination) {
+	if (exc->processing_time_ms >=
+		rtlib_configuration.duration.max_ms_before_termination) {
 		rtlib_configuration.duration.max_ms_before_termination = 0;
 		return true;
 	}
@@ -1583,13 +1586,8 @@ do_reconf:
 	// Processing the required reconfiguration action
 	switch (exc->event) {
 	case RTLIB_EXC_GWM_START:
-		// Keep track of the CGroup path
-		// CGroups are created at the first allocation of resources to this
-		// application, thus we could check for them right after the
-		// first AWM has been assinged.
-		SetCGroupPath(exc);
+		CGroupCreate(exc, channel_thread_pid);
 
-		// Here, the missing "break" is not an error ;-)
 	case RTLIB_EXC_GWM_RECONF:
 	case RTLIB_EXC_GWM_MIGREC:
 	case RTLIB_EXC_GWM_MIGRATE:
@@ -1688,6 +1686,10 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 	// Set the new required AWM (if not being blocked)
 	if (exc->event != RTLIB_EXC_GWM_BLOCKED) {
 		exc->current_awm_id = msg.awm;
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+		exc->cgroup_setup_data.cpu_ids_ulong = msg.cpu_ids;
+		exc->cgroup_setup_data.mem_ids_ulong = msg.mem_ids;
+#endif
 
 		for (uint16_t i = 0; i < systems.size(); i ++) {
 			pSystemResources_t tmp = std::make_shared<RTLIB_SystemResources_t>();
@@ -3117,6 +3119,9 @@ void BbqueRPC::NotifyPreConfigure(
 	assert(local_sys != nullptr);
 	logger->Debug("NotifyPreConfigure - OCL Device: %d", local_sys->ocl_device_id);
 	OclSetDevice(local_sys->ocl_device_id, exc->event);
+#endif
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+	CGroupUpdate(exc);
 #endif
 }
 

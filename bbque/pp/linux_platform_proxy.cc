@@ -235,6 +235,19 @@ LinuxPlatformProxy::MapResources(AppPtr_t papp, ResourceAssignmentMapPtr_t pres,
 			return PLATFORM_MAPPING_FAILED;
 		}
 
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+		// Set cgroup setup data. It will be sent to the application
+		// CPU core set
+		br::ResourceBitset core_ids(br::ResourceBinder::GetMask(
+										pres, br::ResourceType::PROC_ELEMENT,
+										br::ResourceType::CPU, node_id, papp, rvt));
+		// Memory nodes
+		br::ResourceBitset mem_ids(br::ResourceBinder::GetMask(pres,
+								   br::ResourceType::PROC_ELEMENT,
+								   br::ResourceType::MEMORY, node_id, papp, rvt));
+		papp->SetCGroupSetupData(core_ids.ToULong(), mem_ids.ToULong());
+		logger->Warn("ulongs are %u %u", core_ids.ToULong(), mem_ids.ToULong());
+#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 		// Configure the CGroup based on resource bindings
 		SetupCGroup(pcgd, prlb, excl, true);
 	}
@@ -771,7 +784,11 @@ LinuxPlatformProxy::BuildCGroup(CGroupDataPtr_t &pcgd) noexcept {
 LinuxPlatformProxy::ExitCode_t
 LinuxPlatformProxy::GetCGroupData(AppPtr_t papp, CGroupDataPtr_t &pcgd) noexcept {
 	ExitCode_t result;
-
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+	logger->Warn("Distributed cgroup actuation: cgroup will be written by "
+				 "the EXC itself.");
+	return PLATFORM_OK;
+#endif
 	// Loop-up for application control group data
 	pcgd = std::static_pointer_cast<CGroupData_t>(
 	        papp->GetPluginData(LINUX_PP_NAMESPACE, "cgroup")
@@ -794,8 +811,15 @@ LinuxPlatformProxy::GetCGroupData(AppPtr_t papp, CGroupDataPtr_t &pcgd) noexcept
 }
 
 LinuxPlatformProxy::ExitCode_t
-LinuxPlatformProxy::SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
-                                bool excl, bool move) noexcept {
+LinuxPlatformProxy::SetupCGroup(CGroupDataPtr_t & pcgd,
+								RLinuxBindingsPtr_t prlb,
+								bool excl, bool move) noexcept
+{
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+	logger->Warn("Distributed cgroup actuation: cgroup will be setup by "
+				 "the EXC itself.");
+	return PLATFORM_OK;
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0)
 	int64_t cpus_quota = -1; // NOTE: use "-1" for no quota assignement
 #endif

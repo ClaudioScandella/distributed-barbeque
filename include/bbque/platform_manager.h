@@ -107,8 +107,7 @@ private:
 	 * @brief Pointer to remote platform proxy
 	 */
 	std::unique_ptr<pp::RemotePlatformProxy> rpp;
-#endif
-
+#endif // CONFIG_BBQUE_DIST_MODE
 	/**
 	 * @brief The set of flags related to pending platform events to handle
 	 */

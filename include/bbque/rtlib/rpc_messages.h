@@ -19,6 +19,7 @@
 #define BBQUE_RPC_MESSAGES_H_
 
 #include "bbque/rtlib.h"
+#include <string>
 
 #define RPC_PKT_SIZE(type) sizeof(bbque::rtlib::rpc_msg_##type##_t)
 
@@ -237,6 +238,10 @@ typedef struct rpc_msg_BBQ_SYNCP_PRECHANGE {
 	/** The selected AWM */
 	int8_t awm;
 
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+	unsigned long cpu_ids;
+	unsigned long mem_ids;
+#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	/** The number of systems assigned, that corresponds
 	 * to the number of subsequent rpc_msg_BBQ_SYNCP_PRECHANGE_SYSTEM_t
 	 * messages **/

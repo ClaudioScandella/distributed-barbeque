@@ -40,7 +40,7 @@ const char *CGroups::controller[] = {
 };
 
 // Needed controllers
-std::vector<int> cid = {
+std::vector<int> controllers_IDs = {
 	CGroups::CGC::CPUSET,
 	CGroups::CGC::CPU,
 	CGroups::CGC::CPUACCT,
@@ -65,7 +65,6 @@ CGroups::CGResult CGroups::Init(const char *logname) {
 	//---------- Get a logger module
 	logger = Logger::GetLogger(logname);
 	assert(logger);
-
 	// Init the Control Group Library
 	result = cgroup_init();
 	if (result) {
@@ -75,7 +74,7 @@ CGroups::CGResult CGroups::Init(const char *logname) {
 	}
 
 	// Mounting all needed controllers
-	for (int id : cid) {
+	for (int id : controllers_IDs) {
 		result = cgroup_get_subsys_mount_point(controller[id], &mounts[id]);
 		if (result) {
 			logger->Error("CGroup controller [%s] mountpoint lookup FAILED! (Error: %d - %s)",
@@ -99,16 +98,18 @@ bool CGroups::Exists(const char *cgroup_path) {
 
 	// Get required CGroup path
 	cgroup_handler = cgroup_new_cgroup(cgroup_path);
-	if (!cgroup_handler) {
-		logger->Error("CGroup [%s] creation FAILED", cgroup_path);
+
+	if (! cgroup_handler) {
+		logger->Error("CGroups::Exists::cgroup_new_cgroup [%s] FAILED", cgroup_path);
 		return false;
 	}
 
 	// Update the CGroup variable with kernel info
 	result = cgroup_get_cgroup(cgroup_handler);
+
 	if (result != 0) {
-		logger->Debug("CGroup [%s] read FAILED (Error: %d, %s)",
-				cgroup_path, result, cgroup_strerror(result));
+		logger->Error("CGroups::Exists::cgroup_get_cgroup [%s] FAILED (Error: %d, %s)",
+					  cgroup_path, result, cgroup_strerror(result));
 		return false;
 	}
 
@@ -116,221 +117,185 @@ bool CGroups::Exists(const char *cgroup_path) {
 	return true;
 }
 
-CGroups::CGResult CGroups::Read(const char *cgroup_path, CGSetup &cgroup_data) {
-	struct cgroup_controller *cpuset_controller;
-	struct cgroup_controller *memory_controller;
-	struct cgroup_controller *cpu_controller;
-	struct cgroup *cgroup_handler;
-	int result;
+CGroups::CGResult CGroups::Read(const char * cgroup_path, CGSetup & cgroup_data)
+{
+	int result = 0;
+	struct cgroup * cgroup_handler = cgroup_new_cgroup(cgroup_path);
 
-	// Get required CGroup path
-	cgroup_handler = cgroup_new_cgroup(cgroup_path);
-	if (!cgroup_handler) {
-		logger->Error("CGroup [%s] creation FAILED", cgroup_path);
+	if (! cgroup_handler) {
+		logger->Error("CGroups::Read::cgroup_new_cgroup [%s] FAILED", cgroup_path);
 		return CGResult::NEW_FAILED;
 	}
 
 	// Update the CGroup variable with kernel info
 	result = cgroup_get_cgroup(cgroup_handler);
+
 	if (result != 0) {
-		logger->Error("CGroup [%s] read FAILED (Error: %d, %s)",
-				cgroup_path, result, cgroup_strerror(result));
+		logger->Error("CGroups::Read::cgroup_get_cgroup [%s] FAILED (Error: %d, %s)",
+					  cgroup_path, result, cgroup_strerror(result));
 		return CGResult::READ_FAILED;
 	}
 
+	struct cgroup_controller * cpuset_controller;
 
-	// Get CPUSET configuration (if available)
-	cgroup_data.cpuset.cpus = nullptr;
-	cgroup_data.cpuset.mems = nullptr;
-	if (!mounts[CGC::CPUSET])
-		goto get_cpus;
+	struct cgroup_controller * memory_controller;
 
-	cpuset_controller = cgroup_get_controller(cgroup_handler, "cpuset");
-	if (!cpuset_controller) {
-		logger->Error("CGroup [%s]: get CPUSET controller FAILED", cgroup_path);
-		return CGResult::GET_FAILED;
+	struct cgroup_controller * cpu_controller;
+
+	if (mounts[CGC::CPUSET]) {
+		cpuset_controller = cgroup_get_controller(cgroup_handler, "cpuset");
+
+		if (! cpuset_controller) {
+			logger->Error("CGroups::Read::cgroup_get_controller CPUSET [%s] FAILED",
+						  cgroup_path);
+			return CGResult::GET_FAILED;
+		}
+
+		cgroup_get_value_string(cpuset_controller, "cpuset.cpus",
+								&cgroup_data.cpuset.cpus);
+		cgroup_get_value_string(cpuset_controller, "cpuset.mems",
+								&cgroup_data.cpuset.mems);
 	}
 
-	result = cgroup_get_value_string(cpuset_controller, "cpuset.cpus",
-			&cgroup_data.cpuset.cpus);
-	if (result)
-		logger->Error("CGroup [%s]: read [cpuset.cpus] FAILED", cgroup_path);
-	result = cgroup_get_value_string(cpuset_controller, "cpuset.mems",
-			&cgroup_data.cpuset.mems);
-	if (result)
-		logger->Error("CGroup [%s]: read [cpuset.mems] FAILED", cgroup_path);
+	if (mounts[CGC::CPU]) {
+		cpu_controller = cgroup_get_controller(cgroup_handler, "cpu");
 
-	logger->Debug("CGroup [%s] => cpus: %s, mems: %s",
-			cgroup_path, cgroup_data.cpuset.cpus, cgroup_data.cpuset.mems);
-get_cpus:
+		if (! cpu_controller) {
+			logger->Error("CGroups::Read::cgroup_get_controller CPU [%s] FAILED",
+						  cgroup_path);
+			return CGResult::GET_FAILED;
+		}
 
-	// Get CPU configuration (if available)
-	cgroup_data.cpu.cfs_period_us = nullptr;
-	cgroup_data.cpu.cfs_quota_us  = nullptr;
-	if (!mounts[CGC::CPU])
-		goto get_memory;
-
-	cpu_controller = cgroup_get_controller(cgroup_handler, "cpu");
-	if (!cpu_controller) {
-		logger->Error("CGroup [%s]: get CPU controller FAILED", cgroup_path);
-		return CGResult::GET_FAILED;
+		cgroup_get_value_string(cpu_controller, "cpu.cfs_period_us",
+								&cgroup_data.cpu.cfs_period_us);
+		cgroup_get_value_string(cpu_controller, "cpu.cfs_quota_us",
+								&cgroup_data.cpu.cfs_quota_us);
 	}
 
-	result = cgroup_get_value_string(cpu_controller, "cpu.cfs_period_us",
-			&cgroup_data.cpu.cfs_period_us);
-	if (result)
-		logger->Error("CGroup [%s]: read [cpu.cfs_pediod_us] FAILED", cgroup_path);
-	result = cgroup_get_value_string(cpu_controller, "cpu.cfs_quota_us",
-			&cgroup_data.cpu.cfs_quota_us);
-	if (result)
-		logger->Error("CGroup [%s]: read [cpu.cfs_quota_us] FAILED", cgroup_path);
+	if (mounts[CGC::MEMORY]) {
+		memory_controller = cgroup_get_controller(cgroup_handler, "memory");
 
-	logger->Debug("CGroup [%s] => cfs_period_us: %s, cfs_quota_us: %s",
-			cgroup_path, cgroup_data.cpu.cfs_period_us, cgroup_data.cpu.cfs_quota_us);
-get_memory:
+		if (! memory_controller) {
+			logger->Error("CGroups::Read::cgroup_get_controller MEMORY [%s] FAILED",
+						  cgroup_path);
+			return CGResult::GET_FAILED;
+		}
 
-	// Get MEMORY configuration (if available)
-	cgroup_data.memory.limit_in_bytes = nullptr;
-	if (!mounts[CGC::MEMORY])
-		goto done;
-
-	memory_controller = cgroup_get_controller(cgroup_handler, "memory");
-	if (!memory_controller) {
-		logger->Error("CGroup [%s]: get MEMORY controller FAILED", cgroup_path);
-		return CGResult::GET_FAILED;
-	}
-
-	result = cgroup_get_value_string(memory_controller, "memory.limit_in_bytes",
-			&cgroup_data.memory.limit_in_bytes);
-	if (result)
-		logger->Error("CGroup [%s]: read [memory.limit_in_bytes] FAILED", cgroup_path);
-
-	logger->Debug("CGroup [%s] => limit_in_bytes: %s",
-			cgroup_path, cgroup_data.memory.limit_in_bytes);
-
-done:
-
-	cgroup_free(&cgroup_handler);
-	return CGResult::OK;
-
-}
-
-CGroups::CGResult CGroups::CloneFromParent(const char *cgroup_path) {
-	struct cgroup *cgroup_handler;
-	int result;
-
-	// Get required CGroup path
-	cgroup_handler = cgroup_new_cgroup(cgroup_path);
-	if (!cgroup_handler) {
-		logger->Error("CGroup [%s] creation FAILED", cgroup_path);
-		return CGResult::NEW_FAILED;
-	}
-
-	// Update the CGroup variable with kernel info
-	result = cgroup_create_cgroup_from_parent(cgroup_handler, 0);
-	if (result != 0) {
-		logger->Debug("CGroup [%s] clone FAILED (Error: %d, %s)",
-				cgroup_path, result, cgroup_strerror(result));
-		return CGResult::CLONE_FAILED;
+		cgroup_get_value_string(memory_controller, "memory.limit_in_bytes",
+								&cgroup_data.memory.limit_in_bytes);
 	}
 
 	cgroup_free(&cgroup_handler);
 	return CGResult::OK;
 }
 
-CGroups::CGResult CGroups::Create(const char *cgroup_path,
-		const CGSetup &cgroup_data) {
-	struct cgroup_controller *cpuset_controller;
-	struct cgroup_controller *memory_controller;
-	struct cgroup_controller *cpu_controller;
-	struct cgroup *cgroup_handler;
-	int result;
+CGroups::CGResult CGroups::CloneFromParent(const char * cgroup_path)
+{
+	struct cgroup * cgroup_handler = cgroup_new_cgroup(cgroup_path);
+	cgroup_create_cgroup_from_parent(cgroup_handler, 1);
+	cgroup_free(&cgroup_handler);
+	return CGResult::OK;
+}
 
+CGroups::CGResult CGroups::WriteCgroup(
+	const char * cgroup_path,
+	const CGSetup & cgroup_data,
+	int pid)
+{
+	int result = 0;
+	struct cgroup * cgroup_handler = cgroup_new_cgroup(cgroup_path);
 
-	// Setup CGroup path for this application
-	cgroup_handler = cgroup_new_cgroup(cgroup_path);
-	if (!cgroup_handler) {
-		logger->Error("CGroup resource mapping FAILED "
-				"(Error: libcgroup, \"cgroup\" creation)");
+	if (! cgroup_handler) {
+		logger->Error("CGroups::WriteCgroup::cgroup_new_cgroup [%s] FAILED",
+					  cgroup_path);
 		return CGResult::NEW_FAILED;
 	}
 
-	// Set CPUSET configuration (if available)
-	if (!mounts[CGC::CPUSET]) {
-		logger->Debug("CGroup [%s]: CPUSET controller not configured", cgroup_path);
-		goto set_cpus;
+	struct cgroup_controller * cpuset_controller;
+
+	struct cgroup_controller * memory_controller;
+
+	struct cgroup_controller * cpu_controller;
+
+	if (mounts[CGC::CPUSET]) {
+		cpuset_controller = cgroup_add_controller(cgroup_handler, "cpuset");
+
+		if (! cpuset_controller) {
+			logger->Error("CGroups::WriteCgroup::cgroup_get_controller CPUSET [%s] FAILED",
+						  cgroup_path);
+			return CGResult::GET_FAILED;
+		}
+
+		cgroup_set_value_string(cpuset_controller, "cpuset.cpus",
+								cgroup_data.cpuset.cpus);
+		cgroup_set_value_string(cpuset_controller, "cpuset.mems",
+								cgroup_data.cpuset.mems);
 	}
 
-	cpuset_controller = cgroup_add_controller(cgroup_handler, "cpuset");
-	if (!cpuset_controller) {
-		logger->Error("CGroup [%s]: set CPUSET controller FAILED", cgroup_path);
-		return CGResult::ADD_FAILED;
+	if (mounts[CGC::CPU]) {
+		cpu_controller = cgroup_add_controller(cgroup_handler, "cpu");
+
+		if (! cpu_controller) {
+			logger->Error("CGroups::WriteCgroup::cgroup_get_controller CPU [%s] FAILED",
+						  cgroup_path);
+			return CGResult::GET_FAILED;
+		}
+
+		cgroup_set_value_string(cpu_controller, "cpu.cfs_period_us",
+								cgroup_data.cpu.cfs_period_us);
+		cgroup_set_value_string(cpu_controller, "cpu.cfs_quota_us",
+								cgroup_data.cpu.cfs_quota_us);
 	}
 
-	result = cgroup_set_value_string(cpuset_controller, "cpuset.cpus",
-			cgroup_data.cpuset.cpus);
-	if (result)
-		logger->Error("CGroup [%s]: write [cpuset.cpus] FAILED", cgroup_path);
+	if (mounts[CGC::MEMORY]) {
+		memory_controller = cgroup_add_controller(cgroup_handler, "memory");
 
-	result = cgroup_set_value_string(cpuset_controller, "cpuset.mems",
-			cgroup_data.cpuset.mems);
-	if (result)
-		logger->Error("CGroup [%s]: write [cpuset.mems] FAILED", cgroup_path);
+		if (! memory_controller) {
+			logger->Error("CGroups::WriteCgroup::cgroup_get_controller MEMORY [%s] FAILED",
+						  cgroup_path);
+			return CGResult::GET_FAILED;
+		}
 
-set_cpus:
-
-	// Set CPU configuration (if available)
-	if (!mounts[CGC::CPU]) {
-		logger->Debug("CGroup [%s]: CPU controller not configured", cgroup_path);
-		goto set_memory;
+		cgroup_set_value_string(memory_controller, "memory.limit_in_bytes",
+								cgroup_data.memory.limit_in_bytes);
 	}
 
-	cpu_controller = cgroup_add_controller(cgroup_handler, "cpu");
-	if (!cpu_controller) {
-		logger->Error("CGroup [%s]: set CPU controller FAILED", cgroup_path);
-		return CGResult::ADD_FAILED;
+	if (pid == 0) {
+		// Create the kernel-space CGroup
+		// NOTE: the current libcg API is quite confuse and unclear
+		// regarding the "ignore_ownership" second parameter
+		logger->Debug("Create kernel CGroup [%s]", cgroup_path);
+		result = cgroup_create_cgroup(cgroup_handler, 1);
+
+		if (result && errno) {
+			logger->Error("CGroups::WriteCgroup::cgroup_create_cgroup [%s] FAILED (Error: %d, %s)",
+						  cgroup_path, result, cgroup_strerror(result));
+			return CGResult::CREATE_FAILED;
+		}
 	}
+	else {
+		// Create the kernel-space CGroup
+		logger->Debug("Update kernel CGroup [%s]", cgroup_path);
+		result = cgroup_modify_cgroup(cgroup_handler);
 
-	result = cgroup_set_value_string(cpu_controller, "cpu.cfs_period_us",
-			cgroup_data.cpu.cfs_period_us);
-	if (result)
-		logger->Error("CGroup [%s]: write [cpu.cfs_pediod_us] FAILED", cgroup_path);
+		if (result && errno) {
+			logger->Error("CGroups::WriteCgroup::cgroup_modify_cgroup [%s] FAILED during update (Error: %d, %s)",
+						  cgroup_path, result, cgroup_strerror(result));
+			return CGResult::CREATE_FAILED;
+		}
 
-	result = cgroup_set_value_string(cpu_controller, "cpu.cfs_quota_us",
-			cgroup_data.cpu.cfs_quota_us);
-	if (result)
-		logger->Error("CGroup [%s]: write [cpu.cfs_quota_us] FAILED", cgroup_path);
+		cgroup_set_value_uint64(cpuset_controller,
+								"cgroup.procs",
+								pid);
+		// Create the kernel-space CGroup
+		logger->Debug("Update kernel CGroup [%s]", cgroup_path);
+		result = cgroup_modify_cgroup(cgroup_handler);
 
-set_memory:
-
-	// Set MEMORY configuration (if available)
-	if (!mounts[CGC::MEMORY]) {
-		logger->Debug("CGroup [%s]: MEMORY controller not configured", cgroup_path);
-		goto done;
-	}
-
-	memory_controller = cgroup_add_controller(cgroup_handler, "memory");
-	if (!memory_controller) {
-		logger->Error("CGroup [%s]: set MEMORY controller FAILED", cgroup_path);
-		return CGResult::ADD_FAILED;
-	}
-
-	result = cgroup_set_value_string(memory_controller, "memory.limit_in_bytes",
-			cgroup_data.memory.limit_in_bytes);
-	if (result)
-		logger->Error("CGroup [%s]: write [memory.limit_in_bytes] FAILED", cgroup_path);
-
-done:
-
-	// Create the kernel-space CGroup
-	// NOTE: the current libcg API is quite confuse and unclear
-	// regarding the "ignore_ownership" second parameter
-	logger->Notice("Create kernel CGroup [%s]", cgroup_path);
-	result = cgroup_create_cgroup(cgroup_handler, 0);
-	if (result && errno) {
-		logger->Error("CGroup [%s] write FAILED (Error: %d, %s)",
-				cgroup_path, result, cgroup_strerror(result));
-		return CGResult::CREATE_FAILED;
+		if (result && errno) {
+			logger->Error("CGroups::WriteCgroup::cgroup_modify_cgroup [%s] FAILED during task attach (Error: %d, %s)",
+						  cgroup_path, result, cgroup_strerror(result));
+			return CGResult::CREATE_FAILED;
+		}
 	}
 
 	cgroup_free(&cgroup_handler);
@@ -350,6 +315,7 @@ CGroups::CGResult CGroups::Delete(const char *cgroup_path) {
 
 	// Update the CGroup variable with kernel info
 	result = cgroup_get_cgroup(cgroup_handler);
+
 	if (result != 0) {
 		logger->Error("CGroup [%s] get FAILED (Error: %d, %s)",
 				cgroup_path, result, cgroup_strerror(result));
@@ -360,36 +326,6 @@ CGroups::CGResult CGroups::Delete(const char *cgroup_path) {
 	if (cgroup_delete_cgroup(cgroup_handler, 1) != 0) {
 		logger->Error("CGroup [%s] delete FAILED", cgroup_path);
 		return CGResult::DELETE_FAILED;
-	}
-
-	cgroup_free(&cgroup_handler);
-	return CGResult::OK;
-}
-
-CGroups::CGResult CGroups::AttachMe(const char *cgroup_path) {
-	struct cgroup *cgroup_handler;
-	int result;
-
-	// Get required CGroup path
-	cgroup_handler = cgroup_new_cgroup(cgroup_path);
-	if (!cgroup_handler) {
-		logger->Error("CGroup [%s] new FAILED", cgroup_path);
-		return CGResult::NEW_FAILED;
-	}
-
-	// Update the CGroup variable with kernel info
-	result = cgroup_get_cgroup(cgroup_handler);
-	if (result != 0) {
-		logger->Error("CGroup [%s] get FAILED (Error: %d, %s)",
-				cgroup_path, result, cgroup_strerror(result));
-		return CGResult::READ_FAILED;
-	}
-
-	// Update the kernel cgroup
-	result = cgroup_attach_task(cgroup_handler);
-	if (result != 0) {
-		logger->Error("CGroup [%s] attach FAILED", cgroup_path);
-		return CGResult::ATTACH_FAILED;
 	}
 
 	cgroup_free(&cgroup_handler);

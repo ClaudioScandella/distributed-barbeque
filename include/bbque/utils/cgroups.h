@@ -103,12 +103,12 @@ public:
 	static bool Exists(const char *cgpath);
 
 	static CGResult Read(const char *cgpath, CGSetup &cgroup_data);
-
 	static CGResult CloneFromParent(const char *cgpath);
-	static CGResult Create(const char *cgpath, const CGSetup &cgroup_data);
+	static CGResult WriteCgroup(
+		const char *cgpath,
+		const CGSetup &cgroup_data,
+		int pid);
 	static CGResult Delete(const char *cgpath);
-
-	static CGResult AttachMe(const char *cgpath);
 
 private:
 
