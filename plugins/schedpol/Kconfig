@@ -70,9 +70,9 @@ choice
   config BBQUE_SCHEDPOL_DEFAULT_TEMPURA
     depends on BBQUE_SCHEDPOL_TEMPURA
     bool "Tempura"
-  config BBQUE_SCHEDPOL_DEFAULT_SCALLOP
-    bool "Scallop"
-    select BBQUE_SCHEDPOL_SCALLOP
+  config BBQUE_SCHEDPOL_DEFAULT_CONTREX
+    bool "Contrex"
+    select BBQUE_SCHEDPOL_CONTREX
   config BBQUE_SCHEDPOL_DEFAULT_GRIDBALANCE
     bool "GridBalance"
     select BBQUE_SCHEDPOL_GRIDBALANCE
@@ -91,3 +91,4 @@ source barbeque/plugins/schedpol/tempura/Kconfig
 source barbeque/plugins/schedpol/scallop/Kconfig
 source barbeque/plugins/schedpol/gridbalance/Kconfig
 source barbeque/plugins/schedpol/perdetemp/Kconfig
+source barbeque/plugins/schedpol/contrex/Kconfig

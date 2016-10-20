@@ -1,5 +1,0 @@
-config BBQUE_SCHEDPOL_SCALLOP
-  bool "Scallop"
-  default n
-  ---help---
-  Description...

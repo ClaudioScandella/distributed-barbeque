@@ -1,0 +1,5 @@
+config BBQUE_SCHEDPOL_CONTREX
+  bool "Contrex"
+  default n
+  ---help---
+  Description...

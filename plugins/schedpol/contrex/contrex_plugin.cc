@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "scallop_plugin.h"
-#include "scallop_schedpol.h"
+#include "contrex_plugin.h"
+#include "contrex_schedpol.h"
 #include "bbque/plugins/static_plugin.h"
 
 namespace bp = bbque::plugins;
@@ -36,8 +36,8 @@ PF_ExitFunc PF_initPlugin(const PF_PlatformServices * params) {
   rp.programming_language = PF_LANG_CPP;
 
   // Registering the module
-  rp.CreateFunc  = bp::ScallopSchedPol::Create;
-  rp.DestroyFunc = bp::ScallopSchedPol::Destroy;
+  rp.CreateFunc  = bp::ContrexSchedPol::Create;
+  rp.DestroyFunc = bp::ContrexSchedPol::Destroy;
   res = params->RegisterObject((const char *) MODULE_NAMESPACE, &rp);
   if (res < 0)
     return NULL;

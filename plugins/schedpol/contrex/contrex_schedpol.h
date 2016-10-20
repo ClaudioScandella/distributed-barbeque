@@ -15,19 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BBQUE_SCALLOP_SCHEDPOL_H_
-#define BBQUE_SCALLOP_SCHEDPOL_H_
+#ifndef BBQUE_CONTREX_SCHEDPOL_H_
+#define BBQUE_CONTREX_SCHEDPOL_H_
 
 #include <cstdint>
 #include <list>
 #include <memory>
 
 #include "bbque/configuration_manager.h"
-#include "bbque/plugins/plugin.h"
-#include "bbque/plugins/scheduler_policy.h"
 #include "bbque/scheduler_manager.h"
 
-#define SCHEDULER_POLICY_NAME "scallop"
+#include "bbque/res/resource_path.h"
+#include "bbque/plugins/plugin.h"
+#include "bbque/plugins/scheduler_policy.h"
+
+
+#define SCHEDULER_POLICY_NAME "contrex"
 
 #define MODULE_NAMESPACE SCHEDULER_POLICY_NAMESPACE "." SCHEDULER_POLICY_NAME
 
@@ -43,37 +46,25 @@ namespace bbque { namespace plugins {
 class LoggerIF;
 
 /**
- * @class ScallopSchedPol
+ * @class ContrexSchedPol
  *
- * Scallop scheduler policy registered as a dynamic C++ plugin.
+ * Contrex scheduler policy registered as a dynamic C++ plugin.
  */
-class ScallopSchedPol: public SchedulerPolicyIF {
+class ContrexSchedPol: public SchedulerPolicyIF {
 
 public:
 
 	// :::::::::::::::::::::: Static plugin interface :::::::::::::::::::::::::
 
-	/**
-	 * @brief Create the scallop plugin
-	 */
 	static void * Create(PF_ObjectParams *);
 
-	/**
-	 * @brief Destroy the scallop plugin
-	 */
 	static int32_t Destroy(void *);
 
 
 	// :::::::::::::::::: Scheduler policy module interface :::::::::::::::::::
 
-	/**
-	 * @brief Destructor
-	 */
-	virtual ~ScallopSchedPol();
+	virtual ~ContrexSchedPol() {}
 
-	/**
-	 * @brief Return the name of the policy plugin
-	 */
 	char const * Name();
 
 
@@ -130,22 +121,47 @@ private:
 	/** An High-Resolution timer */
 	Timer timer;
 
+
+	uint32_t proc_total;
+
+	uint32_t nr_critical;
+
+	uint32_t nr_non_critical;
+
+	uint32_t nr_ready;
+
+	uint32_t nr_running;
+
+
 	/**
 	 * @brief Constructor
 	 *
 	 * Plugins objects could be build only by using the "create" method.
 	 * Usually the PluginManager acts as object
 	 */
-	ScallopSchedPol();
+	ContrexSchedPol();
 
 	/**
 	 * @brief Optional initialization member function
 	 */
 	ExitCode_t Init();
+
+	void SetPowerConfiguration();
+
+	uint32_t ScheduleCritical();
+
+	uint32_t ScheduleNonCritical(uint32_t proc_available, uint32_t proc_quota);
+
+	uint32_t SchedulePriority(
+		bbque::app::AppPrio_t prio, uint32_t proc_available, uint32_t proc_quota);
+
+	SchedulerPolicyIF::ExitCode_t ScheduleApplication(
+		bbque::app::AppCPtr_t papp, uint32_t proc_quota);
+
 };
 
 } // namespace plugins
 
 } // namespace bbque
 
-#endif // BBQUE_SCALLOP_SCHEDPOL_H_
+#endif // BBQUE_CONTREX_SCHEDPOL_H_
