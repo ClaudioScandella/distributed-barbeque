@@ -1343,6 +1343,13 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 		return RTLIB_EXC_NOT_STARTED;
 	}
 
+	if (rtlib_configuration.unmanaged.enabled) {
+		logger->Warn("Getting resources for EXC [%p] SKIPPED "
+					  "(UNMANAGED mode)", (void *) exc_handler);
+		r_amount = - 1;
+		return RTLIB_OK;
+	}
+
 	switch (r_type) {
 	case SYSTEM:
 		r_amount = wm->nr_sys;
