@@ -106,6 +106,19 @@ private:
 	 */
 	CGroupDataPtr_t psilos;
 
+#ifdef CONFIG_TARGET_ARM_BIG_LITTLE
+	/**
+	 * @brief ARM big.LITTLE support: type of each CPU core
+	 *
+	 * If true, indicates that the related CPU cores is an
+	 * high-performance one.
+	 */
+	std::array<bool, BBQUE_TARGET_CPU_CORES_NUM> high_perf_cores = { {false} };
+
+	void InitCoresType();
+#endif
+
+	std::string memory_ids_all;
 
 //-------------------- METHODS
 

@@ -320,7 +320,7 @@ LinuxPlatformProxy::GetResourceMapping(
 		br::ResourceType::PROC_ELEMENT,
 		br::ResourceType::MEMORY, node_id, papp, rvt));
 	if (mem_ids.Count() == 0)
-		strncpy(prlb->mems, "0", 1);
+		strncpy(prlb->mems, memory_ids_all.c_str(), memory_ids_all.length());
 	else
 		strncpy(prlb->mems, mem_ids.ToStringCG().c_str(), 3*MaxMemsCount);
 	logger->Debug("PLAT LNX: Node [%d] mems : { %s }", node_id, prlb->mems);
@@ -1101,12 +1101,14 @@ LinuxPlatformProxy::ParseNodeAttributes(struct cgroup_file_info &entry,
 	// Getting the value for the "cpuset.mems" attribute
 	cg_result = cgroup_get_value_string(
 		cg_controller, BBQUE_LINUXPP_MEMN_PARAM, &(prlb->mems));
+	memory_ids_all.assign(prlb->mems);
 	if (cg_result) {
 		logger->Error("PLAT LNX: Getting MEMs attribute FAILED! "
 		"(Error: 'cpuset.mems' not configured or not readable)");
 		pp_result = PLATFORM_NODE_PARSING_FAILED;
 		goto parsing_failed;
 	}
+	logger->Debug("PLAT LNX: Memory nodes to manage: %s", memory_ids_all.c_str());
 
 	/**********************************************************************
 	 *    MEMORY Controller
