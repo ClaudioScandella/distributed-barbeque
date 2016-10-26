@@ -1091,12 +1091,14 @@ LinuxPlatformProxy::ParseNodeAttributes(struct cgroup_file_info &entry,
 	// Getting the value for the "cpuset.cpus" attribute
 	cg_result = cgroup_get_value_string(
 		cg_controller, BBQUE_LINUXPP_CPUS_PARAM, &(prlb->cpus));
+	core_ids_all.assign(prlb->cpus);
 	if (cg_result) {
 		logger->Error("PLAT LNX: Getting CPUs attribute FAILED! "
 		"(Error: 'cpuset.cpus' not configured or not readable)");
 		pp_result = PLATFORM_NODE_PARSING_FAILED;
 		goto parsing_failed;
 	}
+	logger->Debug("PLAT LNX: CPU cores to manage: %s", core_ids_all.c_str());
 
 	// Getting the value for the "cpuset.mems" attribute
 	cg_result = cgroup_get_value_string(
