@@ -306,9 +306,9 @@ LinuxPlatformProxy::GetResourceMapping(
 
 	// CPU core set
 	br::ResourceBitset core_ids(
-	        br::ResourceBinder::GetMask(assign_map,
-	br::ResourceType::PROC_ELEMENT,
-	br::ResourceType::CPU, node_id, papp, rvt));
+		br::ResourceBinder::GetMask(assign_map,
+		br::ResourceType::PROC_ELEMENT,
+		br::ResourceType::CPU, node_id, papp, rvt));
 	if (strlen(prlb->cpus) > 0)
 		strcat(prlb->cpus, ",");
 	strncat(prlb->cpus, + core_ids.ToStringCG().c_str(), 3*MaxCpusCount);
@@ -577,11 +577,10 @@ LinuxPlatformProxy::RegisterClusterCPUs(RLinuxBindingsPtr_t prlb) noexcept {
 	while (*p) {
 
 		// Get a CPU id, and register the corresponding resource path
-		sscanf(p, "%hu", &first_cpu_id);
-		snprintf(resourcePath+8, 10, "%hu.pe%d",
-		prlb->node_id, first_cpu_id);
-		logger->Debug("PLAT LNX: Registering [%s]...",
-		resourcePath);
+		sscanf(p, "%d", &first_cpu_id);
+		snprintf(resourcePath+8, 10, "%d.pe%d", prlb->node_id, first_cpu_id);
+		logger->Debug("PLAT LNX: Registering [%s]...", resourcePath);
+
 		if (refreshMode)
 			ra.UpdateResource(resourcePath, "", cpu_quota);
 		else {
@@ -1053,13 +1052,11 @@ LinuxPlatformProxy::ParseNodeAttributes(struct cgroup_file_info &entry,
 
 
 	// Initialize the CGroup variable
-	sscanf(entry.path + STRLEN(BBQUE_LINUXPP_CLUSTER), "%hu",
-	&prlb->node_id);
+	sscanf(entry.path + STRLEN(BBQUE_LINUXPP_CLUSTER), "%hu", &prlb->node_id);
 	snprintf(group_name +
-	STRLEN(BBQUE_LINUXPP_RESOURCES) +   // e.g. "bbque/res"
-	STRLEN(BBQUE_LINUXPP_CLUSTER) + 1,  // e.g. "/" + "node"
-	4, "%d",
-	prlb->node_id);
+		STRLEN(BBQUE_LINUXPP_RESOURCES) +   // e.g. "bbque/res"
+		STRLEN(BBQUE_LINUXPP_CLUSTER) + 1,  // e.g. "/" + "node"
+		4, "%d", prlb->node_id);
 	bbq_node = cgroup_new_cgroup(group_name);
 	if (bbq_node == NULL) {
 		logger->Error("PLAT LNX: Parsing resources FAILED! "
@@ -1092,8 +1089,8 @@ LinuxPlatformProxy::ParseNodeAttributes(struct cgroup_file_info &entry,
 	}
 
 	// Getting the value for the "cpuset.cpus" attribute
-	cg_result = cgroup_get_value_string(cg_controller, BBQUE_LINUXPP_CPUS_PARAM,
-	&(prlb->cpus));
+	cg_result = cgroup_get_value_string(
+		cg_controller, BBQUE_LINUXPP_CPUS_PARAM, &(prlb->cpus));
 	if (cg_result) {
 		logger->Error("PLAT LNX: Getting CPUs attribute FAILED! "
 		"(Error: 'cpuset.cpus' not configured or not readable)");
@@ -1102,8 +1099,8 @@ LinuxPlatformProxy::ParseNodeAttributes(struct cgroup_file_info &entry,
 	}
 
 	// Getting the value for the "cpuset.mems" attribute
-	cg_result = cgroup_get_value_string(cg_controller, BBQUE_LINUXPP_MEMN_PARAM,
-	&(prlb->mems));
+	cg_result = cgroup_get_value_string(
+		cg_controller, BBQUE_LINUXPP_MEMN_PARAM, &(prlb->mems));
 	if (cg_result) {
 		logger->Error("PLAT LNX: Getting MEMs attribute FAILED! "
 		"(Error: 'cpuset.mems' not configured or not readable)");
