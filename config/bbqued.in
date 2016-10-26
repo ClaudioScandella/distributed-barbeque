@@ -182,11 +182,12 @@ setup() {
 
 	# Setup CGroups shield
 	bbqued_info "Moving all (user-space) tasks into HOST node"
-	for D in `find /proc/ -maxdepth 1 -type d`; do
-			P=`basename $D`
+	for D in `cat $BBQUE_CGMOUNT/cgroup.procs`; do
 			# jumping kernel thread which should not be moved
-			readlink $D/exe >/dev/null 2>&1 || continue
-			echo $P > $BBQUE_CGMOUNT/user.slice/host/cgroup.procs >/dev/null 2>&1
+			RES=$(readlink -v /proc/$D/exe 2>/dev/null)
+			if [ "$RES" != "" ]; then
+				echo "$D" > $BBQUE_CGMOUNT/user.slice/host/cgroup.procs
+			fi
 	done
 
 	bbqued_notice "Setup Release Agent: $BBQUE_CGAGENT"
@@ -232,12 +233,12 @@ stop() {
 	# Cleaning-up CGroup reservations
 	if [ -d $BBQUE_CGMOUNT/user.slice ]; then
 		bbqued_info "Moving all (user-space) tasks back to ROOT node"
-		for P in `cat $BBQUE_CGMOUNT/user.slice/host/tasks &> /dev/null`; do
-			echo $P > $BBQUE_CGMOUNT/cgroup.procs >/dev/null 2>&1
+		for P in `cat $BBQUE_CGMOUNT/user.slice/host/cgroup.procs`; do
+			echo $P > $BBQUE_CGMOUNT/cgroup.procs
 		done
 		sleep 1
 		bbqued_info "Removing applications nodes"
-		find  $BBQUE_CGMOUNT/user.slice/* -type d -delete >/dev/null 2>&1
+		find  $BBQUE_CGMOUNT/user.slice/* -type d -delete
 	fi
 
 	# Clean-up lock and PID files
