@@ -143,14 +143,16 @@ RTLIB_ExitCode_t BbqueEXC::Disable()
 
 	logger->Info("Disabling control loop for EXC [%s] (@%p)...",
 				 exc_name.c_str(), (void *) exc_handler);
-	// Notify the control-thread we are STOPPED
-	exc_status.is_enabled = false;
-	control_cond_variable.notify_all();
 	// Disable the EXC
 	logger->Info("Disabling EXC [%s] (@%p)...",
 				 exc_name.c_str(), (void *) exc_handler);
 	assert(rtlib->Disable);
 	result = rtlib->Disable(exc_handler);
+
+	// Notify the control-thread we are STOPPED
+	exc_status.is_enabled = false;
+	control_cond_variable.notify_all();
+
 	return result;
 }
 
