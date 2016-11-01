@@ -376,7 +376,8 @@ LinuxPlatformProxy::GetResourceMapping(
 		br::ResourceType::PROC_ELEMENT,
 		br::ResourceType::MEMORY, node_id, papp, rvt));
 	if (mem_ids.Count() == 0)
-		strncpy(prlb->mems, memory_ids_all.c_str(), memory_ids_all.length());
+		strncpy(prlb->mems, "0-1", 3);
+		//strncpy(prlb->mems, memory_ids_all.c_str(), memory_ids_all.length());
 	else
 		strncpy(prlb->mems, mem_ids.ToStringCG().c_str(), 3*MaxMemsCount);
 	logger->Debug("PLAT LNX: Node [%d] mems : { %s }", node_id, prlb->mems);
