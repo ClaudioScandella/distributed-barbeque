@@ -511,12 +511,15 @@ RTLIB_ExitCode_t BbqueEXC::Monitor()
 	rtlib->Notify.PreMonitor(exc_handler);
 	// Call the user-defined monitor procedure
 	result = onMonitor();
-	// Call the RPC post-monitor procedure
-	rtlib->Notify.PostMonitor(exc_handler);
 
 	// Check if it was the last execution burst
-	if (result == RTLIB_EXC_WORKLOAD_NONE)
+	if (result == RTLIB_EXC_WORKLOAD_NONE) {
 		exc_status.has_finished_processing = true;
+		return result;
+	}
+
+	// Call the RPC post-monitor procedure
+	rtlib->Notify.PostMonitor(exc_handler);
 
 	// Check if the EXC has got duration constraints
 	if (likely(! config.duration.enabled))
