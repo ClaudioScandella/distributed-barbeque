@@ -496,33 +496,7 @@ SynchronizationManager::Sync_PostChange(ApplicationStatusIF::SyncState_t syncSta
 			continue;
 		}
 
-		// Send a Post-Change (blocking on apps being reconfigured)
-		presp = ApplicationProxy::pPostChangeRsp_t(
-				new ApplicationProxy::postChangeRsp_t());
-		result = ap.SyncP_PostChange(papp, presp);
-
-		if (result == RTLIB_BBQUE_CHANNEL_TIMEOUT) {
-			logger->Warn("STEP 4: <---- TIMEOUT -- [%s]",
-					papp->StrId());
-			// Disabling not responding applications
-			am.DisableEXC(papp, true);
-			continue;
-		}
-
-		if (result == RTLIB_BBQUE_CHANNEL_WRITE_FAILED) {
-			logger->Warn("STEP 1: <------ WERROR -- [%s]",
-					papp->StrId());
-			am.DisableEXC(papp, true);
-			continue;
-		}
-
-		if (result != RTLIB_OK)
-			continue;
-
 		logger->Info("STEP 4: <--------- OK -- [%s]", papp->StrId());
-
-		// TODO Here we should collect reconfiguration statistics
-		DB(logger->Warn("TODO: Collect reconf statistics"));
 
 	commit:
 		// Disregarding commit for EXC disabled meanwhile
