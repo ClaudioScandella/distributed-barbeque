@@ -361,6 +361,11 @@ public:
 	RTLIB_ExitCode_t GetAssignedResources(
 		RTLIB_ResourceType_t r_type,
 		int32_t & r_amount);
+
+        RTLIB_ExitCode_t GetAffinityMask(
+                int32_t * ids_vector,
+                int vector_size);
+
 	/**
 	 * @brief Get the amount of resource assigned by the BarbequeRTRM
 	 *

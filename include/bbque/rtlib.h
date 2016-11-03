@@ -654,6 +654,12 @@ typedef RTLIB_ExitCode_t (*RTLIB_Utils_GetResources) (
 	RTLIB_ResourceType_t resource_type,
 	int32_t & resource_amount);
 
+typedef RTLIB_ExitCode_t (*RTLIB_Utils_GetAffinityMask) (
+	RTLIB_EXCHandler_t exc_handler,
+	const RTLIB_WorkingModeParams_t * working_mode_params,
+	int32_t * ids_vector,
+	int vector_size);
+
 /**
  * @brief Get the amount of resources assigned by the BarbequeRTRM to the
  *        various systems. System[0] is the local system.
@@ -1159,6 +1165,7 @@ struct RTLIB_Services {
 		RTLIB_Utils_GetCharUniqueID GetUniqueID_String;
 		RTLIB_Utils_GetUniqueID GetUniqueID;
 		RTLIB_Utils_GetResources GetResources;
+                RTLIB_Utils_GetAffinityMask GetAffinityMask;
 		RTLIB_Utils_GetResourcesArray GetResourcesArray;
 		RTLIB_Utils_StartPCountersMonitoring MonitorPerfCounters;
 	} Utils;

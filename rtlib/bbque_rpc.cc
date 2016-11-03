@@ -1389,6 +1389,32 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 	return RTLIB_OK;
 }
 
+RTLIB_ExitCode_t BbqueRPC::GetAffinityMask(
+		RTLIB_EXCHandler_t exc_handler,
+		const RTLIB_WorkingModeParams_t * wm,
+		int32_t * ids_vector,
+                int vector_size) {
+
+    pRegisteredEXC_t exc = getRegistered(exc_handler);
+
+    if (! exc) {
+	logger->Error("Getting resources for EXC [%p] FAILED "
+					  "(Error: EXC not registered)", (void *) exc_handler);
+	return RTLIB_EXC_NOT_REGISTERED;
+    }
+
+    for (int id = 0; id < vector_size; id ++)
+        ids_vector[id] = -1;
+
+    int ids_number = std::min(vector_size,
+		    (int) exc->cg_current_allocation.cpu_affinity_mask.size());
+
+    for (int id = 0; id < ids_number; id ++)
+	ids_vector[id] = exc->cg_current_allocation.cpu_affinity_mask[id];
+
+    return RTLIB_OK;
+}
+
 RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 	RTLIB_EXCHandler_t exc_handler,
 	const RTLIB_WorkingModeParams_t * wm,
@@ -1758,6 +1784,8 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 			(exc->cg_budget.cpuset_cpus_global == "")
 			? std::to_string(pe_id)
 			: "," + std::to_string(pe_id);
+
+                exc->cg_budget.cpu_global_ids.push_back(pe_id);
 	}
 
 	// Setting the global PE bandwidth as the global available one
@@ -1779,6 +1807,7 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 			: "," + std::to_string(pe_id);
 
 		exc->cg_budget.cpu_budget_isolation++;
+                exc->cg_budget.cpu_isolation_ids.push_back(pe_id);
 	}
 
 	// If one of the pes list is empty, it means that the proc elements
@@ -1837,6 +1866,9 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 			exc->cg_budget.cpuset_mems;
 		exc->cg_current_allocation.memory_limit_bytes =
 			exc->cg_budget.memory_limit_bytes;
+
+		exc->cg_current_allocation.cpu_affinity_mask =
+			exc->cg_budget.cpu_global_ids;
 	}
 
 #endif
@@ -2164,6 +2196,11 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 			? exc->cg_budget.cpuset_cpus_isolation
 			: exc->cg_budget.cpuset_cpus_global;
 
+                exc->cg_current_allocation.cpu_affinity_mask = 
+                        (exc->cg_current_allocation.cpu_budget <= exc->cg_budget.cpu_budget_isolation)
+			? exc->cg_budget.cpu_isolation_ids
+			: exc->cg_budget.cpu_global_ids;
+                
 		logger->Debug("Applying CGroup configuration: CPU %.2f/%.2f",
 			100.0f * exc->cg_current_allocation.cpu_budget,
 			100.0f * exc->cg_budget.cpu_budget_shared);

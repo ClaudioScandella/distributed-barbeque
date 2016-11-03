@@ -201,6 +201,12 @@ public:
 		RTLIB_ResourceType_t r_type,
 		int32_t & r_amount);
 
+	RTLIB_ExitCode_t GetAffinityMask(
+		RTLIB_EXCHandler_t exc_handler,
+		const RTLIB_WorkingModeParams_t * wm,
+		int32_t * ids_vector,
+                int vector_size);
+
 	/**
 	 * @brief Get a breakdown of the allocated resources
 	 */
@@ -540,12 +546,15 @@ protected:
 		    std::string cpuset_cpus_isolation;
 		    std::string cpuset_cpus_global;
 		    std::string cpuset_mems;
+                    std::vector<int32_t> cpu_global_ids;
+                    std::vector<int32_t> cpu_isolation_ids;
 		} cg_budget;
 		struct CGroupAllocationInfo {
 		    float cpu_budget = 0.0;
 		    std::string memory_limit_bytes;
 		    std::string cpuset_cpus;
 		    std::string cpuset_mems;
+                    std::vector<int32_t> cpu_affinity_mask;
 		} cg_current_allocation;
 #endif
 		struct RT_Profile {

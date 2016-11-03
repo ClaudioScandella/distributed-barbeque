@@ -158,6 +158,15 @@ static RTLIB_ExitCode_t rtlib_utils_get_resources(
 	return rpc->GetAssignedResources(exc_handler, wm, r_type, r_amount);
 }
 
+static RTLIB_ExitCode_t rtlib_utils_get_affinity_mask(
+						RTLIB_EXCHandler_t exc_handler,
+						const RTLIB_WorkingModeParams_t * wm,
+						int32_t * ids_vector,
+						int vector_size)
+{
+	return rpc->GetAffinityMask(exc_handler, wm, ids_vector, vector_size);
+}
+
 static RTLIB_ExitCode_t rtlib_utils_get_resources_array(
 							RTLIB_EXCHandler_t exc_handler,
 							const RTLIB_WorkingModeParams_t * wm,
@@ -309,6 +318,7 @@ RTLIB_ExitCode_t RTLIB_Init(const char * name, RTLIB_Services_t ** rtlib)
 	rtlib_services.Utils.GetUniqueID_String = rtlib_utils_getchuid;
 	rtlib_services.Utils.GetUniqueID = rtlib_utils_getuid;
 	rtlib_services.Utils.GetResources = rtlib_utils_get_resources;
+	rtlib_services.Utils.GetAffinityMask = rtlib_utils_get_affinity_mask;
 	rtlib_services.Utils.GetResourcesArray = rtlib_utils_get_resources_array;
 	rtlib_services.Utils.MonitorPerfCounters =
 		rtlib_utils_start_pcounters_monitoring;

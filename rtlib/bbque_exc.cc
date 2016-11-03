@@ -292,6 +292,14 @@ RTLIB_ExitCode_t BbqueEXC::GetAssignedResources(
 	return rtlib->Utils.GetResources(exc_handler, &wmp, r_type, r_amount);
 }
 
+RTLIB_ExitCode_t BbqueEXC::GetAffinityMask(
+	int32_t * ids_vector,
+        int vector_size)
+{
+	return rtlib->Utils.GetAffinityMask(exc_handler, &wmp, ids_vector,
+                vector_size);
+}
+
 RTLIB_ExitCode_t BbqueEXC::GetAssignedResources(
 	RTLIB_ResourceType_t r_type,
 	int32_t * sys_array,
