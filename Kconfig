@@ -294,3 +294,46 @@ config BBQUE_EM
 
 
 endmenu # Advanced options
+
+
+################################################################################
+# Real-Time Management
+################################################################################
+
+menu "Real-Time Management"
+
+config BBQUE_RT
+  bool "Enable Real-Time extension"
+  default n
+  ---help---
+  Build the BarbequeRTRM with Real-Time support enabled.
+
+  This enable in RTLib and in BarbequeRTRM the set of methods to manage the
+  real time application in Linux.
+
+config BBQUE_RT_HARD
+  bool "Hard Real-Time (PREEMPT_RT patch required)"
+  default n
+  depends on BBQUE_RT
+  ---help---
+  Build the BarbequeRTRM with the Hard Real-Time support enabled.
+
+  This enable in RTLib and in BarbequeRTRM the set of methods to manage the
+  hard real time application in Linux.
+  This option requires the PREEMPT_RT patch in the system.
+
+config BBQUE_MAX_RT_CPU
+  int "CPU limit for RT applications (per-mille)"
+  default 950
+  depends on BBQUE_RT
+  ---help---
+  The fraction of CPU that can be allocated in the entire system for real time
+  application. Se this value to 1000/1000 may create instability to the system if
+  the RT applications consume all of CPU time available. Before set this value
+  to 1000/1000 be sure that all the applications lead voluntarily the CPU for a
+  sufficient time.
+
+
+endmenu
+
+
