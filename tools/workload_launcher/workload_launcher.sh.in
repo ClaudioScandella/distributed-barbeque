@@ -1,0 +1,361 @@
+#!/bin/bash
+
+declare START_TIME=$(date +%s.%3N)
+
+BOSP_RUNTIME="@CONFIG_BOSP_RUNTIME_PATH@"
+BASE_DIR="$BOSP_RUNTIME/../my_workload_tests"
+
+. /home/slibutti/opt/bosp/out/etc/bbque/bosp_init.env > /dev/null
+
+# ------------------------------------------------------------------------
+# SETTING UP LOGGING
+# ------------------------------------------------------------------------
+function PrintHelp() {
+	echo
+	echo "+---------------------------------------------------------------+"
+	echo "| Usage                                                         |"
+	echo "+---------------------------------------------------------------+"
+	echo "| /path/to/parsec_launcher.sh /path/to/plw_description          |"
+	echo "|                                                               |"
+	echo "| Ex    ./parsec_launcher.sh ~/plw_description                  |"
+	echo "+---------------------------------------------------------------+"
+	echo
+}
+
+function DebugLog() {
+	printf "[%6s] - [DBG] $@\n" $(echo $(date +%s.%3N)"-"$START_TIME | bc)
+}
+
+function InfoLog() {
+	printf "[%6s] - [INF] $@\n" $(echo $(date +%s.%3N)"-"$START_TIME | bc)
+}
+
+function NoticeLog() {
+	echo -ne '\e[36m'
+	printf "[%6s] - [INF] $@\n" $(echo $(date +%s.%3N)"-"$START_TIME | bc)
+	echo -ne '\e[0m'
+}
+
+function ErrorLog() {
+	echo -ne '\e[35m'
+	printf "[%6s] - [ERR] $@\n" $(echo $(date +%s.%3N)"-"$START_TIME | bc)
+	echo -ne '\e[0m'
+}
+
+function WarningLog() {
+	echo -ne '\e[33m'
+	printf "[%6s] - [WAR] $@\n" $(echo $(date +%s.%3N)"-"$START_TIME | bc)
+	echo -ne '\e[0m'
+}
+
+function InputError() {
+	ErrorLog "$@"
+	PrintHelp
+	exit
+}
+
+function ExitOnError() {
+	ErrorLog "$@"
+	exit
+}
+
+clear
+
+NoticeLog "Output folder: $BASE_DIR"
+NoticeLog "Number of already stored results: $(ls $BASE_DIR | wc -l)"
+
+# ------------------------------------------------------------------------
+# DETECTING SYSTEM CAPABILITIES
+# ------------------------------------------------------------------------
+# Not all bash versions support arrays (most do)
+array_support[0]='Hope so' || ExitOnError "Sorry, this bash version does not support arrays."
+
+# Number of useful columns of the current window. The visual format will be:
+# ___N [XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX]
+# where ___N means app number N. The useful columns are the 'X's, hence I
+# substract 7 to the number of total colummns (length of '___N []')
+PROGRESS_WINDOW_WIDTH=$(echo "`tput cols`- 7" | bc)
+(($PROGRESS_WINDOW_WIDTH > 0)) || ExitOnError "Sorry, terminal is to narrow (`tput cols` columns)"
+
+# ------------------------------------------------------------------------
+# SETTING UP the environment
+# ------------------------------------------------------------------------
+RUNTIME_FOLDER="$BASE_DIR/plaunch_runtime"
+
+WORKLOAD_TEMP="$RUNTIME_FOLDER/plaunch_workload_description"
+TIMELINE_TEMP="$RUNTIME_FOLDER/plaunch_workload_timeline"
+COMMANDL_TEMP="$RUNTIME_FOLDER/plaunch_workload_commandline"
+
+OUTPUT_FOLDER=$BASE_DIR
+TEST_FOLDER="$OUTPUT_FOLDER/$(date +[%m-%d-%y]-%H:%M:%S)"
+mkdir -p $TEST_FOLDER
+
+rm $RUNTIME_FOLDER/* &> /dev/null
+mkdir -p $RUNTIME_FOLDER
+echo > $RUNTIME_FOLDER/lock
+
+EMPTY_GAUGE=$(printf '_%.0s' `seq 1 $PROGRESS_WINDOW_WIDTH`)
+
+DebugLog "Temp workload description will be saved in $WORKLOAD_TEMP"
+DebugLog "Progress window width is $PROGRESS_WINDOW_WIDTH"
+
+# ------------------------------------------------------------------------
+# PARSING INPUT
+# ------------------------------------------------------------------------
+
+# Check that user passed only an arg
+[ "$#" -ne 1 ] && InputError "Number of arguments is $#, but should be 1."
+
+# Check that the only arg is the workload description file
+[ -f $1 ] || InputError "$1 is not a file."
+cat $1 | grep "^+" | sed -e 's/^+ //g' | sort > $WORKLOAD_TEMP
+[ -s $WORKLOAD_TEMP ] || InputError "$1 does not contain any valid entry. Please Check the syntax."
+
+# Giving a visual feedback to the user, just in case
+InfoLog "Summary of plw_description:"
+while read test; do InfoLog " > $test"; done < $WORKLOAD_TEMP
+
+# Storing timeline and launch commands in local variables
+cat $WORKLOAD_TEMP | awk '{print $1 - prev; prev = $1}' > $TIMELINE_TEMP
+cat $WORKLOAD_TEMP | awk '{cmd=""; for (arg = 2; arg <= NF; arg ++) cmd = cmd $arg " "; print cmd}' > $COMMANDL_TEMP
+while read line; do DELAYS[${#DELAYS[@]}]=$line; done < $TIMELINE_TEMP
+while read line; do CLINES[${#CLINES[@]}]=$line; done < $COMMANDL_TEMP
+rm $WORKLOAD_TEMP $TIMELINE_TEMP $COMMANDL_TEMP
+DebugLog "Checking if #start_times (${#DELAYS[@]}) == #applications (${#CLINES[@]})"
+((${#DELAYS[@]} == ${#CLINES[@]})) || ExitOnError "Error parsing workload entries. (line ${LINENO})"
+
+APPS_NUMBER=${#CLINES[@]}
+RUNNING_APPS=$APPS_NUMBER
+APPS_MAX_INDEX=$((APPS_NUMBER - 1))
+DebugLog "Number of applications in the workload: $APPS_NUMBER"
+
+# ------------------------------------------------------------------------
+# SETTING UP BBQUE
+# ------------------------------------------------------------------------
+
+if [[ $BBQUE_RTLIB_OPTS != *"U"* ]]; then
+	NoticeLog "Starting bbque"
+	bbque-startd &> /dev/null
+else
+	WarningLog "RUNNING IN UNMANAGED MODE"
+fi
+
+if [ "$(pidof barbeque)" == "" ]; then
+	ExitOnError "Could not start bbque. Terminating."
+fi
+
+if [ "$(mount | grep bbque_cgroups)" == "" ]; then
+	ExitOnError "Could not find bbque_cgroups mount point. Terminating."
+fi
+
+echo;echo
+
+# ------------------------------------------------------------------------
+# STARTING VISUAL OUTPUT
+# ------------------------------------------------------------------------
+
+for app_index in `seq 0 $APPS_MAX_INDEX`; do
+	HEAD=`printf '%4d' $app_index`
+	S="${HEAD// /_} [$EMPTY_GAUGE]"
+	STATUS[$app_index]="$S"
+done
+
+TIME=0
+
+while [ -f $RUNTIME_FOLDER/lock ]; do
+	# TODO If all processes returned, break
+
+	(($TIME < $PROGRESS_WINDOW_WIDTH)) || break
+
+	CURSOR_NOW=$((TIME+5))
+	CURSOR_NXT=$((TIME+6))
+
+	for app_index in `seq 0 $APPS_MAX_INDEX`; do
+
+		if [ -f $RUNTIME_FOLDER/$app_index"_token" ]; then
+			CURR="${STATUS[$app_index]}"
+			NEXT="${CURR:0:$CURSOR_NOW}#${CURR:$CURSOR_NXT}"
+			STATUS[$app_index]="$NEXT"
+		fi
+
+		echo ${STATUS[$app_index]}
+	done
+
+	# Printing time indicator
+	printf '%*s\n' $((TIME + 6)) "+"
+
+	TIME=$((TIME+1))
+	sleep 1
+
+	if [ -f $RUNTIME_FOLDER/lock ]; then
+		# Removing time indicator
+		tput cuu1; tput el
+		# Removing gauges
+		for APP in `seq 0 $APPS_MAX_INDEX`; do tput cuu1; tput el; done
+	fi
+done &
+GUI_PID=$!
+
+# ------------------------------------------------------------------------
+# LAUNCHING APPS
+# ------------------------------------------------------------------------
+for app_id in `seq 0 $APPS_MAX_INDEX`; do
+	sleep ${DELAYS[$app_id]}
+	${CLINES[$app_id]} 2>/dev/null > $TEST_FOLDER/A$app_id &
+	# Tokens are used to sync with visual output function
+	echo $! > $RUNTIME_FOLDER/$app_id"_token"
+done
+
+while true; do
+	for app_id in `seq 0 $APPS_MAX_INDEX`; do
+
+		# If app already terminated, skip
+		[ -f $RUNTIME_FOLDER/$app_id"_token" ] || continue
+
+		# Check if app terminated
+		pid=`cat $RUNTIME_FOLDER/$app_id"_token"`
+
+		if ! kill -0 $pid > /dev/null 2>&1; then
+			rm $RUNTIME_FOLDER/$app_id"_token"
+			RUNNING_APPS=$((RUNNING_APPS-1))
+		fi
+	done
+
+	# Break if all apps terminated
+	(($RUNNING_APPS == 0)) && break
+
+	sleep 1
+done
+
+# Stop the visual output function
+rm $RUNTIME_FOLDER/lock
+wait $GUI_PID
+
+echo;echo
+
+# ------------------------------------------------------------------------
+# CLEANING UP
+# ------------------------------------------------------------------------
+rm -r $RUNTIME_FOLDER
+
+if [[ $BBQUE_RTLIB_OPTS != *"U"* ]]; then
+	NoticeLog "Stopping bbque"
+	bbque-stopd &> /dev/null
+fi
+
+InfoLog "Results stored in $TEST_FOLDER"
+InfoLog "Proceeding with parsing"
+
+cd $TEST_FOLDER
+for log in `ls`; do
+	InfoLog "Parsing log: $log"
+	mkdir $log.parsed
+
+	# Cleaning up the mess
+	grep "^[0-9:,]\{1,\} - [A-Z\ ]\{1,\}stat[\ ]\{1,\}:" $log | \
+		sed -e 's/ - [A-Z]\+ \+stat \+: / /g' \
+			-e 's/,/\./g' > temp.stat
+
+	if [ ! -s temp.stat ]; then
+		ErrorLog "Cannot parse $log (no profiling info found)"
+		continue
+	fi
+
+	# Formatting timestamps
+	cat temp.stat | \
+		awk '{print $1}' | \
+		awk -F':' '{printf("%.3f\n", 3600 * $1 + 60 * $2 + $3)}' > temp.time
+
+	cat temp.stat | \
+		awk '{	s="";                         \
+				for (i = 2; i <= NF;i++)      \
+					s=s" "$i;                 \
+				print s                       \
+			}' | \
+			sed -e 's/^ //g' > temp.data
+
+	paste -d' ' temp.time temp.data > temp.stat.clean
+
+	# Dealing with people that run tests at midnight (I hate you, guys. Really.)
+	H_FIRST=$(head -n1 temp.stat.clean | cut -d' ' -f1)
+	cat temp.stat.clean | \
+		awk '{                             \
+				if($1 < '$H_FIRST')        \
+					$1 += 86400.000;       \
+				line=$1;                   \
+				for (i = 2; i <= NF; i ++) \
+					line = line" " $i;     \
+				print line \
+			}' > temp.stat.clean.nightproof
+
+
+# Timestamps
+cat temp.stat.clean.nightproof | \
+	awk '{                                             \
+			if (init == 0) {                           \
+				init = 1;                              \
+				start_time = $1                        \
+			};                                         \
+			line = $1 - start_time;                    \
+			for (i = 2; i <= NF; i ++)                 \
+				line = line" "$i;                      \
+			print line                                 \
+		}' > temp.stat.clean.nightproof.final
+
+	cat temp.stat.clean.nightproof.final | \
+		grep APPLICATION | \
+		sed -e 's/APPLICATION://g' > $log.parsed/application
+
+	cat temp.stat.clean.nightproof.final | \
+		grep CGROUP | \
+		sed -e 's/CGROUP://g' > $log.parsed/allocation
+
+	cat temp.stat.clean.nightproof.final | \
+		grep "RESOURCE\|PERFORMANCE" | \
+		sed -e 's/RESOURCE:\|PERFORMANCE://g' > $log.parsed/performance
+
+
+	# Some useful figures
+
+	# 1) CPU bandwidth over time
+	if [ "$(cat $log.parsed/allocation | grep CFS)" != "" ]; then
+		echo "# Time[s] CPU_Bandwidth" > $log.parsed/cpubandwidth_vs_time
+		cat $log.parsed/allocation | \
+			grep CFS | \
+			awk '{                         \
+					if (NR % 2 == 0)       \
+						print $1" "$3/x;   \
+					else x=$3              \
+				}' >> $log.parsed/cpubandwidth_vs_time
+	else
+		echo "Info not available. Please enable CGroup distributed actuation on bbque side" \
+					> $log.parsed/cpubandwidth_vs_time
+	fi
+
+	# 2) CPS_average / CPS_goal_min / CPS_goal_max vs time
+	if [ "$(cat $log.parsed/performance | grep CPSGOAL)" != "" ]; then
+		echo "# Time[s] CPS_avg CPS_min CPS_max" > $log.parsed/CPS_vs_time
+		cat $log.parsed/performance | \
+			awk '{                                            \
+					if ($2 ~ /CPSGOAL_MIN/)                   \
+						cpsg_min=$3;                          \
+					if ($2 ~ /CPSGOAL_MAX/)                   \
+						cpsg_max=$3;                          \
+					if ($2 ~ /AVERAGE_CPS_USER/)              \
+						print $1" "$3" "cpsg_min" "cpsg_max;  \
+				}' >> $log.parsed/CPS_vs_time
+	else
+		echo "Info not available: CPS goal was not set" \
+					> $log.parsed/CPS_vs_time
+	fi
+
+
+	mv $log $log.parsed/$log
+	rm temp.*
+
+	InfoLog "Results stored in $TEST_FOLDER/$log.parsed"
+done
+
+InfoLog "Exit"
+
+exit

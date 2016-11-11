@@ -1,0 +1,13 @@
+Workload description for bbque parsec launcher.
+The launcher will read only lines starting with '+'
+
+First column: delay [s], i.e. after how many seconds the app will be started
+Second Column: The actual command line to launch the application
+
+Please use spaces instead of tabs to separate the columns
+
++ 0 bbque-testapp --workload 5
++ 10 bbque-testapp --workload 4
++ 0 bbque-testapp --workload 7
++ 15 bbque-testapp --workload 5
+

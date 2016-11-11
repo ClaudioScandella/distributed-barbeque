@@ -176,3 +176,23 @@ install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/bbqueSystemdSetup.sh"
 	DESTINATION ${BBQUE_PATH_BBQ}
 	COMPONENT BarbequeUTILS
 	RENAME bbque-systemd-setup)
+
+# ------- Deploy the BarbequeRTRM workload launcher
+configure_file (
+	"${PROJECT_SOURCE_DIR}/tools/workload_launcher/workload_launcher.sh.in"
+	"${PROJECT_BINARY_DIR}/tools/workload_launcher/workload_launcher.sh"
+	@ONLY
+)
+
+install(PROGRAMS "${PROJECT_BINARY_DIR}/tools/workload_launcher/workload_launcher.sh"
+	DESTINATION ${BBQUE_PATH_BBQ}/workload_launcher/
+)
+
+install(
+	DIRECTORY ${PROJECT_SOURCE_DIR}/tools/workload_launcher/
+	DESTINATION ${BBQUE_PATH_BBQ}/workload_launcher/
+	USE_SOURCE_PERMISSIONS
+	FILES_MATCHING
+	PATTERN "*.example"
+	PATTERN "README"
+)
