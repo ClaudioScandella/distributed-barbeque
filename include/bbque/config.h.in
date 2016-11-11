@@ -251,6 +251,16 @@
 #cmakedefine CONFIG_BBQUE_PIL_LEGACY
 
 /*******************************************************************************
+ * BarbequeRTRM Real-Time extension
+ ******************************************************************************/
+/** Real-Time option */
+#cmakedefine CONFIG_BBQUE_RT
+
+/** Hard Real-Time option */
+#cmakedefine CONFIG_BBQUE_RT_HARD
+
+
+/*******************************************************************************
  * BarbequeRTRM Plugins Selection
  ******************************************************************************/
 

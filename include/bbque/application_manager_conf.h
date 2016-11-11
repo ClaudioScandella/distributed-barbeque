@@ -62,6 +62,7 @@ public:
 			std::string const & name, AppPid_t pid, uint8_t exc_id,
 			std::string const & recipe,
 			RTLIB_ProgrammingLanguage_t lang,
+			RTLIB_RT_Level_t rt_level,
 			app::AppPrio_t prio,
 			bool weak_load,
 			bool container) = 0;

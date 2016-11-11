@@ -73,11 +73,13 @@ Application::Application(std::string const & _name,
 		AppPid_t _pid,
 		uint8_t _exc_id,
 		RTLIB_ProgrammingLanguage_t lang,
+		RTLIB_RT_Level_t _rt_level,
 		bool container):
 	name(_name),
 	pid(_pid),
 	exc_id(_exc_id),
 	language(lang),
+	rt_level(_rt_level),
 	container(container) {
 
 	// Init the working modes vector
@@ -103,6 +105,26 @@ Application::Application(std::string const & _name,
 	schedule.preSyncState = DISABLED;
 	schedule.syncState    = SYNC_NONE;
 	logger->Info("Built new EXC [%s]", StrId());
+
+
+#ifdef CONFIG_BBQUE_RT
+	if(_rt_level == RTLIB_RT_Level_t::RT_SOFT) {
+		logger->Notice("EXC [%s] requests Soft Real-Time", StrId());
+	}
+
+#ifdef CONFIG_BBQUE_RT_HARD
+	if(_rt_level == RTLIB_RT_Level_t::RT_HARD) {
+		logger->Notice("EXC [%s] requests Hard Real-Time", StrId());
+	}
+#else
+	assert(_rt_level == RTLIB_RT_Level_t::RT_NONE || 
+		   _rt_level == RTLIB_RT_Level_t::RT_SOFT);
+#endif	// CONFIG_BBQUE_RT_HARD
+
+#else
+	assert(_rt_level == RTLIB_RT_Level_t::RT_NONE);
+#endif	// CONFIG_BBQUE_RT
+
 }
 
 Application::~Application() {

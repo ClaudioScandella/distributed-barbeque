@@ -336,6 +336,30 @@ struct RTLIB_WorkingModeParams {
 	RTLIB_SystemResources_t * systems;
 };
 
+
+
+/**
+ * @brief The Real-Time scheduling policy requested by the application
+ *
+ * Based on this value, Barbeque selects the appropriate  scheduling policy
+ * assigned to each process, that corresponds to Linux SCHED_*
+ * flags.
+ */
+
+typedef enum RTLIB_RT_Level {
+	RT_NONE = 0, // Default
+
+	#ifdef CONFIG_BBQUE_RT
+	RT_SOFT,
+
+	#ifdef CONFIG_BBQUE_RT_HARD
+	RT_HARD,
+	#endif //CONFIG_BBQUE_RT_HARD
+
+	#endif // CONFIG_BBQUE_RT
+} RTLIB_RT_Level_t;
+
+
 /**
  * @brief The parameters to register an execution context.
  * @ingroup rtlib_sec03_plain_exc
@@ -351,6 +375,8 @@ struct RTLIB_EXCParameters {
 	RTLIB_ProgrammingLanguage_t language;
 	/** The identifier of the "execution context" recipe */
 	RTLIB_Recipe_t recipe;
+	/** The Real-Time level */
+	RTLIB_RT_Level_t rt_level;
 };
 
 /**

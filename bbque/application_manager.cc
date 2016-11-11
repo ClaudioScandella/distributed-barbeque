@@ -167,7 +167,7 @@ int ApplicationManager::CommandsCb(int argc, char *argv[]) {
 
 		logger->Notice("Adding EXC [%s:%d] container, using recipe [%s] @ prio [%d]",
 				argv[1], pid, argv[3], prio);
-		papp = CreateEXC(argv[1], pid, 0, argv[3], RTLIB_LANG_CPP, prio, false, true);
+		papp = CreateEXC(argv[1], pid, 0, argv[3], RTLIB_LANG_CPP, RT_NONE, prio, false, true);
 		if (!papp) {
 			logger->Warn("Container EXC [%s:%d] creation FAILED");
 			break;
@@ -933,6 +933,7 @@ AppPtr_t ApplicationManager::CreateEXC(
 		std::string const & _name, AppPid_t _pid, uint8_t _exc_id,
 		std::string const & _rcp_name,
 		RTLIB_ProgrammingLanguage_t _lang,
+		RTLIB_RT_Level_t _rt_level,
 		app::AppPrio_t _prio,
 		bool _weak_load,
 		bool container) {
@@ -946,11 +947,12 @@ AppPtr_t ApplicationManager::CreateEXC(
 	RecipePtr_t rcp_ptr;
 
 	// Create a new descriptor
-	AppPtr_t papp = std::make_shared<ba::Application>(_name, _pid, _exc_id, _lang, container);
+	AppPtr_t papp = std::make_shared<ba::Application>(_name, _pid, _exc_id, _lang, _rt_level, container);
 	if (papp == nullptr) {
 		logger->Error("Create EXC [%s] FAILED during object construction");
 		return papp;
 	}
+
 	papp->SetPriority(_prio);
 
 	logger->Info("Create EXC [%s], prio[%d]",

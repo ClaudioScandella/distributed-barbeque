@@ -204,6 +204,12 @@ public:
 	virtual RTLIB_ProgrammingLanguage_t Language() const = 0;
 
 	/**
+	 * @brief Get the Real-Time class
+	 * @return The enumerated value represents the Real-Time level
+	 */
+	virtual RTLIB_RT_Level_t RTLevel() const = 0;
+
+	/**
 	 * @brief Get the UID of the current application
 	 */
 	inline AppUid_t Uid() const {

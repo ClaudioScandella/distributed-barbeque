@@ -83,6 +83,7 @@ public:
 			std::string const & name, AppPid_t pid, uint8_t exc_id,
 			std::string const & recipe,
 			RTLIB_ProgrammingLanguage_t lang = RTLIB_LANG_CPP,
+			RTLIB_RT_Level_t rt_level = RT_NONE,
 			AppPrio_t prio = BBQUE_APP_PRIO_LEVELS-1,
 			bool weak_load = false,
 			bool container = false);

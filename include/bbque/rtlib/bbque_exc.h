@@ -116,7 +116,8 @@ public:
 	 */
 	BbqueEXC(std::string const & name,
 			 std::string const & recipe,
-			 RTLIB_Services_t * rtlib);
+			 RTLIB_Services_t * rtlib,
+			 RTLIB_RT_Level_t rt_level = RT_NONE );
 
 	/**
 	 * @brief Destory the EXC
@@ -144,7 +145,7 @@ public:
 
 	/**
 	 * @brief Start the EXC thus asking resources
-	 *
+	 
 	 * Once an EXC has been successfully registered, by default, it is considered
 	 * disabled by the BarbequeRTRM; thus no resources are assigned to it until this
 	 * method is called.
@@ -653,6 +654,7 @@ protected:
 	 */
 	std::string const rpc_name;
 
+
 	/*******************************************************************************
 	 *    AEM Application Callbacks
 	 ******************************************************************************/
@@ -834,6 +836,11 @@ private:
 	 * @brief The Unique IDentifier (UID) for this EXC
 	 */
 	AppUid_t exc_unique_id;
+
+	/**
+	 * @brief The level of Real-Time of application
+	 */
+	RTLIB_RT_Level_t rt_level;
 
 	/**
 	*

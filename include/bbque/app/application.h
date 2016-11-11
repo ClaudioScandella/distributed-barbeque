@@ -128,6 +128,7 @@ public:
 	Application(std::string const & name,
 			AppPid_t pid, uint8_t exc_id,
 			RTLIB_ProgrammingLanguage_t lang = RTLIB_LANG_CPP,
+			RTLIB_RT_Level_t rt_level = RT_NONE,
 			bool container = false);
 
 	/**
@@ -161,6 +162,13 @@ public:
 	 * @see ApplicationStatusIF
 	 */
 	inline RTLIB_ProgrammingLanguage_t Language() const noexcept { return language; }
+
+	/**
+	 * @see ApplicationStatusIF
+	 */
+	inline RTLIB_RT_Level_t RTLevel() const {
+		return rt_level;
+	}
 
 	/**
 	 * @brief Get a string ID for this Execution Context
@@ -609,6 +617,9 @@ private:
 
 	/** The programming language */
 	RTLIB_ProgrammingLanguage_t language;
+
+	/** The Real-Time level */
+	RTLIB_RT_Level_t rt_level;
 
 	/** The application string ID */
 	char str_id[APPLICATION_NAME_LEN];

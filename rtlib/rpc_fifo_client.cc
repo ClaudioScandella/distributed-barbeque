@@ -391,11 +391,13 @@ RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_Register(pRegisteredEXC_t prec)
 	::strncpy(rf_EXC_REGISTER.pyl.recipe, prec->parameters.recipe,
 		RTLIB_EXC_NAME_LENGTH);
 	rf_EXC_REGISTER.pyl.lang = prec->parameters.language;
-	logger->Debug("Registering EXC [%d:%d:%s:%d]...",
+	rf_EXC_REGISTER.pyl.rt_level = prec->parameters.rt_level;
+	logger->Debug("Registering EXC [%d:%d:%s:%d:%d]...",
 		rf_EXC_REGISTER.pyl.hdr.app_pid,
 		rf_EXC_REGISTER.pyl.hdr.exc_id,
 		rf_EXC_REGISTER.pyl.exc_name,
-		rf_EXC_REGISTER.pyl.lang);
+		rf_EXC_REGISTER.pyl.lang,
+		rf_EXC_REGISTER.pyl.rt_level);
 	// Sending RPC Request
 	RPC_FIFO_SEND(EXC_REGISTER);
 	logger->Debug("Waiting BBQUE response...");

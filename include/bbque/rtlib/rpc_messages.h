@@ -148,6 +148,8 @@ typedef struct rpc_msg_EXC_REGISTER {
 	char recipe[RTLIB_RECIPE_NAME_LENGTH];
 	/** The code language class */
 	RTLIB_ProgrammingLanguage_t lang;
+	/** The Real-Time class */
+	RTLIB_RT_Level_t rt_level;
 } rpc_msg_EXC_REGISTER_t;
 
 /**
