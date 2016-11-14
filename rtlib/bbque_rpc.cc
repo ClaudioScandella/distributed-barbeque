@@ -987,7 +987,7 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 	return RTLIB_OK;
 }
 
-#else
+#else // CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT
 
 RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 {
