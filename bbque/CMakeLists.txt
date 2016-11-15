@@ -145,6 +145,10 @@ if (CONFIG_BBQUE_PM)
 	set (BARBEQUE_SRC power_monitor ${BARBEQUE_SRC})
 endif (CONFIG_BBQUE_PM)
 
+if (CONFIG_BBQUE_RT)
+	set (BARBEQUE_SRC realtime_manager ${BARBEQUE_SRC})
+endif (CONFIG_BBQUE_RT)
+
 add_executable (barbeque ${BARBEQUE_SRC})
 
 add_dependencies(barbeque
