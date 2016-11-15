@@ -39,6 +39,10 @@
 #include "bbque/em/event_manager.h"
 #endif
 
+#ifdef CONFIG_BBQUE_RT
+#include "bbque/realtime_manager.h"
+#endif
+
 #include "bbque/utils/logging/logger.h"
 #include "bbque/utils/timer.h"
 #include "bbque/utils/deferrable.h"
@@ -200,6 +204,11 @@ private:
 
 #ifdef CONFIG_BBQUE_EM
 	em::EventManager & em;
+#endif
+
+#ifdef CONFIG_BBQUE_RT
+
+	RealTimeManager & rtm;
 #endif
 
 	std::bitset<EVENTS_COUNT> pendingEvts;

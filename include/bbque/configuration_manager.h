@@ -158,6 +158,14 @@ public:
 		return plugins_dir;
 	}
 
+#ifdef CONFIG_BBQUE_RT
+
+	inline short int GetRTLevel() const {
+		return this->realtime_level;
+	}
+
+#endif
+
 private:
 
 	/**
@@ -227,6 +235,12 @@ private:
 	 * daemon run directory
 	 */
 	std::string daemon_rundir;
+
+	/**
+	 * Is the kernel compiled with soft/hard real-time support?
+	 */
+	short int realtime_level;
+
 };
 
 } // namespace bbque

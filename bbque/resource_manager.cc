@@ -147,6 +147,9 @@ ResourceManager::ResourceManager() :
 #ifdef CONFIG_BBQUE_EM
 	em(em::EventManager::GetInstance()),
 #endif
+#ifdef CONFIG_BBQUE_RT
+	rtm(RealTimeManager::GetInstance()),
+#endif
 
 	optimize_dfr("rm.opt", std::bind(&ResourceManager::Optimize, this)) {
 

@@ -19,6 +19,7 @@
 #define BBQUE_REALTIME_MANAGER_H_
 
 #include "bbque/app/application_conf.h"
+#include "bbque/utils/logging/logger.h"
 
 #ifndef CONFIG_BBQUE_RT
 	#error "You must not include this file if CONFIG_BBQUE_RT is not enabled."
@@ -38,12 +39,13 @@ namespace bbque {
  */
 class RealTimeManager {
 
+public:
 	/**
 	 * @brief The errors enumeration
 	 */
 	enum ExitCode_t {
-		RT_OK,
-		RT_GENERIC_ERROR
+		RTM_OK,
+		RTM_GENERIC_ERROR
 	};
 
 
@@ -60,9 +62,33 @@ class RealTimeManager {
 		return instance;
 	}
 
+	/**
+	  *	@brief Performs the system calls to change the scheduling parameters
+	  * 	   assigned to the application.
+      * @note If the system has no real-time capabilities, no action is
+      *       performed.
+	  * @throw runtime_error is the application is not flagged as RT. 
+	  */
 	ExitCode_t SetupApp(app::AppPtr_t app);
+	
+	/**
+      * @brief Returns true if the system has soft realtime capabilities
+      */
+	inline bool IsSoftRealTime() const noexcept { return this->is_soft; }
+
+	/**
+      * @brief Returns true if the system has hard realtime capabilities
+      */
+	inline bool IsHardRealTime() const noexcept { return this->is_hard; }
+
 
 private:
+
+	bool is_soft=false;
+	bool is_hard=false;
+
+	/** The logger used by the resource accounter */
+	std::unique_ptr<bu::Logger> logger;
 
 	RealTimeManager() noexcept;
 

@@ -47,6 +47,8 @@ ConfigurationManager::ConfigurationManager() :
 			"plugins folder")
 		("bbque.test,t", "Run TESTs plugins")
 		("version,v", "print program version")
+		("rtlevel", po::value<short>(&realtime_level)->
+			default_value(-1), "Real-Time level")
 		;
 
 	// All options (not all exposed to command line)

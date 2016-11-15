@@ -46,6 +46,8 @@ BBQUE_CGAGENT="${BBQUE_CGAGENT:-$CGAGENT}"
 # PIL generator (in case not specified)
 PIL_GENERATE=$SYSROOT"/sbin/bbque-pil-generator"
 
+BBQUE_EXTRA_ARGS=""
+
 # Check mouting status of required controllers
 check_controllers() {
 
@@ -81,6 +83,39 @@ check_controllers() {
 			$BBQUE_CGMOUNT >/dev/null 2>&1
 	if [ $? -ne 0 ]; then
 		bbqued_error 'Mounting hierarchies [cpuset,memory,cpu,cpuacct,net_cls] FAILED'
+	fi
+
+}
+
+# Check the preemption level of the kernel
+check_rtlevel() {
+
+	if [ -f /proc/config.gz ]
+	then
+		R_CONFIG_FILE="zcat /proc/config.gz"
+	elif [ -f /boot/config-`uname -r` ]
+	then
+		R_CONFIG_FILE="cat /boot/config-`uname -r`"
+	fi
+
+	if [ ! -z "$R_CONFIG_FILE" ]
+	then
+		CONFIG_RT_LEVEL[0]=`eval "$R_CONFIG_FILE" | grep "PREEMPT_NONE"| grep "y"`
+		CONFIG_RT_LEVEL[1]=`eval "$R_CONFIG_FILE" | grep "PREEMPT_VOLUNTARY"| grep "y"`
+		CONFIG_RT_LEVEL[2]=`eval "$R_CONFIG_FILE" | grep -E "CONFIG_PREEMPT=|PREEMPT__LL" | grep "y"`
+		CONFIG_RT_LEVEL[3]=`eval "$R_CONFIG_FILE" | grep "PREEMPT_RTB" | grep "y"`
+		CONFIG_RT_LEVEL[4]=`eval "$R_CONFIG_FILE" | grep "PREEMPT_RT_FULL" | grep "y"`
+	fi
+
+	for i in `seq 0 4`; do
+		[ -n "${CONFIG_RT_LEVEL[$i]}" ] && CONFIG_RT_LEVEL=$i
+	done
+
+
+	if [ -n "$CONFIG_RT_LEVEL" ]
+	then
+		bbqued_notice "Real-Time level set to $CONFIG_RT_LEVEL"
+		BBQUE_EXTRA_ARGS="$BBQUE_EXTRA_ARGS --rtlevel $CONFIG_RT_LEVEL"
 	fi
 
 }
@@ -204,6 +239,9 @@ start() {
 	# Setup CGroups
 	setup
 
+	# Check the realtime level if RT enabled
+	[ -z "$CONFIG_BBQUE_RT" ] && check_rtlevel
+
 	# Ensure the run-time BBQ folder exists and it is world writable
 	mkdir -p $BBQUE_BRTF 2>/dev/null
 	chmod a+w $BBQUE_BRTF
@@ -219,7 +257,7 @@ start() {
 	# Run the daemon
 	bbqued_notice "LOG file: $BBQUE_LOGFILE"
 	bbqued_info "Starting BBQ Daemon..."
-	"$BBQUE_BIN" -c $BBQUE_CONF -d
+	"$BBQUE_BIN" -c $BBQUE_CONF -d $BBQUE_EXTRA_ARGS
 }
 
 stop() {
