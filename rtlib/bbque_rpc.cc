@@ -3388,6 +3388,7 @@ void BbqueRPC::NotifyPostConfigure(
 	// Clear pre-run OpenCL command events
 	OclClearStats();
 #endif
+	ResetRuntimeProfileStats(exc_handler);
 
 	if (exc->cycles_count == 0) {
 		logger->Debug("First cycle: applying all resource budget.");
