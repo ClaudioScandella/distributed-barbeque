@@ -3215,19 +3215,6 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 	exc->cps_goal_min = cps_min;
 	exc->cps_goal_max = cps_max;
 
-	if (cps_max == 0.0)
-		logger->Notice("Set cycle-rate Goal to %.3f - inf [Hz]"
-					   " (%.3f to inf [ms])",
-					   exc->cps_goal_min, 1000.0 / exc->cps_goal_min);
-	else {
-		logger->Notice("Set cycle-rate Goal to %.3f - %.3f [Hz]"
-					   " (%.3f to %.3f [ms])",
-					   exc->cps_goal_min, exc->cps_goal_max,
-					   1000.0 / exc->cps_goal_max, 1000.0 / exc->cps_goal_min);
-		if (! rtlib_configuration.unmanaged.enabled)
-			SetCPS(exc_handler, exc->cps_goal_max);
-	}
-
 	STAT_LOG("PERFORMANCE:CPSGOAL_MIN %.2f", exc->cps_goal_min);
 	STAT_LOG("PERFORMANCE:CPSGOAL_MAX %.2f", exc->cps_goal_max);
 
