@@ -196,14 +196,14 @@ static float rtlib_jps_get(RTLIB_EXCHandler_t exc_handler) {
 static RTLIB_ExitCode_t rtlib_cps_goal_set(
 		RTLIB_EXCHandler_t exc_handler,
 		float cps_min, float cps_max) {
-	rpc->ResetRuntimeProfileStats(exc_handler);
+	rpc->ResetRuntimeProfileStats(exc_handler, true);
 	return rpc->SetCPSGoal(exc_handler, cps_min, cps_max);
 }
 
 static RTLIB_ExitCode_t rtlib_jps_goal_set(
 		RTLIB_EXCHandler_t exc_handler,
 		float jps_min, float jps_max, int jpc) {
-	rpc->ResetRuntimeProfileStats(exc_handler);
+	rpc->ResetRuntimeProfileStats(exc_handler, true);
 	return rpc->SetJPSGoal(exc_handler, jps_min, jps_max, jpc);
 }
 
