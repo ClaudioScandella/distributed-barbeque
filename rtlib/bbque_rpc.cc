@@ -2256,12 +2256,6 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		CGroupCommitAllocation(exc);
 	}
 
-	// Check that I have enough samples for CPU stats computing
-	if (exc->cpu_usage_analyser.GetWindowSize() < 10) {
-		logger->Debug("Not enough samples to compute CPU usage stats.");
-		return RTLIB_OK;
-	}
-
 	// Set Runtime Profile Forwarding flag if saturated ////////////////////
 	// Reset the flag
 	exc->runtime_profiling.rtp_forward = false;
