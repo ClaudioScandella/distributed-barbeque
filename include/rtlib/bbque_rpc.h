@@ -294,7 +294,8 @@ public:
 		float cps_min, float cps_max);
 
 
-	void ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler);
+	void ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler,
+					bool new_user_goal = false);
 
 	/**
 	 * @brief Set the required Jobs Per Second goal (JPS)

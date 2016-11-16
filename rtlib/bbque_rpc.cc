@@ -1206,7 +1206,8 @@ RTLIB_ExitCode_t BbqueRPC::UpdateMonitorStatistics(pRegisteredEXC_t exc)
 	return RTLIB_OK;
 }
 
-void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler)
+void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler,
+			bool new_user_goal)
 {
         pRegisteredEXC_t exc;
         // Get a reference to the EXC to control
@@ -1216,8 +1217,12 @@ void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler)
 
 	logger->Debug("SetCPSGoal: Resetting cycle time history");
 	exc->last_cycletime_ms = exc->cycletime_analyser_user.GetMean();
-	exc->cycletime_analyser_user.Reset();
+
 	exc->cycletime_analyser_system.Reset();
+
+	if (new_user_goal)
+		exc->cycletime_analyser_user.Reset();
+
 	logger->Debug("SetCPSGoal: Resetting CPU quota history");
 	exc->cpu_usage_info.reset_timestamp = true;
 	exc->cpu_usage_analyser.Reset();
