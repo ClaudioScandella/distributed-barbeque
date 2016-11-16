@@ -39,8 +39,7 @@
 #undef  BBQUE_LOG_MODULE
 #define BBQUE_LOG_MODULE "rpc"
 
-// cpu controller does not support periods > 1s (1000000 us))
-#define MAX_ALLOWED_CFS_PERIOD 1000000
+// NOTE: cpu controller does not support periods > 1s (1000000 us))
 #define DEFAULT_CFS_PERIOD 100000
 
 namespace ba = bbque::app;
@@ -911,6 +910,18 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 	// Reading previous values
 	bu::CGroups::Read(cgroup_path, cgsetup);
 
+	// CFS_PERIOD: the period over which cpu bandwidth. limit is enforced
+	cgsetup.cpu.cfs_period_us = std::to_string(DEFAULT_CFS_PERIOD);
+	// CFS_quota: the enforced CPU bandwidth wrt the period
+	uint32_t cfs_quota =
+		(uint32_t) (exc->cg_current_allocation.cpu_budget * DEFAULT_CFS_PERIOD);
+
+	logger->Debug("Updating cpu.cfs_quota_us: %s to %s",
+		cgsetup.cpu.cfs_quota_us.c_str(),
+		std::to_string(cfs_quota).c_str());
+
+	cgsetup.cpu.cfs_quota_us = std::to_string(cfs_quota);
+
 	// CPUSET representing the allocated processing elements
 	logger->Debug("Updating cpuset.cpus: %s -> %s",
 		 cgsetup.cpuset.cpus.c_str(),
@@ -929,29 +940,6 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 		logger->Debug("Keeping previous cpuset.mems value: %s",
 				cgsetup.cpuset.mems.c_str());
 
-
-	// CFS_PERIOD: the period over which cpu bandwidth. limit is enforced
-	uint32_t cycletime_mean_us = 1000u * exc->cycletime_analyser_system.GetMean();
-	//if (cycletime_mean_us == 0 || cycletime_mean_us > MAX_ALLOWED_CFS_PERIOD)
-		cycletime_mean_us = DEFAULT_CFS_PERIOD;
-
-	logger->Debug("Updating cpu.cfs_period_us: %s to %u",
-		cgsetup.cpu.cfs_period_us.c_str(),
-		cycletime_mean_us);
-
-	cgsetup.cpu.cfs_period_us = std::to_string(cycletime_mean_us);
-
-	// CFS_quota: the enforced CPU bandwidth wrt the period
-	// note: getting rid of floats, here (multiplying by 100))
-	uint32_t cpu_allocation = 100u * exc->cg_current_allocation.cpu_budget;
-	uint32_t cfs_quota = cycletime_mean_us * cpu_allocation;
-	cfs_quota /= 100u;
-
-	logger->Debug("Updating cpu.cfs_quota_us: %s to %s",
-		cgsetup.cpu.cfs_quota_us.c_str(),
-		std::to_string(cfs_quota).c_str());
-
-	cgsetup.cpu.cfs_quota_us = std::to_string(cfs_quota);
 
 	// Memory limit in bytes
 	if (exc->cg_current_allocation.memory_limit_bytes != "") {
