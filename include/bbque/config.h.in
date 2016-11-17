@@ -262,6 +262,10 @@
 /** Max CPU time system-level for RT apps */
 #cmakedefine CONFIG_BBQUE_RT_MAX_CPU
 
+/** Max CPU time system-level for RT apps */
+#cmakedefine CONFIG_BBQUE_RT_SCHED_FIFO
+#cmakedefine CONFIG_BBQUE_RT_SCHED_RR
+
 /*******************************************************************************
  * BarbequeRTRM Plugins Selection
  ******************************************************************************/

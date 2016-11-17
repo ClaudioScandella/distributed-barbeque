@@ -33,6 +33,10 @@
 #include "bbque/resource_manager.h"
 #include "bbque/cpp11/chrono.h"
 
+#ifdef CONFIG_BBQUE_RT
+#include "bbque/realtime_manager.h"
+#endif
+
 #define APPLICATION_MANAGER_NAMESPACE "bq.am"
 #define MODULE_NAMESPACE APPLICATION_MANAGER_NAMESPACE
 
@@ -1452,6 +1456,18 @@ ApplicationManager::EnableEXC(AppPtr_t papp) {
 	if (papp->Enable() != Application::APP_SUCCESS) {
 		return AM_ABORT;
 	}
+
+#ifdef CONFIG_BBQUE_RT
+
+	if (papp->RTLevel() > RT_NONE) {
+		RealTimeManager &rt = RealTimeManager::GetInstance();
+		if(RealTimeManager::RTM_OK != rt.SetupApp(papp)) {
+			logger->Error("EXC [%s] Unable to setup RT application", 
+							papp->StrId());
+			return AM_ABORT;
+		}
+	}
+#endif
 
 	logger->Info("EXC [%s] ENABLED", papp->StrId());
 	return AM_SUCCESS;

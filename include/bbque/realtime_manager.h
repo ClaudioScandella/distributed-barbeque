@@ -45,7 +45,8 @@ public:
 	 */
 	enum ExitCode_t {
 		RTM_OK,
-		RTM_GENERIC_ERROR
+		RTM_GENERIC_ERROR,	
+		RTM_SYSCALL_FAILED
 	};
 
 
@@ -69,7 +70,7 @@ public:
       *       performed.
 	  * @throw runtime_error is the application is not flagged as RT. 
 	  */
-	ExitCode_t SetupApp(app::AppPtr_t app);
+	ExitCode_t SetupApp(app::AppPtr_t papp);
 	
 	/**
       * @brief Returns true if the system has soft realtime capabilities
@@ -81,14 +82,22 @@ public:
       */
 	inline bool IsHardRealTime() const noexcept { return this->is_hard; }
 
+#ifdef CONFIG_BBQUE_RT_SCHED_RR
+	/**
+      *
+      */
+	inline int GetSchedRRInterval() const noexcept { 
+		return sched_rr_interval_ms;
+	}
+#endif
 
 private:
 
-	/** The value from /proc/sys/kernel/sched_rr_timeslice_ms */
-	int sched_rr_interval_ms;
-
 	bool is_soft = false;
 	bool is_hard = false;
+
+	/** The value from /proc/sys/kernel/sched_rr_timeslice_ms */
+	int sched_rr_interval_ms;
 
 	/** The logger used by the resource accounter */
 	std::unique_ptr<bu::Logger> logger;

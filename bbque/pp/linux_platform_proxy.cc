@@ -6,6 +6,9 @@
 #include "bbque/res/resource_path.h"
 
 #include "bbque/utils/assert.h"
+#ifdef CONFIG_BBQUE_RT
+#include "bbque/realtime_manager.h"
+#endif
 
 #include <boost/program_options.hpp>
 #include <fstream>
@@ -41,6 +44,8 @@
 #define BBQUE_LINUXPP_CPUS_PARAM 		"cpuset.cpus"
 #define BBQUE_LINUXPP_CPUP_PARAM 		"cpu.cfs_period_us"
 #define BBQUE_LINUXPP_CPUQ_PARAM 		"cpu.cfs_quota_us"
+#define BBQUE_LINUXPP_RT_P_PARAM 		"cpu.rt_period_us"
+#define BBQUE_LINUXPP_RT_R_PARAM 		"cpu.rt_runtime_us"
 #define BBQUE_LINUXPP_MEMN_PARAM 		"cpuset.mems"
 #define BBQUE_LINUXPP_MEMB_PARAM 		"memory.limit_in_bytes"
 #define BBQUE_LINUXPP_CPU_EXCLUSIVE_PARAM 	"cpuset.cpu_exclusive"
@@ -53,6 +58,8 @@
 // The default CFS bandwidth period [us]
 #define BBQUE_LINUXPP_CPUP_DEFAULT		100000
 #define BBQUE_LINUXPP_CPUP_MAX			1000000
+
+#define BBQUE_LINUXPP_RTP_MAX			1000000
 
 // Checking for kernel version requirements
 
@@ -1272,7 +1279,20 @@ LinuxPlatformProxy::SetupCGroup(
 #endif
 
 	/**********************************************************************
-	 *    CGroup Configuraiton
+	 *     Real-Time controller
+	 **********************************************************************/
+
+#ifdef CONFIG_BBQUE_RT
+
+//		auto cfs_period_us = 
+
+//		prlb->amount_rt_cpus = 0;
+
+//		cgroup_set_value_string(pcgd->pc_cpu, BBQUE_LINUXPP_RT_P_PARAM, cfs_c);
+#endif
+
+	/**********************************************************************
+	 *    CGroup Configuration
 	 **********************************************************************/
 
 	logger->Debug("PLAT LNX: Updating kernel CGroup [%s]", pcgd->cgpath);

@@ -333,6 +333,18 @@ config BBQUE_RT_MAX_CPU
   to 1000/1000 be sure that all the applications lead voluntarily the CPU for a
   sufficient time.
 
+choice
+  prompt "RT scheduling policy"
+  depends on BBQUE_RT
+  default BBQUE_RT_SCHED_RR 
+
+  config BBQUE_RT_SCHED_FIFO
+    bool "First-in First-out (SCHED_FIFO)"
+
+  config BBQUE_RT_SCHED_RR
+    bool "Round Robin (SCHED_RR)"
+
+endchoice
 
 endmenu
 
