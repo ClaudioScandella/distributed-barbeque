@@ -259,6 +259,8 @@
 /** Hard Real-Time option */
 #cmakedefine CONFIG_BBQUE_RT_HARD
 
+/** Max CPU time system-level for RT apps */
+#cmakedefine CONFIG_BBQUE_RT_MAX_CPU
 
 /*******************************************************************************
  * BarbequeRTRM Plugins Selection
@@ -363,5 +365,10 @@
 
 /* A global variable to signal if we are running as a daemon */
 extern unsigned char daemonized;
+
+/** Real-Time releated */
+#define BBQUE_RT_MAX_CPU ${CONFIG_BBQUE_RT_MAX_CPU}
+
+
 
 #endif // BBQUE_CONFIG_H_

@@ -84,13 +84,24 @@ public:
 
 private:
 
-	bool is_soft=false;
-	bool is_hard=false;
+	/** The value from /proc/sys/kernel/sched_rr_timeslice_ms */
+	int sched_rr_interval_ms;
+
+	bool is_soft = false;
+	bool is_hard = false;
 
 	/** The logger used by the resource accounter */
 	std::unique_ptr<bu::Logger> logger;
 
+	/** The constructor */
 	RealTimeManager() noexcept;
+
+	/** Read from command line the value of real time */
+	void SetRTLevel() noexcept;
+
+	/** Se the /proc/sys entries about Real Time */
+	void SetKernelReservation() noexcept;
+
 
 };
 

@@ -322,7 +322,7 @@ config BBQUE_RT_HARD
   hard real time application in Linux.
   This option requires the PREEMPT_RT patch in the system.
 
-config BBQUE_MAX_RT_CPU
+config BBQUE_RT_MAX_CPU
   int "CPU limit for RT applications (per-mille)"
   default 950
   depends on BBQUE_RT
