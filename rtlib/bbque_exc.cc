@@ -44,8 +44,8 @@ BbqueEXC::BbqueEXC(std::string const & name,
 				   std::string const & recipe,
 				   RTLIB_Services_t * const rtl,
 				   RTLIB_RT_Level_t rt_level) :
-	exc_name(name), rpc_name(recipe), rtlib(rtl), rt_level(rt_level),
-	config(*(rtlib->config)), cycles_count(0)
+	exc_name(name), rpc_name(recipe), rtlib(rtl), config(*(rtlib->config)),
+	rt_level(rt_level), cycles_count(0)
 {
 	// Note: EXC with the same recipe name are not allowed
 	RTLIB_EXCParameters_t exc_parameters = {
