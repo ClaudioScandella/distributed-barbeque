@@ -17,7 +17,7 @@
 
 #include <stdio.h>
 
-#include "bbque/rtlib/monitors/memory_monitor.h"
+#include "rtlib/monitors/memory_monitor.h"
 
 namespace bbque { namespace rtlib { namespace as {
 

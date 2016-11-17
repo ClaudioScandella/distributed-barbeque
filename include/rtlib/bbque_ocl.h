@@ -27,7 +27,7 @@
 
 #include <CL/cl.h>
 
-#include "bbque/rtlib/bbque_rpc.h"
+#include "rtlib/bbque_rpc.h"
 
 #define EVENT_RC_CONTROL(ev) \
 	cl_event local_event; \

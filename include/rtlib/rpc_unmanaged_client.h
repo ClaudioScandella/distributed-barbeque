@@ -18,7 +18,7 @@
 #ifndef BBQUE_RPC_UNMANAGED_CLIENT_H_
 #define BBQUE_RPC_UNMANAGED_CLIENT_H_
 
-#include "bbque/rtlib.h"
+#include "rtlib/rtlib.h"
 
 namespace bbque
 {

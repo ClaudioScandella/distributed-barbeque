@@ -10,8 +10,8 @@ set (MONITORS_SRC run_time_manager ${MONITORS_SRC})
 set (MONITORS_SRC op_manager ${MONITORS_SRC})
 
 # Copy headers where they are expected by applications
-file (COPY "${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors"
-	DESTINATION "${PROJECT_BINARY_DIR}/include/bbque"
+file (COPY "${PROJECT_SOURCE_DIR}/include/rtlib/monitors"
+	DESTINATION "${PROJECT_BINARY_DIR}/include/rtlib"
 	FILES_MATCHING PATTERN "*.h")
 
 #----- Add "bbque_monitors" target dinamic binary
@@ -40,25 +40,25 @@ set_property (TARGET bbque_monitors PROPERTY
 		FRAMEWORK ON)
 
 set_property (TARGET bbque_monitors PROPERTY PUBLIC_HEADER
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/monitor.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/goal_info.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/generic_window.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/time_monitor.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/time_window.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/throughput_monitor.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/throughput_window.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/memory_monitor.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/metric_priority.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/operating_point.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/op_filter.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/op_manager.h
-	${PROJECT_SOURCE_DIR}/include/bbque/rtlib/monitors/run_time_manager.h)
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/monitor.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/goal_info.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/generic_window.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/time_monitor.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/time_window.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/throughput_monitor.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/throughput_window.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/memory_monitor.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/metric_priority.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/operating_point.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/op_filter.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/op_manager.h
+	${PROJECT_SOURCE_DIR}/include/rtlib/monitors/run_time_manager.h)
 
 
 # Install Monitors
 install (TARGETS bbque_monitors LIBRARY
 		DESTINATION ${BBQUE_PATH_RTLIB}
-		PUBLIC_HEADER DESTINATION "${BBQUE_PATH_HEADERS}/monitors"
+		PUBLIC_HEADER DESTINATION "${RTLIB_PATH_HEADERS}/monitors"
 		COMPONENT BarbequeRTLib)
 
 # Force RTLib being build before these modules

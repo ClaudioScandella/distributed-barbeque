@@ -6,9 +6,9 @@
 # BBQUE_RTLIB_LIBRARIES, the libraries to link against to use the RTLib.
 # BBQUE_RTLIB_FOUND, If false, don't try to use RTLib.
 
-find_path(BBQUE_RTLIB_INCLUDE_DIR bbque/rtlib.h)
+find_path(BBQUE_RTLIB_INCLUDE_DIR rtlib/rtlib.h)
 find_library(BBQUE_RTLIB_LIBRARY bbque_rtlib
-	PATH_SUFFIXES bbque)
+	PATH_SUFFIXES rtlib)
 
 set(BBQUE_RTLIB_FOUND 0)
 if (BBQUE_RTLIB_INCLUDE_DIR)

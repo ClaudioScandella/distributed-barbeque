@@ -18,7 +18,7 @@
 #ifndef BBQUE_EXC_H_
 #define BBQUE_EXC_H_
 
-#include <bbque/rtlib.h>
+#include "rtlib/rtlib.h"
 #include <bbque/utils/timer.h>
 #include <bbque/utils/logging/logger.h>
 #include <bbque/cpp11/condition_variable.h>
@@ -79,7 +79,7 @@ public:
 	 * This is an example snippet showing how to properly instantiate an EXC:
 	 * \code
 	 *
-	 * #include <bbque/bbque_exc.h>
+	 * #include <rtlib/bbque_exc.h>
 	 *
 	 * class ExampleEXC : public BbqueEXC {
 	 * // definition of the application specific EXC

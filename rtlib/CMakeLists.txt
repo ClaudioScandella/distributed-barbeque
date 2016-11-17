@@ -7,8 +7,8 @@ configure_file (
 
 ## Copy the AEM header file where it is expected by AS-RTRM
 configure_file (
-	"${PROJECT_SOURCE_DIR}/include/bbque/rtlib/bbque_exc.h"
-	"${PROJECT_BINARY_DIR}/include/bbque/bbque_exc.h" COPYONLY
+	"${PROJECT_SOURCE_DIR}/include/rtlib/bbque_exc.h"
+	"${PROJECT_BINARY_DIR}/include/rtlib/bbque_exc.h" COPYONLY
 )
 
 # Add "barbeque" specific flags
@@ -64,13 +64,13 @@ set_property (TARGET bbque_rtlib PROPERTY
 		FRAMEWORK ON)
 
 set_property (TARGET bbque_rtlib PROPERTY PUBLIC_HEADER
-		${PROJECT_SOURCE_DIR}/include/bbque/rtlib.h
-		${PROJECT_SOURCE_DIR}/include/bbque/rtlib/bbque_exc.h)
+		${PROJECT_SOURCE_DIR}/include/rtlib/rtlib.h
+		${PROJECT_SOURCE_DIR}/include/rtlib/bbque_exc.h)
 
 # Install the RTLib
 install (TARGETS bbque_rtlib LIBRARY
 		DESTINATION ${BBQUE_PATH_RTLIB}
-		PUBLIC_HEADER DESTINATION ${BBQUE_PATH_HEADERS}
+		PUBLIC_HEADER DESTINATION ${RTLIB_PATH_HEADERS}
 		COMPONENT BarbequeRTLib)
 
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/bbque/utils"

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "bbque/rtlib/bbque_exc.h"
+#include "rtlib/bbque_exc.h"
 
 #include "bbque/utils/utility.h"
 

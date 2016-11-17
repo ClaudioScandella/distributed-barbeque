@@ -18,11 +18,11 @@
 #ifndef BBQUE_RPC_FIFO_CLIENT_H_
 #define BBQUE_RPC_FIFO_CLIENT_H_
 
-#include "bbque/rtlib.h"
+#include "rtlib/rtlib.h"
 
-#include "bbque/rtlib/bbque_rpc.h"
-#include "bbque/rtlib/rpc_messages.h"
-#include "bbque/rtlib/rpc_fifo_server.h"
+#include "rtlib/bbque_rpc.h"
+#include "rtlib/rpc_messages.h"
+#include "rtlib/rpc_fifo_server.h"
 #include "bbque/cpp11/condition_variable.h"
 #include "bbque/cpp11/thread.h"
 
@@ -44,8 +44,8 @@ namespace rtlib
  * The communication protocol must be aligend with the RTLib supported
  * services.
  *
- * @see bbque/rtlib.h
- * @see bbque/rtlib/rpc_messages.h
+ * @see rtlib.h
+ * @see rtlib/rpc_messages.h
  */
 class BbqueRPC_FIFO_Client : public BbqueRPC
 {

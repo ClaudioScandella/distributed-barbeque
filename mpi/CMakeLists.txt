@@ -80,6 +80,7 @@ add_executable(bbque-mpirun ${MPIRUN_SRC})
 include_directories(
 	./include/
 	${BBQUE_PATH_HEADERS}
+	${RTLIB_PATH_HEADERS}
 	${BBQUE_RTLIB_INCLUDE_DIR}
 	${Boost_INCLUDE_DIRS}
 )

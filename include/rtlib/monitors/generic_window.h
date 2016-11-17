@@ -35,7 +35,7 @@
 #include <boost/accumulators/statistics/variance.hpp>
 
 #include <iostream>
-#include <bbque/monitors/goal_info.h>
+#include <rtlib/monitors/goal_info.h>
 
 namespace bac = boost::accumulators;
 

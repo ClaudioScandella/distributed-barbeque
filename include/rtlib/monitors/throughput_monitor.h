@@ -15,15 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BBQUE_TIME_MONITOR_H_
-#define BBQUE_TIME_MONITOR_H_
+#ifndef BBQUE_THROUGHPUT_MONITOR_H_
+#define BBQUE_THROUGHPUT_MONITOR_H_
 
-#include <bbque/monitors/monitor.h>
-#include <bbque/monitors/time_window.h>
 #include <bbque/cpp11/chrono.h>
 #include <bbque/cpp11/mutex.h>
-
-#include <memory>
+#include <rtlib/monitors/monitor.h>
+#include <rtlib/monitors/throughput_window.h>
 
 namespace bbque
 {
@@ -33,23 +31,23 @@ namespace as
 {
 
 /**
- * @brief A TIME monitor
- * @ingroup rtlib_sec04_mon_time
+ * @class ThroughputMonitor
+ * @ingroup rtlib_sec04_mon_thgpt
  *
  * @details
- * This class is a specialization of the general monitor class, it provides
- * tools to manage the time monitors.  In addition to the monitors with the
- * complete gestion of the windows of old values it also offers a basically
- * monitor without any advance features.
+ * This class is a specialization of the general monitor class which provides
+ * tools to manage throughput monitors.  In addition to the monitors with the
+ * complete handling of previous old values, it also offers a basic monitor
+ * without any advanced feature.
  */
-class TimeMonitor : public Monitor <uint32_t>
+class ThroughputMonitor : public Monitor <double>
 {
 public:
 
 	/**
 	 * @brief Default constructor of the class
 	 */
-	TimeMonitor() :
+	ThroughputMonitor() :
 		started(false)
 	{
 	}
@@ -58,38 +56,40 @@ public:
 	 * @brief Creates a new monitor with a window containing an history of
 	 * previous values
 	 *
-	 * @param metricName Name of the metric associated with the goal
+	 * @param metricName Name of the metric associated to the goal
 	 * @param goal Value of goal required
-	 * @param windowSize Number of elements in window of values
+	 * @param windowSize Number of elements in the window of values
 	 */
-	uint16_t newGoal(std::string metricName, uint32_t goal,
+	uint16_t newGoal(std::string metricName, double goal,
 					 uint16_t windowSize = defaultWindowSize);
 
 	/**
 	 * @brief Creates a new monitor with a window containing an history of
 	 * previous values
 	 *
-	 * @param metricName Name of the metric associated with the goal
+	 * @param metricName Name of the metric associated to the goal
 	 * @param goal Value of goal required
 	 * @param fType Selects the DataFunction for the evaluation of goal
-	 * @param cType Selects the ComparisonFunction for the evaluation of goal
+	 * @param cType Selects the ComparisonFunction for the evaluation of
+	 * goal
 	 * @param windowSize Number of elements in window of values
 	 */
 	uint16_t newGoal(std::string metricName,
 					 DataFunction fType,
 					 ComparisonFunction cType,
-					 uint32_t goal,
+					 double goal,
 					 uint16_t windowSize = defaultWindowSize);
 
 	/**
-	 * @brief Creates a new monitor with a window keeping track of old values
+	 * @brief Creates a new monitor with a window keeping track of previous
+	 * values
 	 *
-	 * @param metricName Name of the metric associated with the goal
+	 * @param metricName Name of the metric associated to the goal
 	 * @param targets List of targets for the current goal
 	 * @param windowSize Number of elements in the window of values
 	 */
 	uint16_t newGoal(std::string metricName,
-					 TimeWindow::TargetsPtr targets,
+					 ThroughputWindow::TargetsPtr targets,
 					 uint16_t windowSize = defaultWindowSize);
 
 	/**
@@ -120,35 +120,22 @@ public:
 	 * window (given by the id)
 	 *
 	 * @param id Identifies monitor and corresponding list
+	 * @param data Amount of data analyzed in that amount of time
 	 */
-	void stop(uint16_t id);
+	void stop(uint16_t id, double data);
 
 	/**
-	 * @brief Starts new basic time monitor
+	 * @brief Starts a new basic throughput monitor
+	 *
 	 */
 	void start();
 
 	/**
-	 * @brief Stops basic time monitor
+	 * @brief Returns the throughput of basic throughput monitor
+	 *
+	 * @param data Amount of data analyzed in that amount of time
 	 */
-	void stop();
-
-	/**
-	 * @brief Returns elapsed time for the basic time monitor (in seconds)
-	 */
-	double getElapsedTime();
-
-	/**
-	 * @brief Returns elapsed time for the basic time monitor
-	 * (in milliseconds)
-	 */
-	double getElapsedTimeMs();
-
-	/**
-	 * @brief Returns elapsed time for the basic time monitor
-	 * (in microsecond)
-	 */
-	double getElapsedTimeUs();
+	double getThroughput(double data);
 
 private:
 
@@ -158,44 +145,45 @@ private:
 	std::mutex timerMutex;
 
 	/**
-	 * @brief Start time of the Basic Time Monitor
+	 * @brief Start time of the Basic Throughput Monitor
 	 */
 	std::chrono::steady_clock::time_point tStart;
 
 	/**
-	 * @brief Stop time of the Basic Time Monitor
+	 * @brief Stop time of the Basic Throughput Monitor
 	 */
 	std::chrono::steady_clock::time_point tStop;
 
 	/**
-	 * @brief Auxiliary varible for Basic Time Monitor
+	 * @brief Auxiliary varible for the Basic Throughput Monitor
 	 */
 	bool started;
 
 	/**
-	 * @brief Locked starts new basic time monitor
+	 * @brief Locked starts a new basic throughput monitor
 	 */
 	void _start();
 
 	/**
-	 * @brief Locked stops basic time monitor
+	 * @brief Returns the throughput of basic throughput monitor
+	 *
+	 * @param data Amount of data analyzed in that amount of time
 	 */
-	void _stop();
+	double _getThroughput(const double & data);
 
 	/**
-	 * @brief Locked starts new basic time monitor
-	 * @param id Identifies monitor and corresponding list
-	 *
+	 * @brief Starts a new basic throughput monitor (locked)
 	 */
 	void _start(uint16_t id);
 
 	/**
-	 * @brief Locked stops basic time monitor
-	 * @param id Identifies monitor and corresponding list
+	 * @brief Stops previous measure and saves the result in the right
+	 * window (given by the id) (locked)
 	 *
+	 * @param id Identifies monitor and corresponding list
+	 * @param data Amount of data analyzed in that amount of time
 	 */
-	void _stop(uint16_t id);
-
+	void _stop(uint16_t id, const double & data);
 };
 
 } // namespace as
@@ -204,4 +192,4 @@ private:
 
 } // namespace bbque
 
-#endif /* BBQUE_TIME_MONITOR_H_ */
+#endif /* BBQUE_THROUGHPUT_MONITOR_H_ */

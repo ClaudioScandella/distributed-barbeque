@@ -18,9 +18,9 @@
 #include <cmath>
 
 #include "bbque/config.h"
-#include "bbque/rtlib/bbque_rpc.h"
-#include "bbque/rtlib/rpc_fifo_client.h"
-#include "bbque/rtlib/rpc_unmanaged_client.h"
+#include "rtlib/bbque_rpc.h"
+#include "rtlib/rpc_fifo_client.h"
+#include "rtlib/rpc_unmanaged_client.h"
 #include "bbque/app/application.h"
 #include "bbque/utils/cgroups.h"
 #include "bbque/utils/logging/console_logger.h"
@@ -32,7 +32,7 @@
 #include <sys/stat.h>
 
 #ifdef CONFIG_BBQUE_OPENCL
-#include "bbque/rtlib/bbque_ocl.h"
+#include "rtlib/bbque_ocl.h"
 #endif
 
 // Setup logging

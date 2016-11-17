@@ -74,6 +74,7 @@
 
 /** The 'headers' installation path */
 #define BBQUE_PATH_HEADERS "${BBQUE_PATH_HEADERS}"
+#define RTLIB_PATH_HEADERS "${RTLIB_PATH_HEADERS}"
 
 /** The 'rtlib' installation path */
 #define BBQUE_PATH_RTLIB "${BBQUE_PATH_RTLIB}"

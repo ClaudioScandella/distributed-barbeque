@@ -23,7 +23,7 @@
 #include <cstdint>
 #include <functional>
 
-#include <bbque/monitors/generic_window.h>
+#include <rtlib/monitors/generic_window.h>
 
 namespace bbque
 {

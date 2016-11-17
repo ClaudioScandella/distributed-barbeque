@@ -22,8 +22,8 @@
 #include <unistd.h>
 
 #include "bbque/config.h"
-#include "bbque/rtlib.h"
-#include "bbque/rtlib/bbque_ocl.h"
+#include "rtlib/rtlib.h"
+#include "rtlib/bbque_ocl.h"
 #include "bbque/utils/utility.h"
 #include "bbque/utils/logging/logger.h"
 #include "bbque/pp/opencl_platform_proxy.h"

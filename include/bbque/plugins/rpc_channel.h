@@ -18,7 +18,7 @@
 #ifndef BBQUE_RPC_CHANNEL_H_
 #define BBQUE_RPC_CHANNEL_H_
 
-#include "bbque/rtlib/rpc_messages.h"
+#include "rtlib/rpc_messages.h"
 
 #include <memory>
 

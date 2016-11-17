@@ -31,7 +31,7 @@
 #include <sys/syscall.h>
 
 #include <bbque/utils/timer.h>
-#include <bbque/rtlib/bbque_exc.h>
+#include <rtlib/bbque_exc.h>
 
 // Console colors definition
 #define COLOR_WHITE  "\033[1;37m"
