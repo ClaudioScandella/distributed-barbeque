@@ -901,6 +901,11 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCreate(pRegisteredEXC_t exc, int pid)
 
 RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 {
+#ifdef CONFIG_BBQUE_RTLIB_UNMANAGED_SUPPORT
+	if (rtlib_configuration.unmanaged.enabled)
+		return RTLIB_OK;
+#endif // CONFIG_BBQUE_RTLIB_UNMANAGED_SUPPORT
+
 	// Proceed only in case of cgroup support and dynamic assignment
 	if (! rtlib_configuration.cgroup_support.enabled ||
 		rtlib_configuration.cgroup_support.static_configuration)
@@ -3320,6 +3325,7 @@ void BbqueRPC::NotifyPreRun(RTLIB_EXCHandler_t exc_handler)
 	}
 
 	assert(isRegistered(exc) == true);
+
 	logger->Debug("Pre-Run: Checking if perf counters are activated");
 	bool pcounters_collected_systemwide =
 		rtlib_configuration.profile.perf_counters.global;
