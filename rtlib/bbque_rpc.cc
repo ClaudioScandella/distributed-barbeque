@@ -3096,8 +3096,6 @@ void BbqueRPC::ForceCPS(pRegisteredEXC_t exc)
 	uint32_t sleep_us;
 	float cycle_time;
 	double tnow; // [s] at the call time
-	// Reset sleep time from previous cycle
-	exc->cps_enforcing_sleep_time_ms = 0;
 
 	// Timing initialization
 	if (unlikely(exc->cycle_start_time_ms == 0)) {
@@ -3117,7 +3115,6 @@ void BbqueRPC::ForceCPS(pRegisteredEXC_t exc)
 		sleep_us = 1e3 * static_cast<uint32_t> (delay_ms);
 		logger->Debug("Cycle Time: %3.3f[ms], ET: %3.3f[ms], Sleep time %u [us]",
 					  cycle_time, exc->cycle_time_enforced_ms, sleep_us);
-		exc->cps_enforcing_sleep_time_ms = delay_ms;
 		usleep(sleep_us);
 	}
 
@@ -3309,11 +3306,8 @@ void BbqueRPC::NotifyPostConfigure(
 	}
 }
 
-void BbqueRPC::NotifyPreRun(
-	RTLIB_EXCHandler_t exc_handler)
+void BbqueRPC::NotifyPreRun(RTLIB_EXCHandler_t exc_handler)
 {
-	logger->Debug("Pre-Run: retrieving execution context info");
-	// Retrieving the requested execution context
 	assert(exc_handler);
 	auto exc = getRegistered(exc_handler);
 
@@ -3351,8 +3345,7 @@ void BbqueRPC::NotifyPreRun(
 	STAT_LOG("APPLICATION:CYCLE_START %d", exc->cycles_count);
 }
 
-void BbqueRPC::NotifyPostRun(
-	RTLIB_EXCHandler_t exc_handler)
+void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
 {
 	logger->Debug("Post-Run: retrieving execution context info");
 	assert(exc_handler);
@@ -3363,8 +3356,6 @@ void BbqueRPC::NotifyPostRun(
 					  "(EXC not registered)", (void *) exc_handler);
 		return;
 	}
-
-	STAT_LOG("APPLICATION:CYCLE_STOP %d", exc->cycles_count);
 
 	assert(isRegistered(exc) == true);
 	logger->Debug("Post-Run: Checking if perf counters are activated");
@@ -3433,27 +3424,34 @@ void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler)
 	}
 
 	assert(isRegistered(exc) == true);
+
+	if (! rtlib_configuration.unmanaged.enabled) {
+		// Compute the ideal resource allocation for the application,
+		// given its history
+		UpdateAllocation(exc_handler);
+
+		// Check is there is a goal gap
+		if (std::fabs(exc->runtime_profiling.cpu_goal_gap) > 1.0f)
+			ForwardRuntimeProfile(exc_handler);
+	}
+
+	// Cycle time for last execution cycle
+	exc->cycletime_analyser_system.InsertValue(
+		exc->execution_timer.getElapsedTimeMs());
+
+	// Enforce minimum cycle time if the application requested it
+	if (exc->cycle_time_enforced_ms != 0.0f)
+		ForceCPS(exc);
+
+	// Cycle time for last onRun + CPS enforcing
+	exc->cycletime_analyser_user.InsertValue(
+		exc->execution_timer.getElapsedTimeMs());
+
 	logger->Debug("<=== NotifyMonitor");
 	// Update monitoring statistics
 	UpdateMonitorStatistics(exc);
 
-	// CPS Enforcing
-	if (exc->cycle_time_enforced_ms != 0.0f)
-		ForceCPS(exc);
-
-	if (rtlib_configuration.unmanaged.enabled)
-		return;
-
-	// Compute the ideal resource allocation for the application,
-	// given its history
-	UpdateAllocation(exc_handler);
-
-	// Check is there is a goal gap
-	if (abs(exc->runtime_profiling.cpu_goal_gap) > 1.0f) {
-		logger->Debug("Goal gap forwarding (ggap %f)", exc->runtime_profiling.cpu_goal_gap);
-		ForwardRuntimeProfile(exc_handler);
-	} else
-		logger->Debug("No goal gap forwarding (ggap 0)");
+	STAT_LOG("APPLICATION:CYCLE_STOP %d", exc->cycles_count);
 }
 
 #ifdef CONFIG_BBQUE_OPENCL

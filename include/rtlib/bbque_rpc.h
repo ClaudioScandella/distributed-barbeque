@@ -591,8 +591,6 @@ protected:
 		float  	 cps_goal_max                = 0.0;
 		// [Hz] the required maximum CPS
 		float  	 cps_max_allowed             = 0.0;
-		// [us] time spent sleeping to enforce maximum CPS
-		uint16_t cps_enforcing_sleep_time_ms = 0;
 		// Current number of processed Jobs per Cycle
 		int      jpc                         = 1;
 
