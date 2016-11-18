@@ -602,6 +602,8 @@ typedef RTLIB_ExitCode_t (*RTLIB_GetWorkingMode_t)(
 	RTLIB_WorkingModeParams_t * wm,
 	RTLIB_SyncType_t st);
 
+typedef RTLIB_ExitCode_t (*RTLIB_RegCThreadPID_t)(RTLIB_EXCHandler_t exc_handler);
+
 /**@}*/
 
 /*******************************************************************************
@@ -1140,6 +1142,8 @@ struct RTLIB_Services {
 	 * false returning sync, to get a reference to the new assigned
 	 * working mode. */
 	RTLIB_GetWorkingMode_t GetWorkingMode;
+	/** Register the control thread PID*/
+	RTLIB_RegCThreadPID_t RegisterCtrlThreadPID;
 	/** Constraints assertion on a recipe working modes An execution
 	 * context could set a boundary on a set of working modes to consider
 	 * at run-time for resource scheduling. The Barbeque RTRM resource

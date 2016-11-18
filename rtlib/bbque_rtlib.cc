@@ -114,6 +114,11 @@ static RTLIB_ExitCode_t rtlib_getwm(
 	return rpc->GetWorkingMode(exc_handler, wm, st);
 }
 
+static RTLIB_ExitCode_t rtlib_reg_ct_pid(const RTLIB_EXCHandler_t exc_handler)
+{
+	return rpc->RegisterControlThreadPID(exc_handler);
+}
+
 static RTLIB_ExitCode_t rtlib_set(
 				  RTLIB_EXCHandler_t exc_handler,
 				  RTLIB_Constraint_t * constraints, uint8_t count)
@@ -275,6 +280,7 @@ RTLIB_ExitCode_t RTLIB_Init(const char * name, RTLIB_Services_t ** rtlib)
 	rtlib_services.SetupCGroups = rtlib_cgsetup;
 	rtlib_services.EnableEXC = rtlib_enable;
 	rtlib_services.GetWorkingMode = rtlib_getwm;
+	rtlib_services.RegisterCtrlThreadPID = rtlib_reg_ct_pid;
 	rtlib_services.SetAWMConstraints = rtlib_set;
 	rtlib_services.ClearAWMConstraints = rtlib_clear;
 	rtlib_services.SetGoalGap = rtlib_ggap;

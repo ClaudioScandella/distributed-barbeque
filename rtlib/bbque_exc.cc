@@ -417,39 +417,37 @@ void BbqueEXC::WaitEnabling()
 /** Get a new resource allocation for the EXC by the resource manager*/
 RTLIB_ExitCode_t BbqueEXC::CheckConfigure()
 {
+	logger->Debug("[%s] CheckConfigure: check if resource allocation "
+					"changed", exc_name.c_str());
+
 	assert(rtlib->GetWorkingMode);
-	RTLIB_ExitCode_t result = rtlib->GetWorkingMode(exc_handler, &wmp,
-							  RTLIB_SYNC_STATELESS);
-	logger->Debug("CL 2. Reconfigure check for EXC [%s]...", exc_name.c_str());
 
-	switch (result) {
-	case RTLIB_OK:
-		logger->Debug("CL 2-1. Continue to run on the assigned AWM [%d] for EXC [%s]",
-					  wmp.awm_id, exc_name.c_str());
+	RTLIB_ExitCode_t result =
+		rtlib->GetWorkingMode(exc_handler, &wmp, RTLIB_SYNC_STATELESS);
+
+	if (result == RTLIB_OK) {
+		logger->Debug("[%s] CheckConfigure: allocation did not change",
+				exc_name.c_str());
 		return result;
-
-	case RTLIB_EXC_GWM_START:
-	case RTLIB_EXC_GWM_RECONF:
-	case RTLIB_EXC_GWM_MIGREC:
-	case RTLIB_EXC_GWM_MIGRATE:
-		logger->Debug("CL 2-2. Switching EXC [%s] to AWM [%02d]...",
-					  exc_name.c_str(), wmp.awm_id);
-		Configure(wmp.awm_id, result);
-		return result;
-
-	case RTLIB_EXC_GWM_BLOCKED:
-		logger->Debug("CL 2-3. Suspending EXC [%s]...", exc_name.c_str());
-		Suspend();
-		return result;
-
-	default:
-		logger->Error("GetWorkingMode for EXC [%s] FAILED (Error: Invalid event [%d])",
-					  exc_name.c_str(), result);
-		assert(result >= RTLIB_EXC_GWM_START);
-		assert(result <= RTLIB_EXC_GWM_BLOCKED);
 	}
 
-	return RTLIB_EXC_GWM_FAILED;
+	if (result < RTLIB_EXC_GWM_START || result > RTLIB_EXC_GWM_BLOCKED) {
+		logger->Debug("[%s] CheckConfigure: ERROR (invalid event [%d])",
+				exc_name.c_str(), result);
+		return RTLIB_EXC_GWM_FAILED;
+	}
+
+
+	if (result == RTLIB_EXC_GWM_BLOCKED) {
+		logger->Debug("[%s] CheckConfigure: EXC temporarily blocked",
+				exc_name.c_str());
+		// Set this EXC as SUSPENDED
+		return Suspend();
+	}
+
+	logger->Debug("[%s] CheckConfigure: allocation changed", exc_name.c_str());
+	return Configure(wmp.awm_id, result);
+
 }
 
 RTLIB_ExitCode_t BbqueEXC::Suspend()
@@ -463,9 +461,22 @@ RTLIB_ExitCode_t BbqueEXC::Suspend()
 
 RTLIB_ExitCode_t BbqueEXC::Setup()
 {
-	RTLIB_ExitCode_t result;
-	logger->Debug("CL 0. Setup EXC [%s]...", exc_name.c_str());
-	result = onSetup();
+	logger->Debug("[%s] Setup: Executing onSetup()", exc_name.c_str());
+	RTLIB_ExitCode_t result = onSetup();
+
+	if (result == RTLIB_OK) {
+		logger->Debug("[%s] Setup: Checking if perf-counters "
+					"must be monitored", exc_name.c_str());
+		// Start monitoring performance counters
+		assert(rtlib->Utils.MonitorPerfCounters);
+		rtlib->Utils.MonitorPerfCounters(exc_handler);
+
+		logger->Debug("[%s] Setup: Registering control thread PID",
+					exc_name.c_str());
+		assert(rtlib->RegisterCtrlThreadPID);
+		result = rtlib->RegisterCtrlThreadPID(exc_handler);
+	}
+
 	return result;
 }
 
@@ -550,10 +561,12 @@ RTLIB_ExitCode_t BbqueEXC::Monitor()
 
 RTLIB_ExitCode_t BbqueEXC::Release()
 {
-	RTLIB_ExitCode_t result;
-	logger->Debug("CL 5. Release EXC [%s]...", exc_name.c_str());
-	result = onRelease();
-	return result;
+	// Disable the EXC (thus notifying waiters)
+	logger->Debug("[%s] Release: Disabling EXC", exc_name.c_str());
+	Disable();
+
+	logger->Debug("[%s] Release: Executing onRelease()", exc_name.c_str());
+	return onRelease();
 }
 
 void BbqueEXC::WaitEXCInitCompletion()
@@ -580,16 +593,15 @@ void BbqueEXC::ControlLoop()
 	// Setup the EXC
 	if (Setup() == RTLIB_OK) {
 
-		// Start monitoring performance counters
-		rtlib->Utils.MonitorPerfCounters(exc_handler);
-
 		// Endless loop
 		while (! exc_status.has_finished_processing) {
+
 			// Check if EXC is temporarily disabled
 			WaitEnabling();
 
 			if (! exc_status.has_finished_processing) {
-				// Check for changes in resource allocation
+				// Check for changes in resource allocation.
+				// (Reconfigure or Suspend EXC if needed)
 				if (CheckConfigure() != RTLIB_OK)
 					continue;
 
@@ -606,20 +618,16 @@ void BbqueEXC::ControlLoop()
 		logger->Error("Setup EXC [%s] FAILED!", exc_name.c_str());
 	}
 
-	// Disable the EXC (thus notifying waiters)
-	Disable();
-
 	// Releasing all EXC resources
 	Release();
 
-	// Exit notification
-	rtlib->Notify.Exit(exc_handler);
-
 	logger->Info("Control-loop for EXC [%s] TERMINATED", exc_name.c_str());
 
+	// Exit notification
+	rtlib->Notify.Exit(exc_handler);
 	//--- Notify the control-thread is TERMINATED
 	exc_status.is_terminated = true;
-
+	// Wake up whoever is waiting for control loop termination
 	control_cond_variable.notify_all();
 }
 

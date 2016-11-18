@@ -196,6 +196,9 @@ public:
 		RTLIB_WorkingModeParams_t * working_mode_params,
 		RTLIB_SyncType_t st);
 
+	RTLIB_ExitCode_t RegisterControlThreadPID(
+		RTLIB_EXCHandler_t exc_handler);
+
 	RTLIB_ExitCode_t GetRuntimeProfile(rpc_msg_BBQ_GET_PROFILE_t & msg);
 
 	/**
@@ -1004,7 +1007,8 @@ private:
 	/**
 	 * @brief Update statistics for the currently selected AWM
 	 */
-	RTLIB_ExitCode_t UpdateStatistics(pRegisteredEXC_t exc);
+	RTLIB_ExitCode_t UpdateConfigurationStatistics(pRegisteredEXC_t exc);
+	RTLIB_ExitCode_t UpdateExecutionCycleStatistics(pRegisteredEXC_t exc);
 
 	RTLIB_ExitCode_t UpdateCPUBandwidthStats(pRegisteredEXC_t exc);
 	void InitCPUBandwidthStats(pRegisteredEXC_t exc);
@@ -1061,31 +1065,6 @@ private:
 	void DumpStatsConsole(pRegisteredEXC_t exc, bool verbose = false);
 
 	/**
-	 * @brief Update sync time [ms] estimation for the currently AWM.
-	 *
-	 * @note This method requires statistics being already initialized
-	 */
-	void _SyncTimeEstimation(pRegisteredEXC_t exc);
-
-	/**
-	 * @brief Update sync time [ms] estimation for the currently AWM
-	 *
-	 * This method ensure statistics update if they have been already
-	 * initialized.
-	 */
-	void SyncTimeEstimation(pRegisteredEXC_t exc);
-
-	/**
-	 * @brief Get the assigned AWM (if valid)
-	 *
-	 * @return RTLIB_OK if a valid AWM has been returned, RTLIB_EXC_GWM_FAILED
-	 * if the current AWM is not valid and thus a scheduling should be
-	 * required to the RTRM
-	 */
-	RTLIB_ExitCode_t GetAssignedWorkingMode(pRegisteredEXC_t exc,
-											RTLIB_WorkingModeParams_t * wm);
-
-	/**
 	 * @brief Suspend caller waiting for an AWM being assigned
 	 *
 	 * When the EXC has notified a scheduling request to the RTRM, this
@@ -1094,9 +1073,8 @@ private:
 	 * @return RTLIB_OK if a valid working mode has been assinged to the EXC,
 	 * RTLIB_EXC_GWM_FAILED otherwise
 	 */
-	RTLIB_ExitCode_t WaitForWorkingMode(pRegisteredEXC_t exc,
-										RTLIB_WorkingModeParams * wm);
-
+	RTLIB_ExitCode_t WaitForWorkingMode(pRegisteredEXC_t exc);
+	RTLIB_ExitCode_t GetWorkingModeParams(pRegisteredEXC_t exc, RTLIB_WorkingModeParams * wm);
 	/**
 	 * @brief Suspend caller waiting for a reconfiguration to complete
 	 *
