@@ -921,7 +921,7 @@ typedef void (*RTLIB_Notify_PreMonitor)(
  * @param ech the handler of the EXC to configure
  */
 typedef void (*RTLIB_Notify_PostMonitor)(
-	RTLIB_EXCHandler_t exc_handler);
+	RTLIB_EXCHandler_t exc_handler, bool is_last_cycle);
 
 /**
  * @brief Notify the RTLib a "suspend" is starting

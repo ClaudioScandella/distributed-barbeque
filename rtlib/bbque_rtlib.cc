@@ -250,8 +250,9 @@ static void rtlib_notify_pre_monitor(RTLIB_EXCHandler_t exc_handler) {
 	rpc->NotifyPreMonitor(exc_handler);
 }
 
-static void rtlib_notify_post_monitor(RTLIB_EXCHandler_t exc_handler) {
-	rpc->NotifyPostMonitor(exc_handler);
+static void rtlib_notify_post_monitor(RTLIB_EXCHandler_t exc_handler,
+	bool is_last_cycle) {
+	rpc->NotifyPostMonitor(exc_handler, is_last_cycle);
 }
 
 const char * rtlib_app_name;

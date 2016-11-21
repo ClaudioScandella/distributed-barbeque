@@ -659,9 +659,6 @@ RTLIB_ExitCode_t BbqueRPC::SetupStatistics(pRegisteredEXC_t exc)
 		}
 	}
 
-	// TIMER: Start RECONF
-	exc->execution_timer.start();
-
 	// Update usage count
 	awm_stats->number_of_uses ++;
 	// Configure current AWM stats
@@ -670,13 +667,13 @@ RTLIB_ExitCode_t BbqueRPC::SetupStatistics(pRegisteredEXC_t exc)
 }
 
 #define STATS_HEADER \
-"# EXC    AWM   Uses Cycles   Total |      Min      Max |      Avg      Var"
+"# EXC    AWM     Uses    Cycles     Total |      Min      Max |      Avg      Var"
 #define STATS_AWM_SPLIT \
-"#==================================+===================+=================="
+"#===============================+=========+===================+=================="
 #define STATS_CYCLE_SPLIT \
-"#-------------------------+        +-------------------+------------------"
+"#-------------------------------+---------+-------------------+------------------"
 #define STATS_CONF_SPLIT \
-"#-------------------------+--------+-------------------+------------------"
+"#-------------------------------+---------+-------------------+------------------"
 
 void BbqueRPC::DumpStatsHeader()
 {
@@ -692,6 +689,7 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 	double cycle_min, cycle_max, cycle_avg, cycle_var;
 	double monitor_min, monitor_max, monitor_avg, monitor_var;
 	double config_min, config_max, config_avg, config_var;
+	double run_min, run_max, run_avg, run_var;
 
 	// Print RTLib stats for each AWM
 	for (auto & awm : exc->awm_stats) {
@@ -709,51 +707,11 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 		cycle_avg = mean(awm_stats->cycle_samples);
 		cycle_var = variance(awm_stats->cycle_samples);
 
-		if (verbose) {
-			fprintf(output_file, STATS_AWM_SPLIT"\n");
-			fprintf(output_file, "%8s %03d %6d %6d %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-					exc->name.c_str(), awm_id, awm_stats->number_of_uses, cycles_count,
-					awm_stats->time_spent_processing, cycle_min, cycle_max, cycle_avg, cycle_var);
-		}
-		else {
-			logger->Debug(STATS_AWM_SPLIT);
-			logger->Debug("%8s %03d %6d %6d %7u | %8.3f %8.3f | %8.3f %8.3f",
-						  exc->name.c_str(), awm_id, awm_stats->number_of_uses, cycles_count,
-						  awm_stats->time_spent_processing, cycle_min, cycle_max, cycle_avg, cycle_var);
-		}
-
 		// Monitor statistics extraction
 		monitor_min = min(awm_stats->monitor_samples);
 		monitor_max = max(awm_stats->monitor_samples);
 		monitor_avg = mean(awm_stats->monitor_samples);
 		monitor_var = variance(awm_stats->monitor_samples);
-
-		if (verbose) {
-			fprintf(output_file, STATS_CYCLE_SPLIT "\n");
-			fprintf(output_file, "%8s %03d %13s %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-					exc->name.c_str(), awm_id, "onRun",
-					awm_stats->time_spent_processing - awm_stats->time_spent_monitoring,
-					cycle_min - monitor_min,
-					cycle_max - monitor_max,
-					cycle_avg - monitor_avg,
-					cycle_var - monitor_var);
-			fprintf(output_file, "%8s %03d %13s %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-					exc->name.c_str(), awm_id, "onMonitor", awm_stats->time_spent_monitoring,
-					monitor_min, monitor_max, monitor_avg, monitor_var);
-		}
-		else {
-			logger->Debug(STATS_AWM_SPLIT);
-			logger->Debug("%8s %03d %13s %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-						  exc->name.c_str(), awm_id, "onRun",
-						  awm_stats->time_spent_processing - awm_stats->time_spent_monitoring,
-						  cycle_min - monitor_min,
-						  cycle_max - monitor_max,
-						  cycle_avg - monitor_avg,
-						  cycle_var - monitor_var);
-			logger->Debug("%8s %03d %13s %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-						  exc->name.c_str(), awm_id, "onMonitor", awm_stats->time_spent_monitoring,
-						  monitor_min, monitor_max, monitor_avg, monitor_var);
-		}
 
 		// Reconfiguration statistics extraction
 		config_min = min(awm_stats->config_samples);
@@ -761,19 +719,60 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 		config_avg = mean(awm_stats->config_samples);
 		config_var = variance(awm_stats->config_samples);
 
+		// Reconfiguration statistics extraction
+		run_min = min(awm_stats->run_samples);
+		run_max = max(awm_stats->run_samples);
+		run_avg = mean(awm_stats->run_samples);
+		run_var = variance(awm_stats->run_samples);
+
 		if (verbose) {
-			fprintf(output_file, STATS_CONF_SPLIT "\n");
-			fprintf(output_file, "%8s %03d %13s %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-					exc->name.c_str(), awm_id, "onConfigure", awm_stats->time_spent_configuring,
+			fprintf(output_file, STATS_AWM_SPLIT"\n");
+			fprintf(output_file, "%.8s %03d %8d  %8d | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
+					exc->name.c_str(), awm_id, awm_stats->number_of_uses, cycles_count,
+					awm_stats->time_spent_processing, cycle_min, cycle_max, cycle_avg, cycle_var);
+		}
+		else {
+			logger->Debug(STATS_AWM_SPLIT);
+			logger->Debug("%.8s %03d %8d  %8d | %7u | %8.3f %8.3f | %8.3f %8.3f",
+						  exc->name.c_str(), awm_id, awm_stats->number_of_uses, cycles_count,
+						  awm_stats->time_spent_processing, cycle_min, cycle_max, cycle_avg, cycle_var);
+		}
+
+		if (verbose) {
+			fprintf(output_file, STATS_CYCLE_SPLIT "\n");
+
+			fprintf(output_file, "%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
+					"Run", awm_stats->time_spent_processing,
+					run_min, run_max, run_avg, run_var);
+			fprintf(output_file, "%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
+					"Monitor - Enforce", awm_stats->time_spent_monitoring,
+					monitor_min, monitor_max, monitor_avg, monitor_var);
+		}
+		else {
+			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
+					"Run", awm_stats->time_spent_processing,
+					run_min, run_max, run_avg, run_var);
+			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
+					"Monitor - Enforce", awm_stats->time_spent_monitoring,
+					monitor_min, monitor_max, monitor_avg, monitor_var);
+		}
+
+		if (verbose) {
+			fprintf(output_file, "%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
+					"Configure - AWM wait", awm_stats->time_spent_configuring,
 					config_min, config_max, config_avg, config_var);
 		}
 		else {
-			logger->Debug(STATS_CONF_SPLIT);
-			logger->Debug("%8s %03d %13s %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-						  exc->name.c_str(), awm_id, "onConfigure", awm_stats->time_spent_configuring,
-						  config_min, config_max, config_avg, config_var);
+			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
+					"Configure - AWM wait", awm_stats->time_spent_configuring,
+					config_min, config_max, config_avg, config_var);
 		}
 	}
+
+	if (verbose)
+		fprintf(output_file, "\n");
+	else
+		logger->Debug("\n");
 
 	if (! PerfRegisteredEvents(exc) || ! verbose)
 		return;
@@ -1044,7 +1043,7 @@ void BbqueRPC::DumpStats(pRegisteredEXC_t exc, bool verbose)
 		fprintf(output_file, "  TotCycles    : %7lu\n", exc->cycles_count);
 		fprintf(output_file, "  StartLatency : %7u [ms]\n", exc->starting_time_ms);
 		fprintf(output_file, "  AwmWait      : %7u [ms]\n", exc->blocked_time_ms);
-		fprintf(output_file, "  Configure    : %7u [ms]\n", exc->config_time_ms);
+		fprintf(output_file, "  Configure    : %7u [ms]\n", exc->config_time_ms - exc->blocked_time_ms);
 		fprintf(output_file, "  Process      : %7u [ms]\n", exc->processing_time_ms);
 		fprintf(output_file, "\n");
 	}
@@ -1053,7 +1052,7 @@ void BbqueRPC::DumpStats(pRegisteredEXC_t exc, bool verbose)
 		logger->Debug("  TotCycles    : %7lu", exc->cycles_count);
 		logger->Debug("  StartLatency : %7u [ms]", exc->starting_time_ms);
 		logger->Debug("  AwmWait      : %7u [ms]", exc->blocked_time_ms);
-		logger->Debug("  Configure    : %7u [ms]", exc->config_time_ms);
+		logger->Debug("  Configure    : %7u [ms]", exc->config_time_ms - exc->blocked_time_ms);
 		logger->Debug("  Process      : %7u [ms]", exc->processing_time_ms);
 		logger->Debug("");
 	}
@@ -1072,67 +1071,6 @@ void BbqueRPC::DumpStats(pRegisteredEXC_t exc, bool verbose)
 		fclose(output_file);
 		logger->Warn("Execution statistics dumped on [%s]", outfile.c_str());
 	}
-}
-
-bool BbqueRPC::CheckDurationTimeout(pRegisteredEXC_t exc)
-{
-	if (likely(! rtlib_configuration.duration.enabled))
-		return false;
-
-	if (! rtlib_configuration.duration.time_limit)
-		return false;
-
-	if (exc->processing_time_ms >=
-		rtlib_configuration.duration.max_ms_before_termination) {
-		rtlib_configuration.duration.max_ms_before_termination = 0;
-		return true;
-	}
-
-	return false;
-}
-
-RTLIB_ExitCode_t BbqueRPC::UpdateConfigurationStatistics(pRegisteredEXC_t exc)
-{
-	if (isSyncDone(exc))
-		return RTLIB_OK;
-
-	pAwmStats_t awm_stats(exc->current_awm_stats);
-
-	// TIMER: Get RECONF
-	double last_config_ms = exc->execution_timer.getElapsedTimeMs();
-	exc->config_time_ms += last_config_ms;
-	// Reconfiguration time statistics collection
-	awm_stats->time_spent_configuring += last_config_ms;
-	awm_stats->config_samples(last_config_ms);
-
-	return RTLIB_OK;
-}
-
-RTLIB_ExitCode_t BbqueRPC::UpdateExecutionCycleStatistics(pRegisteredEXC_t exc)
-{
-	pAwmStats_t awm_stats(exc->current_awm_stats);
-
-	if (isSyncDone(exc) && awm_stats) {
-
-		std::unique_lock<std::mutex> stats_lock(awm_stats->stats_mutex);
-
-		double cycle_time_ms = exc->cycletime_analyser_user.GetLastValue();
-
-		// Update running counters
-		awm_stats->time_spent_processing += cycle_time_ms;
-		exc->processing_time_ms += cycle_time_ms;
-
-		// Push sample into accumulator
-		awm_stats->cycle_samples(cycle_time_ms);
-		exc->cycles_count += 1;
-
-		CheckDurationTimeout(exc);
-	}
-
-	// TIMER: Restart RUNNING
-	exc->execution_timer.start();
-
-	return RTLIB_OK;
 }
 
 RTLIB_ExitCode_t BbqueRPC::UpdateCPUBandwidthStats(pRegisteredEXC_t exc)
@@ -1170,17 +1108,6 @@ void BbqueRPC::InitCPUBandwidthStats(pRegisteredEXC_t exc)
 		exc->cpu_usage_info.time_sample.tms_utime;
 }
 
-RTLIB_ExitCode_t BbqueRPC::UpdateMonitorStatistics(pRegisteredEXC_t exc)
-{
-	double last_monitor_ms;
-	pAwmStats_t awm_stats(exc->current_awm_stats);
-	last_monitor_ms  = exc->execution_timer.getElapsedTimeMs();
-	last_monitor_ms -= exc->mon_tstart;
-	awm_stats->time_spent_monitoring += last_monitor_ms;
-	awm_stats->monitor_samples(last_monitor_ms);
-	return RTLIB_OK;
-}
-
 void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler,
 			bool new_user_goal)
 {
@@ -1214,8 +1141,6 @@ RTLIB_ExitCode_t BbqueRPC::WaitForWorkingMode(pRegisteredEXC_t exc)
 
 		// Notify we are going to be suspended waiting for an AWM
 		setAwmWaiting(exc);
-		// TIMER: Start BLOCKED
-		exc->execution_timer.start();
 
 		// Wait for the EXC being un-BLOCKED
 		if (isBlocked(exc))
@@ -1228,12 +1153,10 @@ RTLIB_ExitCode_t BbqueRPC::WaitForWorkingMode(pRegisteredEXC_t exc)
 				exc->exc_condition_variable.wait(exc_u_lock);
 
 		clearAwmWaiting(exc);
-		// TIMER: Get BLOCKED
-		exc->blocked_time_ms += exc->execution_timer.getElapsedTimeMs();
 
-		// Update start latency
-		if (unlikely(exc->starting_time_ms == 0))
-			exc->starting_time_ms = exc->blocked_time_ms;
+		// TIMER: Get blocked time
+		exc->blocked_time_ms += exc->execution_timer.getElapsedTimeMs()
+					    - exc->configure_tstart_ms;
 	}
 
 	return RTLIB_OK;
@@ -1543,8 +1466,6 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 		// (in unmanaged mode, AWM never changes)
 		if (isAwmValid(exc)) {
 			setSyncDone(exc);
-			UpdateConfigurationStatistics(exc);
-			UpdateExecutionCycleStatistics(exc);
 			return RTLIB_OK;
 		}
 
@@ -1602,6 +1523,7 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 		}
 
 		GetWorkingModeParams(exc, working_mode_params);
+		ResetRuntimeProfileStats(exc_handler);
 
 		// Exit if the EXC has been disabled
 		if (! isEnabled(exc))
@@ -1629,12 +1551,11 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 			assert(exc->event <= RTLIB_EXC_GWM_BLOCKED);
 			break;
 		}
+
+		return exc->event;
 	}
 
-	UpdateConfigurationStatistics(exc);
-	UpdateExecutionCycleStatistics(exc);
-
-	return continue_running ? RTLIB_OK : exc->event;
+	return RTLIB_OK;
 }
 
 uint32_t BbqueRPC::GetSyncLatency(pRegisteredEXC_t exc)
@@ -3099,34 +3020,17 @@ float BbqueRPC::GetJPS(
 
 void BbqueRPC::ForceCPS(pRegisteredEXC_t exc)
 {
-	float delay_ms = 0; // [ms] delay to stick with the required FPS
-	uint32_t sleep_us;
-	float cycle_time;
-	double tnow; // [s] at the call time
-
-	// Timing initialization
-	if (unlikely(exc->cycle_start_time_ms == 0)) {
-		// The first frame is used to setup the start time
-		exc->cycle_start_time_ms = bbque_tmr.getElapsedTimeMs();
-		return;
-	}
-
 	// Compute last cycle run time
-	tnow = bbque_tmr.getElapsedTimeMs();
-	logger->Debug("TP: %.4f, TN: %.4f", exc->cycle_start_time_ms, tnow);
-	cycle_time = tnow - exc->cycle_start_time_ms;
-	delay_ms = exc->cycle_time_enforced_ms - cycle_time;
+	float real_cycle_time = exc->execution_timer.getElapsedTimeMs();
+	float delay_ms = exc->cycle_time_enforced_ms - real_cycle_time;
 
 	// Enforce CPS if needed
 	if (delay_ms > 0.0f) {
-		sleep_us = 1e3 * static_cast<uint32_t> (delay_ms);
+		uint32_t sleep_us = 1e3 * static_cast<uint32_t> (delay_ms);
 		logger->Debug("Cycle Time: %3.3f[ms], ET: %3.3f[ms], Sleep time %u [us]",
-					  cycle_time, exc->cycle_time_enforced_ms, sleep_us);
+			real_cycle_time, exc->cycle_time_enforced_ms, sleep_us);
 		usleep(sleep_us);
 	}
-
-	// Update the start time of the next cycle
-	exc->cycle_start_time_ms = bbque_tmr.getElapsedTimeMs();
 }
 
 RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
@@ -3253,11 +3157,10 @@ void BbqueRPC::NotifyExit(
 void BbqueRPC::NotifyPreConfigure(
 	RTLIB_EXCHandler_t exc_handler)
 {
-	logger->Debug("===> NotifyConfigure");
 	(void) exc_handler;
-	pRegisteredEXC_t exc;
 	assert(exc_handler);
-	exc = getRegistered(exc_handler);
+
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
 
 	if (! exc) {
 		logger->Error("NotifyPreConfigure EXC [%p] FAILED (EXC not registered)",
@@ -3266,6 +3169,13 @@ void BbqueRPC::NotifyPreConfigure(
 	}
 
 	assert(isRegistered(exc) == true);
+
+	// Execution Cycle (configure + run + monitor) of the EXC starts here
+	exc->execution_timer.start();
+	// Configure phase of the EXC (get Working Mode, resume if needed and
+	// configure accordingly) starts here
+	exc->configure_tstart_ms = exc->execution_timer.getElapsedTimeMs();
+
 #ifdef CONFIG_BBQUE_OPENCL
 	pSystemResources_t local_sys(exc->resource_assignment[0]);
 	assert(local_sys != nullptr);
@@ -3276,15 +3186,16 @@ void BbqueRPC::NotifyPreConfigure(
 	if(exc->cycles_count == 0)
 		STAT_LOG("APPLICATION:EXC_START");
 
+	logger->Debug("===> NotifyConfigure");
 	STAT_LOG("APPLICATION:RECONFIGURATION");
 }
 
 void BbqueRPC::NotifyPostConfigure(
 	RTLIB_EXCHandler_t exc_handler)
 {
-	pRegisteredEXC_t exc;
 	assert(exc_handler);
-	exc = getRegistered(exc_handler);
+
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
 
 	if (! exc) {
 		logger->Error("NotifyPostConfigure EXC [%p] FAILED "
@@ -3295,37 +3206,29 @@ void BbqueRPC::NotifyPostConfigure(
 	assert(isRegistered(exc) == true);
 	logger->Debug("<=== NotifyConfigure");
 
-	// CPS Enforcing initialization
-	if ((exc->cycle_time_enforced_ms != 0) || (exc->cycle_start_time_ms == 0))
-		exc->cycle_start_time_ms = bbque_tmr.getElapsedTimeMs();
-
 	// Resetting Runtime Statistics counters
 	(void) exc_handler;
+
 #ifdef CONFIG_BBQUE_OPENCL
 	// Clear pre-run OpenCL command events
 	OclClearStats();
 #endif
-	ResetRuntimeProfileStats(exc_handler);
 
 	if (exc->cycles_count == 0) {
 		logger->Debug("First cycle: applying all resource budget.");
 		CGroupCommitAllocation(exc);
 	}
+
+	// Update total and AWM-wise time statistics
+	pAwmStats_t awm_stats(exc->current_awm_stats);
+	double configure_time_ms =
+	    exc->execution_timer.getElapsedTimeMs() - exc->configure_tstart_ms;
+	exc->config_time_ms += configure_time_ms;
+	awm_stats->time_spent_configuring += configure_time_ms;
+	awm_stats->config_samples(configure_time_ms);
 }
 
-void BbqueRPC::NotifyPreRun(RTLIB_EXCHandler_t exc_handler)
-{
-	assert(exc_handler);
-	auto exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("NotifyPreRun EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return;
-	}
-
-	assert(isRegistered(exc) == true);
-
+void BbqueRPC::TogglePerfCountersPreCycle(BbqueRPC::pRegisteredEXC_t exc) {
 	logger->Debug("Pre-Run: Checking if perf counters are activated");
 	bool pcounters_collected_systemwide =
 		rtlib_configuration.profile.perf_counters.global;
@@ -3346,26 +3249,9 @@ void BbqueRPC::NotifyPreRun(RTLIB_EXCHandler_t exc_handler)
 			PerfEnable(exc);
 		}
 	}
-
-	logger->Debug("Pre-Run: Starting computing CPU quota");
-	InitCPUBandwidthStats(exc);
-
-	STAT_LOG("APPLICATION:CYCLE_START %d", exc->cycles_count);
 }
 
-void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
-{
-	logger->Debug("Post-Run: retrieving execution context info");
-	assert(exc_handler);
-	auto exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("NotifyPostRun EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return;
-	}
-
-	assert(isRegistered(exc) == true);
+void BbqueRPC::TogglePerfCountersPostCycle(BbqueRPC::pRegisteredEXC_t exc) {
 	logger->Debug("Post-Run: Checking if perf counters are activated");
 	bool pcounters_collected_systemwide =
 		rtlib_configuration.profile.perf_counters.global;
@@ -3386,11 +3272,54 @@ void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
 			PerfCollectStats(exc);
 		}
 	}
+}
 
-	logger->Debug("Post-Run: Stop computing CPU quota");
+void BbqueRPC::NotifyPreRun(RTLIB_EXCHandler_t exc_handler)
+{
+	assert(exc_handler);
+	auto exc = getRegistered(exc_handler);
+
+	if (! exc) {
+		logger->Error("NotifyPreRun EXC [%p] FAILED "
+					  "(EXC not registered)", (void *) exc_handler);
+		return;
+	}
+
+	assert(isRegistered(exc) == true);
+
+	// Run phase of the EXC starts here
+	exc->run_tstart_ms = exc->execution_timer.getElapsedTimeMs();
+
+	// Update start latency
+	if (unlikely(exc->starting_time_ms == 0))
+		exc->starting_time_ms = exc->run_tstart_ms;
+
+	TogglePerfCountersPreCycle(exc);
+
+	logger->Debug("Pre-Run: Starting computing CPU quota");
+	STAT_LOG("APPLICATION:CYCLE_START %d", exc->cycles_count);
+
+	InitCPUBandwidthStats(exc);
+}
+
+void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
+{
+	logger->Debug("Post-Run: retrieving execution context info");
+	assert(exc_handler);
+	auto exc = getRegistered(exc_handler);
+
+	if (! exc) {
+		logger->Error("NotifyPostRun EXC [%p] FAILED "
+					  "(EXC not registered)", (void *) exc_handler);
+		return;
+	}
+
+	assert(isRegistered(exc) == true);
 
 	if (UpdateCPUBandwidthStats(exc) != RTLIB_OK)
 		logger->Debug("PostRun: could not compute current CPU bandwidth");
+
+	TogglePerfCountersPostCycle(exc);
 
 #ifdef CONFIG_BBQUE_OPENCL
 
@@ -3398,14 +3327,19 @@ void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
 		OclCollectStats(exc->current_awm_id, exc->current_awm_stats->ocl_events_map);
 
 #endif // CONFIG_BBQUE_OPENCL
+
+	// Update total and AWM-wise time statistics
+	pAwmStats_t awm_stats(exc->current_awm_stats);
+	double run_time_ms =
+	    exc->execution_timer.getElapsedTimeMs() - exc->run_tstart_ms;
+	awm_stats->time_spent_processing += run_time_ms;
+	awm_stats->run_samples(run_time_ms);
 }
 
-void BbqueRPC::NotifyPreMonitor(
-	RTLIB_EXCHandler_t exc_handler)
+void BbqueRPC::NotifyPreMonitor(RTLIB_EXCHandler_t exc_handler)
 {
-	pRegisteredEXC_t exc;
 	assert(exc_handler);
-	exc = getRegistered(exc_handler);
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
 
 	if (! exc) {
 		logger->Error("NotifyPreMonitor EXC [%p] FAILED "
@@ -3414,12 +3348,15 @@ void BbqueRPC::NotifyPreMonitor(
 	}
 
 	assert(isRegistered(exc) == true);
+
+	// Monitor phase of the EXC starts here
+	exc->monitor_tstart_ms = exc->execution_timer.getElapsedTimeMs();
+
 	logger->Debug("===> NotifyMonitor");
-	// Keep track of monitoring start time
-	exc->mon_tstart = exc->execution_timer.getElapsedTimeMs();
 }
 
-void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler)
+void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler,
+		bool is_last_cycle)
 {
 	pRegisteredEXC_t exc;
 	assert(exc_handler);
@@ -3433,7 +3370,7 @@ void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler)
 
 	assert(isRegistered(exc) == true);
 
-	if (! rtlib_configuration.unmanaged.enabled) {
+	if (! rtlib_configuration.unmanaged.enabled && ! is_last_cycle) {
 		// Compute the ideal resource allocation for the application,
 		// given its history
 		UpdateAllocation(exc_handler);
@@ -3455,10 +3392,19 @@ void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler)
 	exc->cycletime_analyser_user.InsertValue(
 		exc->execution_timer.getElapsedTimeMs());
 
-	logger->Debug("<=== NotifyMonitor");
-	// Update monitoring statistics
-	UpdateMonitorStatistics(exc);
+	// Update total and AWM-wise time statistics
+	pAwmStats_t awm_stats(exc->current_awm_stats);
+	double cycle_time_ms = exc->execution_timer.getElapsedTimeMs();
+	double monitor_time_ms = cycle_time_ms - exc->monitor_tstart_ms;
+	awm_stats->time_spent_monitoring += monitor_time_ms;
+	awm_stats->monitor_samples(monitor_time_ms);
 
+	// Execution Cycle (configure + run + monitor) of the EXC ends here
+	awm_stats->cycle_samples(cycle_time_ms);
+	exc->processing_time_ms += cycle_time_ms - exc->configure_tstart_ms;
+	exc->cycles_count += 1;
+
+	logger->Debug("<=== NotifyMonitor");
 	STAT_LOG("APPLICATION:CYCLE_STOP %d", exc->cycles_count);
 }
 

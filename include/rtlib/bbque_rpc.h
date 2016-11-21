@@ -353,7 +353,7 @@ public:
 		RTLIB_EXCHandler_t exc_handler);
 
 	void NotifyPostMonitor(
-		RTLIB_EXCHandler_t exc_handler);
+		RTLIB_EXCHandler_t exc_handler, bool is_last_cycle);
 
 	void NotifyPreSuspend(
 		RTLIB_EXCHandler_t exc_handler);
@@ -447,6 +447,10 @@ protected:
 		/** Statistics on Monitoring Overheads */
 		accumulator_set<double,
 						stats<tag::min, tag::max, tag::variance>> monitor_samples;
+
+		/** Statistics on time spent running */
+		accumulator_set<double,
+						stats<tag::min, tag::max, tag::variance>> run_samples;
 
 #ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 		/** Map of registered Perf counters */
@@ -578,11 +582,11 @@ protected:
 		    bool rtp_forward = false;
 		} runtime_profiling;
 
-		double mon_tstart = 0; // [ms] at the last monitoring start time
+                double configure_tstart_ms = 0.0;
+		double monitor_tstart_ms   = 0.0;
+                double run_tstart_ms       = 0.0;
 
 		/** CPS performance monitoring/control */
-		// [ms] at the last cycle start time
-		double 	 cycle_start_time_ms         = 0.0;
 		// [Hz] the minimum cycle time in milliseconds
 		float  	 cycle_time_enforced_ms      = 0.0;
 		// [Hz] the minimum required CPS
@@ -632,6 +636,10 @@ protected:
 	} RegisteredExecutionContext_t;
 
 	typedef std::shared_ptr<RegisteredExecutionContext_t> pRegisteredEXC_t;
+
+        // Perf Statistics
+        void TogglePerfCountersPreCycle(pRegisteredEXC_t exc);
+        void TogglePerfCountersPostCycle(pRegisteredEXC_t exc);
 
 	//--- AWM Validity
 	inline bool isAwmValid(pRegisteredEXC_t exc) const
@@ -1005,17 +1013,10 @@ private:
 	/**
 	 * @brief Update statistics for the currently selected AWM
 	 */
-	RTLIB_ExitCode_t UpdateConfigurationStatistics(pRegisteredEXC_t exc);
 	RTLIB_ExitCode_t UpdateExecutionCycleStatistics(pRegisteredEXC_t exc);
 
 	RTLIB_ExitCode_t UpdateCPUBandwidthStats(pRegisteredEXC_t exc);
 	void InitCPUBandwidthStats(pRegisteredEXC_t exc);
-
-	/**
-	 * @brief Update statistics about onMonitor execution for the currently
-	 * selected awm
-	 */
-	RTLIB_ExitCode_t UpdateMonitorStatistics(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief Log the header for statistics collection
@@ -1136,18 +1137,6 @@ private:
 	 * @brief Get an EXC handler for the give EXC ID
 	 */
 	pRegisteredEXC_t getRegistered(uint8_t exc_id);
-
-
-	/**
-	 * Check if the specified duration has expired.
-	 *
-	 * A run-time duration can be specified both in [s] or number of
-	 * processing cycles. In case a duration has been specified via
-	 * BBQUE_RTLIB_OPTS, once this duration has been passed, this method
-	 * return true and the application is "forcely" terminated by the
-	 * RTLIB.
-	 */
-	bool CheckDurationTimeout(pRegisteredEXC_t exc);
 
 	/******************************************************************************
 	 * Performance Counters

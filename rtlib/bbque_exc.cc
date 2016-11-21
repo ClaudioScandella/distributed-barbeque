@@ -417,42 +417,57 @@ void BbqueEXC::WaitEnabling()
 /** Get a new resource allocation for the EXC by the resource manager*/
 RTLIB_ExitCode_t BbqueEXC::CheckConfigure()
 {
-	logger->Debug("[%s] CheckConfigure: check if resource allocation "
-					"changed", exc_name.c_str());
+	// Call the RPC pre-configuration procedure
+	rtlib->Notify.PreConfigure(exc_handler);
 
-	assert(rtlib->GetWorkingMode);
-
-	RTLIB_ExitCode_t result =
+	RTLIB_ExitCode_t checkconfigure_result =
 		rtlib->GetWorkingMode(exc_handler, &wmp, RTLIB_SYNC_STATELESS);
 
-	if (result == RTLIB_OK) {
-		logger->Debug("[%s] CheckConfigure: allocation did not change",
-				exc_name.c_str());
-		return result;
+	// Checking that the return code actually makes sense
+	if (unlikely(checkconfigure_result != RTLIB_OK &&
+		(checkconfigure_result < RTLIB_EXC_GWM_START ||
+		 checkconfigure_result > RTLIB_EXC_GWM_BLOCKED))) {
+	    logger->Debug("[%s] CheckConfigure: invalid return code for "
+				"GetWorkingMode()", exc_name.c_str());
+	    checkconfigure_result = RTLIB_EXC_GWM_FAILED;
 	}
 
-	if (result < RTLIB_EXC_GWM_START || result > RTLIB_EXC_GWM_BLOCKED) {
-		logger->Debug("[%s] CheckConfigure: ERROR (invalid event [%d])",
-				exc_name.c_str(), result);
-		return RTLIB_EXC_GWM_FAILED;
+	switch (checkconfigure_result) {
+	    case RTLIB_OK:
+		logger->Debug("[%s] CheckConfigure: Allocation did not change",
+							    exc_name.c_str());
+		break;
+	    case RTLIB_EXC_GWM_FAILED:
+		break;
+	    case RTLIB_EXC_GWM_BLOCKED:
+		checkconfigure_result = Suspend();
+		break;
+	    default:
+		if (exc_status.is_suspended ||
+			    (checkconfigure_result == RTLIB_EXC_GWM_START)) {
+		    // Call the user-defined resuming procedure
+		    logger->Debug("[%s] CheckConfigure: Executing onResume()",
+							    exc_name.c_str());
+		    onResume();
+		    // Set this EXC as NOT SUSPENDED
+		    exc_status.is_suspended = false;
+		}
+		// Call the user-defined configuration procedure
+		logger->Debug("[%s] CheckConfigure: Executing onConfigure()",
+							    exc_name.c_str());
+		checkconfigure_result = onConfigure(wmp.awm_id);
 	}
 
+	// Call the RPC post-configuration procedure
+	rtlib->Notify.PostConfigure(exc_handler);
 
-	if (result == RTLIB_EXC_GWM_BLOCKED) {
-		logger->Debug("[%s] CheckConfigure: EXC temporarily blocked",
-				exc_name.c_str());
-		// Set this EXC as SUSPENDED
-		return Suspend();
-	}
-
-	logger->Debug("[%s] CheckConfigure: allocation changed", exc_name.c_str());
-	return Configure(wmp.awm_id, result);
-
+	return checkconfigure_result;
 }
 
 RTLIB_ExitCode_t BbqueEXC::Suspend()
 {
 	// Call the user-defined suspension procedure
+	logger->Debug("[%s] Suspend: Executing onSuspend()", exc_name.c_str());
 	onSuspend();
 	// Set this EXC as SUSPENDED
 	exc_status.is_suspended = true;
@@ -480,83 +495,47 @@ RTLIB_ExitCode_t BbqueEXC::Setup()
 	return result;
 }
 
-RTLIB_ExitCode_t BbqueEXC::Configure(int8_t awm_id, RTLIB_ExitCode_t event)
-{
-	if (exc_status.is_suspended || (event == RTLIB_EXC_GWM_START)) {
-		// Call the user-defined resuming procedure
-		onResume();
-		// Set this EXC as NOT SUSPENDED
-		exc_status.is_suspended = false;
-	}
-
-	// Call the RPC pre-configuration procedure
-	rtlib->Notify.PreConfigure(exc_handler);
-	// Call the user-defined configuration procedure
-	onConfigure(awm_id);
-	// Call the RPC post-configuration procedure
-	rtlib->Notify.PostConfigure(exc_handler);
-	return RTLIB_OK;
-}
-
 RTLIB_ExitCode_t BbqueEXC::Run()
 {
-	logger->Debug("CL 3. Run EXC [%s], cycle [%010d], AWM[%02d]...",
-				  exc_name.c_str(), cycles_count + 1, wmp.awm_id);
 	// Call the RPC pre-execution procedure
 	rtlib->Notify.PreRun(exc_handler);
+
 	// Call the user-defined execution procedure
-	RTLIB_ExitCode_t result = onRun();
+	RTLIB_ExitCode_t run_result = onRun();
 
 	// Check if it was the last execution burst
-	if (result == RTLIB_EXC_WORKLOAD_NONE) {
-		// Tell the control thread the EXC has terminated
+	if (run_result == RTLIB_EXC_WORKLOAD_NONE)
 		exc_status.has_finished_processing = true;
-	}
-	else {
-		// Call the RPC post-execution procedure
-		rtlib->Notify.PostRun(exc_handler);
-	}
 
-	return result;
+	// Call the RPC post-execution procedure
+	rtlib->Notify.PostRun(exc_handler);
+
+	return run_result;
 }
 
 RTLIB_ExitCode_t BbqueEXC::Monitor()
 {
-	RTLIB_ExitCode_t result;
-	// Account executed cycles
-	cycles_count ++;
-	logger->Debug("CL 4. Monitor EXC [%s]...", exc_name.c_str());
 	// Call the RPC pre-monitor procedure
 	rtlib->Notify.PreMonitor(exc_handler);
+
 	// Call the user-defined monitor procedure
-	result = onMonitor();
+	RTLIB_ExitCode_t monitor_result = onMonitor();
+
+	bool max_cycles_reached = config.duration.enabled &&
+		cycles_count >= config.duration.max_cycles_before_termination;
+	bool max_duration_reached = config.duration.enabled &&
+		config.duration.time_limit &&
+		config.duration.max_ms_before_termination == 0;
 
 	// Check if it was the last execution burst
-	if (result == RTLIB_EXC_WORKLOAD_NONE) {
+	if (monitor_result == RTLIB_EXC_WORKLOAD_NONE ||
+		max_cycles_reached || max_duration_reached)
 		exc_status.has_finished_processing = true;
-		return result;
-	}
 
 	// Call the RPC post-monitor procedure
-	rtlib->Notify.PostMonitor(exc_handler);
+	rtlib->Notify.PostMonitor(exc_handler, exc_status.has_finished_processing);
 
-	// Check if the EXC has got duration constraints
-	if (likely(! config.duration.enabled))
-		return result;
-
-	// Duration control checks
-	if (config.duration.time_limit) {
-		if (config.duration.max_ms_before_termination != 0)
-			return result;
-	}
-	else {
-		if (config.duration.max_cycles_before_termination > cycles_count)
-			return result;
-	}
-
-	exc_status.has_finished_processing = true;
-	logger->Warn("Application termination due to DURATION ENFORCING");
-	return RTLIB_EXC_WORKLOAD_NONE;
+	return monitor_result;
 }
 
 RTLIB_ExitCode_t BbqueEXC::Release()
@@ -590,11 +569,15 @@ void BbqueEXC::ControlLoop()
 	// Wait for EXC to be registered and enabled
 	WaitEXCInitCompletion();
 
+	RTLIB_ExitCode_t result;
+
 	// Setup the EXC
 	if (Setup() == RTLIB_OK) {
 
 		// Endless loop
 		while (! exc_status.has_finished_processing) {
+
+			cycles_count ++;
 
 			// Check if EXC is temporarily disabled
 			WaitEnabling();
@@ -606,11 +589,16 @@ void BbqueEXC::ControlLoop()
 					continue;
 
 				// Run the workload
-				if (Run() != RTLIB_OK)
+				result = Run();
+
+				if (result != RTLIB_OK &&
+					result != RTLIB_EXC_WORKLOAD_NONE)
 					continue;
 
-				// Monitor Quality-of-Services
-				if (Monitor() != RTLIB_OK)
+				// Monitor Quality-of-Service
+				result = Monitor();
+				if (result != RTLIB_OK &&
+					result != RTLIB_EXC_WORKLOAD_NONE)
 					continue;
 			}
 		}
