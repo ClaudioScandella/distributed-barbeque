@@ -474,6 +474,8 @@ BbqueRPC::pRegisteredEXC_t BbqueRPC::getRegistered(
 		return nullptr;
 	}
 
+	assert(isRegistered(exc) == true);
+
 	return exc;
 }
 
@@ -508,28 +510,22 @@ BbqueRPC::pRegisteredEXC_t BbqueRPC::getRegistered(uint8_t exc_id)
 		return nullptr;
 	}
 
+	assert(isRegistered(exc) == true);
+
 	return exc;
 }
 
 void BbqueRPC::Unregister(
 	const RTLIB_EXCHandler_t exc_handler)
 {
-	RTLIB_ExitCode_t result;
-	pRegisteredEXC_t exc;
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return;
 
-	if (! exc) {
-		logger->Error("Unregister EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return;
-	}
-
-	assert(isRegistered(exc) == true);
 	// Dump (verbose) execution statistics
 	DumpStats(exc, true);
 	// Calling the low-level unregistration
-	result = _Unregister(exc);
+	RTLIB_ExitCode_t result = _Unregister(exc);
 
 	if (result != RTLIB_OK) {
 		logger->Error("Unregister EXC [%p:%s] FAILED (Error %d: %s)",
@@ -581,20 +577,13 @@ void BbqueRPC::UnregisterAll()
 RTLIB_ExitCode_t BbqueRPC::Enable(
 	const RTLIB_EXCHandler_t exc_handler)
 {
-	RTLIB_ExitCode_t result;
-	pRegisteredEXC_t exc;
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("Enabling EXC [%p] FAILED "
-					  "(Error: EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	assert(isEnabled(exc) == false);
 	// Calling the low-level enable function
-	result = _Enable(exc);
+	RTLIB_ExitCode_t result = _Enable(exc);
 
 	if (result != RTLIB_OK) {
 		logger->Error("Enabling EXC [%p:%s] FAILED (Error %d: %s)",
@@ -612,20 +601,13 @@ RTLIB_ExitCode_t BbqueRPC::Enable(
 RTLIB_ExitCode_t BbqueRPC::Disable(
 	const RTLIB_EXCHandler_t exc_handler)
 {
-	RTLIB_ExitCode_t result;
-	pRegisteredEXC_t exc;
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("Disabling EXC [%p] STOP "
-					  "(Error: EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	assert(isEnabled(exc) == true);
 	// Calling the low-level disable function
-	result = _Disable(exc);
+	RTLIB_ExitCode_t result = _Disable(exc);
 
 	if (result != RTLIB_OK) {
 		logger->Error("Disabling EXC [%p:%s] FAILED (Error %d: %s)",
@@ -1111,11 +1093,9 @@ void BbqueRPC::InitCPUBandwidthStats(pRegisteredEXC_t exc)
 void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler,
 			bool new_user_goal)
 {
-        pRegisteredEXC_t exc;
-        // Get a reference to the EXC to control
-        assert(exc_handler);
-        exc = getRegistered(exc_handler);
-        assert(isRegistered(exc) == true);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return;
 
 	logger->Debug("SetCPSGoal: Resetting cycle time history");
 	exc->last_cycletime_ms = exc->cycletime_analyser_user.GetMean();
@@ -1201,14 +1181,9 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 	RTLIB_ResourceType_t r_type,
 	int32_t & r_amount)
 {
+	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("Getting resources for EXC [%p] FAILED "
-					  "(Error: EXC not registered)", (void *) exc_handler);
-		r_amount = - 1;
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	if (! isAwmAssigned(exc)) {
 		logger->Error("Getting resources for EXC [%p] FAILED "
@@ -1273,13 +1248,9 @@ RTLIB_ExitCode_t BbqueRPC::GetAffinityMask(
                 int vector_size) {
 	UNUSED(wm);
 
-    pRegisteredEXC_t exc = getRegistered(exc_handler);
-
-    if (! exc) {
-		logger->Error("Getting resources for EXC [%p] FAILED "
-					  "(Error: EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	for (int id = 0; id < vector_size; id ++)
 		ids_vector[id] = -1;
@@ -1302,13 +1273,9 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 	int32_t * sys_array,
 	uint16_t array_size)
 {
+	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("Getting resources for EXC [%p] FAILED "
-					  "(Error: EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	if (! isAwmAssigned(exc)) {
 		logger->Error("Getting resources for EXC [%p] FAILED "
@@ -1377,15 +1344,9 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 void BbqueRPC::StartPCountersMonitoring(
 	RTLIB_EXCHandler_t exc_handler)
 {
-	pRegisteredEXC_t exc;
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("Unregister EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return;
-	}
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return;
 
 	// Add all the required performance counters
 	if (rtlib_configuration.profile.enabled) {
@@ -1418,14 +1379,9 @@ RTLIB_ExitCode_t BbqueRPC::WaitForSyncDone(pRegisteredEXC_t exc)
 RTLIB_ExitCode_t BbqueRPC::RegisterControlThreadPID(
 	const RTLIB_EXCHandler_t exc_handler)
 {
-	assert(exc_handler);
-
+	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
-	if (! exc) {
-		logger->Error("Getting WM for EXC [%p] FAILED "
-			"(Error: EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	if (unlikely(exc->control_thread_pid == 0)) {
 		// Keep track of the Control Thread PID
@@ -1444,15 +1400,10 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 {
 	// FIXME Remove compilation warning
 	UNUSED(synch_type);
-	assert(exc_handler);
 
+	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("Getting WM for EXC [%p] FAILED "
-					  "(Error: EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	// Exit if the EXC has been disabled
 	if (! isEnabled(exc))
@@ -1533,7 +1484,6 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 		switch (exc->event) {
 		case RTLIB_EXC_GWM_START:
 			CGroupCreate(exc, channel_thread_pid);
-
 		case RTLIB_EXC_GWM_RECONF:
 		case RTLIB_EXC_GWM_MIGREC:
 		case RTLIB_EXC_GWM_MIGRATE:
@@ -1607,17 +1557,12 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 		msg,
 		std::vector<rpc_msg_BBQ_SYNCP_PRECHANGE_SYSTEM_t> & systems)
 {
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(msg.hdr.exc_id);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
+
 	RTLIB_ExitCode_t result;
 	uint32_t syncLatency;
-	pRegisteredEXC_t exc;
-	exc = getRegistered(msg.hdr.exc_id);
-
-	if (! exc) {
-		logger->Error("SyncP_1 (Pre-Change) EXC [%d] FAILED "
-					  "(Error: Execution Context not registered)",
-					  msg.hdr.exc_id);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
 
 	assert(msg.event < ba::ApplicationStatusIF::SYNC_STATE_COUNT);
 	std::unique_lock<std::mutex> exc_u_lock(exc->exc_mutex);
@@ -1824,18 +1769,11 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_SyncChangeNotify(pRegisteredEXC_t exc)
 RTLIB_ExitCode_t BbqueRPC::SyncP_SyncChangeNotify(
 	rpc_msg_BBQ_SYNCP_SYNCCHANGE_t & msg)
 {
-	RTLIB_ExitCode_t result;
-	pRegisteredEXC_t exc;
-	exc = getRegistered(msg.hdr.exc_id);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(msg.hdr.exc_id);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
-	if (! exc) {
-		logger->Error("SyncP_2 (Sync-Change) EXC [%d] FAILED "
-					  "(Error: Execution Context not registered)",
-					  msg.hdr.exc_id);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
-
-	result = SyncP_SyncChangeNotify(exc);
+	RTLIB_ExitCode_t result = SyncP_SyncChangeNotify(exc);
 
 	if (result != RTLIB_OK) {
 		logger->Warn("SyncP_2 (Sync-Change) EXC [%d] CRITICAL "
@@ -1871,18 +1809,11 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_DoChangeNotify(pRegisteredEXC_t exc)
 RTLIB_ExitCode_t BbqueRPC::SyncP_DoChangeNotify(
 	rpc_msg_BBQ_SYNCP_DOCHANGE_t & msg)
 {
-	RTLIB_ExitCode_t result;
-	pRegisteredEXC_t exc;
-	exc = getRegistered(msg.hdr.exc_id);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(msg.hdr.exc_id);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
-	if (! exc) {
-		logger->Error("SyncP_3 (Do-Change) EXC [%d] FAILED "
-					  "(Error: Execution Context not registered)",
-					  msg.hdr.exc_id);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
-
-	result = SyncP_DoChangeNotify(exc);
+	RTLIB_ExitCode_t result = SyncP_DoChangeNotify(exc);
 	// NOTE this command should not generate a response, it is just a notification
 	logger->Info("SyncP_3 (Do-Change) EXC [%d]", msg.hdr.exc_id);
 	return result;
@@ -1898,18 +1829,11 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PostChangeNotify(pRegisteredEXC_t exc)
 RTLIB_ExitCode_t BbqueRPC::SyncP_PostChangeNotify(
 	rpc_msg_BBQ_SYNCP_POSTCHANGE_t & msg)
 {
-	RTLIB_ExitCode_t result;
-	pRegisteredEXC_t exc;
-	exc = getRegistered(msg.hdr.exc_id);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(msg.hdr.exc_id);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
-	if (! exc) {
-		logger->Error("SyncP_4 (Post-Change) EXC [%d] FAILED "
-					  "(Error: Execution Context not registered)",
-					  msg.hdr.exc_id);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
-
-	result = SyncP_PostChangeNotify(exc);
+	RTLIB_ExitCode_t result = SyncP_PostChangeNotify(exc);
 
 	if (result != RTLIB_OK) {
 		logger->Warn("SyncP_4 (Post-Change) EXC [%d] CRITICAL "
@@ -1932,18 +1856,12 @@ RTLIB_ExitCode_t BbqueRPC::SetAWMConstraints(
 	RTLIB_Constraint_t * constraints,
 	uint8_t count)
 {
-	RTLIB_ExitCode_t result;
-	assert(exc_handler);
-	auto exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("Constraining EXC [%p] "
-					  "(Error: EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	// Calling the low-level enable function
-	result = _Set(exc, constraints, count);
+	RTLIB_ExitCode_t result = _Set(exc, constraints, count);
 
 	if (result != RTLIB_OK) {
 		logger->Error("Constraining EXC [%p:%s] FAILED (Error %d: %s)",
@@ -1957,19 +1875,12 @@ RTLIB_ExitCode_t BbqueRPC::SetAWMConstraints(
 RTLIB_ExitCode_t BbqueRPC::ClearAWMConstraints(
 	const RTLIB_EXCHandler_t exc_handler)
 {
-	RTLIB_ExitCode_t result;
-	pRegisteredEXC_t exc;
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("Clear constraints for EXC [%p] "
-					  "(Error: EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	// Calling the low-level enable function
-	result = _Clear(exc);
+	RTLIB_ExitCode_t result = _Clear(exc);
 
 	if (result != RTLIB_OK) {
 		logger->Error("Clear constraints for EXC [%p:%s] FAILED (Error %d: %s)",
@@ -1983,16 +1894,9 @@ RTLIB_ExitCode_t BbqueRPC::ClearAWMConstraints(
 RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	const RTLIB_EXCHandler_t exc_handler)
 {
-	// Get the execution context ///////////////////////////////////////////////
-	pRegisteredEXC_t exc;
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("[%p] RTP forward FAILED (EXC not registered)",
-					  (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	// Init ggap info
 	float goal_gap = 0.0f;
@@ -2160,16 +2064,9 @@ return RTLIB_OK;
 RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	const RTLIB_EXCHandler_t exc_handler)
 {
-	// Get the execution context ///////////////////////////////////////////////
-	pRegisteredEXC_t exc;
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("[%p] RTP forward FAILED (EXC not registered)",
-					  (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	// Check SKIP conditions ///////////////////////////////////////////////////
 
@@ -2235,15 +2132,9 @@ RTLIB_ExitCode_t BbqueRPC::SetExplicitGoalGap(
 	const RTLIB_EXCHandler_t exc_handler,
 	int ggap)
 {
-	pRegisteredEXC_t exc;
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("Set Goal-Gap for EXC [%p] "
-					  "(Error: EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	exc->explicit_ggap_assertion = true;
 	exc->explicit_ggap_value = ggap;
@@ -2263,13 +2154,9 @@ RTLIB_ExitCode_t BbqueRPC::StopExecution(
 RTLIB_ExitCode_t BbqueRPC::GetRuntimeProfile(
 	rpc_msg_BBQ_GET_PROFILE_t & msg)
 {
+	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(msg.hdr.exc_id);
-
-	if (! exc) {
-		logger->Error("Set runtime profile for EXC [%d] "
-					  "(Error: EXC not registered)", msg.hdr.exc_id);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	// Check the application is not in sync
 	if (isSyncMode(exc))
@@ -2920,18 +2807,10 @@ void BbqueRPC::OclDumpAddrStats(QueueProfPtr_t stPtr, cl_command_queue cmd_queue
 
 AppUid_t BbqueRPC::GetUniqueID(RTLIB_EXCHandler_t exc_handler)
 {
-	pRegisteredEXC_t exc;
-	// Get a reference to the EXC to control
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
-	if (! exc) {
-		logger->Error("Unregister EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
-
-	assert(isRegistered(exc) == true);
 	return ((channel_thread_pid << BBQUE_UID_SHIFT) + exc->id);
 }
 
@@ -2943,18 +2822,10 @@ RTLIB_ExitCode_t BbqueRPC::SetCPS(
 	RTLIB_EXCHandler_t exc_handler,
 	float cps)
 {
-	pRegisteredEXC_t exc;
-	// Get a reference to the EXC to control
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
-	if (! exc) {
-		logger->Error("Unregister EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
-
-	assert(isRegistered(exc) == true);
 	// Keep track of the maximum required CPS
 	exc->cps_max_allowed = cps;
 	exc->cycle_time_enforced_ms = 0.0f;
@@ -2971,20 +2842,12 @@ RTLIB_ExitCode_t BbqueRPC::SetCPS(
 float BbqueRPC::GetCPS(
 	RTLIB_EXCHandler_t exc_handler)
 {
-	pRegisteredEXC_t exc;
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
+
 	float ctime = 0;
 	float cps = 0;
-	// Get a reference to the EXC to control
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		fprintf(stderr, FE("Get CPS for EXC [%p] FAILED "
-						   "(EXC not registered)\n"), (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
-
-	assert(isRegistered(exc) == true);
 
 	// If cycle was reset, return CPS up to last forward window
 	if (exc->cycletime_analyser_user.GetMean() == 0.0)
@@ -3003,18 +2866,10 @@ float BbqueRPC::GetCPS(
 float BbqueRPC::GetJPS(
 	RTLIB_EXCHandler_t exc_handler)
 {
-	pRegisteredEXC_t exc;
-	// Get a reference to the EXC to control
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
-	if (! exc) {
-		fprintf(stderr, FE("Get CPS for EXC [%p] FAILED "
-						   "(EXC not registered)\n"), (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
-
-	assert(isRegistered(exc) == true);
 	return GetCPS(exc_handler) * exc->jpc;
 }
 
@@ -3037,18 +2892,10 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 	RTLIB_EXCHandler_t exc_handler,
 	float _cps_min, float _cps_max)
 {
-	pRegisteredEXC_t exc;
-	// Get a reference to the EXC to control
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
-	if (! exc) {
-		logger->Error("Unregister EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
-
-	assert(isRegistered(exc) == true);
 	float cps_min = _cps_min;
 	float cps_max = (_cps_max == 0.0 || _cps_max > cps_min) ? _cps_max : _cps_min;
 	// Keep track of the maximum required CPS
@@ -3064,23 +2911,15 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 RTLIB_ExitCode_t BbqueRPC::UpdateJPC(
 	RTLIB_EXCHandler_t exc_handler, int jpc)
 {
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
+
 	if (jpc == 0) {
 		logger->Error("UpdateJPC: invalid args");
 		return RTLIB_ERROR;
 	}
 
-	pRegisteredEXC_t exc;
-	// Get a reference to the EXC to control
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("Unregister EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
-
-	assert(isRegistered(exc) == true);
 
 	if (exc->jpc != jpc) {
 		float correction_factor = (float) (exc->jpc) / (float) jpc;
@@ -3097,6 +2936,10 @@ RTLIB_ExitCode_t BbqueRPC::SetJPSGoal(
 	RTLIB_EXCHandler_t exc_handler,
 	float jps_min, float jps_max, int jpc)
 {
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
+
 	if (jpc == 0) {
 		logger->Error("SetJPSGoal: JPC cannot be null");
 		return RTLIB_ERROR;
@@ -3110,18 +2953,7 @@ RTLIB_ExitCode_t BbqueRPC::SetJPSGoal(
 	if (jps_min > jps_max)
 		jps_max = jps_min;
 
-	pRegisteredEXC_t exc;
-	// Get a reference to the EXC to control
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
 
-	if (! exc) {
-		logger->Error("Unregister EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return RTLIB_EXC_NOT_REGISTERED;
-	}
-
-	assert(isRegistered(exc) == true);
 	exc->jpc = jpc;
 
 	return SetCPSGoal(exc_handler, jps_min / jpc, jps_max / jpc);
@@ -3134,16 +2966,10 @@ RTLIB_ExitCode_t BbqueRPC::SetJPSGoal(
 void BbqueRPC::NotifyExit(
 	RTLIB_EXCHandler_t exc_handler)
 {
-	assert(exc_handler);
-	auto exc = getRegistered(exc_handler);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return;
 
-	if (! exc) {
-		logger->Error("NotifyExit EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return;
-	}
-
-	assert(isRegistered(exc) == true);
 	bool pcounters_collected_systemwide =
 		rtlib_configuration.profile.perf_counters.global;
 	bool pcounters_to_be_monitored = PerfRegisteredEvents(exc);
@@ -3157,18 +2983,9 @@ void BbqueRPC::NotifyExit(
 void BbqueRPC::NotifyPreConfigure(
 	RTLIB_EXCHandler_t exc_handler)
 {
-	(void) exc_handler;
-	assert(exc_handler);
-
+	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("NotifyPreConfigure EXC [%p] FAILED (EXC not registered)",
-					  (void *) exc_handler);
-		return;
-	}
-
-	assert(isRegistered(exc) == true);
+	if (! exc) return;
 
 	// Execution Cycle (configure + run + monitor) of the EXC starts here
 	exc->execution_timer.start();
@@ -3193,27 +3010,18 @@ void BbqueRPC::NotifyPreConfigure(
 void BbqueRPC::NotifyPostConfigure(
 	RTLIB_EXCHandler_t exc_handler)
 {
-	assert(exc_handler);
-
+	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return;
 
-	if (! exc) {
-		logger->Error("NotifyPostConfigure EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return;
-	}
-
-	assert(isRegistered(exc) == true);
 	logger->Debug("<=== NotifyConfigure");
-
-	// Resetting Runtime Statistics counters
-	(void) exc_handler;
 
 #ifdef CONFIG_BBQUE_OPENCL
 	// Clear pre-run OpenCL command events
 	OclClearStats();
 #endif
 
+	// Resetting Runtime Statistics counters
 	if (exc->cycles_count == 0) {
 		logger->Debug("First cycle: applying all resource budget.");
 		CGroupCommitAllocation(exc);
@@ -3276,16 +3084,9 @@ void BbqueRPC::TogglePerfCountersPostCycle(BbqueRPC::pRegisteredEXC_t exc) {
 
 void BbqueRPC::NotifyPreRun(RTLIB_EXCHandler_t exc_handler)
 {
-	assert(exc_handler);
-	auto exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("NotifyPreRun EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return;
-	}
-
-	assert(isRegistered(exc) == true);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return;
 
 	// Run phase of the EXC starts here
 	exc->run_tstart_ms = exc->execution_timer.getElapsedTimeMs();
@@ -3304,17 +3105,9 @@ void BbqueRPC::NotifyPreRun(RTLIB_EXCHandler_t exc_handler)
 
 void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
 {
-	logger->Debug("Post-Run: retrieving execution context info");
-	assert(exc_handler);
-	auto exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("NotifyPostRun EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return;
-	}
-
-	assert(isRegistered(exc) == true);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return;
 
 	if (UpdateCPUBandwidthStats(exc) != RTLIB_OK)
 		logger->Debug("PostRun: could not compute current CPU bandwidth");
@@ -3338,16 +3131,9 @@ void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
 
 void BbqueRPC::NotifyPreMonitor(RTLIB_EXCHandler_t exc_handler)
 {
-	assert(exc_handler);
+	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("NotifyPreMonitor EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return;
-	}
-
-	assert(isRegistered(exc) == true);
+	if (! exc) return;
 
 	// Monitor phase of the EXC starts here
 	exc->monitor_tstart_ms = exc->execution_timer.getElapsedTimeMs();
@@ -3358,17 +3144,9 @@ void BbqueRPC::NotifyPreMonitor(RTLIB_EXCHandler_t exc_handler)
 void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler,
 		bool is_last_cycle)
 {
-	pRegisteredEXC_t exc;
-	assert(exc_handler);
-	exc = getRegistered(exc_handler);
-
-	if (! exc) {
-		logger->Error("NotifyPostMonitor EXC [%p] FAILED "
-					  "(EXC not registered)", (void *) exc_handler);
-		return;
-	}
-
-	assert(isRegistered(exc) == true);
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return;
 
 	if (! rtlib_configuration.unmanaged.enabled && ! is_last_cycle) {
 		// Compute the ideal resource allocation for the application,
