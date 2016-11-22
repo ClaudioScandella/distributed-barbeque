@@ -21,6 +21,10 @@
 #include "bbque/res/resource_utils.h"
 #include "bbque/resource_manager.h"
 
+#ifdef CONFIG_BBQUE_RT
+	#include "bbque/realtime_manager.h"
+#endif
+
 namespace bbque
 {
 
@@ -344,6 +348,10 @@ PlatformManager::ExitCode_t PlatformManager::MapResources(
 	                                   pres, br::ResourceType::SYSTEM));
 	logger->Debug("Mapping: Resources binding includes %d systems", systems.Count());
 
+#ifdef CONFIG_BBQUE_RT
+	bool need_rt_setup=false;
+#endif
+
 	bool is_local  = false;
 
 #ifdef CONFIG_BBQUE_DIST_MODE
@@ -380,6 +388,9 @@ PlatformManager::ExitCode_t PlatformManager::MapResources(
 		ec = lpp->Setup(papp);
 		if (ec == PLATFORM_OK) {
 			papp->SetLocal(true);
+#ifdef CONFIG_BBQUE_RT
+			need_rt_setup = true;
+#endif
 		} else {
 			logger->Error("Mapping: Application [%s] FAILED to setup locally "
 			              "(error code: %d)", papp->StrId(), ec);
@@ -417,6 +428,18 @@ PlatformManager::ExitCode_t PlatformManager::MapResources(
 			              "(error code: %i)", papp->StrId(), ec);
 			return ec;
 		}
+#ifdef CONFIG_BBQUE_RT
+		if (need_rt_setup && papp->RTLevel() != RT_NONE) {
+			RealTimeManager &rtm(RealTimeManager::GetInstance());
+			RealTimeManager::ExitCode_t ec = rtm.SetupApp(papp);
+			if (RealTimeManager::RTM_OK != ec) {
+				logger->Error("Application [%s] FAILED to setup Real-Time "
+								"characteristics (error code: %d)", 
+							papp->StrId(), ec);
+				return PLATFORM_MAPPING_FAILED;
+			}
+		}
+#endif
 	}
 
 #ifdef CONFIG_BBQUE_DIST_MODE

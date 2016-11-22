@@ -102,51 +102,6 @@ void RealTimeManager::SetRTLevel() noexcept {
 
 void RealTimeManager::SetKernelReservation() noexcept {
 
-	// The problem of threads with SCHED_FIFO, SCHED_RR or SCHED_DEADLINE
-	// scheduling policies is that a nonblocking infinite loop in one of these
-	// threads will block all threads with lower priority forever.
-
-	// Thus, we have to set the limit of maximum cpu time available for RT
-	// tasks.
-
-	std::ofstream  period_file(FILE_PROC_SCHED_PERIOD);
-	std::ofstream runtime_file(FILE_PROC_SCHED_RUNTIME);
-
-	if (unlikely(! period_file.good() )) {
-		logger->Crit("Unable to open RT period file [%s] RT processes may not "
-					 "work as expected.", FILE_PROC_SCHED_PERIOD);
-		return;
-	}
-
-	if (unlikely(! runtime_file.good() )) {
-		logger->Crit("Unable to open RT runtime file  [%s] RT processes may "
-					 "not work as expected", FILE_PROC_SCHED_RUNTIME);
-		return;
-	}
-
-	std::ostringstream ss_period, ss_runtime;
-	ss_period << DEFAULT_SCHED_PERIOD;
-	ss_runtime << BBQUE_RT_MAX_CPU * 1000;	// selected in menuconfig
-
-	period_file.write(ss_period.str().c_str(), ss_period.str().size());
-	runtime_file.write(ss_runtime.str().c_str(), ss_runtime.str().size());
-
-	// FLush is needed to check  if the writes have success.
-	period_file.flush();
-	runtime_file.flush();
-
-	if (unlikely(! period_file.good() || ! runtime_file.good() )) {
-		logger->Crit("Unexpected error writing to /proc files. RT processes may "
-					 "not work as expected");
-		return;
-	}
-
-	period_file.close();
-	runtime_file.close();
-
-	logger->Info("Max system RT time configured [%d per-mille]",
-				BBQUE_RT_MAX_CPU);
-
 #ifdef CONFIG_BBQUE_RT_SCHED_RR
 	// Now read the default quantum of RR scheduler, this can be useful in
 	// future for the policies

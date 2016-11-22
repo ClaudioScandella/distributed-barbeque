@@ -46,6 +46,8 @@ BBQUE_CGAGENT="${BBQUE_CGAGENT:-$CGAGENT}"
 # PIL generator (in case not specified)
 PIL_GENERATE=$SYSROOT"/sbin/bbque-pil-generator"
 
+BBQUE_RT_RUNTIME_MAX="@CONFIG_BBQUE_RT_MAX_CPU@"
+# Extra arguments to pass to Barbeque
 BBQUE_EXTRA_ARGS=""
 
 # Check mouting status of required controllers
@@ -78,12 +80,16 @@ check_controllers() {
 		done
 	fi
 
+	[ -n $BBQUE_RT_RUNTIME_MAX ] && rt_config
+
 	# Mount BBQ required hierarchies
 	mount -t cgroup -o cpu,cpuset,cpuacct,memory,net_cls bbque_cgroups \
 			$BBQUE_CGMOUNT >/dev/null 2>&1
 	if [ $? -ne 0 ]; then
 		bbqued_error 'Mounting hierarchies [cpuset,memory,cpu,cpuacct,net_cls] FAILED'
 	fi
+
+	[ -n $BBQUE_RT_RUNTIME_MAX ] && rt_config_cg
 
 }
 
@@ -119,6 +125,25 @@ check_rtlevel() {
 	fi
 
 }
+
+rt_config() {
+	PERIOD=1000000
+	RUNTIME=`echo "$BBQUE_RT_RUNTIME_MAX"*"1000" | bc`
+
+	bbqued_notice "Setting real-time global constraints..."
+	echo $PERIOD > /proc/sys/kernel/sched_rt_period_us
+	echo $RUNTIME > /proc/sys/kernel/sched_rt_runtime_us
+}
+
+rt_config_cg() {
+	PERIOD=1000000
+	RUNTIME=`echo "$BBQUE_RT_RUNTIME_MAX"*"1000" | bc`
+
+	bbqued_notice "Setting real-time top-level CGroups constraints..."
+	echo $PERIOD > $BBQUE_CGMOUNT/cpu.rt_period_us
+	echo $RUNTIME > $BBQUE_CGMOUNT/cpu.rt_runtime_us
+}
+
 
 # Setup CGroups if required
 setup() {

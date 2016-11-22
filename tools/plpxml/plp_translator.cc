@@ -16,16 +16,18 @@
  *
  * Author: Federico Reghenzani <federico1.reghenzani@mail.polimi.it>
  */
+
+#include "bbque/config.h"
+#include "plp_translator.hpp"
+
 #include <cstdlib>
 #include <exception>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <vector>
-
 #include <boost/filesystem.hpp>
 
-#include "plp_translator.hpp"
 
 // Internal use only:
 #define HOST 0
@@ -238,6 +240,11 @@ std::string PLPTranslator::get_output() const noexcept {
 	std::string mdev_pes_str  = bitset_to_string(this->mdev_proc_elements);
 	std::string mdev_mems_str = bitset_to_string(this->mdev_memory_nodes);
 
+#ifdef CONFIG_BBQUE_RT
+	std::string rt_period_us_str  = std::to_string(BBQUE_RT_PERIOD);
+	std::string rt_runtime_us_str = std::to_string(BBQUE_RT_MAX_CPU*1000);
+#endif
+
 	return std::string("") +
 
 	       "# BarbequeRTRM Root Container\n"
@@ -264,6 +271,12 @@ std::string PLPTranslator::get_output() const noexcept {
 	       "        cpuset.cpu_exclusive = \"1\";\n"
 	       "        cpuset.mem_exclusive = \"1\";\n"
 	       "    }\n"
+#ifdef CONFIG_BBQUE_RT
+		   "    cpu {\n"
+		   "        cpu.rt_period_us = \""  + rt_period_us_str  +  "\";\n"
+		   "        cpu.rt_runtime_us = \"" + rt_runtime_us_str +  "\";\n"
+		   "    }\n"
+#endif
 	       "}\n"
 	       "\n"
 	       "# BarbequeRTRM Host Container\n"
@@ -287,6 +300,7 @@ std::string PLPTranslator::get_output() const noexcept {
 	       "# BarbequeRTRM MDEV Container\n"
 	       "group user.slice/res {\n"
 	       "    perm {\n"
+#ifdef BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	       "        task {\n"
 	       "            uid = " + data.user_id  + ";\n"
 	       "            gid = " + data.group_id + ";\n"
@@ -295,11 +309,27 @@ std::string PLPTranslator::get_output() const noexcept {
 	       "            uid = " + data.user_id  + ";\n"
 	       "            gid = " + data.group_id + ";\n"
 	       "        }\n"
+#else	/* Required by real time */
+	       "        task {\n"
+	       "            uid = root ;\n"
+	       "            gid = root ;\n"
+	       "        }\n"
+	       "        admin {\n"
+	       "            uid = root ;\n"
+	       "            gid = root ;\n"
+	       "        }\n"
+#endif
 	       "    }\n"
 	       "    cpuset {\n"
 	       "        cpuset.cpus = \"" + mdev_pes_str + "\";\n"
 	       "        cpuset.mems = \"" + mdev_mems_str + "\";\n"
 	       "    }\n"
+#ifdef CONFIG_BBQUE_RT
+		   "    cpu {\n"
+		   "        cpu.rt_period_us = \""  + rt_period_us_str  +  "\";\n"
+		   "        cpu.rt_runtime_us = \"" + rt_runtime_us_str +  "\";\n"
+		   "    }\n"
+#endif
 	       "}\n" + subnodes
 	       ;
 } // get_output
@@ -309,6 +339,11 @@ void PLPTranslator::commit_mdev(const std::string & memory_id) {
 
 	std::string mdev_pes_str  = bitset_to_string(this->mdev_node_proc_elements);
 	std::string mdev_mems_str = bitset_to_string(this->mdev_node_memory_nodes);
+
+#ifdef CONFIG_BBQUE_RT
+	std::string rt_period_us_str  = std::to_string(BBQUE_RT_PERIOD);
+	std::string rt_runtime_us_str = std::to_string(BBQUE_RT_MAX_CPU*1000);
+#endif
 
 	if (this->mdev_node_proc_elements.count() == 0)
 		return;
@@ -337,8 +372,7 @@ void PLPTranslator::commit_mdev(const std::string & memory_id) {
 	             "    memory {\n"
 	             "        memory.limit_in_bytes = \"" + std::to_string(memories_size[memory_id]) + "\";\n"
 	             "    }\n"
-	             "}\n"
-	             ;
+	             "}\n";
 
 	this->mdev_node_proc_elements.reset();
 	this->mdev_node_memory_nodes.reset();

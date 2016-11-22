@@ -1284,11 +1284,41 @@ LinuxPlatformProxy::SetupCGroup(
 
 #ifdef CONFIG_BBQUE_RT
 
-//		auto cfs_period_us = 
+	prlb->amount_rt_cpus = 0;
+	uint64_t rt_runtime_us = BBQUE_LINUXPP_RTP_MAX/1000 
+						   * prlb->amount_rt_cpus;
 
-//		prlb->amount_rt_cpus = 0;
+	// In order to change the scheduler policy in RealTimeManager we need at 
+	// a small part of the CPU RT time.
+	if (rt_runtime_us == 0) {
+		rt_runtime_us = 1;		
+	}
 
-//		cgroup_set_value_string(pcgd->pc_cpu, BBQUE_LINUXPP_RT_P_PARAM, cfs_c);
+	result = cgroup_set_value_uint64(pcgd->pc_cpu, BBQUE_LINUXPP_RT_P_PARAM,
+							BBQUE_LINUXPP_RTP_MAX);
+
+	if (unlikely(result)) {
+		logger->Error("PLAT LNX: CGroup set RT period FAILED "
+		"(Error: libcgroup, kernel cgroup set "
+		"[%d: %s])", errno, strerror(errno));
+		return PLATFORM_MAPPING_FAILED;
+	}
+
+	result = cgroup_set_value_uint64(pcgd->pc_cpu, BBQUE_LINUXPP_RT_R_PARAM,
+								rt_runtime_us);
+
+	if (unlikely(result)) {
+		logger->Error("PLAT LNX: CGroup set RT runtime FAILED "
+		"(Error: libcgroup, kernel cgroup set "
+		"[%d: %s])", errno, strerror(errno));
+		return PLATFORM_MAPPING_FAILED;
+	}
+
+	logger->Debug("PLAT LNX: Setup CPU-RT  for [%s]: "
+			"{period [%i], runtime [%i]}",
+			pcgd->papp->StrId(),
+			BBQUE_LINUXPP_RTP_MAX, rt_runtime_us);
+	
 #endif
 
 	/**********************************************************************
