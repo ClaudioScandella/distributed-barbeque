@@ -383,7 +383,8 @@ RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_Register(pRegisteredEXC_t prec)
 			},
 			"\0",
 			"\0",
-			RTLIB_LANG_UNDEF
+			RTLIB_LANG_UNDEF,
+			RT_NONE
 		}
 	};
 	::strncpy(rf_EXC_REGISTER.pyl.exc_name, prec->name.c_str(),
