@@ -305,6 +305,7 @@ menu "Real-Time Management"
 config BBQUE_RT
   bool "Enable Real-Time extension"
   default n
+  depends on !BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
   ---help---
   Build the BarbequeRTRM with Real-Time support enabled.
 
