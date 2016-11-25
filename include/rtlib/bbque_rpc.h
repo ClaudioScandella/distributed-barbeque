@@ -1201,9 +1201,6 @@ private:
 	pPerfEventStats_t PerfGetEventStats(pAwmStats_t awm_stats, perf_type_id type,
 										uint64_t config);
 
-	void PerfPrintMissesRatio(double avg_missed, double tot_branches,
-							  const char * text);
-
 	void PrintNoisePct(double total, double avg);
 #else
 # define BBQUE_RTLIB_PERF_ENABLE false

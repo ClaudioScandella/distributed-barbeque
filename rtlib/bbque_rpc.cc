@@ -2417,29 +2417,6 @@ void BbqueRPC::PerfPrintNsec(pAwmStats_t awm_stats,
 	}
 }
 
-void BbqueRPC::PerfPrintMissesRatio(double avg_missed, double tot_branches,
-									const char * text)
-{
-	double ratio = 0.0;
-	const char * color;
-
-	if (tot_branches)
-		ratio = avg_missed / tot_branches * 100.0;
-
-	color = PERF_COLOR_NORMAL;
-
-	if (ratio > 20.0)
-		color = PERF_COLOR_RED;
-	else if (ratio > 10.0)
-		color = PERF_COLOR_MAGENTA;
-	else if (ratio > 5.0)
-		color = PERF_COLOR_YELLOW;
-
-	fprintf(output_file, " #  ");
-	bu::Perf::FPrintf(output_file, color, "%6.2f%%", ratio);
-	fprintf(output_file, " %-23s", text);
-}
-
 void BbqueRPC::PerfPrintAbs(pAwmStats_t awm_stats,
 							pPerfEventStats_t event_stats)
 {
