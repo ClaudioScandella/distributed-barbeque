@@ -70,10 +70,10 @@ protected:
 
 	RTLIB_ExitCode_t _ScheduleRequest(pRegisteredEXC_t exc);
 
-	RTLIB_ExitCode_t _Set(pRegisteredEXC_t exc,
+	RTLIB_ExitCode_t _SetAWMConstraints(pRegisteredEXC_t exc,
 						  RTLIB_Constraint * constraints, uint8_t count);
 
-	RTLIB_ExitCode_t _Clear(pRegisteredEXC_t exc);
+	RTLIB_ExitCode_t _ClearAWMConstraints(pRegisteredEXC_t exc);
 
 	RTLIB_ExitCode_t _RTNotify(pRegisteredEXC_t exc, int gap,
 							   int cusage, int ctime_ms);

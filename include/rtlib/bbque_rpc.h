@@ -845,12 +845,6 @@ protected:
 
 	virtual RTLIB_ExitCode_t _Disable(pRegisteredEXC_t exc) = 0;
 
-	virtual RTLIB_ExitCode_t _Set(pRegisteredEXC_t exc,
-								  RTLIB_Constraint_t * constraints, uint8_t count) = 0;
-
-	virtual RTLIB_ExitCode_t _Clear(pRegisteredEXC_t exc) = 0;
-
-	virtual RTLIB_ExitCode_t _RTNotify(pRegisteredEXC_t exc, int percent,
 									   int cusage, int ctime_ms) = 0;
 
 	virtual RTLIB_ExitCode_t _ScheduleRequest(pRegisteredEXC_t exc) = 0;
@@ -877,6 +871,9 @@ protected:
 	/**
 	 * @brief Send response to a Pre-Change command
 	 */
+	virtual RTLIB_ExitCode_t _SetAWMConstraints(pRegisteredEXC_t exc,
+			RTLIB_Constraint_t * constraints, uint8_t count) = 0;
+	virtual RTLIB_ExitCode_t _ClearAWMConstraints(pRegisteredEXC_t exc) = 0;
 	virtual RTLIB_ExitCode_t _SyncpPreChangeResp(
 		rpc_msg_token_t token,
 		pRegisteredEXC_t exc,

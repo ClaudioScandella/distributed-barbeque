@@ -91,7 +91,7 @@ protected:
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _Set(pRegisteredEXC_t exc,
+	RTLIB_ExitCode_t _SetAWMConstraints(pRegisteredEXC_t exc,
 						  RTLIB_Constraint * constraints, uint8_t count)
 	{
 		// Remove compilation warning
@@ -101,7 +101,7 @@ protected:
 		return RTLIB_OK;
 	}
 
-	RTLIB_ExitCode_t _Clear(pRegisteredEXC_t exc)
+	RTLIB_ExitCode_t _ClearAWMConstraints(pRegisteredEXC_t exc)
 	{
 		// Remove compilation warning
 		(void)exc;

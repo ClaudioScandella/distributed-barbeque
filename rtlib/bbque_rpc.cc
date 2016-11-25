@@ -1849,7 +1849,7 @@ RTLIB_ExitCode_t BbqueRPC::SetAWMConstraints(
 	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	// Calling the low-level enable function
-	RTLIB_ExitCode_t result = _Set(exc, constraints, count);
+	RTLIB_ExitCode_t result = _SetAWMConstraints(exc, constraints, count);
 
 	if (result != RTLIB_OK) {
 		logger->Error("Constraining EXC [%p:%s] FAILED (Error %d: %s)",
@@ -1868,7 +1868,7 @@ RTLIB_ExitCode_t BbqueRPC::ClearAWMConstraints(
 	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
 	// Calling the low-level enable function
-	RTLIB_ExitCode_t result = _Clear(exc);
+	RTLIB_ExitCode_t result = _ClearAWMConstraints(exc);
 
 	if (result != RTLIB_OK) {
 		logger->Error("Clear constraints for EXC [%p:%s] FAILED (Error %d: %s)",

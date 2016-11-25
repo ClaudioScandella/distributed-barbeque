@@ -491,7 +491,7 @@ RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_Disable(pRegisteredEXC_t prec)
 	return (RTLIB_ExitCode_t) chResp.result;
 }
 
-RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_Set(pRegisteredEXC_t prec,
+RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_SetAWMConstraints(pRegisteredEXC_t prec,
 					    RTLIB_Constraint_t * constraints, uint8_t count)
 {
 	std::unique_lock<std::mutex> chCommand_ul(chCommand_mtx);
@@ -536,7 +536,7 @@ RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_Set(pRegisteredEXC_t prec,
 	return (RTLIB_ExitCode_t) chResp.result;
 }
 
-RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_Clear(pRegisteredEXC_t prec)
+RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_ClearAWMConstraints(pRegisteredEXC_t prec)
 {
 	std::unique_lock<std::mutex> chCommand_ul(chCommand_mtx);
 	rpc_fifo_EXC_CLEAR_t rf_EXC_CLEAR = {
