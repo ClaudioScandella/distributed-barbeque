@@ -831,10 +831,8 @@ RTLIB_ExitCode_t BbqueRPC::CGroupDelete(pRegisteredEXC_t exc)
 	return RTLIB_OK;
 }
 
-RTLIB_ExitCode_t BbqueRPC::CGroupCreate(pRegisteredEXC_t exc, int pid)
+RTLIB_ExitCode_t BbqueRPC::CGroupCreate(pRegisteredEXC_t exc)
 {
-	UNUSED(pid);
-
 	if (! rtlib_configuration.cgroup_support.enabled)
 		return RTLIB_OK;
 
@@ -1416,7 +1414,7 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 		GetWorkingModeParams(exc, working_mode_params);
 
 		// Creating a CGroup for the application
-		CGroupCreate(exc, channel_thread_pid);
+		CGroupCreate(exc);
 
 		return exc->event;
 	}
@@ -1471,7 +1469,7 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 		// Processing the required reconfiguration action
 		switch (exc->event) {
 		case RTLIB_EXC_GWM_START:
-			CGroupCreate(exc, channel_thread_pid);
+			CGroupCreate(exc);
 		case RTLIB_EXC_GWM_RECONF:
 		case RTLIB_EXC_GWM_MIGREC:
 		case RTLIB_EXC_GWM_MIGRATE:

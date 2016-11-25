@@ -1043,7 +1043,7 @@ private:
 	/**
 	 * @brief Create a CGroup of the specified EXC
 	 */
-	RTLIB_ExitCode_t CGroupCreate(pRegisteredEXC_t exc, int pid);
+	RTLIB_ExitCode_t CGroupCreate(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief Updates the CGroup of the specified EXC
