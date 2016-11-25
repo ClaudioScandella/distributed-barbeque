@@ -87,10 +87,27 @@ choice
 
 endchoice
 
+choice
+  prompt "Default Real-Time scheduling policy"
+  depends on BBQUE_RT
+  config BBQUE_RT_SCHEDPOL_DEFAULT_EMULSION
+    bool "[RT] Emulsion"
+    select BBQUE_RT_SCHEDPOL_EMULSION
+##RT_NP
+
+endchoice
+
+source barbeque/plugins/schedpol/yams/Kconfig
+#source barbeque/plugins/schedpol/yamca/Kconfig
 source barbeque/plugins/schedpol/random/Kconfig
 source barbeque/plugins/schedpol/test/Kconfig
 source barbeque/plugins/schedpol/tempura/Kconfig
 source barbeque/plugins/schedpol/gridbalance/Kconfig
 source barbeque/plugins/schedpol/perdetemp/Kconfig
 source barbeque/plugins/schedpol/contrex/Kconfig
+<<<<<<< HEAD
 source barbeque/plugins/schedpol/cloves/Kconfig
+=======
+source barbeque/plugins/schedpol/test/Kconfig
+source barbeque/plugins/schedpol/emulsion/Kconfig
+>>>>>>> b944529d... [Schedpol] Add new RT schedpols and empy Emulsion [RT] policy

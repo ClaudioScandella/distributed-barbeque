@@ -114,10 +114,19 @@ function plugin_install {
 	CONFIG_LINE=$(printf "\nsource %s\n" \
 		$PLUGINS_DIR/$PLUGIN_TYPE/$PLUGIN_NAME_LC/$PLUGINS_CONFIG_FILE_NAME)
 
+	if [ -n "$RT_POLICY" ]; then
+		TOKEN_END="##RT_NP"
+		PLUGIN_TYPE_UC="RT_$PLUGIN_TYPE_UC"
+		PLG_NAME_KCONFIG="[RT] $PLUGIN_NAME"
+	else
+		TOKEN_END="##NP"
+		PLG_NAME_KCONFIG="$PLUGIN_NAME"
+	fi
+
 	# Kconfig line: default selection
 	DEFAULT_CHOICE_LINE="  config BBQUE_"$PLUGIN_TYPE_UC"_DEFAULT_"$PLUGIN_NAME_UC"\n"
-	DEFAULT_CHOICE_LINE=$DEFAULT_CHOICE_LINE"    bool \""$PLUGIN_NAME"\"\n"
-	DEFAULT_CHOICE_LINE=$DEFAULT_CHOICE_LINE"    select BBQUE_"$PLUGIN_TYPE_UC"_"$PLUGIN_NAME_UC"\n##NP"
+	DEFAULT_CHOICE_LINE=$DEFAULT_CHOICE_LINE"    bool \""$PLG_NAME_KCONFIG"\"\n"
+	DEFAULT_CHOICE_LINE=$DEFAULT_CHOICE_LINE"    select BBQUE_"$PLUGIN_TYPE_UC"_"$PLUGIN_NAME_UC"\n$TOKEN_END"
 
 	# Add Kconfig option
 	echo "INFO: Adding the building file..."
@@ -131,7 +140,7 @@ function plugin_install {
 
 	CD_EXIST=`cat $CONFIG_FILE | grep -e $PLUGIN_NAME -e $PLUGIN_NAME_UC`
 	if [ ! "$CD_EXIST" ]; then
-		cat $CONFIG_FILE | sed -i "s/##NP/$DEFAULT_CHOICE_LINE/g" $CONFIG_FILE
+		cat $CONFIG_FILE | sed -i "s/$TOKEN_END/$DEFAULT_CHOICE_LINE/g" $CONFIG_FILE
 		printf "INFO: Added plugin [%s] the configuration system [default choice]\n" $PLUGIN_NAME
 	else
 		printf "WARN: Plugin [%s] already added to configuration\n" $PLUGIN_NAME
@@ -178,15 +187,48 @@ function plugin_create {
 		PLUGIN_CLASS=${PLUGIN_TYPE_CLASSES[1]}
 	fi
 
+	# Ask user if (s)he wants a real time scheduler or not
+	if [ "$PLUGIN_TYPE" == "schedpol" ]; then
+		echo ""
+		echo -n "Real-Time scheduling policy? (if unsure say no) [y/N]"
+
+
+		read -r RESPONSE
+		case $RESPONSE in
+			[yY][eE][sS]|[yY])
+				RT_POLICY=1
+				PRETAG="[RT] "
+				;;
+			*)
+				;;
+		esac
+	fi
+
 	# String replacement and renaming
 	find  -type f | while read FILE; do
 		DST_FILE=`echo $FILE | sed "s/$TAG_LC/$PLUGIN_NAME_LC/g"`
+
+		if [ "$FILE" == "./Kconfig" -a -n "$RT_POLICY" ]; then
+			PLG_NAME_SED="$PRETAG$PLUGIN_NAME"
+		else
+			PLG_NAME_SED="$PLUGIN_NAME"
+		fi
+
+		if [ -n "$RT_POLICY" ]; then
+			KCONFIG_EXTRA_SED="BBQUE_SCHEDPOL/BBQUE_RT_SCHEDPOL"
+		else
+			KCONFIG_EXTRA_SED="*/*"
+		fi
+
+		echo "s/$KCONFIG_EXTRA_SED/g"
+
 		echo "$(cat $FILE \
 			| sed "s/$TAG_TYPE_HEADER/$PLUGIN_TYPE/g" \
 			| sed "s/$TAG_TYPE_CLASS/$PLUGIN_CLASS/g" \
-			| sed "s/$TAG/$PLUGIN_NAME/g"        \
+			| sed "s/$TAG/$PLG_NAME_SED/g"        \
 			| sed "s/$TAG_UC/$PLUGIN_NAME_UC/g"  \
 			| sed "s/$TAG_LC/$PLUGIN_NAME_LC/g"  \
+			| sed "s/$KCONFIG_EXTRA_SED/g" \
 		)" > $DST_FILE
 		if [ $FILE != $DST_FILE ]; then
 			rm $FILE

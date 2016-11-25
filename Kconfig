@@ -335,7 +335,7 @@ config BBQUE_RT_MAX_CPU
   sufficient time.
 
 choice
-  prompt "RT scheduling policy"
+  prompt "RT scheduling paradigm"
   depends on BBQUE_RT
   default BBQUE_RT_SCHED_RR 
 

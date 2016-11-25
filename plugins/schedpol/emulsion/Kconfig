@@ -1,0 +1,5 @@
+config BBQUE_RT_SCHEDPOL_EMULSION
+  bool "[RT] Emulsion"
+  default n
+  ---help---
+  Description...
