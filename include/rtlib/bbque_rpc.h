@@ -205,7 +205,7 @@ public:
 	RTLIB_ExitCode_t RegisterControlThreadPID(
 		RTLIB_EXCHandler_t exc_handler);
 
-	RTLIB_ExitCode_t GetRuntimeProfile(rpc_msg_BBQ_GET_PROFILE_t & msg);
+	RTLIB_ExitCode_t SendOCLRuntimeProfile(rpc_msg_BBQ_GET_PROFILE_t & msg);
 
 	/**
 	 * @brief Get a breakdown of the allocated resources

@@ -2139,7 +2139,7 @@ RTLIB_ExitCode_t BbqueRPC::StopExecution(
 	return RTLIB_OK;
 }
 
-RTLIB_ExitCode_t BbqueRPC::GetRuntimeProfile(
+RTLIB_ExitCode_t BbqueRPC::SendOCLRuntimeProfile(
 	rpc_msg_BBQ_GET_PROFILE_t & msg)
 {
 	// Getting registered Execution Context from its handler

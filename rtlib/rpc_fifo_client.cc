@@ -858,7 +858,7 @@ void BbqueRPC_FIFO_Client::RpcBbqGetRuntimeProfile()
 	}
 
 	// Get runtime profile
-	GetRuntimeProfile(msg);
+	SendOCLRuntimeProfile(msg);
 }
 
 RTLIB_ExitCode_t BbqueRPC_FIFO_Client::_GetRuntimeProfileResp(
