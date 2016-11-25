@@ -162,10 +162,9 @@ static RTLIB_ExitCode_t rtlib_utils_get_resources(
 
 static RTLIB_ExitCode_t rtlib_utils_get_affinity_mask(
 		RTLIB_EXCHandler_t exc_handler,
-		const RTLIB_WorkingModeParams_t * wm,
 		int32_t * ids_vector,
 		int vector_size) {
-	return rpc->GetAffinityMask(exc_handler, wm, ids_vector, vector_size);
+	return rpc->GetAffinityMask(exc_handler, ids_vector, vector_size);
 }
 
 static RTLIB_ExitCode_t rtlib_utils_get_resources_array(

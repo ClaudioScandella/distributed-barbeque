@@ -658,7 +658,6 @@ typedef RTLIB_ExitCode_t (*RTLIB_Utils_GetResources) (
 
 typedef RTLIB_ExitCode_t (*RTLIB_Utils_GetAffinityMask) (
 	RTLIB_EXCHandler_t exc_handler,
-	const RTLIB_WorkingModeParams_t * working_mode_params,
 	int32_t * ids_vector,
 	int vector_size);
 

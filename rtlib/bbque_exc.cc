@@ -296,7 +296,7 @@ RTLIB_ExitCode_t BbqueEXC::GetAffinityMask(
 	int32_t * ids_vector,
         int vector_size)
 {
-	return rtlib->Utils.GetAffinityMask(exc_handler, &wmp, ids_vector,
+	return rtlib->Utils.GetAffinityMask(exc_handler, ids_vector,
                 vector_size);
 }
 

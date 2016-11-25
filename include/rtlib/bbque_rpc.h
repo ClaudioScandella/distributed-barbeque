@@ -218,7 +218,6 @@ public:
 
 	RTLIB_ExitCode_t GetAffinityMask(
 		RTLIB_EXCHandler_t exc_handler,
-		const RTLIB_WorkingModeParams_t * wm,
 		int32_t * ids_vector,
                 int vector_size);
 

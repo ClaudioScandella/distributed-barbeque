@@ -1233,10 +1233,8 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 
 RTLIB_ExitCode_t BbqueRPC::GetAffinityMask(
 		RTLIB_EXCHandler_t exc_handler,
-		const RTLIB_WorkingModeParams_t * wm,
 		int32_t * ids_vector,
                 int vector_size) {
-	UNUSED(wm);
 
 	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
