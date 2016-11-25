@@ -124,6 +124,13 @@ private:
 	 */
 	SchedulerPolicyIF *policy;
 
+#ifdef CONFIG_BBQUE_RT
+	/**
+	 * @brief The currently used optimization policy for Real-Time processes
+	 */
+	SchedulerPolicyIF *rt_policy;
+#endif
+
 	ApplicationManager & am;
 	MetricsCollector & mc;
 
@@ -154,6 +161,7 @@ private:
 		SM_SCHED_BLOCKED,
 		//----- Timing metrics
 		SM_SCHED_TIME,
+		SM_RT_SCHED_TIME,
 		SM_SCHED_PERIOD,
 		//----- Couting statistics
 		SM_SCHED_AVG_STARTING,
@@ -174,6 +182,11 @@ private:
 	 * @brief Build a new instance of the resource scheduler
 	 */
 	SchedulerManager();
+
+	/**
+	 * @brief Initialize and empty view
+	 */
+	ExitCode_t InitView(br::RViewToken_t &svt) const;
 
 	/**
 	 * @brief Collect statistics on schedule results

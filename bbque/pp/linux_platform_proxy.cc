@@ -1291,7 +1291,7 @@ LinuxPlatformProxy::SetupCGroup(
 	// In order to change the scheduler policy in RealTimeManager we need at 
 	// a small part of the CPU RT time.
 	if (rt_runtime_us == 0) {
-		rt_runtime_us = 1;		
+		rt_runtime_us = 1;
 	}
 
 	result = cgroup_set_value_uint64(pcgd->pc_cpu, BBQUE_LINUXPP_RT_P_PARAM,

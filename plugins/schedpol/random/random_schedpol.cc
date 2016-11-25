@@ -143,24 +143,8 @@ void RandomSchedPol::ScheduleApp(ba::AppCPtr_t papp) {
 
 SchedulerPolicyIF::ExitCode_t
 RandomSchedPol::Init() {
-	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	ResourceAccounterStatusIF::ExitCode_t result;
-	char token_path[32];
-
 	// Set the counter (overflow will wrap the couter and that's ok)
 	++ra_view_count;
-
-	// Build a string path for the resource state view
-	snprintf(token_path, 32, "%s%d", MODULE_NAMESPACE, ra_view_count);
-
-	// Get a resource state view
-	logger->Debug("Init: Requiring state view token for %s", token_path);
-	result = ra.GetView(token_path, ra_view);
-	if (result != ResourceAccounterStatusIF::RA_SUCCESS) {
-		logger->Fatal("Init: Cannot get a resource state view");
-		return SCHED_ERROR;
-	}
-	logger->Debug("Init: Resources state view token = %d", ra_view);
 
 	return SCHED_DONE;
 }
@@ -175,6 +159,8 @@ RandomSchedPol::Schedule(bbque::System & sv, br::RViewToken_t &rav) {
 		assert(logger);
 		return SCHED_ERROR;
 	}
+
+	ra_view = rav;
 
 	// Initialize a new resources state view
 	result = Init();
@@ -197,8 +183,6 @@ RandomSchedPol::Schedule(bbque::System & sv, br::RViewToken_t &rav) {
 		papp = sv.GetNextReady(app_it);
 	}
 
-	// Pass back to the SchedulerManager a reference to the scheduled view
-	rav = ra_view;
 	return SCHED_DONE;
 }
 

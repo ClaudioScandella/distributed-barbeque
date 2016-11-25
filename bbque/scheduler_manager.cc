@@ -72,6 +72,7 @@ SchedulerManager::metrics[SM_METRICS_COUNT] = {
 	SM_COUNTER_METRIC("block",	"BLOCK count"),
 	//----- Timing metrics
 	SM_SAMPLE_METRIC("time",	"Scheduler execution t[ms]"),
+	SM_SAMPLE_METRIC("rt_time",	"RT Scheduler execution t[ms]"),
 	SM_SAMPLE_METRIC("period",	"Scheduler activation period t[ms]"),
 	//----- Couting statistics
 	SM_SAMPLE_METRIC("avg.start",	"Avg START per schedule"),
@@ -107,6 +108,16 @@ SchedulerManager::SchedulerManager() :
 		(MODULE_CONFIG".policy",
 		 po::value<std::string>(&opt_policy)->default_value(
 			 BBQUE_SCHEDPOL_DEFAULT), "The optimization policy to use");
+
+#ifdef CONFIG_BBQUE_RT
+	std::string rt_opt_policy;
+	opts_desc.add_options()
+		(MODULE_CONFIG".rt_policy",
+		 po::value<std::string>(&rt_opt_policy)->default_value(
+			 BBQUE_RT_SCHEDPOL_DEFAULT), "The Real-Time optimization policy to "
+                                         "use");
+#endif
+
 	po::variables_map opts_vm;
 	cm.ParseConfigurationFile(opts_desc, opts_vm);
 
@@ -121,6 +132,20 @@ SchedulerManager::SchedulerManager() :
 			opt_namespace.c_str(), opt_policy.c_str());
 		assert(policy);
 	}
+
+	//---------- Load the Real-Time optimization policy plugin	
+#ifdef CONFIG_BBQUE_RT
+	logger->Info("Loading RT optimization policy [%s%s]...",
+			opt_namespace.c_str(), rt_opt_policy.c_str());
+	rt_policy = ModulesFactory::GetModule<bp::SchedulerPolicyIF>(
+			opt_namespace + rt_opt_policy);
+	if (!rt_policy) {
+		logger->Fatal("RT Optimization policy load FAILED "
+			"(Error: missing plugin for [%s%s])",
+			opt_namespace.c_str(), rt_opt_policy.c_str());
+		assert(rt_policy);
+	}
+#endif
 
 	//---------- Setup all the module metrics
 	mc.Register(metrics, SM_METRICS_COUNT);
@@ -148,6 +173,31 @@ SchedulerManager::CollectStats() {
 
 }
 
+SchedulerManager::ExitCode_t 
+SchedulerManager::InitView(br::RViewToken_t &svt) const {
+	ResourceAccounter &ra = ResourceAccounter::GetInstance();
+	ResourceAccounterStatusIF::ExitCode_t ra_result;
+	static int status_view_count = 0;
+
+	// Build a string path for the resource state view
+	std::string token_path(SCHEDULER_MANAGER_NAMESPACE +
+		std::to_string(status_view_count));
+
+	status_view_count++;
+
+	logger->Debug("Init: Require a new resource state view [%s]",
+		token_path.c_str());
+	ra_result = ra.GetView(token_path, svt);
+	if (ra_result != ResourceAccounterStatusIF::RA_SUCCESS) {
+		logger->Fatal("Init: Cannot get a resource state view");
+		return FAILED;
+	}
+
+	logger->Debug("Init: Resources state view token: %d", svt);
+
+	return DONE;
+}
+
 SchedulerManager::ExitCode_t
 SchedulerManager::Schedule() {
 
@@ -169,6 +219,12 @@ SchedulerManager::Schedule() {
 	DB(logger->Warn("TODO: add scheduling activation policy"));
 
 	SetState(State_t::SCHEDULING);  // --> Applications from now in a not consistent state
+
+	ExitCode_t ec = InitView(svt);
+	if (ec != DONE) {
+		return ec;
+	}
+
 	++sched_count;
 	logger->Notice("Scheduling [%d] START, policy [%s]", sched_count, policy->Name());
 
@@ -180,9 +236,23 @@ SchedulerManager::Schedule() {
 	SM_RESET_TIMING(sm_tmr);                 // Reset timer for policy execution time profiling
 
 	System &sv = System::GetInstance();
-	br::RViewToken_t sched_view_id;
 
-	SchedulerPolicyIF::ExitCode result = policy->Schedule(sv, sched_view_id);
+#ifdef CONFIG_BBQUE_RT
+	result = rt_policy->Schedule(sv, svt);
+	if (result != SchedulerPolicyIF::SCHED_DONE) {
+		logger->Error("RT Scheduling [%d] FAILED", sched_count);
+		return FAILED;
+	}
+#endif
+
+	// Collecing execution metrics
+	SM_GET_TIMING(metrics, SM_RT_SCHED_TIME, sm_tmr);
+
+	// Reset timer for schedule execution time collection
+	SM_RESET_TIMING(sm_tmr);
+
+	SchedulerPolicyIF::ExitCode result = policy->Schedule(sv, svt);
+
 	if (result != SchedulerPolicyIF::SCHED_DONE) {
 		logger->Error("Scheduling [%d] FAILED", sched_count);
 		SetState(State_t::READY);     // --> Applications in a consistent state again

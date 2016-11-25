@@ -31,6 +31,11 @@
 
 #define MODULE_CONFIG SCHEDULER_POLICY_CONFIG "." SCHEDULER_POLICY_NAME
 
+#ifdef CONFIG_BBQUE_RT
+	#warning "Schedpol_Contrex should not be used if real-time enabled"
+	#warning "Schedpol_Contrex may overwrite Real-Time scheduling policies"
+#endif
+
 namespace bu = bbque::utils;
 namespace po = boost::program_options;
 

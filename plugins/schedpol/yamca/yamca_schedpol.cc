@@ -27,6 +27,11 @@
 #include "bbque/res/resource_assignment.h"
 #include "bbque/res/resource_path.h"
 
+#ifdef CONFIG_BBQUE_RT
+	#warning "Schedpol_Yamca should not be used if real-time enabled"
+	#warning "Schedpol_Yamca may overwrite Real-Time scheduling policies"
+#endif
+
 /** Metrics (class VALUE) declaration */
 #define YAMCA_VALUE_METRIC(NAME, DESC)\
 	{MODULE_NAMESPACE "." NAME, DESC, \

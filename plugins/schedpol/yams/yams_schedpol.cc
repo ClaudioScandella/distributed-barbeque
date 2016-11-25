@@ -29,6 +29,11 @@
 #include "contrib/sched_contrib_manager.h"
 #include "bbque/utils/extra_data_container.h"
 
+#ifdef CONFIG_BBQUE_RT
+	#warning "Schedpol_YAMS should not be used if real-time enabled"
+	#warning "Schedpol_YAMS may overwrite Real-Time scheduling policies"
+#endif
+
 namespace po = boost::program_options;
 
 namespace bbque { namespace plugins {

@@ -36,6 +36,11 @@
 #define BBQUE_TEMPURA_LITTLECPU_FIXED_BUDGET  50
 #define BBQUE_TEMPURA_CPU_LOAD_MARGIN         10
 
+#ifdef CONFIG_BBQUE_RT
+	#warning "Schedpol_Tempura should not be used if real-time enabled"
+	#warning "Schedpol_Tempura may overwrite Real-Time scheduling policies"
+#endif
+
 namespace br = bbque::res;
 namespace bu = bbque::utils;
 namespace bw = bbque::pm;

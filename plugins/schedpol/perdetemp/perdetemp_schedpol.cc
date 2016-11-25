@@ -87,6 +87,9 @@ PerdetempSchedPol::Schedule(System & _system, RViewToken_t & status_view) {
 	// Class providing query functions for applications and resources
 	system = &_system;
 
+	// get the current status view	
+	sched_status_view = status_view;
+
 	// Getting a new (empty) system view
 	if (Init() != OK) {
 		logger->Fatal("Schedule: Policy initialization failed");
@@ -111,6 +114,8 @@ PerdetempSchedPol::Schedule(System & _system, RViewToken_t & status_view) {
 		 * This is a fair scheduler; therefore, if I have a workload of
 		 * applications @ the same priority, I want to schedule ALL the
 		 * applications in the workload. */
+
+		// TODO check if this condition it is ok if there are RT processes
 		if (available_cpu_bandwidth <=
 				MIN_CPU_PER_APPLICATION * system->ApplicationsCount(priority)) {
 			logger->Warn("Resources are not enough to schedule applications"
@@ -155,9 +160,6 @@ PerdetempSchedPol::Schedule(System & _system, RViewToken_t & status_view) {
 		}
 		logger->Debug("DoScheduling: [%s] success", sched_entity->StrId());
 	}
-
-	// Save the status view
-	status_view = sched_status_view;
 
 	elapsed_time_schr = timer.getElapsedTimeUs();
 
@@ -207,6 +209,7 @@ PerdetempSchedPol::ExitCode_t PerdetempSchedPol::BindQueue() {
 		 * is enough bandwidth for the entire workload, required resources can be
 		 * assigned to applications. Else, required resources amount is modulated
 		 * according to the total CPU demand of the workload */
+
 		if (available_cpu_bandwidth > workload_cpu_bandwidth)
 			app.allocated_resources = app.required_resources;
 		else
@@ -257,6 +260,12 @@ bool PerdetempSchedPol::SkipScheduling(ba::AppCPtr_t const &app) {
 		return true;
 	}
 
+	// I must not manage RT applications
+	if (app->RTLevel() != RT_NONE) {
+		logger->Debug("Skipping [%s] Real-Time application");
+		return true;	
+	}
+
 	return false;
 }
 
@@ -265,26 +274,10 @@ bool PerdetempSchedPol::SkipScheduling(ba::AppCPtr_t const &app) {
 // ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 PerdetempSchedPol::ExitCode_t PerdetempSchedPol::Init() {
-	ResourceAccounterStatusIF::ExitCode_t ra_result;
-	++status_view_count;
-
-	// Build a string path for the resource state view
-	std::string token_path(MODULE_NAMESPACE +
-		std::to_string(status_view_count));
-
-	// Get a fresh resource status view
-	logger->Debug("Init: Require a new resource state view [%s]",
-		token_path.c_str());
-	ra_result = res_accounter.GetView(token_path, sched_status_view);
-	if (ra_result != ResourceAccounterStatusIF::RA_SUCCESS) {
-		logger->Fatal("Init: Cannot get a resource state view");
-		return ERROR_VIEW;
-	}
-
-	logger->Debug("Init: Resources state view token: %d", sched_status_view);
-
-	max_cpu_bandwidth = res_accounter.Total("sys.*.pe");
-	available_cpu_bandwidth = max_cpu_bandwidth;
+	const char *pe_path = "sys.*.pe";
+	max_cpu_bandwidth = res_accounter.Total(pe_path);
+	available_cpu_bandwidth = res_accounter.Available(pe_path, 
+													  sched_status_view) ;
 	workload_cpu_bandwidth = 0;
 
 	if (cpus.size() == 0)
@@ -351,6 +344,10 @@ PerdetempSchedPol::ExitCode_t PerdetempSchedPol::PreProcessQueue(int priority) {
 	// Init all the applications @ this priority
 	papp = system->GetFirstWithPrio(priority, app_iterator);
 	for (; papp; papp = system->GetNextWithPrio(priority, app_iterator)) {
+		if (papp->RTLevel() != RT_NONE) {
+			continue;	// I must not manage RT applications
+		}
+
 		ApplicationInfo app(papp);
 		// Computing needed CPU bandwidth based on runtime information
 		// collected during runtime (real CPU usage, Goal Gap)

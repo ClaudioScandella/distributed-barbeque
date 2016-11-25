@@ -36,6 +36,11 @@
 
 #define MODULE_CONFIG SCHEDULER_POLICY_CONFIG "." SCHEDULER_POLICY_NAME
 
+#ifdef CONFIG_BBQUE_RT
+	#warning "Schedpol_Gridbalance should not be used if real-time enabled"
+	#warning "Schedpol_Gridbalance may overwrite Real-Time scheduling policies"
+#endif
+
 using namespace std::placeholders;
 
 namespace bu = bbque::utils;

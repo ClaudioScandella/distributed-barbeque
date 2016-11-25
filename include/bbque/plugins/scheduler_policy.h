@@ -233,8 +233,9 @@ public:
 	 * @param rvt a token representing the view on resource allocation, if
 	 * the scheduling has been successfull.
 	 */
+	// TODO Change the rvt as input-only parameter (remove the reference)
 	virtual ExitCode_t Schedule(bbque::System & system,
-			bbque::res::RViewToken_t &rvt) = 0;
+			bbque::res::RViewToken_t & rvt) = 0;
 
 
 protected:

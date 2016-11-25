@@ -183,7 +183,7 @@ public:
 	 * @brief The member function called by the SchedulerManager to perform a
 	 * new scheduling / resource allocation
 	 */
-	ExitCode_t Schedule(System & system, RViewToken_t & status_view);
+	ExitCode_t Schedule(System & system, RViewToken_t &status_view);
 
 private:
 
