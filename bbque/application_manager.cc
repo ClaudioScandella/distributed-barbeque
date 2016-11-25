@@ -552,6 +552,12 @@ uint16_t ApplicationManager::AppsCount (
 	return lang_vec[lang].size();
 }
 
+uint16_t ApplicationManager::AppsCount (
+		RTLIB_RT_Level_t rtlevel) const {
+	assert(rtlevel < RT_LEVEL_COUNT);
+	return rtlevel_vec[rtlevel].size();
+}
+
 AppPtr_t ApplicationManager::HighestPrio(
 		ApplicationStatusIF::State_t state) {
 	AppPtr_t papp, papp_hp;
@@ -939,6 +945,7 @@ AppPtr_t ApplicationManager::CreateEXC(
 		bool container) {
 	std::unique_lock<std::mutex> lang_ul(lang_mtx[_lang], std::defer_lock);
 	std::unique_lock<std::mutex> prio_ul(prio_mtx[_prio], std::defer_lock);
+	std::unique_lock<std::mutex> rtlevel_ul(rtlevel_mtx[_rt_level], std::defer_lock);
 	std::unique_lock<std::recursive_mutex> uids_ul(uids_mtx, std::defer_lock);
 	std::unique_lock<std::mutex> status_ul(status_mtx[Application::DISABLED], std::defer_lock);
 	std::unique_lock<std::mutex> apps_ul(apps_mtx, std::defer_lock);
@@ -1003,6 +1010,12 @@ AppPtr_t ApplicationManager::CreateEXC(
 	lang_ul.lock();
 	lang_vec[papp->Language()].insert(UidsMapEntry_t(papp->Uid(), papp));
 	lang_ul.unlock();
+
+	// RT Level vector
+	rtlevel_ul.lock();
+	rtlevel_vec[papp->RTLevel()].insert(UidsMapEntry_t(papp->Uid(), papp));
+	rtlevel_ul.unlock();
+
 	logger->Info("EXC [%s] CREATED", papp->StrId());
 
 	return papp;

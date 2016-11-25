@@ -251,6 +251,11 @@ public:
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
+	uint16_t AppsCount (RTLIB_RT_Level_t lang) const;
+
+	/**
+	 * @see ApplicationManagerStatusIF
+	 */
 	AppPtr_t HighestPrio(ApplicationStatusIF::State_t state);
 
 	/**
@@ -548,6 +553,18 @@ private:
 	 * queues
 	 */
 	AppsUidMapItRetainer_t lang_ret[RTLIB_LANG_COUNT];
+
+	/**
+	 * Array grouping the applications by RT level (@see
+	 * RTLIB_RT_Level_t). Each position points to a set of maps
+	 * pointing applications
+	 */
+	AppsUidMap_t rtlevel_vec[RT_LEVEL_COUNT];
+
+	/**
+	 * Array of mutexes protecting the RT level queue
+	 */
+	std::mutex rtlevel_mtx[RTLIB_LANG_COUNT];
 
 	/**
 	 * @brief Applications grouping based on next state to be scheduled.

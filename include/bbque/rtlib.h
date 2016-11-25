@@ -357,6 +357,8 @@ typedef enum RTLIB_RT_Level {
 	#endif //CONFIG_BBQUE_RT_HARD
 
 	#endif // CONFIG_BBQUE_RT
+
+	RT_LEVEL_COUNT
 } RTLIB_RT_Level_t;
 
 

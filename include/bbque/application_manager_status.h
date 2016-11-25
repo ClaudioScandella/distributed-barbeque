@@ -325,6 +325,11 @@ public:
 	virtual uint16_t AppsCount (RTLIB_ProgrammingLanguage_t lang) const = 0;
 
 	/**
+	 * @brief The number of applications of the specified real-timeness
+	 */
+	virtual uint16_t AppsCount (RTLIB_RT_Level_t rtl) const = 0;
+
+	/**
 	 * @brief One of the highest PRIORITY applications in the the
 	 * specified state.
 	 *
