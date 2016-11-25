@@ -1086,7 +1086,7 @@ void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler,
 	if (! exc) return;
 
 	logger->Debug("SetCPSGoal: Resetting cycle time history");
-	exc->last_cycletime_ms = exc->cycletime_analyser_user.GetMean();
+	exc->average_cycletime_pre_reset_ms = exc->cycletime_analyser_user.GetMean();
 
 	exc->cycletime_analyser_system.Reset();
 
@@ -2813,8 +2813,8 @@ float BbqueRPC::GetCPS(
 
 	// If cycle was reset, return CPS up to last forward window
 	if (exc->cycletime_analyser_user.GetMean() == 0.0)
-		return (exc->last_cycletime_ms == 0.0) ?
-			   0.0 : 1000.0 / exc->last_cycletime_ms;
+		return (exc->average_cycletime_pre_reset_ms == 0.0) ?
+			   0.0 : 1000.0 / exc->average_cycletime_pre_reset_ms;
 
 	// Get the current measured CPS
 	ctime = exc->cycletime_analyser_user.GetMean();
