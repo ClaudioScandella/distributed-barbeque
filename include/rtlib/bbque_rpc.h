@@ -241,11 +241,6 @@ public:
 	 *    Utility Functions
 	 ******************************************************************************/
 
-	inline const std::string GetCGroupPath_APP() const
-	{
-		return pathCGroup;
-	}
-
 	RTLIB_ExitCode_t SetupCGroup(
 		const RTLIB_EXCHandler_t exc_handler);
 
@@ -394,8 +389,6 @@ protected:
 
 	typedef std::map<int, pPerfEventAttr_t> PerfRegisteredEventsMap_t;
 
-	typedef std::pair<int, pPerfEventAttr_t> PerfRegisteredEventsMapEntry_t;
-
 	typedef	struct PerfEventStats {
 		/** Per AWM perf counter value */
 		uint64_t value;
@@ -413,7 +406,6 @@ protected:
 	} PerfEventStats_t;
 
 	struct CpuUsageStats {
-		bool reset_timestamp = true;
 		struct tms time_sample;
 		clock_t previous_time, previous_tms_stime, previous_tms_utime, current_time;
 	};
@@ -421,9 +413,6 @@ protected:
 	typedef std::shared_ptr<PerfEventStats_t> pPerfEventStats_t;
 
 	typedef std::map<int, pPerfEventStats_t> PerfEventStatsMap_t;
-
-	typedef std::pair<int, pPerfEventStats_t> PerfEventStatsMapEntry_t;
-
 	typedef std::multimap<uint8_t, pPerfEventStats_t> PerfEventStatsMapByConf_t;
 
 	typedef std::pair<uint8_t, pPerfEventStats_t> PerfEventStatsMapByConfEntry_t;
@@ -625,12 +614,7 @@ protected:
 		bu::StatsAnalysis cpu_usage_analyser;
 
 		RegisteredExecutionContext(const char * _name, uint8_t id) :
-			name(_name), id(id)
-		{
-			//cycletime_analyser_system.EnablePhaseDetection();
-			//cycletime_analyser_user.EnablePhaseDetection();
-			//cpu_usage_analyser.EnablePhaseDetection();
-		}
+			name(_name), id(id) {}
 
 		~RegisteredExecutionContext()
 		{

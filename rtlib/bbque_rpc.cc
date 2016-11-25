@@ -1094,7 +1094,6 @@ void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler,
 		exc->cycletime_analyser_user.Reset();
 
 	logger->Debug("SetCPSGoal: Resetting CPU quota history");
-	exc->cpu_usage_info.reset_timestamp = true;
 	exc->cpu_usage_analyser.Reset();
 	exc->waiting_sync_timeout_ms = 0;
 	exc->is_waiting_for_sync = false;
