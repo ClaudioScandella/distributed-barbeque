@@ -98,8 +98,7 @@ public:
 	 * actual instance returned is defined at compile time by selecting the
 	 * proper specialization class.
 	 *
-	 * @return A reference to an actual BbqueRPC implementing the compile-time
-	 * selected communication channel.
+	 * @return A reference to a BbqueRPC isntance, or nullptr on error.
 	 */
 	static BbqueRPC * GetInstance();
 
@@ -122,38 +121,78 @@ public:
 	 */
 	virtual ~BbqueRPC(void);
 
-	/******************************************************************************
-	 * Channel Independent interface
-	 ******************************************************************************/
+	/***********************************************************************
+	 * Initialization and de-initialization
+	 **********************************************************************/
 
 	/**
-	 * @brief Notify the resource manager about application and setup cgroups
+	 * @brief Notify the BarbequeRTRM about application name and PID
+	 * @param name Name to be assigned to the application
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t InitializeApplication(const char * name);
 
 	/**
-	 * @brief Register a new execution context
+	 * @brief Register a new EXC to the BarbequeRTRM
+	 *
+	 * Each application spawns one or more Execution Contexts (EXC).
+	 * Each execution context follow the BarbequeRTRM abstract execution
+	 * model. In order to receive resources from the BarbequeRTRM, each
+	 * EXC has to be registered and activated. This method registers
+	 * an EXC.
+	 *
+	 * @see RTLIB_EXCParameters
+	 * @param exc_name Name to be assigned to the EXC
+	 * @param exc_params Parameters of the new EXC
+	 * @return a handler for the EXC only if the EXC was not already
+	 * registered and the registration succeeded, nullptr else.
 	 */
 	RTLIB_EXCHandler_t Register(const char * exc_name,
 			const RTLIB_EXCParameters_t * exc_params);
 
 	/**
-	 * @brief Unregister an execution context
+	 * @brief Unregister an EXC from the BarbequeRTRM
+	 *
+	 * This causes the BarbequeRTRM to unregister the EXC, i.e., the EXC
+	 * will be removed from the list of known EXCs.
+	 *
+	 * @param exc_handler Handler of the target Execution Context
 	 */
 	void Unregister(const RTLIB_EXCHandler_t exc_handler);
 
 	/**
-	 * @brief Unregister all the execution contexts of the application
+	 * @brief Unregister all the application EXCs from the BarbequeRTRM
+	 *
+	 * This causes the BarbequeRTRM to unregister all the EXC associated
+	 * to this application, i.e., the EXCs will be removed from the list
+	 * of known EXCs.
+	 *
+	 * @param exc_handler Handler of the target Execution Context
 	 */
 	void UnregisterAll();
 
 	/**
-	 * @brief Enable an execution context
+	 * @brief Notify the BarbequeRTRM that the EXC is starting
+	 *
+	 * This causes the BarbequeRTRM to start allocating resources to
+	 * this EXC
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t Enable(const RTLIB_EXCHandler_t exc_handler);
 
 	/**
-	 * @brief Disable an execution context
+	 * @brief Unregister an EXC from the BarbequeRTRM
+	 *
+	 * This causes the BarbequeRTRM to unregister the EXC: the resources
+	 * that are allocated to this EXC will be sized back, and it will not
+	 * receive resources anymore. If it usually followed by the EXC
+	 * un-registration
+	 *
+	 * @see Unregister function
+	 * @param exc_handler Handler of the target Execution Context
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t Disable(const RTLIB_EXCHandler_t exc_handler);
 
@@ -164,9 +203,25 @@ public:
 	RTLIB_ExitCode_t CGroupCheckInitialization();
 
 	/**
+	 * @brief store the PID of a registered EXC (for logging purposes)
+	 * @param exc_handler Handler of the target Execution Context
+	 * @return RTLIB_OK on success
+	 */
 	RTLIB_ExitCode_t RegisterControlThreadPID(
 			RTLIB_EXCHandler_t exc_handler);
+
+	/***********************************************************************
+	 * Resource allocation negotiation with the BarbequeRTRM
+	 **********************************************************************/
+
+	/**
 	 * @brief Set constraints on the AWM choice for this EXC
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param awm_constraints A vector of constraints to be added
+	 * @param number_of_constraints Length of the constraints vector
+	 * @see RTLIB_Constraint_t
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SetAWMConstraints(
 			const RTLIB_EXCHandler_t exc_handler,
@@ -175,38 +230,100 @@ public:
 
 	/**
 	 * @brief Remove all constraints on the AWM choice for this EXC
+	 * @param exc_handler Handler of the target Execution Context
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t ClearAWMConstraints(
 			const RTLIB_EXCHandler_t exc_handler);
 
 	/**
-	 * @brief Check if it's time to send a runtime feedback to the res. manager
+	 * @brief Send performance feedback to the BarbequeRTRM
+	 *
+	 * This method triggers a Runtime Profile forward to the BarbequeRTRM.
+	 * The Runtime Profile is a summary of the current application
+	 * performance, as opposed to the performance goal declared by the EXC.
+	 * This information is used by the BarbequeRTRM to refine the EXC
+	 * resource allocation; therefore, the Profile forward will likely
+	 * trigger a re-schedule for this EXC.
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t ForwardRuntimeProfile(
 			const RTLIB_EXCHandler_t exc_handler);
 
-	//TODO document me
+	/**
+	 * @brief Compute the ideal allocation for the application, enforce it
+	 * if possible, schedule a runtime profile forward if current resources
+	 * are not ideal.
+	 *
+	 * @see ForwardRuntimeProfile
+	 * @param exc_handler Handler of the target Execution Context
+	 * @return RTLIB_OK on success
+	 */
 	RTLIB_ExitCode_t UpdateAllocation(
 			const RTLIB_EXCHandler_t exc_handler);
 
 	/**
-	 * @brief Set an explicit Goal Gap
+	 * @brief explicitely notify EXC satisfaction to the BarbequeRTRM.
 	 *
-	 * aka explicitely ask for more/less resources to the resource manager
+	 * Explicit goal gap is a percentage, i.e., goal_gap = +/- X means
+	 * that EXC is X% too fast/slow.
+	 *
+	 * Here, the value is only set; it will be sent to the BarbequeRTRM the
+	 * next time the RPC will check if forwarding a new runtime profile
+	 * is needed
+	 *
+	 * @see ForwardRuntimeProfile
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param goal_gap_percent percent satisfaction
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SetExplicitGoalGap(
 			const RTLIB_EXCHandler_t exc_handler,
 			int goal_gap_percent);
 
+	/**
+	 * @brief Get an Application Working Mode from the BarbequeRTRM
+	 *
+	 * Get a valid Application Working Mode for this EXC. If the EXC already
+	 * got one, the method does nothing. Else, it triggers a schedule
+	 * request to the BarbequeRTRM.
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param working_mode_params Parameters of the current AWM
+	 * @param sync_type Type of synchronization. If not sure, use 0
+	 * @return RTLIB_OK on success
+	 */
 	RTLIB_ExitCode_t GetWorkingMode(
 			RTLIB_EXCHandler_t exc_handler,
 			RTLIB_WorkingModeParams_t * working_mode_params,
 			RTLIB_SyncType_t sync_type);
 
+	/**
+	 * @brief Send to BarbequeRTRM the OpenCL runtime profile of this EXC
+	 *
+	 * This is a passive method. That is, you cannot invoke it explicitely:
+	 * it is automatically called by the communication module whenever the
+	 * BarbequeRTRM sends a get request. Please, do not invoke this method
+	 * explicitely: it will try to send a message to the BarbequeRTRM, but,
+	 * given that the BarbequeRTRM is not expecting that message, the
+	 * communication will likely result in a timeout.
+	 *
+	 * @param msg The BarbequeRTRM message that triggered this action
+	 * @return RTLIB_OK on success
+	 */
 	RTLIB_ExitCode_t SendOCLRuntimeProfile(rpc_msg_BBQ_GET_PROFILE_t & msg);
 
 	/**
 	 * @brief Get a breakdown of the allocated resources
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param working_mode_params Parameters of the current AWM
+	 * @param r_type Type of resources you are interested in
+	 * @param r_amount Amount of allocated resources will be stored here.
+	 * "-1" means "error".
+	 * @return RTLIB_OK if the EXC is registered and already received
+	 * a working mode.
 	 */
 	RTLIB_ExitCode_t GetAssignedResources(
 			RTLIB_EXCHandler_t exc_handler,
@@ -214,13 +331,38 @@ public:
 			RTLIB_ResourceType_t r_type,
 			int32_t & r_amount);
 
+	/**
+	 * @brief Get the list of allocated processing elements IDs.
+	 *
+	 * Each element of the specified vector will be set to the ID of
+	 * an allocated processing element. If the vector size is greater
+	 * than the number of allocated processing elements, the surplus
+	 * elements are set to -1. On error, all the elements are set to -1.
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param ids_vector  Vector to be filled with the proc elements IDs
+	 * @param vector_size Size of the vector
+	 * @return RTLIB_OK if the EXC is registered.
+	 */
 	RTLIB_ExitCode_t GetAffinityMask(
 			RTLIB_EXCHandler_t exc_handler,
 			int32_t * ids_vector,
 			int vector_size);
 
 	/**
-	 * @brief Get a breakdown of the allocated resources
+	 * @brief Get amount of allocated resources
+	 *
+	 * Get the amount of allocated resources for a given resource
+	 * type for each allocated system. The resource amounts are stored
+	 * in the sys_array argument (-1 on error).
+	 *
+	 * @see RTLIB_ResourceType_t
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param working_mode_params Parameters of the current AWM
+	 * @param r_type The type of resource to be reported
+	 * @param sys_array Array of integers (one integer per system)
+	 * @param array_size Size of the systems array
+	 * @return RTLIB_OK if the EXC is registered and got resources
 	 */
 	RTLIB_ExitCode_t GetAssignedResources(
 			RTLIB_EXCHandler_t exc_handler,
@@ -231,75 +373,157 @@ public:
 
 	/**
 	 * @brief Start monitoring performance counters for this EXC
+	 * @param exc_handler Handler of the target Execution Context
 	 */
 	void StartPCountersMonitoring(RTLIB_EXCHandler_t exc_handler);
 
+	/***********************************************************************
+	 *	Utility Functions
+	 **********************************************************************/
 
-	/*******************************************************************************
-	 *    Utility Functions
-	 ******************************************************************************/
-
+	/**
+	 * @brief Build a Control Group path for this EXC.
+	 *
+	 * The path is created using application name and execution context
+	 * ID/PID. This method only create the path, which is a string.
+	 * Control Group will be created using this path.
+	 *
+	 * @see CGroupCreate
+	 * @param exc_handler Handler of the target Execution Context
+	 * @return RTLIB_OK on success
+	 */
 	RTLIB_ExitCode_t SetupCGroup(const RTLIB_EXCHandler_t exc_handler);
 
+	/**
+	 * @brief Get application UID as a char vector
+	 * @return the application UID (char*)
+	 */
 	inline const char * GetCharUniqueID() const
 	{
 		return channel_thread_unique_id;
 	}
 
+	/**
+	 * @brief Get the EXC UID as an integer
+	 * @param exc_handler Handler of the target Execution Context
+	 * @return the EXC UID
+	 */
 	AppUid_t GetUniqueID(RTLIB_EXCHandler_t exc_handler);
 
-	/*******************************************************************************
-	 *    Cycles Per Second (CPS) Control Support
-	 ******************************************************************************/
+	/***********************************************************************
+	 *	Cycles Per Second (CPS) Control
+	 **********************************************************************/
 
 	/**
 	 * @brief Set the required Cycles Per Second (CPS)
 	 *
-	 * This allows to define the required and expected cycles rate. If at
-	 * run-time the cycles execution should be faster, a properly computed
-	 * delay will be inserted by the RTLib in order to get the specified
-	 * rate.
+	 * This method allows an EXC to define its maximum Cycles per Second
+	 * rate. If the runtime cycle rate is faster than that, the Runtime
+	 * Library will inject sleeps and make it slower.
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param cps the value of the desired maximum CPS
+	 * @see SetCPSGoal
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SetCPS(RTLIB_EXCHandler_t exc_handler, float cps);
 
 	/**
-	 * @brief Get the measured Cycles Per Second (CPS) value
+	 * @brief Get the average Cycles Per Second (CPS) value
 	 *
-	 * This allows to retrive the actual measured CPS value the
-	 * application is achiving at run-time.
+	 * This allows to retrieve the average CPS value for the EXC, that is,
+	 * the average number of cycles per second up to now.
 	 *
+	 * @see SetMinimumCycleTimeUs
+	 * @param exc_handler Handler of the target Execution Context
 	 * @return the measured CPS value
 	 */
 	float GetCPS(RTLIB_EXCHandler_t exc_handler);
 
 	/**
-	 * @brief Get the measured Jobs Per Second (JPS) value
+	 * @brief Get the average Jobs Per Second (CPS) value
 	 *
-	 * @return the measured JPS value
+	 * This allows to retrieve the average JPS value for the EXC, that is,
+	 * the average number of jobs per second up to now.
+	 *
+	 * JPS is equal to CPS multiplied by the number of jobs the application
+	 * is executing each cycle.
+	 *
+	 * @see GetCPS UpdateJPC
+	 * @param exc_handler Handler of the target Execution Context
+	 * @return the measured CPS value
 	 */
 	float GetJPS(RTLIB_EXCHandler_t exc_handler);
 
 	/**
-	 * @brief Set the required Cycles Per Second goal (CPS)
+	 * @brief Set the required Cycles Per Second rate (CPS)
 	 *
-	 * This allows to define the required and expected cycles rate.
-	 * Conversely from "SetCPS" if the (percentage) gap between the current
-	 * CPS performance and the CPS goal overpass the configured threshold, a
-	 * SetGoalGap is automatically called. This relieves the application
-	 * developer from the burden of explicitely sending a goal-gap at each
-	 * iteration.
+	 * This method allows the EXC to define a cycle rate goal.
+	 * This information is used by the Runtime Library to negotiate resource
+	 * allocation with the BarbequeRTRM, so that the allocated resources
+	 * will be enough for the EXC to reach its performance goal.
+	 *
+	 * Note: with the term "cycle" we refer to an EXC execution cycle,
+	 * i.e., onConfigure + onRun + onMonitor
+	 *
+	 * CPS goal is preferable to JPS goal when more resources means
+	 * shorter cycle time rather than more jobs per cycle
+	 *
+	 * @see SetJPSGoal
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param cps_min Minimum acceptable cycle rate
+	 * @param cps_max Maximum acceptable cycle rate
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SetCPSGoal(
 			RTLIB_EXCHandler_t exc_handler,
 			float cps_min,
 			float cps_max);
 
+	/**
+	 * @brief Reset performance information for this EXC
+	 *
+	 * Runtime profiles are sent by the Runtime Library to the BarbequeRTRM
+	 * to negotiate resource allocation. This method reset such information,
+	 * so that future runtime profiles will not include any performance
+	 * statistics up to now.
+	 *
+	 * If new_user_goal is true, performance statistics will be erased also
+	 * from the user profile, that is, from the performance data that is
+	 * available to the EXC. This usually makes sense if the EXC just
+	 * declared a new performance goal, and it is no more interested of
+	 * the past performance statistics.
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param new_user_goal Whether user profile must also be re-set
+	 */
 	void ResetRuntimeProfileStats(
 			RTLIB_EXCHandler_t exc_handler,
 			bool new_user_goal = false);
 
 	/**
-	 * @brief Set the required Jobs Per Second goal (JPS)
+	 * @brief Set the required Cycles Per Second rate (JPS)
+	 *
+	 * This method allows the EXC to define a jobs rate goal.
+	 * This information is used by the Runtime Library to negotiate resource
+	 * allocation with the BarbequeRTRM, so that the allocated resources
+	 * will be enough for the EXC to reach its performance goal.
+	 *
+	 * JPS goal is preferable to CPS goal when more resources means
+	 * more jobs per cycle rather than shorter cycle time
+	 *
+	 * @see SetCPSGoal
+	 *
+	 * Note: If the EXC changes the number of Jobs per Cycle it is
+	 * processing, it should notify it to the Runtime Library by using
+	 * the UpdateJPC method
+	 *
+	 * @see UpdateJPC
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param jps_min Minimum acceptable cycle rate
+	 * @param jps_max Maximum acceptable cycle rate
+	 * @param Current number of jobs executed per cycle
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SetJPSGoal(
 			RTLIB_EXCHandler_t exc_handler,
@@ -308,19 +532,33 @@ public:
 			int jpc);
 
 	/**
-	 * @brief Updates Jobs Per Cycle value (JPC), which is used to compute JPS
+	 * @brief Updates Jobs Per Cycle value, which is used to compute JPS
+	 *
+	 * The number of processes jobs per cycle is needed by the Runtime
+	 * Library to translate JPS goals into CPS goals
+	 *
+	 * @see SetJPSGoal, SetCPSGoal
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param jpc New number of jobs per cycle
+	 *
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t UpdateJPC(
 			RTLIB_EXCHandler_t exc_handler,
 			int jpc);
 
 	/**
-	 * @brief Set the required Cycle time [us]
+	 * @brief Set the minimum Cycle time [us]
 	 *
-	 * This allows to define the required and expected cycle time. If at
-	 * run-time the cycles execution should be faster, a properly computed
-	 * delay will be inserted by the RTLib in order to get the specified
-	 * duration.
+	 * This allows the EXC to define the required minimum cycle time. If at
+	 * run-time the cycles execution is faster than that, the Runtime
+	 * Library will inject a delay to make the EXC comply with the minimum
+	 * cycle time.
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param max_cycle_time_us Minimum cycletime value in microseconds
+	 *
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SetMinimumCycleTimeUs(
 			RTLIB_EXCHandler_t exc_handler,
@@ -330,35 +568,94 @@ public:
 			static_cast<float>(US_IN_A_SECOND) / max_cycle_time_us);
 	}
 
-	/*******************************************************************************
-	 *    Performance Monitoring Support
-	 ******************************************************************************/
+	/***********************************************************************
+	 *	Performance Monitoring Support
+	 **********************************************************************/
 
-
+	/**
+	 * @brief Execute the pre-EXC-termination procedure
+	 *
+	 * Mostly, statistics collection and dump
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 */
 	void NotifyExit(RTLIB_EXCHandler_t exc_handler);
 
+	/**
+	 * @brief Execute the pre-EXC-configuration procedure
+	 *
+	 * Mostly, statistics collection and dump
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 */
 	void NotifyPreConfigure(RTLIB_EXCHandler_t exc_handler);
 
+	/**
+	 * @brief Execute the post-EXC-configuration procedure
+	 *
+	 * Mostly, statistics collection and dump
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 */
 	void NotifyPostConfigure(RTLIB_EXCHandler_t exc_handler);
 
+	/**
+	 * @brief Execute the pre-EXC-run procedure
+	 *
+	 * Mostly, statistics collection and dump
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 */
 	void NotifyPreRun(RTLIB_EXCHandler_t exc_handler);
 
+	/**
+	 * @brief Execute the post-EXC-run procedure
+	 *
+	 * Mostly, statistics collection and dump
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 */
 	void NotifyPostRun(RTLIB_EXCHandler_t exc_handler);
 
+	/**
+	 * @brief Execute the pre-EXC-monitor procedure
+	 *
+	 * Mostly, statistics collection and dump
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 */
 	void NotifyPreMonitor(RTLIB_EXCHandler_t exc_handler);
 
+	/**
+	 * @brief Execute the post-EXC-monitor procedure
+	 *
+	 * Mostly, statistics collection and dump
+	 *
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param is_last_cycle Whether it is the last cycle and performance
+	 * feedbacks should not be sent to the BarbequeRTRM anymore
+	 */
 	void NotifyPostMonitor(
 			RTLIB_EXCHandler_t exc_handler,
 			bool is_last_cycle);
 
 protected:
 
+	/** Instance of the BarbequeRTRM logger*/
 	static std::unique_ptr<bu::Logger> logger;
 
 #ifdef CONFIG_BBQUE_RTLIB_EXECUTION_ANALYSER
+	/**
+	 * Additional instance of the BarbequeRTRM logger, for stat log
+	 * purposes
+	 */
 	static std::unique_ptr<bu::Logger> stat_logger;
 #endif // CONFIG_BBQUE_RTLIB_EXECUTION_ANALYSER
 
+	/**
+	 * @brief Performance counter event descriptor
+	 * @see pPerfEventAttr_t
+	 */
 	typedef struct PerfEventAttr {
 #ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 		perf_type_id type;
@@ -366,10 +663,24 @@ protected:
 		uint64_t config;
 	} PerfEventAttr_t;
 
+	/**
+	 * @brief Pointer to a performance counter event descriptor
+	 * @see PerfEventAttr, PerfRegisteredEventsMap_t
+	 */
 	typedef PerfEventAttr_t * pPerfEventAttr_t;
 
+	/**
+	 * @brief Map of the perf counters events that are to be monitored
+	 * @see pPerfEventAttr_t
+	 */
 	typedef std::map<int, pPerfEventAttr_t> PerfRegisteredEventsMap_t;
 
+	/**
+	 * Structure containing collected performance counters values for
+	 * a perf event
+	 *
+	 * @see pPerfEventAttr_t
+	 */
 	typedef	struct PerfEventStats {
 		/** Per AWM perf counter value */
 		uint64_t value;
@@ -389,18 +700,40 @@ protected:
 
 	} PerfEventStats_t;
 
+	/**
+	 * @brief Shared pointer to the statistics of a performance event
+	 * @see PerfEventStats_t
+	 */
 	typedef std::shared_ptr<PerfEventStats_t> pPerfEventStats_t;
 
+	/**
+	 * @brief Map containing all the registered performance events
+	 * @see pPerfEventStats_t, PerfEventStats_t
+	 */
 	typedef std::map<int, pPerfEventStats_t> PerfEventStatsMap_t;
 
+	/**
+	 * @brief Map of the registered perf events, ordered by configuration
+	 * @see pPerfEventStats_t, PerfEventStatsMapByConfEntry_t
+	 */
 	typedef std::multimap<
 			uint8_t,
 			pPerfEventStats_t> PerfEventStatsMapByConf_t;
 
 	/**
+	 * Utility pair used to insert items in the config-wise perf events map
+	 * @see PerfEventStatsMapByConf_t
+	 */
 	typedef std::pair<
 			uint8_t,
 			pPerfEventStats_t> PerfEventStatsMapByConfEntry_t;
+
+	/**
+	 * Structure containing CPU usage statistics intialized before and
+	 * collected after the EXC run phase
+	 *
+	 * @see NotifyPreRun, NotifyPostRun
+	 */
 	struct CpuUsageStats {
 		/** Temporary storage for timestamp samples */
 		struct tms time_sample;
@@ -413,7 +746,13 @@ protected:
 		/** Total time for this sample*/
 		clock_t current_time;
 	};
+
+	/**
 	 * @brief Statistics on AWM usage
+	 *
+	 * This struct stores statistics about an Application Working Mode:
+	 * number of times it was chosen, timings for configure/run/monitor
+	 * phases, performance counters events if counters monitoring is enabled
 	 */
 	typedef struct AwmStats {
 		/** Count of times this AWM has been in used */
@@ -461,7 +800,7 @@ protected:
 		OclEventsStatsMap_t ocl_events_map;
 #endif // CONFIG_BBQUE_OPENCL
 
-		/** The mutex protecting concurrent access to statistical data */
+		/** Mutex protecting concurrent access to statistical data */
 		std::mutex stats_mutex;
 
 		AwmStats() :
@@ -475,6 +814,7 @@ protected:
 
 	/**
 	 * @brief A pointer to AWM statistics
+	 * @see AwmStats_t
 	 */
 	typedef std::shared_ptr<AwmStats_t> pAwmStats_t;
 
@@ -485,14 +825,26 @@ protected:
 
 	/**
 	 * @brief A pointer to the system resources
+	 * @see RTLIB_SystemResources_t
 	 */
 	typedef std::shared_ptr<RTLIB_SystemResources_t> pSystemResources_t;
 
 	/**
-	 * @brief Map systemid - system resources
+	 * @brief Map system id - system resources
 	 */
 	typedef std::map<uint16_t, pSystemResources_t> SysResMap_t;
 
+	/**
+	 * @brief All the information relative to a registered EXC
+	 *
+	 * This struct stores information regarding one Execution Context:
+	 * name, status, timings, performance counters information (if
+	 * monitoring is active), current AWM, maximum resource allocation as
+	 * chosen by the BarbequeRTRM, current performance and performance
+	 * goals.
+	 *
+	 * In short, this is a running EXC in a nutshell.
+	 */
 	typedef struct RegisteredExecutionContext {
 		/** The Execution Context data */
 		RTLIB_EXCParameters_t parameters;
@@ -502,6 +854,7 @@ protected:
 		uint8_t id;
 		/** The PID of the control thread managing this EXC */
 		pid_t control_thread_pid = 0;
+
 #ifdef CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT
 		/** The path of the CGroup for this EXC */
 		std::string cgroup_path;
@@ -528,7 +881,7 @@ protected:
 
 		/** The mutex protecting access to this structure */
 		std::mutex exc_mutex;
-		/** The conditional variable to be notified on changes for this EXC */
+		/** Notified on changes for this EXC */
 		std::condition_variable exc_condition_variable;
 
 		/** The High-Resolution timer used for profiling */
@@ -558,54 +911,187 @@ protected:
 		pAwmStats_t current_awm_stats;
 
 #ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+		/**
+		 * Maximum allocation according to the BarbequeRTRM.
+		 * Enforced allocation must always be less or equal to this
+		 * amount. If more resources are needed, the Runtime Library
+		 * will sent a request to the BarbequeRTRM.
+		 *
+		 * CPU allocation is represented globally, and isolation-wise.
+		 * an isolated resource is a resource that has been allocated
+		 * only to this EXC, i.e., it can be used in isolation.
+		 *
+		 * Allocations that are expressed in string format are used
+		 * to interact with the libcgroup, which only accepts char*
+		 * for CGroup writes.
+		 *
+		 * @see ForwardRuntimeProfile
+		 */
 		struct CGroupBudgetInfo {
+			/** CPU Bandwidth on exclusively allocated cores */
 			float cpu_budget_isolation = 0.0;
+			/** Total CPU Bandwidth */
 			float cpu_budget_shared = 0.0;
+			/** IDs of all the allocated cores */
 			std::vector<int32_t> cpu_global_ids;
+			/** IDs of the exclusively allocated cores */
 			std::vector<int32_t> cpu_isolation_ids;
+
+			// String representations for libcgroup ////////////////
+
+			/** Maximum available memory [byte] */
 			std::string memory_limit_bytes;
+			/** IDs of the exclusively allocated cores */
 			std::string cpuset_cpus_isolation;
+			/** IDs of all the allocated cores */
 			std::string cpuset_cpus_global;
+			/** Momory nodes IDs (0 if system is not not NUMA)*/
 			std::string cpuset_mems;
 		} cg_budget;
+
+		/**
+		 * Max resource usage as enforced by the Runtime Library. It
+		 * is always less or equal to the resource budget allocated
+		 * by the BarbequeRTRM.
+		 *
+		 * @see CGroupBudgetInfo
+		 */
 		struct CGroupAllocationInfo {
+			/** Currently allocated CPU bandwidth */
 			float cpu_budget = 0.0;
+			/** IDs of all the currently allocated cores */
 			std::vector<int32_t> cpu_affinity_mask;
+
+			// String representations for libcgroup ////////////////
+
+			/** Maximum available memory [byte] */
 			std::string memory_limit_bytes;
+			/** IDs of all the currently allocated cores */
 			std::string cpuset_cpus;
+			/** IDs of all the currently allocated memory nodes */
 			std::string cpuset_mems;
 		} cg_current_allocation;
 #endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+
+		/**
+		 * Runtime Profile of the application. It contains all the
+		 * information needed by the scheduling policy to refine
+		 * resource allocation. If you want to extend Runtime Profile
+		 * information, the additional data must be put here.
+		 */
 		struct RT_Profile {
+			/** How much more/less CPU quota is needed by this EXC*/
 			float cpu_goal_gap = 0.0f;
+			/**
+			 * Whether the current information must be forwarded to
+			 * the BarbequeRTRM. If true, the profile will be
+			 * forwarded during the next PostMonitor.
+			 *
+			 * @see NotifyPostMonitor, ForwardRuntimeProfile
+			 */
 			bool rtp_forward = false;
 		} runtime_profiling;
 
+		/** Start time of the lase EXC configuration phase*/
 		double configure_tstart_ms = 0.0;
+		/** Start time of the lase EXC monitoring phase*/
 		double monitor_tstart_ms   = 0.0;
+		/** Start time of the lase EXC run phase*/
 		double run_tstart_ms	   = 0.0;
+
+		/**
+		 * [Hz] the maximum CPS to be enforced
+		 * @see SetCPS, SetMinimumCycleTimeUs, ForceCPS
+		 */
 		float cps_max_allowed = 0.0;
+
+		/**
+		 * [ms] the minimum cycle time to be enforced
+		 * @see cps_max_allowed
+		 */
 		float cycle_time_enforced_ms = 0.0;
+
+		/**
+		 * [Hz] the minimum required CPS
+		 * @see SetCPSGoal
+		 */
 		float cps_goal_min = 0.0;
+
+		/**
+		 * [Hz] the maximum required CPS
+		 * @see SetCPSGoal
+		 */
 		float cps_goal_max = 0.0;
+
+		/**
+		 * Current number of processed Jobs per Cycle
+		 * @see UpdateJPC, SetJPSGoal
+		 */
 		int jpc = 1;
+
+		/**
+		 * Moving Statistics for cycle times (user-side):
+		 * onRun + onMonitor + ForceCPS sleep
+		 * @see NotifyPostMonitor
+		 */
 		bu::StatsAnalysis cycletime_analyser_user;
-		// Moving Statistics for cycle times (bbque-side):
-		// 		onRun + onMonitor
+
+		/**
+		 * Moving Statistics for cycle times (bbque-side):
+		 * onRun + onMonitor
+		 * @see NotifyPostMonitor
+		 */
 		bu::StatsAnalysis cycletime_analyser_system;
 
-		// Applications can explicitely ask for a runtime profile notification
+		/**
+		 * The cycletime statistics accumulator may be reset, usually
+		 * due to a performance goal change. During the first Run phase
+		 * after the reset, cycletime for the EXC is not available.
+		 * Should the EXC query for its cycletime, the Runtime Library
+		 * would return this value.
+		 */
 		double average_cycletime_pre_reset_ms = 0.0;
+
+		/**
+		 * The Runtime Profile for the EXC is automatically computed
+		 * by the Runtime Library; however, the EXC is able to
+		 * explicitely define the value for its goal gap (i.e., the
+		 * percent statisfaction with the current resource allocation).
+		 * In this case, we talk about "explicit goal gap assertion".
+		 * Adter each Execution Cycle, the Runtime Library forwards the
+		 * EXC Runtime Profile to the BarbequeRTRM either if the current
+		 * performance is not satisfactory or if the EXC explicitely
+		 * asserted its goal gap.
+		 *
+		 * @see ForwardRuntimeProfile
+		 */
 		float 	explicit_ggap_value = 0.0;
 
-		// Once a runtime profile has been forwarded to bbque, there is no need
-		// to send another one before a reconfiguration happens.
+		/** Whether a goal gap was explicitely asserted */
 		bool 	explicit_ggap_assertion = false;
+
+		/**
+		 * Once a Runtime Profile has been forwarded to the
+		 * BarbequeRTRM, there is no need to forward additional
+		 * Profiles: the Runtime Library should first wait for the
+		 * BarbequeRTRM to change the resource allocation.
+		 * However, despite having received the Profile information,
+		 * the BarbequeRTRM could choose not to change the current
+		 * resource allocation (e.g. there are not enough resources
+		 * at the moment). This variable defines how many milliseconds
+		 * the Runtime Library should wait for a new allocation before
+		 * choosing to restart forwarding Porfiles to the BarbequeRTRM.
+		 *
+		 * @see ForwardRuntimeProfile
+		 */
 		int waiting_sync_timeout_ms = 0;
+
+		/** Whether Profile forwarding is inhibited due to sync wait*/
 		bool is_waiting_for_sync = false;
 
-		/** Cycle of the last goal-gap assertion */
+		/** Stores timestamps. Used to compute CPU usage of the EXC */
 		CpuUsageStats cpu_usage_info;
+		/** Statistical analyser for CPU usage*/
 		bu::StatsAnalysis cpu_usage_analyser;
 
 		RegisteredExecutionContext(const char * _name, uint8_t id) :
@@ -621,15 +1107,48 @@ protected:
 
 	typedef std::shared_ptr<RegisteredExecutionContext_t> pRegisteredEXC_t;
 
-        // Perf Statistics
+	/**
+	 * @brief Perf Statistics toggling
+	 *
+	 * Performance counter statistics can be monitored either during the
+	 * EXC Run phase to analyse the EXC execution, or they can be monitored
+	 * during the the rest of the time (Configure, Monitor, communication
+	 * with the BarbequeRTRM) to analyse the EXC management flow. Right
+	 * before and after the Run phase, performance counters monitoring
+	 * is turned on/off accordingly.
+	 *
+	 * @see TogglePerfCountersPostCycle, NotifyPreRun, NotifyPostRun
+	 */
 	void TogglePerfCountersPreCycle(pRegisteredEXC_t exc);
 
-	//--- AWM Validity
+	/**
+	 * @brief Perf Statistics toggling
+	 *
+	 * Performance counter statistics can be monitored either during the
+	 * EXC Run phase to analyse the EXC execution, or they can be monitored
+	 * during the the rest of the time (Configure, Monitor, communication
+	 * with the BarbequeRTRM) to analyse the EXC management flow. Right
+	 * before and after the Run phase, performance counters monitoring
+	 * is turned on/off accordingly.
+	 *
+	 * @see TogglePerfCountersPreCycle, NotifyPreRun, NotifyPostRun
+	 */
 	void TogglePerfCountersPostCycle(pRegisteredEXC_t exc);
+
+	/**
+	 * @brief  Check if this EXC got a valid AWM
+	 * @param exc Pointer to registered EXC data
+	 * @return true if the AWM is valid
+	 */
 	inline bool isAwmValid(pRegisteredEXC_t exc) const
 	{
 		return (exc->flags & EXC_FLAGS_AWM_VALID);
 	}
+
+	/**
+	 * @brief Mark this EXC as "having a valid AWM"
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void setAwmValid(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("AWM  <= Valid [%d:%s:%d]",
@@ -639,6 +1158,11 @@ protected:
 
 		exc->flags |= EXC_FLAGS_AWM_VALID;
 	}
+
+	/**
+	 * @brief Mark this EXC as "not having a valid AWM"
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void clearAwmValid(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("AWM  <= Invalid [%d:%s]",
@@ -648,11 +1172,20 @@ protected:
 		exc->flags &= ~EXC_FLAGS_AWM_VALID;
 	}
 
-	//--- AWM Wait
+	/**
+	 * @brief  Check if EXC is waiting for an AWM
+	 * @param exc Pointer to registered EXC data
+	 * @return true if the EXC is waiting for an AWM
+	 */
 	inline bool isAwmWaiting(pRegisteredEXC_t exc) const
 	{
 		return (exc->flags & EXC_FLAGS_AWM_WAITING);
 	}
+
+	/**
+	 * @brief Mark this EXC as "currently waiting for an AWM"
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void setAwmWaiting(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("AWM  <= Waiting [%d:%s]",
@@ -661,6 +1194,11 @@ protected:
 
 		exc->flags |= EXC_FLAGS_AWM_WAITING;
 	}
+
+	/**
+	 * @brief Mark this EXC as "not being waiting for an AWM"
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void clearAwmWaiting(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("AWM  <= NOT Waiting [%d:%s]",
@@ -670,11 +1208,20 @@ protected:
 		exc->flags &= ~EXC_FLAGS_AWM_WAITING;
 	}
 
-	//--- AWM Assignment
+	/**
+	 * @brief Check if this EXC got an AWM
+	 * @param exc Pointer to registered EXC data
+	 * @return true if EXC got an AWM
+	 */
 	inline bool isAwmAssigned(pRegisteredEXC_t exc) const
 	{
 		return (exc->flags & EXC_FLAGS_AWM_ASSIGNED);
 	}
+
+	/**
+	 * @brief Mark this EXC as "having been assigned an AWM"
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void setAwmAssigned(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("AWM  <= Assigned [%d:%s]",
@@ -683,6 +1230,11 @@ protected:
 
 		exc->flags |= EXC_FLAGS_AWM_ASSIGNED;
 	}
+
+	/**
+	 * @brief Mark this EXC as "not having been assigned an AWM"
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void clearAwmAssigned(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("AWM  <= NOT Assigned [%d:%s]",
@@ -692,11 +1244,20 @@ protected:
 		exc->flags &= ~EXC_FLAGS_AWM_ASSIGNED;
 	}
 
-	//--- Sync Mode Status
+	/**
+	 * @brief Check of this EXC is reconfiguring to use a new AWM
+	 * @param exc Pointer to registered EXC data
+	 * @return true if EXC is reconfiguraing (aka syncing)
+	 */
 	inline bool isSyncMode(pRegisteredEXC_t exc) const
 	{
 		return (exc->flags & EXC_FLAGS_EXC_SYNC);
 	}
+
+	/**
+	 * @brief Mark this EXC as "reconfiguring to use a new AWM"
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void setSyncMode(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("SYNC <= Enter [%d:%s]",
@@ -705,6 +1266,11 @@ protected:
 
 		exc->flags |= EXC_FLAGS_EXC_SYNC;
 	}
+
+	/**
+	 * @brief Mark this EXC as "not reconfiguring"
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void clearSyncMode(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("SYNC <= Exit [%d:%s]",
@@ -714,19 +1280,34 @@ protected:
 		exc->flags &= ~EXC_FLAGS_EXC_SYNC;
 	}
 
-	//--- Sync Done
+	/**
+	 * @brief Check if this EXC has finished reconfiguring (syncing)
+	 * @param exc Pointer to registered EXC data
+	 * @return true if reconfiguration is done
+	 */
 	inline bool isSyncDone(pRegisteredEXC_t exc) const
 	{
 		return (exc->flags & EXC_FLAGS_EXC_SYNC_DONE);
 	}
+
+	/**
+	 * @brief Mark this EXC as "finished reconfiguring"
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void setSyncDone(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("SYNC <= Done [%d:%s:%d]",
 				exc->id,
 				exc->name.c_str(),
 				exc->current_awm_id);
+
 		exc->flags |= EXC_FLAGS_EXC_SYNC_DONE;
 	}
+
+	/**
+	 * @brief Mark this EXC as "under reconfiguration"
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void clearSyncDone(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("SYNC <= Pending [%d:%s]",
@@ -736,11 +1317,30 @@ protected:
 		exc->flags &= ~EXC_FLAGS_EXC_SYNC_DONE;
 	}
 
-	//--- EXC Registration status
+	/**
+	 * @brief Check if this EXC is registered
+	 *
+	 * EXC registered means that the BarbequeRTRM actually knows that the
+	 * EXC exsists. The EXC will not receive any resources until it is also
+	 * enabled.
+	 *
+	 * @param exc Pointer to registered EXC data
+	 * @return  true if EXC is registered
+	 */
 	inline bool isRegistered(pRegisteredEXC_t exc) const
 	{
 		return (exc->flags & EXC_FLAGS_EXC_REGISTERED);
 	}
+
+	/**
+	 * @brief Mark this EXC as registered
+	 *
+	 * This method only sets the flag. Obviously, to register the EXC,
+	 * the Runtime Library must communicate with the BarbequeRTRM
+	 *
+	 * @see Register function
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void setRegistered(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("EXC  <= Registered [%d:%s]",
@@ -749,6 +1349,16 @@ protected:
 
 		exc->flags |= EXC_FLAGS_EXC_REGISTERED;
 	}
+
+	/**
+	 * @brief Mark this EXC as not registered
+	 *
+	 * This method only unsets the flag. Obviously, to unregister the EXC,
+	 * the Runtime Library must communicate with the BarbequeRTRM
+	 *
+	 * @see Unregister function
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void clearRegistered(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("EXC  <= Unregistered [%d:%s]",
@@ -758,11 +1368,29 @@ protected:
 		exc->flags &= ~EXC_FLAGS_EXC_REGISTERED;
 	}
 
-	//--- EXC Enable status
+	/**
+	 * @brief Check if this EXC is enabled
+	 *
+	 * EXC enabled means that the BarbequeRTRM actually knows that it must
+	 * allocate resources to this EXC.
+	 *
+	 * @param exc Pointer to registered EXC data
+	 * @return  true if EXC is enabled
+	 */
 	inline bool isEnabled(pRegisteredEXC_t exc) const
 	{
 		return (exc->flags & EXC_FLAGS_EXC_ENABLED);
 	}
+
+	/**
+	 * @brief Mark this EXC as enabled
+	 *
+	 * This method only sets the flag. Obviously, to enable the EXC,
+	 * the Runtime Library must communicate with the BarbequeRTRM
+	 *
+	 * @see Enable function
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void setEnabled(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("EXC  <= Enabled [%d:%s]",
@@ -771,6 +1399,16 @@ protected:
 
 		exc->flags |= EXC_FLAGS_EXC_ENABLED;
 	}
+
+	/**
+	 * @brief Mark this EXC as disabled
+	 *
+	 * This method only unsets the flag. Obviously, to disable the EXC,
+	 * the Runtime Library must communicate with the BarbequeRTRM
+	 *
+	 * @see Disable function
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void clearEnabled(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("EXC  <= Disabled [%d:%s]",
@@ -780,11 +1418,29 @@ protected:
 		exc->flags &= ~EXC_FLAGS_EXC_ENABLED;
 	}
 
-	//--- EXC Blocked status
+	/**
+	 * @brief Check if this EXC is blocked
+	 *
+	 * EXC blocked means that the EXC is currently stopped, and it is
+	 * waiting for the BarbequeRTRM to signal that the EXC can resume its
+	 * execution.
+	 *
+	 * @param exc Pointer to registered EXC data
+	 * @return  true if EXC is blocked
+	 */
 	inline bool isBlocked(pRegisteredEXC_t exc) const
 	{
 		return (exc->flags & EXC_FLAGS_EXC_BLOCKED);
 	}
+
+	/**
+	 * @brief Mark this EXC as blocked
+	 *
+	 * This method only sets the flag. Obviously, to block the EXC,
+	 * the BarbequeRTRM must communicate with the Runtime Library
+	 *
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void setBlocked(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("EXC  <= Blocked [%d:%s]",
@@ -793,6 +1449,15 @@ protected:
 
 		exc->flags |= EXC_FLAGS_EXC_BLOCKED;
 	}
+
+	/**
+	 * @brief Mark this EXC as not blocked
+	 *
+	 * This method only unsets the flag. Obviously, to unblock the EXC,
+	 * the BarbequeRTRM must communicate with the Runtime Library
+	 *
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void clearBlocked(pRegisteredEXC_t exc) const
 	{
 		logger->Debug("EXC  <= UnBlocked [%d:%s]",
@@ -802,10 +1467,9 @@ protected:
 		exc->flags &= ~EXC_FLAGS_EXC_BLOCKED;
 	}
 
-
-	/*******************************************************************************
-	 *    OpenCL support
-	 ******************************************************************************/
+	/***********************************************************************
+	 * OpenCL support
+	 **********************************************************************/
 #ifdef CONFIG_BBQUE_OPENCL
 	void OclSetDevice(uint8_t device_id, RTLIB_ExitCode_t status);
 	void OclClearStats();
@@ -821,14 +1485,14 @@ protected:
 
 #endif // CONFIG_BBQUE_OPENCL
 
-	/******************************************************************************
+	/***********************************************************************
 	 * RTLib Run-Time Configuration
-	 ******************************************************************************/
+	 **********************************************************************/
 
 	static RTLIB_Conf_t rtlib_configuration;
 
 	/**
-	 * @brief Look-up configuration from environment variable BBQUE_RTLIB_OPTS
+	 * @brief Look-up config for the BBQUE_RTLIB_OPTS environment variable
 	 */
 	static RTLIB_ExitCode_t ParseOptions();
 
@@ -842,36 +1506,95 @@ protected:
 	 */
 	static uint8_t InsertRAWPerfCounter(const char * perf_str);
 
-	/******************************************************************************
-	 * Channel Dependant interface
-	 ******************************************************************************/
+	/***********************************************************************
+	 * Communication module-related functions
+	 **********************************************************************/
 
+	// EXC registration ////////////////////////////////////////////////////
+	/**
+	 * @brief Initialize communication with the BarbequeRTRM
+	 *
+	 * This is the first step to be taken by a new EXC, so that it becomes
+	 * able to communicate with the BarbequeRTRM
+	 *
+	 * @param name Name of the EXC
+	 * @return RTLIB_OK on success
+	 */
 	virtual RTLIB_ExitCode_t _Init(const char * name) = 0;
 
+	/**
+	 * @brief Notify the BarbequeRTRM that the EXC exists
+	 *
+	 * This is the second step to be taken by a new EXC, right after
+	 * communication initialization, so that the BarbequeRTRM knows
+	 * that the EXC is starting
+	 *
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
+	 */
 	virtual RTLIB_ExitCode_t _Register(pRegisteredEXC_t exc) = 0;
 
-
+	/**
+	 * @brief Notify the BarbequeRTRM that the EXC needs resources
+	 *
+	 * This is the third step to be taken by a new EXC, right after
+	 * being registered, so that the BarbequeRTRM knows that the EXC is
+	 * ready to receive resources
+	 *
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
+	 */
 	virtual RTLIB_ExitCode_t _Enable(pRegisteredEXC_t exc) = 0;
 
+	/**
+	 * @brief Notify the BarbequeRTRM that the EXC has terminated
+	 *
+	 * Before terminating, the EXC must notify the BarbequeRTRM that:
+	 * 1) the EXC does not resources anymore
+	 * 2) the EXC can be removed from the list of registered EXC
+	 *
+	 * This is the first step
+	 *
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
+	 */
 	virtual RTLIB_ExitCode_t _Disable(pRegisteredEXC_t exc) = 0;
 
+	/**
+	 * @brief Notify the BarbequeRTRM that the EXC does not need resources
+	 *
+	 * Before terminating, the EXC must notify the BarbequeRTRM that:
+	 * 1) the EXC does not resources anymore
+	 * 2) the EXC can be removed from the list of registered EXC
+	 *
+	 * This is the second step
+	 *
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
+	 */
 	virtual RTLIB_ExitCode_t _Unregister(pRegisteredEXC_t exc) = 0;
 
+	/**
+	 * @brief Close communication with the BarbequeRTRM
+	 *
+	 * This is the last step to be taken by an EXC, so that communication
+	 * with the BarbequeRTRM actually terminates
+	 */
 	virtual void _Exit() = 0;
 
-	/******************************************************************************
-	 * Runtime profiling
-	 ******************************************************************************/
-
-
-	/******************************************************************************
-	 * Synchronization Protocol Messages
-	 ******************************************************************************/
-
-//----- PreChange
+	// EXC resource allocation negotiation /////////////////////////////////
 
 	/**
-	 * @brief Send response to a Pre-Change command
+	 * @brief Send the Runtime Profile of this EXC to the BarbequeRTRM
+	 *
+	 * Runtime Profiles of an EXC are used by the BarbequeRTRM to understand
+	 * if the EXC is content with its current resource allocation
+	 *
+	 * @param exc Pointer to registered EXC data
+	 * @param percent Suggest a percent variation on assigned CPU bandwidth
+	 * @param cusage Current, effective CPU usage of the EXC
+	 * @param ctime_ms Current execution-cycle time of the EXC [ms]
+	 * @return RTLIB_OK on success
 	 */
 	virtual RTLIB_ExitCode_t _RTNotify(
 			pRegisteredEXC_t exc,
@@ -880,11 +1603,20 @@ protected:
 			int ctime_ms) = 0;
 
 	/**
-	 * @brief A synchronization protocol Pre-Change for the EXC with the
-	 * specified ID.
+	 * @brief Send the OpenCL Runtime Profile of this EXC to the BarbequeRTRM
+	 *
+	 * OpenCL runtime profile are sent to the BarbequeRTRM only if it asked
+	 * for them in the first place. Hence, this is effectively a response.
+	 * Do not try to invoke this method if the BarbequeRTRM did not request
+	 * OpenCL Runtime Profiles: it would result in a communication timeout.
+	 *
+	 * @see rpc_msg_header struct
+	 * @param token ID of the message that prompted for this answer
+	 * @param exc Pointer to registered EXC data
+	 * @param exc_time Kernel execution time
+	 * @param mem_time Kernel memory transfer time
+	 * @return RTLIB_OK on success
 	 */
-
-//----- SyncChange
 	virtual RTLIB_ExitCode_t _GetRuntimeProfileResp(
 			rpc_msg_token_t token,
 			pRegisteredEXC_t exc,
@@ -892,31 +1624,67 @@ protected:
 			uint32_t mem_time) = 0;
 
 	/**
-	 * @brief Send response to a Sync-Change command
+	 * @brief Ask the BarbequeRTRM to allocate resources to this EXC
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	virtual RTLIB_ExitCode_t _ScheduleRequest(pRegisteredEXC_t exc) = 0;
 
 	/**
-	 * @brief A synchronization protocol Sync-Change for the EXC with the
-	 * specified ID.
+	 * @brief Put contraints on the BarbequeRTRM AWM selection
+	 * @param exc Pointer to registered EXC data
+	 * @param constraints List of AWM selection constraints
+	 * @param count Number of constraints in the list
+	 * @return RTLIB_OK on success
 	 */
-
-//----- DoChange
+	virtual RTLIB_ExitCode_t _SetAWMConstraints(
+			pRegisteredEXC_t exc,
+			RTLIB_Constraint_t * constraints,
+			uint8_t count) = 0;
 
 	/**
-	 * @brief A synchronization protocol Do-Change for the EXC with the
-	 * specified ID.
+	 * @brief Clear contraints of the BarbequeRTRM AWM selection
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	virtual RTLIB_ExitCode_t _ClearAWMConstraints(pRegisteredEXC_t exc) = 0;
 
-//----- PostChange
+	// Synchronization /////////////////////////////////////////////////////
+	/**
+	 * @brief Store new allocation information
+	 *
+	 * When the BarbequeRTRM changes the resource allocation of an EXC,
+	 * it sends the EXC a message containing the allocation description,
+	 * e.g. AWM id and resource amounts for each resource type. This method
+	 * stores this information, then notifies to the BarbequeRTRM that
+	 * the message has been successifully received and taken into account.
+	 *
+	 * This method is called my the communication module after the new
+	 * configuration has been received. This method eventually invokes
+	 * the communication module to notify to the BarbequeRTRM that the
+	 * allocation information has been correclty received.
+	 *
+	 * @see _SyncpPreChangeResp
+	 * @param msg The message that triggered the reconfiguration
+	 * @param systems Resource allocation will be stored here
+	 * @return RTLIB_OK on success
+	 */
 	RTLIB_ExitCode_t SyncP_PreChangeNotify(
 			rpc_msg_BBQ_SYNCP_PRECHANGE_t msg,
 			std::vector<rpc_msg_BBQ_SYNCP_PRECHANGE_SYSTEM_t> &
 				systems);
 
 	/**
-	 * @brief Send response to a Post-Change command
+	 * @brief Notify the BarbequeRTRM that new allocation has been received
+	 *
+	 * After the EXC receives the new allocation information from the
+	 * BarbequeRTRM, it must ACK the reception.
+	 *
+	 * @see SyncP_PreChangeNotify
+	 * @param token ID of the message that triggered this ACK
+	 * @param exc Pointer to registered EXC data
+	 * @param syncLatency Latency delay for the reconfiguration
+	 * @return RTLIB_OK on success
 	 */
 	virtual RTLIB_ExitCode_t _SyncpPreChangeResp(
 			rpc_msg_token_t token,
@@ -924,12 +1692,31 @@ protected:
 			uint32_t syncLatency) = 0;
 
 	/**
-	 * @brief A synchronization protocol Post-Change for the EXC with the
-	 * specified ID.
+	 * @brief Notify the BarbequeRTRM that the EXC finished reconfiguring
+	 *
+	 * This method is called my the communication module after the Runtime
+	 * Library acknowledges to have received a new configuration.
+	 * This method eventually invokes the communication module to notify to
+	 * the BarbequeRTRM that the reconfiguration was effectively carried out.
+	 *
+	 * @see _SyncpPostChangeResp
+	 * @param msg Message that triggered this response
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SyncP_PostChangeNotify(
 			rpc_msg_BBQ_SYNCP_POSTCHANGE_t & msg);
 
+	/**
+	 * @brief Notify the BarbequeRTRM that the EXC is reconfiguring
+	 *
+	 * After the EXC reconfigures, it notifies it to the BarbequeRTRM
+	 *
+	 * @see SyncP_PostChangeNotify
+	 * @param token ID of the BarbequeRTRM message that triggered this action
+	 * @param exc Pointer to registered EXC data
+	 * @param result Result of the reconfiguration
+	 * @return RTLIB_OK on success
+	 */
 	virtual RTLIB_ExitCode_t _SyncpPostChangeResp(
 			rpc_msg_token_t token,
 			pRegisteredEXC_t exc,
@@ -958,12 +1745,11 @@ protected:
 	 * @brief The PID of the Channel Thread
 	 *
 	 * The Channel Thread is the process/thread in charge to manage messages
-	 * exchange with the Barbeque RTRM. Usually, this thread is spawned by the
-	 * subclass of this based class which provides the low-level channel
+	 * exchange with the Barbeque RTRM. Usually, this thread is spawned by
+	 * the subclass of this based class which provides the low-level channel
 	 * access methods.
 	 */
 	pid_t channel_thread_pid = 0;
-
 
 	/**
 	 * @brief The channel thread UID
@@ -1027,62 +1813,92 @@ private:
 	 */
 	uint8_t NextExcID();
 
+	// EXC metrics monitoring and report ///////////////////////////////////
+
 	/**
-	 * @brief Setup statistics for a new selecte AWM
+	 * @brief Setup statistics for a new selected AWM
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SetupAWMStatistics(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief Update statistics for the currently selected AWM
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t UpdateExecutionCycleStatistics(pRegisteredEXC_t exc);
 
+	/**
+	 * @brief Init CPU usage statistics for this Run phase
+	 * @see NotifyPreRun
+	 * @param exc Pointer to registered EXC data
+	 */
 	void InitCPUBandwidthStats(pRegisteredEXC_t exc);
 
 	/**
-	 * @brief Log the header for statistics collection
+	 * @brief Update CPU usage statistics for this Run phase
+	 * @see NotifyPostRun
+	 * @param exc Pointer to registered EXC data
+	 */
 	RTLIB_ExitCode_t UpdateCPUBandwidthStats(pRegisteredEXC_t exc);
+
+	/**
+	 * @brief Log the header for statistics report
 	 */
 	void DumpStatsHeader();
 
 	/**
-	 * @brief Initialize CGroup support
+	 * @brief Log memory usage report
+		 * @param exc Pointer to registered EXC data
 	 */
 	void DumpMemoryReport(pRegisteredEXC_t exc);
 
 	/**
+	 * @brief Log execution statistics collected so far
+	 * @param exc Pointer to registered EXC data
+	 * @param verbose Whether the report should show all the information
+	 */
 	inline void DumpStats(pRegisteredEXC_t exc, bool verbose = false);
+
+	/**
+	 * @brief Log execution statistics collected so far (console format)
+	 * @param exc Pointer to registered EXC data
+	 * @param verbose Whether the report should show all the information
+	 */
 	void DumpStatsConsole(pRegisteredEXC_t exc, bool verbose = false);
+
+	// Linux Control Groups handling ///////////////////////////////////////
+
+	/**
 	 * @brief Create a CGroup for the specifed EXC
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t CGroupPathSetup(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief Delete the CGroup of the specified EXC
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t CGroupDelete(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief Create a CGroup of the specified EXC
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t CGroupCreate(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief Updates the CGroup of the specified EXC
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t CGroupCommitAllocation(pRegisteredEXC_t exc);
 
-	/**
-	 * @brief Log memory usage report
-	 */
-
-	/**
-	 * @brief Log execution statistics collected so far
-	 */
-
-	/**
-	 * @brief Log execution statistics collected so far (Console format)
-	 */
+	// Synchronization handling ////////////////////////////////////////////
 
 	/**
 	 * @brief Suspend caller waiting for an AWM being assigned
@@ -1090,12 +1906,21 @@ private:
 	 * When the EXC has notified a scheduling request to the RTRM, this
 	 * method put it to sleep waiting for an assignement.
 	 *
-	 * @return RTLIB_OK if a valid working mode has been assinged to the EXC,
-	 * RTLIB_EXC_GWM_FAILED otherwise
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK if a valid working mode has been assinged to the
+	 * EXC, RTLIB_EXC_GWM_FAILED otherwise
 	 */
 	RTLIB_ExitCode_t WaitForWorkingMode(pRegisteredEXC_t exc);
+
+	/**
+	 * @brief setup AWM change and extract new AWM information
+	 * @param exc Pointer to registered EXC data
+	 * @param working_mode_params Parameters of the current AWM
+	 * @return RTLIB_OK on success
+	 */
 	RTLIB_ExitCode_t GetWorkingModeParams(pRegisteredEXC_t exc,
 			RTLIB_WorkingModeParams * working_mode_params);
+
 	/**
 	 * @brief Suspend caller waiting for a reconfiguration to complete
 	 *
@@ -1104,7 +1929,6 @@ private:
 	 * completion of such reconfiguration.
 	 *
 	 * @param exc the regidstered EXC to wait reconfiguration for
-	 *
 	 * @return RTLIB_OK if the reconfigutation complete successfully,
 	 * RTLIB_EXC_SYNCP_FAILED otherwise
 	 */
@@ -1112,56 +1936,73 @@ private:
 
 	/**
 	 * @brief Get an extimation of the Synchronization Latency
+	 * @param exc Pointer to registered EXC data
+	 * @return The sync latency [ms]
 	 */
 	uint32_t GetSyncLatency(pRegisteredEXC_t exc);
 
-	/******************************************************************************
+	/***********************************************************************
 	 * Synchronization Protocol Messages
-	 ******************************************************************************/
+	 **********************************************************************/
 
 	/**
 	 * @brief A synchronization protocol Pre-Change for the specified EXC.
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SyncP_PreChangeNotify(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief A synchronization protocol Sync-Change for the specified EXC.
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SyncP_SyncChangeNotify(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief A synchronization protocol Do-Change for the specified EXC.
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SyncP_DoChangeNotify(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief A synchronization protocol Post-Change for the specified EXC.
+	 * @param exc Pointer to registered EXC data
+	 * @return RTLIB_OK on success
 	 */
 	RTLIB_ExitCode_t SyncP_PostChangeNotify(pRegisteredEXC_t exc);
 
 
-	/******************************************************************************
+	/***********************************************************************
 	 * Application Callbacks Proxies
-	 ******************************************************************************/
+	 **********************************************************************/
 
 	// TODO remove this old function. See app proxy test plugin
 	RTLIB_ExitCode_t StopExecution(
 			RTLIB_EXCHandler_t exc_handler,
 			struct timespec timeout);
 
-	/******************************************************************************
+	/***********************************************************************
 	 * Utility functions
-	 ******************************************************************************/
-
+	 **********************************************************************/
+	/**
+	 * @brief Retrive registered EXC data
+	 * @param exc_handler Handler of the target Execution Context
+	 * @return The registered EXC data, or nullptr in case of error
+	 */
+	pRegisteredEXC_t getRegistered(const RTLIB_EXCHandler_t exc_handler);
 
 	/**
-	 * @brief Get an EXC handler for the give EXC ID
+	 * @brief Retrive registered EXC data
+	 * @param exc_id ID of the target Execution Context
+	 * @return The registered EXC data, or nullptr in case of error
 	 */
 	pRegisteredEXC_t getRegistered(uint8_t exc_id);
 
-	/******************************************************************************
+	/***********************************************************************
 	 * Performance Counters
-	 ******************************************************************************/
+	 **********************************************************************/
 #ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 #define BBQUE_RTLIB_PERF_ENABLE true
 
@@ -1181,11 +2022,23 @@ private:
 	/** Very, very detailed stats (-d -d -d), adding prefetch events */
 	static PerfEventAttr_t very_very_detailed_events[];
 
+	/**
+	 * @brief Get number of registered performance events
+	 * @param exc Pointer to registered EXC data
+	 * @return Number of registered performance events
+	 */
 	inline uint8_t PerfRegisteredEvents(pRegisteredEXC_t exc)
 	{
 		return exc->events_map.size();
 	}
 
+	/**
+	 * @brief Check if an event description matches a given type and config
+	 * @param ppea Pointer to a performance counter event descriptor
+	 * @param type Type of event
+	 * @param config Config for the event
+	 * @return True on match
+	 */
 	inline bool PerfEventMatch(
 			pPerfEventAttr_t ppea,
 			perf_type_id type,
@@ -1194,35 +2047,81 @@ private:
 		return (ppea->type == type && ppea->config == config);
 	}
 
+	/**
+	 * @brief Disable perf events monitoring
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void PerfDisable(pRegisteredEXC_t exc)
 	{
 		exc->perf.Disable();
 	}
 
+	/**
+	 * @brief Enable perf events monitoring
+	 * @param exc Pointer to registered EXC data
+	 */
 	inline void PerfEnable(pRegisteredEXC_t exc)
 	{
 		exc->perf.Enable();
 	}
 
+	/**
+	 * @brief Register events to be monitored
+	 * @param exc Pointer to registered EXC data
+	 */
 	void PerfSetupEvents(pRegisteredEXC_t exc);
 
+	/**
+	 * @brief Setup statistics for registered perf events
+	 * @param exc Pointer to registered EXC data
+	 */
 	void PerfSetupStats(pRegisteredEXC_t exc, pAwmStats_t awm_stats);
 
+	/**
+	 * @brief Collect counters for registered events
+	 * @param exc Pointer to registered EXC data
+	 */
 	void PerfCollectStats(pRegisteredEXC_t exc);
 
+
+	/**
+	 * @brief Collect counters for registered events
+	 * @param exc Pointer to registered EXC data
+	 */
 	void PerfPrintStats(pRegisteredEXC_t exc, pAwmStats_t awm_stats);
 
 	pPerfEventStats_t PerfGetEventStats(
 			pAwmStats_t awm_stats,
 			perf_type_id type,
 			uint64_t config);
+
+	/**
+	 * @brief Check if the counter value is expressed in milliseconds
+	 * @param exc Pointer to registered EXC data
+	 * @param fd event ID
+	 * @return true if value expressed in milliseconds
+	 */
 	bool IsNsecCounter(pRegisteredEXC_t exc, int fd);
 
+	/**
+	 * @brief Print event stats [ms]
+	 * @param awm_stats AWM statistics
+	 * @param perf_event_stats Perf statics
+	 */
 	void PerfPrintNsec(pAwmStats_t awm_stats, pPerfEventStats_t perf_event_stats);
 
+	/**
+	 * @brief Print event stats
+	 * @param awm_stats AWM statistics
+	 * @param perf_event_stats Perf statics
+	 */
 	void PerfPrintAbs(pAwmStats_t awm_stats, pPerfEventStats_t perf_event_stats);
 
-
+	/**
+	 * @brief Print noise on perf counters measurements
+	 * @param total Standard value of counter
+	 * @param avg Average value of counter
+	 */
 	void PrintNoisePct(double total, double avg);
 
 #else // CONFIG_BBQUE_RTLIB_PERF_SUPPORT
@@ -1237,12 +2136,22 @@ private:
 #endif // CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 
 
-	/*******************************************************************************
-	 *    Cycles Per Second (CPS) Control Support
-	 ******************************************************************************/
+	/***********************************************************************
+	 *	Cycles Per Second (CPS) Control Support
+	 **********************************************************************/
 
+	/**
+	 * Used at the end of an excution cycle (Configure + Run + Monitor)
+	 * to guarantee that the execution cycle duration is greater than the
+	 * one required by the EXC (if the EXC explicitely defined such a
+	 * duration). If this cycle time execution was too fast, the Runtime
+	 * Library will insert a sleep call and make the duration stick with the
+	 * required one.
+	 *
+	 * @see SetCPS, NotifyPostMonitor
+	 * @param exc Pointer to registered EXC data
+	 */
 	void ForceCPS(pRegisteredEXC_t exc);
-
 
 };
 
