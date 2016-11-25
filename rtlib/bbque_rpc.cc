@@ -362,16 +362,6 @@ RTLIB_ExitCode_t BbqueRPC::InitializeApplication(const char * name)
 		return exitCode;
 	}
 
-	// Initialize CGroup support. Note Per-APP cgroups will be mounted during
-	// Configuration phase
-	logger->Debug("Initializing libcgroup");
-	exitCode = CGroupCheckInitialization();
-
-	if (exitCode != RTLIB_OK) {
-		logger->Error("CGroup initialization FAILED");
-		return exitCode;
-	}
-
 	rtlib_is_initialized = true;
 	logger->Debug("Initialization DONE");
 	return RTLIB_OK;

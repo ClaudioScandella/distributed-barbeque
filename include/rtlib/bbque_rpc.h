@@ -159,6 +159,12 @@ public:
 	RTLIB_ExitCode_t Disable(const RTLIB_EXCHandler_t exc_handler);
 
 	/**
+	 * @brief Initialize CGroup support if enabled.
+	 * @return RTLIB_OK on success or if CGroup support is disabled
+	 */
+	RTLIB_ExitCode_t CGroupCheckInitialization();
+
+	/**
 	 * @brief Set constraints on the AWM choice for this EXC
 	 */
 	RTLIB_ExitCode_t SetAWMConstraints(

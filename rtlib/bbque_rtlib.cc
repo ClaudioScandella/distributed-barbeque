@@ -322,6 +322,13 @@ RTLIB_ExitCode_t RTLIB_Init(const char * name, RTLIB_Services_t ** rtlib)
 		return RTLIB_BBQUE_CHANNEL_SETUP_FAILED;
 	}
 
+	// Check that Control Groups have been properly initialized (if enabled)
+	result = rpc->CGroupCheckInitialization();
+	if (result != RTLIB_OK) {
+		logger->Error("CGroup initialization FAILED");
+		return RTLIB_EXC_REGISTRATION_FAILED;
+	}
+
 	// Initializing the RPC communication channel
 	result = rpc->InitializeApplication(name);
 	if (result != RTLIB_OK) {
