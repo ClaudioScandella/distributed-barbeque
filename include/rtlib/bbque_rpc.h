@@ -1013,7 +1013,7 @@ private:
 	/**
 	 * @brief Setup statistics for a new selecte AWM
 	 */
-	RTLIB_ExitCode_t SetupStatistics(pRegisteredEXC_t exc);
+	RTLIB_ExitCode_t SetupAWMStatistics(pRegisteredEXC_t exc);
 
 	/**
 	 * @brief Update statistics for the currently selected AWM

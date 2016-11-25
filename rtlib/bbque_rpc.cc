@@ -614,7 +614,7 @@ RTLIB_ExitCode_t BbqueRPC::Disable(
 	return RTLIB_OK;
 }
 
-RTLIB_ExitCode_t BbqueRPC::SetupStatistics(pRegisteredEXC_t exc)
+RTLIB_ExitCode_t BbqueRPC::SetupAWMStatistics(pRegisteredEXC_t exc)
 {
 	assert(exc);
 	pAwmStats_t awm_stats(exc->awm_stats[exc->current_awm_id]);
@@ -1161,7 +1161,7 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingModeParams(
 	}
 
 	// Setup AWM statistics
-	SetupStatistics(exc);
+	SetupAWMStatistics(exc);
 	return RTLIB_OK;
 }
 
