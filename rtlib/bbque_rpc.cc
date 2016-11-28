@@ -1753,8 +1753,6 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 			exc->resource_assignment[i] = tmp;
 		}
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-
 	// Initializing budget info:
 	exc->cg_budget.cpuset_cpus_isolation = ""; // PEs allocated in isolation
 	exc->cg_budget.cpuset_cpus_global    = ""; // All the allocated PEs
@@ -1871,7 +1869,6 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 			exc->cg_budget.cpu_global_ids;
 	}
 
-#endif
 
 		logger->Info("SyncP_1 (Pre-Change) EXC [%d], Action [%d], Assigned AWM [%d]",
 					 msg.hdr.exc_id, msg.event, msg.awm);
@@ -2169,6 +2166,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	// Just set the goal gap. It willb e forwarded to bbque and used
 	// to change allocation.
 	exc->runtime_profiling.cpu_goal_gap = 100.0f * goal_gap;
+        exc->cg_current_allocation.cpu_affinity_mask = exc->cg_budget.cpu_global_ids;
 #else
 	// Real CPU usage according to the statistical analysis
 	float avg_cpu_usage = exc->cpu_usage_analyser.GetMean();

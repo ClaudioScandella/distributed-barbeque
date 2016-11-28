@@ -269,7 +269,6 @@ public:
 		platform_data = true;
 	}
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	inline void SetCGroupSetupData(
 		unsigned long cpu_ids, unsigned long mem_ids,
 		unsigned long cpu_ids_isolation)
@@ -283,7 +282,6 @@ public:
 	{
 		return cgroup_data;
 	}
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 
 	/**
      * @brief Check Platform Specific Data initialization
@@ -593,9 +591,9 @@ private:
 
 	/** Current scheduling informations */
 	SchedulingInfo_t schedule;
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+
 	CGroupSetupData_t cgroup_data;
-#endif
+
 	/**
 	 * @brief Store profiling information collected at runtime
 	 */

@@ -181,13 +181,11 @@ public:
 		};
 	};
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	struct CGroupSetupData_t {
 		unsigned long cpu_ids;
 		unsigned long cpus_ids_isolation;
 		unsigned long mem_ids;
 	};
-#endif
 
 	/**
 	 * @brief Type of resource usage statistics

@@ -240,7 +240,6 @@ LinuxPlatformProxy::MapResources(AppPtr_t papp, ResourceAssignmentMapPtr_t pres,
 	}
 	logger->Debug("PLAT LNX: CGroup resource mapping DONE!");
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	logger->Debug("PLAT LNX: Distributed actuation: retrieving masks and ranking");
 
 	br::ResourceBitset proc_elements =
@@ -290,7 +289,6 @@ LinuxPlatformProxy::MapResources(AppPtr_t papp, ResourceAssignmentMapPtr_t pres,
 			mem_nodes.ToString().c_str());
 
 	papp->SetCGroupSetupData(proc_elements.ToULong(), mem_nodes.ToULong(), proc_elements_exclusive.ToULong());
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 
 	return PLATFORM_OK;
 }

@@ -538,7 +538,6 @@ protected:
 		/** Statistics of currently selected AWM */
 		pAwmStats_t current_awm_stats;
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 		struct CGroupBudgetInfo {
 		    float cpu_budget_isolation = 0.0;
 		    float cpu_budget_shared = 0.0;
@@ -556,7 +555,7 @@ protected:
 		    std::string cpuset_mems;
                     std::vector<int32_t> cpu_affinity_mask;
 		} cg_current_allocation;
-#endif
+
 		struct RT_Profile {
 		    float cpu_goal_gap = 0.0f;
 		    bool rtp_forward = false;
