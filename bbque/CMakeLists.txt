@@ -53,6 +53,13 @@ configure_file (
 	@ONLY
 )
 
+# Setup HARPA-OS shell
+configure_file (
+	"${PROJECT_SOURCE_DIR}/config/harpa_init.env.in"
+	"${PROJECT_BINARY_DIR}/config/harpa_init.env"
+	@ONLY
+)
+
 # Setup BPL generator
 if (CONFIG_BBQUE_PIL_LEGACY)
 	configure_file (
@@ -255,6 +262,10 @@ install (FILES "${PROJECT_BINARY_DIR}/config/default/bbqued"
 		COMPONENT BarbequeRTRM)
 # Install the BOSP Shell environment setup
 install (FILES "${PROJECT_BINARY_DIR}/config/bosp_init.env"
+		DESTINATION ${BBQUE_PATH_CONF}
+		COMPONENT BarbequeRTRM)
+	# Install the HARPA-OS Shell environment setup
+install (FILES "${PROJECT_BINARY_DIR}/config/harpa_init.env"
 		DESTINATION ${BBQUE_PATH_CONF}
 		COMPONENT BarbequeRTRM)
 # Install the PIL configurations
