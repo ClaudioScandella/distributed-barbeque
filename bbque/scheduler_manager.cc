@@ -251,13 +251,13 @@ SchedulerManager::Schedule() {
 	// Reset timer for schedule execution time collection
 	SM_RESET_TIMING(sm_tmr);
 
-	SchedulerPolicyIF::ExitCode result = policy->Schedule(sv, svt);
-
-	if (result != SchedulerPolicyIF::SCHED_DONE) {
-		logger->Error("Scheduling [%d] FAILED", sched_count);
-		SetState(State_t::READY);     // --> Applications in a consistent state again
-		return FAILED;
-	}
+//	SchedulerPolicyIF::ExitCode result = policy->Schedule(sv, svt);
+//
+//	if (result != SchedulerPolicyIF::SCHED_DONE) {
+//		logger->Error("Scheduling [%d] FAILED", sched_count);
+//		SetState(State_t::READY);     // --> Applications in a consistent state again
+//		return FAILED;
+//	}
 
 	// Clear the next AWM from the RUNNING Apps/EXC
 	CommitRunningApplications();

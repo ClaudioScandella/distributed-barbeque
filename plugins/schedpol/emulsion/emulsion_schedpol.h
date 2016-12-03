@@ -94,6 +94,7 @@ private:
 	/** System logger instance */
 	std::unique_ptr<bu::Logger> logger;
 
+	int total_rt_cpu_available;
 
 	/**
 	 * @brief Constructor
@@ -107,6 +108,14 @@ private:
 	 * @brief Optional initialization member function
 	 */
 	ExitCode_t Init();
+
+	/**
+	 * @brief Assign resource to soft real-time tasks
+	 */
+	ExitCode_t ScheduleSoftRTEntity(bbque::app::AppCPtr_t papp);
+
+	ExitCode_t ScheduleApplication(bbque::app::AppCPtr_t papp,
+					uint32_t proc_quota);
 };
 
 } // namespace plugins

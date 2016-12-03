@@ -21,11 +21,11 @@
 #include <cstdint>
 #include <iostream>
 
-#include "bbque/modules_factory.h"
-#include "bbque/utils/logging/logger.h"
-
 #include "bbque/app/working_mode.h"
+#include "bbque/modules_factory.h"
 #include "bbque/res/binder.h"
+#include "bbque/res/resource_path.h"
+#include "bbque/utils/logging/logger.h"
 
 #define MODULE_CONFIG SCHEDULER_POLICY_CONFIG "." SCHEDULER_POLICY_NAME
 
@@ -72,21 +72,16 @@ EmulsionSchedPol::~EmulsionSchedPol() {
 
 
 SchedulerPolicyIF::ExitCode_t EmulsionSchedPol::Init() {
-	// Build a string path for the resource state view
-	std::string token_path(MODULE_NAMESPACE);
 	++status_view_count;
-	token_path.append(std::to_string(status_view_count));
-	logger->Debug("Init: Require a new resource state view [%s]",
-		token_path.c_str());
 
-	// Get a fresh resource status view
-	ResourceAccounterStatusIF::ExitCode_t ra_result =
-		ra.GetView(token_path, sched_status_view);
-	if (ra_result != ResourceAccounterStatusIF::RA_SUCCESS) {
-		logger->Fatal("Init: cannot get a resource state view");
-		return SCHED_ERROR_VIEW;
-	}
-	logger->Debug("Init: resources state view token: %ld", sched_status_view);
+	// Get the available PEs: the minimum between all available to Barbeque 
+	// and the max assignable to rt tasks
+
+	float perc_avail = BBQUE_RT_MAX_CPU / 1000.0;
+
+	total_rt_cpu_available = ra.Total("sys.cpu.pe") * perc_avail;
+	logger->Debug("Total available CPUs for Real-Time tasks [%i]",
+			total_rt_cpu_available);
 
 	return SCHED_OK;
 }
@@ -98,17 +93,99 @@ EmulsionSchedPol::Schedule(
 		RViewToken_t & status_view) {
 	SchedulerPolicyIF::ExitCode_t result = SCHED_DONE;
 
-	// Class providing query functions for applications and resources
+	// Assign the object variables
 	sys = &system;
+	sched_status_view = status_view;
+
 	Init();
 
-	/** INSERT YOUR CODE HERE **/
 
-	// Return the new resource status view according to the new resource
-	// allocation performed
+	for (AppPrio_t priority = 0;
+				   priority <= sys->ApplicationLowestPriority();
+				   priority ++) {
+
+		// Checking if there are applications at this priority
+		if (!sys->HasApplications(priority))
+			continue;
+
+		AppsUidMapIt app_it;
+		bbque::app::AppCPtr_t papp = sys->GetFirstWithPrio(priority, app_it);
+		for (; papp; papp = sys->GetNextWithPrio(priority, app_it)) {
+
+			switch (papp->RTLevel()) {
+				case RT_NONE:
+				break;
+				case RT_SOFT:
+					ScheduleSoftRTEntity(papp);
+				break;
+#ifdef BBQUE_RT_HARD
+				case RT_HARD:
+				break;
+#endif
+				default:
+					logger->Crit("Unknown RT Level, undefined "
+								"behaviour may occur.");
+				break;
+			}
+
+		}
+	
+	}
+
 	status_view = sched_status_view;
+
 	return result;
 }
+
+SchedulerPolicyIF::ExitCode_t
+EmulsionSchedPol::ScheduleSoftRTEntity(bbque::app::AppCPtr_t papp) {
+	int napps = sys->ApplicationsCount(RT_SOFT);
+	assert(napps > 0);
+	int assigned_rt_cpu = total_rt_cpu_available / napps;
+
+	logger->Debug("Assigned [%i] of CPU to RT task [%s]",
+			assigned_rt_cpu, papp->StrId());
+
+	ScheduleApplication(papp, assigned_rt_cpu);
+
+	return SCHED_DONE;
+}
+
+SchedulerPolicyIF::ExitCode_t EmulsionSchedPol::ScheduleApplication(
+		bbque::app::AppCPtr_t papp,
+		uint32_t proc_quota)
+{
+	// Build a new working mode featuring assigned resources
+	ba::AwmPtr_t pawm = papp->CurrentAWM();
+	if (pawm == nullptr) {
+		pawm = std::make_shared<ba::WorkingMode>(
+				papp->WorkingModes().size(),"Run-time", 1, papp);
+	}
+	else
+		pawm->ClearResourceRequests();
+
+	logger->Debug("Schedule: [%s] adding the processing resource request...",
+		papp->StrId());
+
+	pawm->AddResourceRequest(
+		"sys0.cpu.pe", proc_quota, br::ResourceAssignment::Policy::SEQUENTIAL);
+
+	logger->Debug("Schedule: [%s] CPU binding... (with quota [%d])", papp->StrId(), proc_quota);
+	int32_t ref_num = -1;
+	ref_num = pawm->BindResource(br::ResourceType::CPU, R_ID_ANY, R_ID_ANY, ref_num);
+	auto resource_path = std::make_shared<bbque::res::ResourcePath>("sys0.cpu.pe");
+
+	bbque::app::Application::ExitCode_t app_result =
+		papp->ScheduleRequest(pawm, sched_status_view, ref_num);
+	if (app_result != bbque::app::Application::APP_SUCCESS) {
+		logger->Error("Schedule: scheduling of [%s] failed", papp->StrId());
+		return SCHED_ERROR;
+	}
+
+	return SCHED_OK;
+}
+
+
 
 } // namespace plugins
 
