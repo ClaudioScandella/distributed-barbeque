@@ -1,6 +1,7 @@
 #include "bbque/app/application.h"
 #include "bbque/configuration_manager.h"
 #include "bbque/realtime_manager.h"
+#include "bbque/pp/linux_platform_proxy.h"
 
 #include <iostream>
 #include <fstream>
@@ -145,7 +146,11 @@ RealTimeManager::ExitCode_t RealTimeManager::SetupApp(app::AppPtr_t papp) {
 		throw std::runtime_error("The application is not RT.");
 	}
 
-	app::AppPid_t pid = papp->Pid();
+	pp::LinuxPlatformProxy *lpp = pp::LinuxPlatformProxy::GetInstance();
+
+	std::vector<int> pids;
+	lpp->GetRegisteredTasks(papp, pids);
+
 
 	// The BBQ priority has a positive range between 0 (highest) and
 	// BBQUE_APP_PRIO_LEVELS (lower priority). Instead the RT scheduler wants a
@@ -165,11 +170,13 @@ RealTimeManager::ExitCode_t RealTimeManager::SetupApp(app::AppPtr_t papp) {
 
 	const struct sched_param rt_sched = { linux_prio };
 
-	err = sched_setscheduler(pid, SCHED_POLICY, &rt_sched);
-	if (unlikely(0 != err)) {
-		logger->Error("Unable to setup application [%s] [%d: %s]", 
-						papp->StrId(), errno, strerror(errno));
-		return RTM_SYSCALL_FAILED;
+	for (const auto pid : pids){
+		err = sched_setscheduler(pid, SCHED_POLICY, &rt_sched);
+		if (unlikely(0 != err)) {
+			logger->Error("Unable to setup application [%s] [%d: %s]",
+							papp->StrId(), errno, strerror(errno));
+			return RTM_SYSCALL_FAILED;
+		}
 	}
 
 	logger->Debug("Set application RT priority successful [%s] [%d]", 
