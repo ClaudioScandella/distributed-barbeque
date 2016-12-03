@@ -143,6 +143,14 @@ public:
 	}
 
 	/**
+	 * @see ApplicationManagerStatusIF
+	 */
+	inline uint16_t ApplicationsCount(RTLIB_RT_Level_t rtlevel) {
+		return am.AppsCount(rtlevel);
+	}
+
+
+	/**
 	 * @brief Maximum integer value for the minimum application priority
 	 */
 	inline uint16_t ApplicationLowestPriority() const {

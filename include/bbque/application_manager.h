@@ -251,7 +251,7 @@ public:
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
-	uint16_t AppsCount (RTLIB_RT_Level_t lang) const;
+	uint16_t AppsCount (RTLIB_RT_Level_t rtlevel) const;
 
 	/**
 	 * @see ApplicationManagerStatusIF
