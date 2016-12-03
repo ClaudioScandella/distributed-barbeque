@@ -72,6 +72,14 @@ public:
 
 	bool IsHighPerformance(bbque::res::ResourcePathPtr_t const & path) const override;
 
+	/**
+	 * @brief Get the list of PIDs inside the CGroup of the application, that should contains
+	 * 		  all the threads spawned by the application.
+	 * @note  The cgroups must be already created or an error is returned
+	 * @param	papp	The application to search
+	 * @param	pids	The output vector of integer
+	 */
+	ExitCode_t GetRegisteredTasks(AppPtr_t papp, std::vector<int> & pids) const noexcept;
 
 private:
 //-------------------- CONSTS

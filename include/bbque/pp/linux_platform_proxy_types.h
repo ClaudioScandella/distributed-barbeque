@@ -64,8 +64,6 @@ typedef struct RLinuxBindings {
 	char *memb = NULL;
 	/** The percentage of CPUs time assigned (percent) */
 	uint_fast16_t amount_cpus = 0;
-	/** The percentage of Real-Time CPUs time assigned (per-mille) */
-	uint_fast16_t amount_rt_cpus = 0;
 	/** The bytes amount of Socket MEMORY assigned */
 	int_fast64_t amount_memb = 0;
 	/** The bytes/s amount of network bandwidth assigned */

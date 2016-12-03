@@ -52,6 +52,7 @@
 #define BBQUE_LINUXPP_MEM_EXCLUSIVE_PARAM 	"cpuset.mem_exclusive"
 #define BBQUE_LINUXPP_PROCS_PARAM		"cgroup.procs"
 #define BBQUE_LINUXPP_NETCLS_PARAM 		"net_cls.classid"
+#define BBQUE_LINUXPP_TASKS_PARAM		"tasks"
 
 #define BBQUE_LINUXPP_SYS_MEMINFO		"/proc/meminfo"
 
@@ -1231,51 +1232,54 @@ LinuxPlatformProxy::SetupCGroup(
 	uint32_t cfs_period_us = BBQUE_LINUXPP_CPUP_MAX;
 	char const *cfs_c = std::to_string(cfs_period_us).c_str();
 
-	if (likely(pcgd->cfs_quota_available)) {
-		bool quota_enforcing = true;
-		// Set the default CPU bandwidth period
-		cgroup_set_value_string(pcgd->pc_cpu, BBQUE_LINUXPP_CPUP_PARAM, cfs_c);
+	if (pcgd->papp->RTLevel() == RT_NONE) {
+		// Set quota only if non real-time
 
-		// Set the assigned CPU bandwidth amount
-		// NOTE: if a quota is NOT assigned we have amount_cpus="0", but this
-		// is not acceptable by the CFS controller, which requires a negative
-		// number to remove any constraint.
-		assert(cpus_quota == -1);
-		if (!prlb->amount_cpus) {
-			quota_enforcing = false;
+		if (likely(pcgd->cfs_quota_available)) {
+			bool quota_enforcing = true;
+			// Set the default CPU bandwidth period
+			cgroup_set_value_string(pcgd->pc_cpu, BBQUE_LINUXPP_CPUP_PARAM, cfs_c);
+
+			// Set the assigned CPU bandwidth amount
+			// NOTE: if a quota is NOT assigned we have amount_cpus="0", but this
+			// is not acceptable by the CFS controller, which requires a negative
+			// number to remove any constraint.
+			assert(cpus_quota == -1);
+			if (!prlb->amount_cpus) {
+				quota_enforcing = false;
+			}
+
+			// CFS quota to enforced is
+			// assigned + (margin * #PEs)
+			cpus_quota = prlb->amount_cpus;
+			cpus_quota += ((cpus_quota / 100) + 1) * cfs_margin_pct;
+			if ((cpus_quota % 100) > cfs_threshold_pct) {
+				logger->Warn("CFS (quota+margin) %d > %d threshold, enforcing disabled",
+				cpus_quota, cfs_threshold_pct);
+				quota_enforcing = false;
+			}
+
+			if (quota_enforcing) {
+
+				cpus_quota = (cfs_period_us / 100) *	prlb->amount_cpus;
+				cgroup_set_value_int64(pcgd->pc_cpu, BBQUE_LINUXPP_CPUQ_PARAM, cpus_quota);
+
+				logger->Debug("PLAT LNX: Setup CPU for [%s]: "
+						"{period [%s], quota [%lu]",
+						pcgd->papp->StrId(),
+						cfs_c,
+						cpus_quota);
+			} else { 
+
+				logger->Debug("PLAT LNX: Setup CPU for [%s]: "
+						"{period [%s], quota [-]}",
+						pcgd->papp->StrId(),
+						cfs_c);
+			}
+		} else {
+			logger->Warn("Unable to enforce CFS quota (not supported by the kernel).");
 		}
-
-		// CFS quota to enforced is
-		// assigned + (margin * #PEs)
-		cpus_quota = prlb->amount_cpus;
-		cpus_quota += ((cpus_quota / 100) + 1) * cfs_margin_pct;
-		if ((cpus_quota % 100) > cfs_threshold_pct) {
-			logger->Warn("CFS (quota+margin) %d > %d threshold, enforcing disabled",
-			cpus_quota, cfs_threshold_pct);
-			quota_enforcing = false;
-		}
-
-		if (quota_enforcing) {
-
-			cpus_quota = (cfs_period_us / 100) *	prlb->amount_cpus;
-			cgroup_set_value_int64(pcgd->pc_cpu, BBQUE_LINUXPP_CPUQ_PARAM, cpus_quota);
-
-			logger->Debug("PLAT LNX: Setup CPU for [%s]: "
-					"{period [%s], quota [%lu]",
-					pcgd->papp->StrId(),
-					cfs_c,
-					cpus_quota);
-		} else { 
-
-			logger->Debug("PLAT LNX: Setup CPU for [%s]: "
-					"{period [%s], quota [-]}",
-					pcgd->papp->StrId(),
-					cfs_c);
-		}
-	} else {
-		logger->Warn("Unable to enforce CFS quota (not supported by the kernel).");
 	}
-
 #endif
 
 	/**********************************************************************
@@ -1284,41 +1288,44 @@ LinuxPlatformProxy::SetupCGroup(
 
 #ifdef CONFIG_BBQUE_RT
 
-	prlb->amount_rt_cpus = 0;
-	uint64_t rt_runtime_us = BBQUE_LINUXPP_RTP_MAX/1000 
-						   * prlb->amount_rt_cpus;
+	if (pcgd->papp->RTLevel() > RT_NONE) {
 
-	// In order to change the scheduler policy in RealTimeManager we need at 
-	// a small part of the CPU RT time.
-	if (rt_runtime_us == 0) {
-		rt_runtime_us = 1;
-	}
+		uint64_t rt_runtime_us = BBQUE_LINUXPP_RTP_MAX/1000 
+							   * prlb->amount_cpus;
 
-	result = cgroup_set_value_uint64(pcgd->pc_cpu, BBQUE_LINUXPP_RT_P_PARAM,
-							BBQUE_LINUXPP_RTP_MAX);
+		// In order to change the scheduler policy in RealTimeManager we need at 
+		// a small part of the CPU RT time.
+		if (rt_runtime_us == 0) {
+			rt_runtime_us = 1;
+		}
 
-	if (unlikely(result)) {
-		logger->Error("PLAT LNX: CGroup set RT period FAILED "
-		"(Error: libcgroup, kernel cgroup set "
-		"[%d: %s])", errno, strerror(errno));
-		return PLATFORM_MAPPING_FAILED;
-	}
+		assert(rt_runtime_us <= BBQUE_RT_MAX_CPU * 1000);
 
-	result = cgroup_set_value_uint64(pcgd->pc_cpu, BBQUE_LINUXPP_RT_R_PARAM,
-								rt_runtime_us);
+		result = cgroup_set_value_uint64(pcgd->pc_cpu, BBQUE_LINUXPP_RT_P_PARAM,
+								BBQUE_LINUXPP_RTP_MAX);
 
-	if (unlikely(result)) {
-		logger->Error("PLAT LNX: CGroup set RT runtime FAILED "
-		"(Error: libcgroup, kernel cgroup set "
-		"[%d: %s])", errno, strerror(errno));
-		return PLATFORM_MAPPING_FAILED;
-	}
+		if (unlikely(result)) {
+			logger->Error("PLAT LNX: CGroup set RT period FAILED "
+			"(Error: libcgroup, kernel cgroup set "
+			"[%d: %s])", errno, strerror(errno));
+			return PLATFORM_MAPPING_FAILED;
+		}
 
-	logger->Debug("PLAT LNX: Setup CPU-RT  for [%s]: "
-			"{period [%i], runtime [%i]}",
-			pcgd->papp->StrId(),
-			BBQUE_LINUXPP_RTP_MAX, rt_runtime_us);
-	
+		result = cgroup_set_value_uint64(pcgd->pc_cpu, BBQUE_LINUXPP_RT_R_PARAM,
+									rt_runtime_us);
+
+		if (unlikely(result)) {
+			logger->Error("PLAT LNX: CGroup set RT runtime FAILED "
+			"(Error: libcgroup, kernel cgroup set "
+			"[%d: %s])", errno, strerror(errno));
+			return PLATFORM_MAPPING_FAILED;
+		}
+
+		logger->Debug("PLAT LNX: Setup CPU-RT  for [%s]: "
+				"{cpus [%d], period [%i], runtime [%i]}",
+				pcgd->papp->StrId(), prlb->amount_cpus,
+				BBQUE_LINUXPP_RTP_MAX, rt_runtime_us);
+	}	
 #endif
 
 	/**********************************************************************
@@ -1370,6 +1377,52 @@ LinuxPlatformProxy::BuildAppCG(AppPtr_t papp, CGroupDataPtr_t &pcgd) noexcept {
 	// Build new CGroup data for the specified application
 	pcgd = CGroupDataPtr_t(new CGroupData_t(papp));
 	return BuildCGroup(pcgd);
+}
+
+LinuxPlatformProxy::ExitCode_t
+LinuxPlatformProxy::GetRegisteredTasks(AppPtr_t papp, std::vector<int> & pids)
+																const noexcept {
+
+	assert(papp->IsLocal());
+
+	CGroupDataPtr_t pcgd;
+	pcgd = std::static_pointer_cast<CGroupData_t>(
+		        papp->GetPluginData(LINUX_PP_NAMESPACE, "cgroup")
+		);
+
+	if (unlikely(!pcgd)) {
+		return PLATFORM_DATA_NOT_FOUND;
+	}
+
+	// Unfortunately we cannot use pcgd->pcg to check if the "cpu" controller
+	// is available or not, so we have to open a new cgroup in order to check
+	// this
+
+	int result, pid;
+	void *handle;
+
+	result = cgroup_get_task_begin(pcgd->cgpath, "cpuset", &handle, &pid);
+
+	if (unlikely(result)) {
+		logger->Error("Unable to read the task file [%d].", result);
+		return PLATFORM_GENERIC_ERROR;
+	}
+
+	pids.push_back(pid);
+
+	while(0 == (result = cgroup_get_task_next(&handle, &pid))) {
+		pids.push_back(pid);
+	}
+
+	cgroup_get_task_end(&handle);
+
+	if (result != ECGEOF) {
+		logger->Error("Unexpected error getting CGroups tasks [%d]", result);
+		pids.clear();
+		return PLATFORM_GENERIC_ERROR;
+	}
+
+	return PLATFORM_OK;
 }
 
 
