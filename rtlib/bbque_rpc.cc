@@ -53,6 +53,10 @@ namespace rtlib
 
 std::unique_ptr<bu::Logger> BbqueRPC::logger;
 
+#ifdef CONFIG_BBQUE_RTLIB_EXECUTION_ANALYSER
+std::unique_ptr<bu::Logger> BbqueRPC::stat_logger;
+#endif
+
 // The RTLib configuration
 RTLIB_Conf_t BbqueRPC::rtlib_configuration;
 
@@ -78,6 +82,11 @@ BbqueRPC * BbqueRPC::GetInstance()
 
 	// Get a Logger module
 	logger = bu::Logger::GetLogger(BBQUE_LOG_MODULE);
+
+#ifdef CONFIG_BBQUE_RTLIB_EXECUTION_ANALYSER
+	stat_logger = bu::Logger::GetLogger("stat");
+#endif
+
 	// Parse environment configuration
 	ParseOptions();
 	// Instantiating a communication client based on the current mode
@@ -414,6 +423,9 @@ RTLIB_EXCHandler_t BbqueRPC::Register(
 	exc_map.emplace(new_exc->id, new_exc);
 	// Mark the EXC as Registered
 	setRegistered(new_exc);
+
+	STAT_LOG("APPLICATION:EXC_REGISTER");
+
 	return (RTLIB_EXCHandler_t) & (new_exc->parameters);
 }
 
@@ -530,6 +542,8 @@ void BbqueRPC::Unregister(
 	clearRegistered(exc);
 	// Release the controlling CGroup
 	CGroupDelete(exc);
+
+	STAT_LOG("APPLICATION:EXC_STOP");
 }
 
 void BbqueRPC::UnregisterAll()
@@ -838,6 +852,9 @@ RTLIB_ExitCode_t BbqueRPC::CGroupDelete(pRegisteredEXC_t exc)
 
 	// Mark this CGroup as removed
 	exc->cgroup_path.clear();
+
+	STAT_LOG("CGROUP:DELETE");
+
 	return RTLIB_OK;
 }
 
@@ -874,6 +891,8 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCreate(pRegisteredEXC_t exc, int pid)
 		logger->Error("CGroup setup [%s] FAILED");
 		return RTLIB_ERROR;
 	}
+
+	STAT_LOG("CGROUP:CREATE");
 
 	return RTLIB_OK;
 }
@@ -954,9 +973,17 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 		cgsetup.cpu.cfs_period_us.c_str());
 
 	bu::CGroups::WriteCgroup(cgroup_path, cgsetup, channel_thread_pid);
+
+	STAT_LOG("CGROUP:WRITE:CPUSET %s", cgsetup.cpuset.cpus.c_str());
+	STAT_LOG("CGROUP:WRITE:MEMS %s", cgsetup.cpuset.mems.c_str());
+	STAT_LOG("CGROUP:WRITE:CFS_PERIOD %s", cgsetup.cpu.cfs_period_us.c_str());
+	STAT_LOG("CGROUP:WRITE:CFS_QUOTA %s", cgsetup.cpu.cfs_quota_us.c_str());
+
 #else
 	UNUSED(exc);
+
 #endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+
 	return RTLIB_OK;
 }
 
@@ -1886,6 +1913,14 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 
 #endif
 
+		STAT_LOG("APPLICATION:ALLOC_CHANGED");
+		STAT_LOG("RESOURCE:PE_N %d",
+			 exc->resource_assignment[0]->number_proc_elements);
+		STAT_LOG("RESOURCE:PE_BANDWIDTH %d",
+			 exc->resource_assignment[0]->cpu_bandwidth);
+		STAT_LOG("RESOURCE:CPU_N %d",
+			 exc->resource_assignment[0]->number_cpus);
+
 		logger->Info("SyncP_1 (Pre-Change) EXC [%d], Action [%d], Assigned AWM [%d]",
 					 msg.hdr.exc_id, msg.event, msg.awm);
 		logger->Debug("SyncP_1 (Pre-Change) EXC [%d], Action [%d], Assigned PROC=<%d>",
@@ -2136,6 +2171,10 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		float cps_min = 1000.0f / max_cycletime_ms;
 		float cps_max = 1000.0f / min_cycletime_ms;
 
+		STAT_LOG("PERFORMANCE:AVERAGE_CPS_SYSTEM %.2f", cps_avg);
+		STAT_LOG("PERFORMANCE:AVERAGE_CPS_USER %.2f",
+			 1000.0f / exc->cycletime_analyser_user.GetMean());
+
 		float target_cps;
 		float current_cps;
 		bool  bad_allocation = false;
@@ -2169,11 +2208,15 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 
 		logger->Debug("Performance goal gap is %f", 100.0f * goal_gap);
 
+		STAT_LOG("PERFORMANCE:PERFORMANCE_GAP %.2f", 100.0f * goal_gap);
+
 	} else if (exc->explicit_ggap_assertion){
 		goal_gap = exc->explicit_ggap_value / 100.0f;
 		exc->explicit_ggap_assertion = false;
 		exc->explicit_ggap_value = 0.0;
 		logger->Debug("Performance goal gap (EXPLICIT) is %f", 100.0f * goal_gap);
+
+		STAT_LOG("PERFORMANCE:PERFORMANCE_GAP_EXPLICIT %.2f", 100.0f * goal_gap);
 	} else
 		return RTLIB_OK;
 
@@ -2334,6 +2377,9 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 					  (void *) exc_handler, exc->name.c_str(), result, RTLIB_ErrorStr(result));
 		return RTLIB_EXC_ENABLE_FAILED;
 	}
+
+	STAT_LOG("PERFORMANCE:RTPROFILE_FORWARD:CPU_GAP %.2f", goal_gap);
+	STAT_LOG("PERFORMANCE:RTPROFILE_FORWARD:CPU_USAGE %.2f", cpu_usage);
 
 	return RTLIB_OK;
 }
@@ -3195,6 +3241,9 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 			SetCPS(exc_handler, exc->cps_goal_max);
 	}
 
+	STAT_LOG("PERFORMANCE:CPSGOAL_MIN %.2f", exc->cps_goal_min);
+	STAT_LOG("PERFORMANCE:CPSGOAL_MAX %.2f", exc->cps_goal_max);
+
 	return RTLIB_OK;
 }
 
@@ -3313,6 +3362,11 @@ void BbqueRPC::NotifyPreConfigure(
 	logger->Debug("NotifyPreConfigure - OCL Device: %d", local_sys->ocl_device_id);
 	OclSetDevice(local_sys->ocl_device_id, exc->event);
 #endif
+
+	if(exc->cycles_count == 0)
+		STAT_LOG("APPLICATION:EXC_START");
+
+	STAT_LOG("APPLICATION:RECONFIGURATION");
 }
 
 void BbqueRPC::NotifyPostConfigure(
@@ -3386,6 +3440,8 @@ void BbqueRPC::NotifyPreRun(
 
 	logger->Debug("Pre-Run: Starting computing CPU quota");
 	InitCPUBandwidthStats(exc);
+
+	STAT_LOG("APPLICATION:CYCLE_START %d", exc->cycles_count);
 }
 
 void BbqueRPC::NotifyPostRun(
@@ -3400,6 +3456,8 @@ void BbqueRPC::NotifyPostRun(
 					  "(EXC not registered)", (void *) exc_handler);
 		return;
 	}
+
+	STAT_LOG("APPLICATION:CYCLE_STOP %d", exc->cycles_count);
 
 	assert(isRegistered(exc) == true);
 	logger->Debug("Post-Run: Checking if perf counters are activated");

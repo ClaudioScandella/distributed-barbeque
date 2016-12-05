@@ -35,6 +35,12 @@
 # include "bbque/utils/perf.h"
 #endif
 
+#ifdef CONFIG_BBQUE_RTLIB_EXECUTION_ANALYSER
+#define STAT_LOG(fmt, ...) do {stat_logger->Info(fmt, ## __VA_ARGS__);} while (0)
+#else
+#define STAT_LOG(fmt, ...) do {} while (0)
+#endif
+
 #ifdef CONFIG_BBQUE_OPENCL
 #include "rtlib/bbque_ocl_stats.h"
 #endif
@@ -363,6 +369,10 @@ public:
 protected:
 
 	static std::unique_ptr<bu::Logger> logger;
+
+#ifdef CONFIG_BBQUE_RTLIB_EXECUTION_ANALYSER
+	static std::unique_ptr<bu::Logger> stat_logger;
+#endif
 
 	typedef struct PerfEventAttr {
 #ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT

@@ -17,6 +17,7 @@ rootCategory = DEBUG, raConsole
 category.rtl	=	NOTICE
 category.rpc	=	NOTICE
 category.exc	=	NOTICE
+category.stat	=	DEBUG
 
 ################################################################################
 # Console Appender
