@@ -1991,9 +1991,6 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		logger->Debug("Updating CPU allocation: %f -> %f",
 					avg_cpu_usage, ideal_cpu_usage);
 
-		// Actuate the ideal_allocation choice
-		if (ideal_cpu_usage / 100.0f > exc->cg_budget.cpu_budget_shared)
-			logger->Debug("Total budget: SATURATION");
 
 		exc->cg_current_allocation.cpu_budget =
 			std::min(ideal_cpu_usage / 100.0f, exc->cg_budget.cpu_budget_shared);
