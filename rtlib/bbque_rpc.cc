@@ -1486,6 +1486,12 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 		case RTLIB_EXC_GWM_MIGREC:
 		case RTLIB_EXC_GWM_MIGRATE:
 			logger->Debug("[%s] Migration", exc->name.c_str());
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+			// Distributed actuation: EXC will reconfigure on
+			// allocation change (or EXC start), not on budget change
+			if (exc->event != RTLIB_EXC_GWM_START)
+				return RTLIB_OK;
+#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 			break;
 
 		case RTLIB_EXC_GWM_BLOCKED:
