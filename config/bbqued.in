@@ -248,7 +248,6 @@ stop() {
 		rm -f $BBQUE_PIDFILE $BBQUE_LOCKFILE >/dev/null 2>&1
 	fi
 
-	sudo kill -9 $(pidof barbeque) >/dev/null 2>&1
 	sudo killall `basename $BBQUE_CGAGENT` &> /dev/null
 
 	exit 0
