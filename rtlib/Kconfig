@@ -139,4 +139,18 @@ config BBQUE_YP_SASB_ASYNC
 
   If unsure, select Y. Select N for Android targets.
 
+config BBQUE_RTLIB_EXECUTION_ANALYSER
+  bool "Execution analysis log"
+  default n
+  ---help---
+  Activates the stat logger, which outputs parse-friendly messages during
+  the application execution. The messages pertain to application (register,
+  unregister, start of the exc, allocation changes); performance (cps goals,
+  performance gap, runtime profile forwardings); resources (number of PEs
+  and CPUs, PE bandwidth); CGroups (cgroup creation, write, destroy).
 
+  CGroups info is available only in case of distributed actuation
+  (see Barbeque -> Platform Setup -> Linux Resource Management ->
+                 Linux Control Groups -> CGroups handled at RTLIb level
+
+  If unsure, select N.

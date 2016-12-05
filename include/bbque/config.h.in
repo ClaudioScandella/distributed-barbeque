@@ -245,6 +245,9 @@
 /** Enabled SASB Synchronization policy asynchronous calls */
 #cmakedefine CONFIG_BBQUE_YP_SASB_ASYNC
 
+/** Enable Execution Analysis logging */
+#cmakedefine CONFIG_BBQUE_RTLIB_EXECUTION_ANALYSER
+
 /** Enable the scheduling policy profiling  */
 #cmakedefine CONFIG_BBQUE_SCHED_PROFILING
 
