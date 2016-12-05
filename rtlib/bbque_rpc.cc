@@ -1216,6 +1216,7 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 	case MEMORY:
 		r_amount = wm->systems[0].mem_bandwidth;
 		break;
+
 #ifdef CONFIG_BBQUE_OPENCL
 #ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	case GPU:
