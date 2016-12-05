@@ -1198,11 +1198,19 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 		break;
 
 	case PROC_NR:
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+		r_amount = (int32_t) std::ceil(exc->cg_current_allocation.cpu_budget);
+#else // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 		r_amount = wm->systems[0].number_proc_elements;
+#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 		break;
 
 	case PROC_ELEMENT:
+#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+		r_amount = (int32_t) (100.0f * exc->cg_current_allocation.cpu_budget);
+#else // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 		r_amount = wm->systems[0].cpu_bandwidth;
+#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 		break;
 
 	case MEMORY:
