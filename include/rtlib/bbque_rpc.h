@@ -876,6 +876,9 @@ protected:
 		/** The ID of the assigned AWM (if valid) */
 		int8_t current_awm_id = 0;
 
+		/** Whether EXC must reconfigure to exploit this allocation */
+		bool trigger_reconfigure = false;
+
 		/** Resource allocation for each system **/
 		SysResMap_t resource_assignment;
 

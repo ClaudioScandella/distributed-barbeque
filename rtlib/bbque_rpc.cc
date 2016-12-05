@@ -1455,6 +1455,10 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 
 	// Wait for a valid AWM
 	if (! continue_running) {
+		// Reset PostMonitor reconfigure flag, because the EXC will
+		// already reconfigure due to AWM change (or be suspended)
+		exc->trigger_reconfigure = false;
+
 		logger->Debug("Waiting for assigned AWM...");
 		// Waiting for an AWM being assigned
 		result = WaitForWorkingMode(exc);
@@ -1496,6 +1500,15 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 		}
 
 		return exc->event;
+	}
+
+	// If no new AWM was assigned but PostMonitor asked for a
+	// reconfiguration, mark the EXC as `migrating`
+	if (exc->trigger_reconfigure) {
+		// Reset PostMonitor reconfigure flag
+		exc->trigger_reconfigure = false;
+		// Trigger migration
+		return RTLIB_EXC_GWM_MIGRATE;
 	}
 
 	return RTLIB_OK;
@@ -1992,6 +2005,10 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 					avg_cpu_usage, ideal_cpu_usage);
 
 
+		// Current usage, to be compared later with the new one
+		float curr_pe_usage = std::floor(exc->cg_current_allocation.cpu_budget);
+		std::string curr_cpuset = exc->cg_current_allocation.cpuset_cpus;
+
 		exc->cg_current_allocation.cpu_budget =
 			std::min(ideal_cpu_usage / 100.0f, exc->cg_budget.cpu_budget_shared);
 		exc->cg_current_allocation.cpuset_cpus =
@@ -2007,6 +2024,17 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		logger->Debug("Applying CGroup configuration: CPU %.2f/%.2f",
 			100.0f * exc->cg_current_allocation.cpu_budget,
 			100.0f * exc->cg_budget.cpu_budget_shared);
+
+		// New usage, to be compared with the old one
+		float next_pe_usage = std::floor(exc->cg_current_allocation.cpu_budget);
+		std::string next_cpuset = exc->cg_current_allocation.cpuset_cpus;
+
+		// If there is a difference in either cpuset or number of
+		// exploitable pes, a new reconfiguration is needed.
+		if (curr_pe_usage != next_pe_usage ||
+			next_cpuset.compare(curr_cpuset) != 0)
+			exc->trigger_reconfigure = true;
+
 		CGroupCommitAllocation(exc);
 	}
 
