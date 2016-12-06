@@ -336,6 +336,11 @@ RXMLPlatformLoader::ExitCode_t RXMLPlatformLoader::ParseSystemDocument(
 	if (ec != PL_SUCCESS)
 		return ec;
 
+	/// <netif>
+	ec = ParseNetworkIFs(root, sys);
+	if (ec != PL_SUCCESS)
+		return ec;
+
 	pd.AddSystem(sys);
 	return is_local ? PL_SUCCESS : PL_SUCCESS_NO_LOCAL;
 }
@@ -408,21 +413,50 @@ RXMLPlatformLoader::ExitCode_t RXMLPlatformLoader::ParseMemories(
 		mem.SetPrefix(sys.GetPath());
 		mem.SetId(id);
 
-#if BBQUE_PP_ARCH_SUPPORTS_INT64
+
 		mem.SetQuantity(((int64_t)quantity) << exp);
-#else
-		if (exp < 32) {
-			mem.SetQuantityLO(((int32_t)quantity) << exp );
-			mem.SetQuantityHI(((int32_t)quantity) >> (32-exp) );
-		} else {
-			mem.SetQuantityLO(0);
-			mem.SetQuantityHI(((int32_t)quantity) << (exp-32) );
-		}
-#endif
 
 		sys.AddMemory(std::make_shared<pp::PlatformDescription::Memory>(mem));
 
 		memory_tag = memory_tag->next_sibling("mem");
+	}
+
+	return PL_SUCCESS;
+}
+
+RXMLPlatformLoader::ExitCode_t RXMLPlatformLoader::ParseNetworkIFs(
+		node_ptr root,
+		pp::PlatformDescription::System & sys) {
+
+
+	node_ptr netif_tag = this->GetFirstChild(root,"netif",true) ;
+
+	while( netif_tag != NULL ) {
+		attr_ptr id_attr   = this->GetFirstAttribute(netif_tag, "id",   true);
+		attr_ptr name_attr = this->GetFirstAttribute(netif_tag, "name", true);
+
+		short        id;
+		std::string  name(name_attr->value());
+
+		// id=""
+		try {
+			// Yes, this conversion is unsafe. However, there will not probably
+			// be over 32767 memories in one machine...
+			id = (short)std::stoi(id_attr->value());
+		} catch(const std::invalid_argument& e) {
+			logger->Error("ID for <netif> is not a valid integer.");
+			return PL_LOGIC_ERROR;
+		} catch(const std::out_of_range& e) {
+			logger->Error("ID for <netif> is out-of-range, please change your unit.");
+			return PL_LOGIC_ERROR;
+		}
+
+		pp::PlatformDescription::NetworkIF netif(id, name);
+		netif.SetPrefix(sys.GetPath());
+
+		sys.AddNetworkIF(std::make_shared<pp::PlatformDescription::NetworkIF>(netif));
+
+		netif_tag = netif_tag->next_sibling("netif");
 	}
 
 	return PL_SUCCESS;

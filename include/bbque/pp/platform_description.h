@@ -240,7 +240,7 @@ public:
 	public:
 
 		NetworkIF(uint16_t id, std::string name)
-			: Resource(id), name(name)
+			: Resource(id, res::ResourceType::NETWORK_IF), name(name)
 		{}
 
 		inline std::string GetName() const {
@@ -386,7 +386,7 @@ public:
 			return this->networkIFs;
 		}
 
-		inline void AddNetworkIFs(NetworkIF_t networkIF) {
+		inline void AddNetworkIF(NetworkIF_t networkIF) {
 			this->networkIFs.push_back(networkIF);
 		}
 

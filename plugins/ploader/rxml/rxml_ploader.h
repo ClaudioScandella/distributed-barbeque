@@ -137,6 +137,8 @@ private:
 
 	ExitCode_t ParseMemories(node_ptr root, pp::PlatformDescription::System & sys);
 
+	ExitCode_t ParseNetworkIFs(node_ptr root, pp::PlatformDescription::System & sys);
+
 	ExitCode_t ParseCPUs(node_ptr root, pp::PlatformDescription::System & sys);
 
 	ExitCode_t ParseProcessingElement(

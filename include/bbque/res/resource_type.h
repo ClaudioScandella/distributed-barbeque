@@ -40,12 +40,12 @@ enum class ResourceType
 	GROUP        ,
 	CPU          ,
 	GPU          ,
+	ACCELERATOR  ,
 	PROC_ELEMENT ,
 	MEMORY       ,
-	ACCELERATOR  ,
+	NETWORK_IF   ,
 	INTERCONNECT ,
 	IO           ,
-	NETWORK_IF   ,
 	CUSTOM       ,
 };
 

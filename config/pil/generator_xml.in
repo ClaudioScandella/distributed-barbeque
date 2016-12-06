@@ -39,8 +39,10 @@ function PopulateDebugLog {
 }
 
 function CloseGenerator {
-	rm $TMP_FOLDER/* &> /dev/null
-	rmdir $TMP_FOLDER/* &> /dev/null
+	if [[ $DEBUG_MODE == 1 ]]; then
+		rm $TMP_FOLDER/* &> /dev/null
+		rmdir $TMP_FOLDER/* &> /dev/null
+	fi
 	kill -9 $PID &> /dev/null
 	exit
 }
@@ -96,7 +98,7 @@ function Setup {
 	mkdir -p $TMP_FOLDER
 	rm $TMP_FOLDER/* &> /dev/null
 
-	lstopo -v --no-io --no-bridges --no-icaches | \
+	lstopo -v --no-bridges --no-icaches | \
 		grep -v "Machine\|L1dCache" | \
 		awk '{if($1 == "depth") exit; print $0}' > $TMP_FOLDER/lstopo_description
 
@@ -163,6 +165,7 @@ function XML_WriteHead {
 function XML_WriteTail {
 	echo "    </cpu>" >> $TARGET_SYS
 	cat $TMP_FOLDER/xml_mems >> $TARGET_SYS
+	cat $TMP_FOLDER/xml_netifs >> $TARGET_SYS
 	echo "</system>" >> $TARGET_SYS
 }
 
@@ -256,7 +259,7 @@ XML_WriteHead # Write a part of the XML output on a file
 
 # From now on, I refuse to stick to 80 columns width. Really.
 while read lstopo_entry; do
-	KEYWORD=$(echo $lstopo_entry | sed -e 's/Socket/Package/g' | awk '{print $1}')
+	KEYWORD=$(echo $lstopo_entry | sed -e 's/Socket/Package/g' | sed -e 's/Network/Net/g' | awk '{print $1}')
 
 	case $KEYWORD in
 		"NUMANode")
@@ -315,6 +318,12 @@ while read lstopo_entry; do
 
 			echo "        <pe id=\""$CURRENT_PE"\" core_id=\""$CURRENT_CORE"\" share=\"100\" partition=\""$PARTITION"\"/>" >> $TARGET_SYS
 			PopulateDebugLog "Found a Processing Element. ID: $CURRENT_PE, core_id: $CURRENT_CORE, partition: $PARTITION"
+			;;
+                "Net")
+			CURRENT_NETIF=$(echo $lstopo_entry | grep -o "L#[0-9]\{1,\}" | grep -o "[0-9]\{1,\}")
+			NETIF_NAME=$(echo $lstopo_entry | grep -o "\"\w*\"" | grep -o "\w*")
+			echo "    <netif id=\""$CURRENT_NETIF"\" name=\""$NETIF_NAME"\" />" >> $TMP_FOLDER/xml_netifs
+			PopulateDebugLog "Found a NetworkInterFace. ID: $CURRENT_NETIF, name: $NETIF_NAME"
 			;;
 		*)
 			PopulateDebugLog "Unknown Keyword: $KEYWORD"
