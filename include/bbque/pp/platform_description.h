@@ -148,19 +148,10 @@ public:
 
 		Memory(uint16_t id = 0): Resource(id, res::ResourceType::MEMORY) {}
 
-#if BBQUE_PP_ARCH_SUPPORTS_INT64
 		Memory(uint16_t id, uint64_t quantity)
 			: Resource(id), quantity(quantity)
 		{}
-#else
-		Memory(uint16_t id, uint32_t quantity_hi, uint32_t quantity_lo)
-			: Resource(id, res::ResourceType::MEMORY),
-			 quantity_hi(quantity_hi), quantity_lo(quantity_lo)
-		{}
-#endif
 
-
-#if BBQUE_PP_ARCH_SUPPORTS_INT64
 		inline uint64_t GetQuantity() const {
 			return this->quantity;
 		}
@@ -168,33 +159,13 @@ public:
 		inline void SetQuantity(uint64_t quantity) {
 			this->quantity = quantity;
 		}
-#else
-		inline uint32_t GetQuantityLO() const {
-			return this->quantity_lo;
-		}
-
-		inline void SetQuantityLO(uint32_t quantity) {
-			this->quantity_lo = quantity;
-		}
-		inline uint32_t GetQuantityHI() const {
-			return this->quantity_hi;
-		}
-
-		inline void SetQuantityHI(uint32_t quantity) {
-			this->quantity_hi = quantity;
-		}
 
 		void SetType(res::ResourceType type) = delete;
 
-#endif
 
 	private:
-#if BBQUE_PP_ARCH_SUPPORTS_INT64
 		uint64_t quantity;
-#else
-		uint32_t quantity_lo;
-		uint32_t quantity_hi;
-#endif
+
 
 	};
 
