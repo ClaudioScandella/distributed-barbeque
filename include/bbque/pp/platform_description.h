@@ -235,6 +235,61 @@ public:
 	};
 
 
+	class NetworkIF : public Resource {
+
+	public:
+
+		NetworkIF(uint16_t id, std::string name)
+			: Resource(id), name(name)
+		{}
+
+		inline std::string GetName() const {
+			return this->name;
+		}
+
+		inline void SetName(std::string name) {
+			this->name = name;
+		}
+
+		inline unsigned int GetFlags() const {
+			return this->flags;
+		}
+
+		inline void SetFlags(unsigned int flags) {
+			this->flags = flags;
+		}
+
+		inline void SetOnline(bool online) {
+			this->online = online;
+		}
+
+		inline bool GetOnline() const {
+			return this->online;
+		}
+
+		inline void SetAddress(std::shared_ptr<struct sockaddr> address) {
+			this->address = address;
+		}
+
+		inline std::shared_ptr<struct sockaddr> GetAddress() const {
+			return this->address;
+		}
+
+
+		void SetType(res::ResourceType type) = delete;
+
+
+	private:
+		bool online = false;
+		unsigned int flags = 0;
+		std::string name;
+
+		std::shared_ptr<struct sockaddr> address;
+
+	};
+
+	typedef std::shared_ptr<NetworkIF> NetworkIF_t;
+
 	class System :  public Resource {
 	public:
 
@@ -323,6 +378,19 @@ public:
 			this->memories.push_back(memory);
 		}
 
+		inline const std::vector<NetworkIF_t> & GetNetworkIFsAll() const {
+			return this->networkIFs;
+		}
+
+		inline std::vector<NetworkIF_t> & GetNetworkIFsAll() {
+			return this->networkIFs;
+		}
+
+		inline void AddNetworkIFs(NetworkIF_t networkIF) {
+			this->networkIFs.push_back(networkIF);
+		}
+
+
 		void SetType(res::ResourceType type) = delete;
 
 	private:
@@ -335,6 +403,7 @@ public:
 		std::vector <MulticoreProcessor> gpus;
 		std::vector <MulticoreProcessor> accelerators;
 		std::vector <MemoryPtr_t> memories;
+		std::vector <NetworkIF_t> networkIFs;
 	};
 
 	inline const System & GetLocalSystem() const {
