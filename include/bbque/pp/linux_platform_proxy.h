@@ -122,6 +122,20 @@ private:
 	void InitCoresType();
 #endif
 
+#ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
+
+	NetworkInfo_t network_info;
+	void InitNetworkManagement();
+
+	ExitCode_t MakeQDisk(int if_index);
+	ExitCode_t MakeCLS(int if_index);
+
+
+	static ExitCode_t HTBParseOpt(struct nlmsghdr *n);
+	static ExitCode_t HTBParseClassOpt(unsigned rate, struct nlmsghdr *n);
+	static ExitCode_t CGParseOpt(long handle, struct nlmsghdr *n);
+#endif
+
 	std::string memory_ids_all;
 
 //-------------------- METHODS
@@ -150,6 +164,7 @@ private:
 	ExitCode_t ScanPlatformDescription() noexcept;
 	ExitCode_t RegisterCPU(const PlatformDescription::CPU &cpu) noexcept;
 	ExitCode_t RegisterMEM(const PlatformDescription::Memory &mem) noexcept;
+	ExitCode_t RegisterNET(const PlatformDescription::NetworkIF &net) noexcept;
 
 	// --- CGroup-releated methods
 	ExitCode_t InitCGroups() noexcept;                          /**< Load the libcgroup and initialize the internal representation */

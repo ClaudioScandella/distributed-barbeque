@@ -196,6 +196,14 @@ target_link_libraries(
 )
 endif (CONFIG_BBQUE_EM)
 
+# Linking network project
+if (CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH)
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${PROJECT_BINARY_DIR}/lib")
+target_link_libraries(barbeque
+	netlink
+)
+endif (CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH)
+
 
 # -------------- Static libraries and plugin linking  ------------------
 

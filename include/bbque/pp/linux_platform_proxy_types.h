@@ -9,10 +9,13 @@ include linux_platform_proxy.h!
 #include "bbque/utils/extra_data_container.h"
 #include "bbque/app/application.h"
 
+#ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
+#include <netlink/libnetlink.h>
+#endif
+
 #include <cstdint>
 #include <memory>
 #include <libcgroup.h>
-
 
 /**
  * @brief The CGroup expected to assigne resources to BBQ
@@ -129,6 +132,28 @@ typedef struct CGroupData : public bbque::utils::PluginData_t {
 
 typedef std::shared_ptr<CGroupData_t> CGroupDataPtr_t;
 
+
+#ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
+// TODO check this size (it seems too high)
+#define MAX_MSG 16384	// 2^14
+/**
+ * @brief The netlink communication structure
+ *	  It contains the file descriptors used in communication with the kernel
+ *	  and the socket address
+ */
+typedef struct NetworkInfo {
+	struct rtnl_handle rth_1;
+	struct rtnl_handle rth_2;
+	struct sockaddr_nl kernel_addr;
+} NetworkInfo_t;
+
+typedef struct Requests{
+	struct nlmsghdr 	n;
+	struct tcmsg 		t;
+	char   			buf[MAX_MSG];
+} NetworkKernelRequest_t;
+
+#endif
 
 }   // namespace pp
 }   // namespace bbque

@@ -5,10 +5,28 @@
 #include "bbque/res/binder.h"
 #include "bbque/res/resource_path.h"
 
+#include "bbque/utils/assert.h"
+
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <libcgroup.h>
 #include <linux/version.h>
+
+#ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
+#include <asm/types.h>
+#include <linux/if_ether.h>
+#include <linux/netlink.h>
+#include <linux/pkt_sched.h>
+#include <linux/pkt_cls.h>
+#include <linux/rtnetlink.h>
+#include <netlink/ll_map.h>
+#include <sys/socket.h>
+#include <net/if.h>
+
+#define Q_HANDLE (0x100000)
+#define F_HANDLE (1)
+
+#endif
 
 #define BBQUE_LINUXPP_PLATFORM_ID		"org.linux.cgroup"
 
@@ -80,6 +98,10 @@ LinuxPlatformProxy::LinuxPlatformProxy() :
 	InitCoresType();
 #endif
 
+#ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
+	InitNetworkManagement();
+#endif
+
 }
 
 LinuxPlatformProxy::~LinuxPlatformProxy() {
@@ -120,6 +142,160 @@ void LinuxPlatformProxy::InitCoresType() {
 
 #endif
 
+
+#ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
+void LinuxPlatformProxy::InitNetworkManagement() {
+	bbque_assert ( 0 == rtnl_open(&network_info.rth_1, 0) );
+	bbque_assert ( 0 == rtnl_open(&network_info.rth_2, 0) );
+	memset(&network_info.kernel_addr, 0, sizeof(network_info.kernel_addr));
+	network_info.kernel_addr.nl_family = AF_NETLINK;
+	
+	logger->Debug("NetoworkManagement: sockets to kernel initialized.");
+}
+
+
+LinuxPlatformProxy::ExitCode_t LinuxPlatformProxy::MakeQDisk(int if_index) {
+	char  k[16];
+	NetworkKernelRequest_t req;
+
+	memset(&req, 0, sizeof(req));
+	memset(&k, 0, sizeof(k));
+
+	req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg));
+	req.n.nlmsg_flags = NLM_F_REQUEST|NLM_F_EXCL|NLM_F_CREATE;
+	req.n.nlmsg_type = RTM_NEWQDISC;
+	req.t.tcm_family = AF_UNSPEC;
+	req.t.tcm_parent = TC_H_ROOT;
+	req.t.tcm_handle = Q_HANDLE;
+
+	strncpy(k, "htb", sizeof(k)-1);
+	addattr_l(&req.n, sizeof(req), TCA_KIND, k, strlen(k)+1);
+	HTBParseOpt(&req.n);
+
+	req.t.tcm_ifindex = if_index;
+
+	int err = rtnl_talk(&network_info.kernel_addr, &network_info.rth_2,
+					&req.n, 0, 0, NULL, NULL, NULL);
+ 	if (err < 0) {
+		if (EEXIST == errno) {
+			// That's good, someone else added the QDisk
+			return PLATFORM_OK;
+		}
+
+		logger->Error("MakeQDisk: Kernel communication failed "
+				"[%d] (%s).", errno, strerror(errno));
+		return PLATFORM_GENERIC_ERROR;
+	}
+
+	return PLATFORM_OK;
+
+}
+
+LinuxPlatformProxy::ExitCode_t LinuxPlatformProxy::MakeCLS(int if_index) {
+	char k[16];
+	NetworkKernelRequest_t req;
+
+	memset(&req, 0, sizeof(req));
+	memset(k, 0, sizeof(k));
+	memset(&req, 0, sizeof(req));
+
+	req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg));
+	req.n.nlmsg_flags = NLM_F_REQUEST |(NLM_F_REPLACE |NLM_F_CREATE);
+	req.n.nlmsg_type = RTM_NEWTFILTER;
+	req.t.tcm_family = AF_UNSPEC;
+
+	//parent handle
+	req.t.tcm_parent = Q_HANDLE;
+
+	//proto & prio
+	uint32_t protocol = 8;  // 8 = ETH_P_IP
+	uint32_t prio = 10;
+	req.t.tcm_info = TC_H_MAKE(prio<<16, protocol);
+
+	// &kind
+	strncpy(k, "cgroup", sizeof(k)-1);
+	addattr_l(&req.n, sizeof(req), TCA_KIND, k, strlen(k)+1);
+	CGParseOpt(F_HANDLE, &req.n);
+
+	// if index
+	req.t.tcm_ifindex = if_index;
+
+	//try to talk
+	int err = rtnl_talk(&network_info.kernel_addr, &network_info.rth_2, 
+					&req.n, 0, 0, NULL, NULL, NULL);
+	if (unlikely(err < 0)) {
+		logger->Error("MakeCLS: Kernel communication failed "
+				"[%d] (%s).", errno, strerror(errno));
+		return PLATFORM_GENERIC_ERROR;
+	}
+	return PLATFORM_OK;
+}
+
+LinuxPlatformProxy::ExitCode_t
+LinuxPlatformProxy::CGParseOpt(long handle, struct nlmsghdr *n) {
+	struct tcmsg *t =(struct tcmsg *) NLMSG_DATA(n);
+	struct rtattr *tail;
+	void * p1;
+	void * p2;
+	t->tcm_handle = handle;
+
+	tail = (struct rtattr*)(((void*)n)+NLMSG_ALIGN(n->nlmsg_len));
+	addattr_l(n, MAX_MSG, TCA_OPTIONS, NULL, 0);
+
+	p1 = n;
+	p2 = tail;
+	tail->rta_len = ((char *)p1) - ((char *)p2)+n->nlmsg_len;
+	return PLATFORM_OK;
+}
+
+LinuxPlatformProxy::ExitCode_t
+LinuxPlatformProxy::HTBParseOpt(struct nlmsghdr *n)
+{
+	struct tc_htb_glob opt;   //in pkt_sched.h
+	struct rtattr *tail;
+	memset(&opt,0,sizeof(opt));
+	opt.rate2quantum = 10;
+	opt.version = 3;
+
+	opt.defcls = 1;
+
+	tail = NLMSG_TAIL(n);
+	addattr_l(n, 1024, TCA_OPTIONS, NULL, 0);
+	addattr_l(n, 2024, TCA_HTB_INIT, &opt, NLMSG_ALIGN(sizeof(opt)));
+	tail->rta_len = (char *) NLMSG_TAIL(n) - (char *) tail;
+	return PLATFORM_OK;
+}
+
+
+LinuxPlatformProxy::ExitCode_t
+LinuxPlatformProxy::HTBParseClassOpt(unsigned rate, struct nlmsghdr *n) {
+	struct tc_htb_opt opt;
+	unsigned short mpu = 0;
+	unsigned short overhead = 0;
+	struct rtattr *tail;
+
+	memset(&opt, 0, sizeof(opt));
+
+	//*rate = (bps * s->scale) / 8.; //empirically determined
+	//{ "KBps",	8000. },
+	opt.rate.rate = rate *125;
+
+	opt.ceil = opt.rate;
+
+	opt.ceil.overhead = overhead;
+	opt.rate.overhead = overhead;
+
+	opt.ceil.mpu = mpu;
+	opt.rate.mpu = mpu;
+
+	tail = NLMSG_TAIL(n);
+	addattr_l(n, 1024, TCA_OPTIONS, NULL, 0);
+	addattr_l(n, 2024, TCA_HTB_PARMS, &opt, sizeof(opt));
+	tail->rta_len = (char *) NLMSG_TAIL(n) - (char *) tail;
+	return PLATFORM_OK;
+}
+
+#endif
 
 bool LinuxPlatformProxy::IsHighPerformance(
 		bbque::res::ResourcePathPtr_t const & path) const {
@@ -467,6 +643,14 @@ LinuxPlatformProxy::ScanPlatformDescription() noexcept {
 				this->memory_ids_all += std::to_string(mem->GetId()) + ',';
 			}
 		}
+		for (const auto net : sys.GetNetworkIFsAll()) {
+			ExitCode_t result = this->RegisterNET(*net);
+			if (unlikely(PLATFORM_OK != result)) {
+				logger->Fatal("Register NEIF %d (%s) failed", 
+					net->GetId(), net->GetName().c_str());
+				return result;
+			}
+		}
 	}
 
 	// Build the default string for the CGroups
@@ -524,6 +708,39 @@ LinuxPlatformProxy::RegisterMEM(const PlatformDescription::Memory &mem) noexcept
 
 	return PLATFORM_OK;
 }
+
+LinuxPlatformProxy::ExitCode_t
+LinuxPlatformProxy::RegisterNET(const PlatformDescription::NetworkIF &net) noexcept {
+	ResourceAccounter &ra(ResourceAccounter::GetInstance());
+	
+	std::string resource_path = net.GetPath();
+	logger->Debug("Registration of NETIF #%d <%s>",
+			net.GetId(), net.GetName().c_str());
+	
+	if (refreshMode) {
+		ra.UpdateResource(resource_path, "", 100);
+	}
+	else {
+		ra.RegisterResource(resource_path, "", 100);
+	}
+
+#ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
+	// Now we have to register the kernel-level
+
+	int interface_idx = if_nametoindex(net.GetName().c_str());
+	logger->Debug("NETIF #%d (%s) has the kernel index %d", net.GetId(),
+			net.GetName().c_str(), interface_idx);
+	if (! MakeQDisk(interface_idx)) {
+		return PLATFORM_GENERIC_ERROR;
+	}
+	if (! MakeCLS(interface_idx)) {
+		return PLATFORM_GENERIC_ERROR;
+	}
+#endif
+
+	return PLATFORM_OK;
+}
+
 
 void LinuxPlatformProxy::InitPowerInfo(
 		const char * resourcePath,
@@ -677,9 +894,16 @@ LinuxPlatformProxy::BuildCGroup(CGroupDataPtr_t &pcgd) noexcept {
 		return PLATFORM_MAPPING_FAILED;
 	}
 
+#endif
 
-
-
+#ifdef CONFIG_BBQUE_LINUX_CG_BANDWIDTH
+	pcgd->pc_net_cls = cgroup_add_controller(pcgd->pcg, "net_cls");
+	if (!pcgd->pc_net_cls) {
+		logger->Error("PLAT LNX: CGroup resource mapping FAILED "
+				"(Error: libcgroup, [net_cls] \"controller\" "
+				"creation failed)");
+		return PLATFORM_MAPPING_FAILED;
+	}
 #endif
 
 	// Create the kernel-space CGroup
