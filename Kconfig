@@ -73,6 +73,16 @@ config BBQUE_LINUX_CG_MEMORY
   Enable the Control Groups memory controller for enforcing the memory
   assignment control.
 
+config BBQUE_LINUX_CG_NET_BANDWIDTH
+  bool "Network bandwidth controller"
+  default n
+  depends on TARGET_LINUX
+  depends on !BBQUE_TEST_PLATFORM_DATA
+  ---help---
+  Enable the Control Groups net_cls controller for enforcing the network
+  bandwidth assignment control.
+
+
 config BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
   bool "CGroups handled at RTLIb level"
   default n
