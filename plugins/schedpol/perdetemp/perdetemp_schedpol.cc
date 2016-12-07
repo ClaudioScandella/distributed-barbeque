@@ -276,8 +276,7 @@ bool PerdetempSchedPol::SkipScheduling(ba::AppCPtr_t const &app) {
 PerdetempSchedPol::ExitCode_t PerdetempSchedPol::Init() {
 	const char *pe_path = "sys.*.pe";
 	max_cpu_bandwidth = res_accounter.Total(pe_path);
-	available_cpu_bandwidth = res_accounter.Available(pe_path, 
-													  sched_status_view) ;
+	available_cpu_bandwidth = res_accounter.Available(pe_path, sched_status_view) ;
 	workload_cpu_bandwidth = 0;
 
 	if (cpus.size() == 0)

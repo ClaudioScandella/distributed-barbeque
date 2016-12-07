@@ -13,6 +13,7 @@
 #include "bbque/pp/proc_listener.h"
 
 #include <bitset>
+#include <unistd.h>
 
 namespace bbque {
 namespace pp {
@@ -167,6 +168,14 @@ private:
 	 * @brief Load values from the configuration file
 	 */
 	void LoadConfiguration() noexcept;
+
+	/** 
+	 * @brief Return the total number of PEs. It returns the count of all
+	 *	  processing elements including the unmanaged and offline ones
+	 */
+	inline int GetTotalNumberOfPEs() {
+		return sysconf(_SC_NPROCESSORS_CONF);
+	}
 
 
 	/**

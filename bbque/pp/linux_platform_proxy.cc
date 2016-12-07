@@ -4,6 +4,7 @@
 #include "bbque/pp/linux_platform_proxy.h"
 #include "bbque/res/binder.h"
 #include "bbque/res/resource_path.h"
+#include "bbque/utils/assert.h"
 
 #include "bbque/utils/assert.h"
 #ifdef CONFIG_BBQUE_RT
@@ -1290,8 +1291,19 @@ LinuxPlatformProxy::SetupCGroup(
 
 	if (pcgd->papp->RTLevel() > RT_NONE) {
 
-		uint64_t rt_runtime_us = BBQUE_LINUXPP_RTP_MAX/1000 
-							   * prlb->amount_cpus;
+		// The runtime/period fraction is calculated using the total
+		// number of PEs of the system, excluding any effects of 
+		// cgroups or offline cores.
+		int tot_sys_cpu = GetTotalNumberOfPEs();
+
+		bbque_assert(tot_sys_cpu*100 >= prlb->amount_cpus);
+
+		// In order to get the correct runtime, we have to do the
+		// following proportion:
+		// tot_sys_cpu * 100 : period = assigned_cpu : runtime
+		uint64_t rt_runtime_us = 
+				  (BBQUE_LINUXPP_RTP_MAX * prlb->amount_cpus)
+				/ (tot_sys_cpu * 100);
 
 		// In order to change the scheduler policy in RealTimeManager we need at 
 		// a small part of the CPU RT time.
@@ -1381,9 +1393,9 @@ LinuxPlatformProxy::BuildAppCG(AppPtr_t papp, CGroupDataPtr_t &pcgd) noexcept {
 
 LinuxPlatformProxy::ExitCode_t
 LinuxPlatformProxy::GetRegisteredTasks(AppPtr_t papp, std::vector<int> & pids)
-																const noexcept {
+								const noexcept {
 
-	assert(papp->IsLocal());
+	bbque_assert(papp->IsLocal());
 
 	CGroupDataPtr_t pcgd;
 	pcgd = std::static_pointer_cast<CGroupData_t>(

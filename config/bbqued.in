@@ -9,6 +9,11 @@ bbqued_info() {
 	printf "[%5s] $1\n" $(echo $(date +%s.%3N)"-"$START_TIME | bc)
 	echo -ne '\E[33;0m'
 }
+bbqued_warning() {
+	echo -ne '\E[33m'
+	printf "[%5s] $1\n" $(echo $(date +%s.%3N)"-"$START_TIME | bc)
+	echo -ne '\E[33;0m'
+}
 bbqued_notice() {
 	echo -ne '\E[33;35m'
 	printf "[%5s] $1\n" $(echo $(date +%s.%3N)"-"$START_TIME | bc)
@@ -133,6 +138,10 @@ rt_config() {
 	bbqued_notice "Setting real-time global constraints..."
 	echo $PERIOD > /proc/sys/kernel/sched_rt_period_us
 	echo $RUNTIME > /proc/sys/kernel/sched_rt_runtime_us
+
+        if [ $? -ne 0 ]; then
+                bbqued_warning "Unable to set /proc/sys/kernel/sched_rt_runtime_us"
+        fi
 }
 
 rt_config_cg() {
