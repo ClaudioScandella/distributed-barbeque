@@ -59,7 +59,7 @@ config BBQUE_LINUX_CG_SYSTEMD
   depends on TARGET_LINUX
   depends on !BBQUE_TEST_PLATFORM_DATA
   ---help---
-  Mount Control Groups into the /sys/fs/cgroup/cpu,cpuset,cpuacct,memory
+  Mount Control Groups into the /sys/fs/cgroup/cpu,cpuset,cpuacct,memory,net_cls
   directory.
 
 

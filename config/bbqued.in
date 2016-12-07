@@ -56,17 +56,17 @@ check_controllers() {
 	fi
 
 	# The [cpuset,memory,cpu,cpuacct] controller must be mounted on the same hierarchy
-	DIFF=$(cat /proc/cgroups | grep "cpu\|memory" | cut -f2 | sort -u | wc -l)
+	DIFF=$(cat /proc/cgroups | grep "cpu\|memory\|net_cls" | cut -f2 | sort -u | wc -l)
 
 	# Hierarchies unmounting
 	if [[ $DIFF != 1 ]]; then
-		bbqued_info '[cpuset,memory,cpu,cpuacct] controllers on different hierachies. Unmounting'
+		bbqued_info '[cpuset,memory,cpu,cpuacct,net_cls] controllers on different hierachies. Unmounting'
 
 		grep cgroup /proc/mounts | cut -d' ' -f2 | \
 		while read C; do
 			[ -d $C ] || continue
 			case "$C" in
-			*cpuset$*|*memory$*|*cpu$*|*cpuacct$*)
+			*cpuset$*|*memory$*|*cpu$*|*cpuacct$*|*net_cls$*)
 				bbqued_info "Unmounting [$C] controller..."
 				sudo umount $C
 			esac;
@@ -74,10 +74,10 @@ check_controllers() {
 	fi
 
 	# Mount BBQ required hierarchies
-	mount -t cgroup -o cpu,cpuset,cpuacct,memory bbque_cgroups \
+	mount -t cgroup -o cpu,cpuset,cpuacct,memory,net_cls bbque_cgroups \
 			$BBQUE_CGMOUNT >/dev/null 2>&1
 	if [ $? -ne 0 ]; then
-		bbqued_error 'Mounting hierarchies [cpuset,memory,cpu,cpuacct] FAILED'
+		bbqued_error 'Mounting hierarchies [cpuset,memory,cpu,cpuacct,net_cls] FAILED'
 	fi
 
 }

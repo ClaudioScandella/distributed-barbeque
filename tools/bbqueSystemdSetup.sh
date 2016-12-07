@@ -16,7 +16,7 @@ else
 
 fi
 
-cat /etc/systemd/system.conf | sed -r 's/.*JoinControllers.*/JoinControllers=cpu,cpuset,cpuacct,memory net_cls,net_prio/g' > systemdconf.bbque.tmp
+cat /etc/systemd/system.conf | sed -r 's/.*JoinControllers.*/JoinControllers=cpu,cpuset,cpuacct,memory,net_cls net_prio/g' > systemdconf.bbque.tmp
 
 diff /etc/systemd/system.conf systemdconf.bbque.tmp > systemdconf.bbque.diff
 
