@@ -129,12 +129,17 @@ private:
 
 	ExitCode_t MakeQDisk(int if_index);
 	ExitCode_t MakeCLS(int if_index);
-
+	ExitCode_t SetCGNetworkBandwidth(AppPtr_t papp, CGroupDataPtr_t pcgd,
+					ResourceAssignmentMapPtr_t pres,
+					RLinuxBindingsPtr_t prlb);
+	ExitCode_t MakeNetClass(AppPid_t handle, unsigned rate, int if_index);
 
 	static ExitCode_t HTBParseOpt(struct nlmsghdr *n);
 	static ExitCode_t HTBParseClassOpt(unsigned rate, struct nlmsghdr *n);
 	static ExitCode_t CGParseOpt(long handle, struct nlmsghdr *n);
 #endif
+
+	uint64_t GetNetIFBandwidth(const std::string &ifname) const;
 
 	std::string memory_ids_all;
 

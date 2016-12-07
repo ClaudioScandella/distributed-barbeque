@@ -66,6 +66,8 @@ typedef struct RLinuxBindings {
 	uint_fast16_t amount_cpus = 0;
 	/** The bytes amount of Socket MEMORY assigned */
 	int_fast64_t amount_memb = 0;
+	/** The bytes/s amount of network bandwidth assigned */
+	int_fast64_t amount_net_bw = 0;
 
 	RLinuxBindings(const uint_fast8_t MaxCpusCount, const uint_fast8_t MaxMemsCount) {
 		// 3 chars are required for each CPU/MEM resource if formatted
@@ -98,6 +100,7 @@ typedef struct CGroupData : public bbque::utils::PluginData_t {
 	struct cgroup_controller *pc_cpu;
 	struct cgroup_controller *pc_cpuset;
 	struct cgroup_controller *pc_memory;
+	struct cgroup_controller *pc_net_cls;
 
 	bool cfs_quota_available = false; /**< True if the target system supports 
 										   CFS quota management */

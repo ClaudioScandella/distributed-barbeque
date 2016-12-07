@@ -10,7 +10,13 @@
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <libcgroup.h>
+#include <linux/ethtool.h>
+#include <linux/sockios.h>
 #include <linux/version.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sstream>
 
 #ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
 #include <asm/types.h>
@@ -20,9 +26,9 @@
 #include <linux/pkt_cls.h>
 #include <linux/rtnetlink.h>
 #include <netlink/ll_map.h>
-#include <sys/socket.h>
 #include <net/if.h>
 
+#define NET_MAX_BANDWIDTH 1000000000000LL
 #define Q_HANDLE (0x100000)
 #define F_HANDLE (1)
 
@@ -40,6 +46,7 @@
 #define BBQUE_LINUXPP_CPU_EXCLUSIVE_PARAM 	"cpuset.cpu_exclusive"
 #define BBQUE_LINUXPP_MEM_EXCLUSIVE_PARAM 	"cpuset.mem_exclusive"
 #define BBQUE_LINUXPP_PROCS_PARAM		"cgroup.procs"
+#define BBQUE_LINUXPP_NETCLS_PARAM 		"net_cls.classid"
 
 #define BBQUE_LINUXPP_SYS_MEMINFO		"/proc/meminfo"
 
@@ -224,6 +231,11 @@ LinuxPlatformProxy::ExitCode_t LinuxPlatformProxy::MakeCLS(int if_index) {
 	int err = rtnl_talk(&network_info.kernel_addr, &network_info.rth_2, 
 					&req.n, 0, 0, NULL, NULL, NULL);
 	if (unlikely(err < 0)) {
+		if (EEXIST == errno) {
+			// That's good, someone else added the QDisk
+			return PLATFORM_OK;
+		}
+
 		logger->Error("MakeCLS: Kernel communication failed "
 				"[%d] (%s).", errno, strerror(errno));
 		return PLATFORM_GENERIC_ERROR;
@@ -474,6 +486,16 @@ LinuxPlatformProxy::MapResources(AppPtr_t papp, ResourceAssignmentMapPtr_t pres,
 		}
 
 	}
+
+#ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
+	result = SetCGNetworkBandwidth(papp, pcgd, pres, prlb);
+	if (PLATFORM_OK != result) {
+		logger->Warn("Unable to enforce Network Bandwidth [%d],"
+			     " ignoring...", result);
+	}
+
+#endif
+
 	logger->Debug("PLAT LNX: CGroup resource mapping DONE!");
 
 #ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
@@ -530,6 +552,94 @@ LinuxPlatformProxy::MapResources(AppPtr_t papp, ResourceAssignmentMapPtr_t pres,
 
 	return PLATFORM_OK;
 }
+#ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
+LinuxPlatformProxy::ExitCode_t
+LinuxPlatformProxy::SetCGNetworkBandwidth(AppPtr_t papp, CGroupDataPtr_t pcgd,
+					ResourceAssignmentMapPtr_t pres,
+					RLinuxBindingsPtr_t prlb) {
+	ResourceAccounter &ra = ResourceAccounter::GetInstance();
+	std::stringstream sstream_PID;
+	int res;
+
+	// net_cls.classid attribute has must be written as an hexadecimal string
+	// of the shape AAAABBBB. The handles correspond to traffic shapping class
+	// handles. AAAA being the major part of the handle and must be the same for
+	// all classes having the same parent. BBBB being the minor part,
+	// a class-specific identifier. More information in the "tc" documentation.
+	// Here, the major handle number is 0x10 and correspond to the parent qdisc
+	// handle and will be the same for all classes. The minor handle number is
+	// the procces PID
+	sstream_PID << std::hex << papp->Pid();
+	std::string PID( "0x10" + sstream_PID.str() );
+	
+	cgroup_add_value_string(pcgd->pc_net_cls,
+			BBQUE_LINUXPP_NETCLS_PARAM, PID.c_str());
+	res = cgroup_modify_cgroup(pcgd->pcg);
+	if (res) {
+		logger->Error("PLAT LNX: CGroup NET_CLS resource mapping FAILED "
+				"(Error: libcgroup, kernel cgroup update "
+				"[%d: %s])", errno, strerror(errno));
+		return PLATFORM_MAPPING_FAILED;
+	}
+
+	br::ResourceBitset net_ifs(
+		br::ResourceBinder::GetMask(pres, br::ResourceType::NETWORK_IF));
+	auto interface_id = net_ifs.FirstSet();
+	if (interface_id < 0) {
+		logger->Error("PLAT LNX: Missing binding to network interfaces");
+		return PLATFORM_MAPPING_FAILED;
+	}
+
+	for (; interface_id <= net_ifs.LastSet(); ++interface_id) {
+		logger->Debug("PLAT LNX: CGroup resource mapping interface [%d]",
+				interface_id);
+		if (!net_ifs.Test(interface_id)) continue;
+
+		logger->Debug("PLAT LNX: CLASS handle %d, bandwith %d, interface : %d",
+				papp->Pid(), prlb->amount_net_bw, interface_id);
+
+		int64_t assigned_net_bw = prlb->amount_net_bw;
+		if (assigned_net_bw < 0) {
+			assigned_net_bw = ra.Total("sys0.net" + 
+						std::to_string(interface_id));
+		}
+		MakeNetClass(papp->Pid(), assigned_net_bw, interface_id);
+	}
+
+	return PLATFORM_OK;
+}
+
+LinuxPlatformProxy::ExitCode_t
+LinuxPlatformProxy::MakeNetClass(AppPid_t handle, unsigned rate, int if_index) {
+	NetworkKernelRequest_t req;
+	char  k[16];
+
+	memset(&req, 0, sizeof(req));
+	memset(k, 0, sizeof(k));
+
+	req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg));
+	req.n.nlmsg_flags = NLM_F_REQUEST|NLM_F_EXCL|NLM_F_CREATE;
+	req.n.nlmsg_type = RTM_NEWTCLASS;
+	req.t.tcm_family = AF_UNSPEC;
+
+	req.t.tcm_handle = handle;
+	req.t.tcm_parent = Q_HANDLE;
+
+	strncpy(k, "htb", sizeof(k)-1);
+	addattr_l(&req.n, sizeof(req), TCA_KIND, k, strlen(k)+1);
+	HTBParseClassOpt(rate, &req.n);
+
+	req.t.tcm_ifindex = if_index;
+
+	if (rtnl_talk(&network_info.kernel_addr, &network_info.rth_1, &req.n, 0,
+			0, NULL, NULL, NULL) < 0) {
+		return PLATFORM_GENERIC_ERROR;
+	}
+
+	return PLATFORM_OK;
+}
+
+#endif
 
 LinuxPlatformProxy::ExitCode_t
 LinuxPlatformProxy::GetResourceMapping(
@@ -582,6 +692,20 @@ LinuxPlatformProxy::GetResourceMapping(
 #endif
 	logger->Debug("PLAT LNX: Node [%d] memb : { %ld }",
 	node_id, prlb->amount_memb);
+
+	// Network Bandwisth amount
+	prlb->amount_net_bw = -1;
+#ifdef CONFIG_BBQUE_LINUX_CG_MEMORY
+	uint64_t netb = ra.GetAssignedAmount(
+	        assign_map, papp, rvt, br::ResourceType::NETWORK_IF, br::ResourceType::SYSTEM);
+	if (netb > 0)
+		prlb->amount_net_bw = netb;
+#endif
+	logger->Debug("PLAT LNX: Node [%d] network bandwidth : { %ld }",
+	node_id, prlb->amount_net_bw);
+
+
+
 
 	return PLATFORM_OK;
 }
@@ -646,8 +770,9 @@ LinuxPlatformProxy::ScanPlatformDescription() noexcept {
 		for (const auto net : sys.GetNetworkIFsAll()) {
 			ExitCode_t result = this->RegisterNET(*net);
 			if (unlikely(PLATFORM_OK != result)) {
-				logger->Fatal("Register NEIF %d (%s) failed", 
-					net->GetId(), net->GetName().c_str());
+				logger->Fatal("Register NETIF %d (%s) failed "
+						"[%d]", 
+					net->GetId(), net->GetName().c_str(), result);
 				return result;
 			}
 		}
@@ -717,11 +842,20 @@ LinuxPlatformProxy::RegisterNET(const PlatformDescription::NetworkIF &net) noexc
 	logger->Debug("Registration of NETIF #%d <%s>",
 			net.GetId(), net.GetName().c_str());
 	
+	uint64_t bw;
+	try {
+		bw = GetNetIFBandwidth(net.GetName());
+	} catch(std::runtime_error &e) {
+		logger->Error("Unable to get the Bandwidth of %s: %s",
+		net.GetName().c_str(), e.what());
+		return PLATFORM_GENERIC_ERROR;
+	}
+
 	if (refreshMode) {
-		ra.UpdateResource(resource_path, "", 100);
+		ra.UpdateResource(resource_path, "", bw);
 	}
 	else {
-		ra.RegisterResource(resource_path, "", 100);
+		ra.RegisterResource(resource_path, "", bw);
 	}
 
 #ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
@@ -730,16 +864,45 @@ LinuxPlatformProxy::RegisterNET(const PlatformDescription::NetworkIF &net) noexc
 	int interface_idx = if_nametoindex(net.GetName().c_str());
 	logger->Debug("NETIF #%d (%s) has the kernel index %d", net.GetId(),
 			net.GetName().c_str(), interface_idx);
-	if (! MakeQDisk(interface_idx)) {
+	if (PLATFORM_OK != MakeQDisk(interface_idx)) {
+		logger->Error("MakeQDisk FAILED on device #%d (%s)", 
+					net.GetId(), net.GetName().c_str());
 		return PLATFORM_GENERIC_ERROR;
 	}
-	if (! MakeCLS(interface_idx)) {
+	if (PLATFORM_OK != MakeCLS(interface_idx)) {
+		logger->Error("MakeCLS FAILED on device #%d (%s)", 
+					net.GetId(), net.GetName().c_str());
 		return PLATFORM_GENERIC_ERROR;
 	}
 #endif
 
 	return PLATFORM_OK;
 }
+
+
+uint64_t LinuxPlatformProxy::GetNetIFBandwidth(const std::string &ifname) const {
+
+	int sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+	if ( !sock ) {
+		throw std::runtime_error("Unable to create socket");
+	}
+
+	struct ifreq ifr;
+	struct ethtool_cmd edata;
+
+	strncpy(ifr.ifr_name,ifname.c_str(), sizeof(ifr.ifr_name));
+	ifr.ifr_data = (caddr_t)&edata;
+	edata.cmd = ETHTOOL_GSET;
+
+	int err = ioctl(sock, SIOCETHTOOL, &ifr);
+	if (err) {
+		throw std::runtime_error("ioctl FAILED");
+	}
+
+	return ((uint64_t)edata.speed) * 1000000ULL;
+
+}
+
 
 
 void LinuxPlatformProxy::InitPowerInfo(
@@ -896,7 +1059,7 @@ LinuxPlatformProxy::BuildCGroup(CGroupDataPtr_t &pcgd) noexcept {
 
 #endif
 
-#ifdef CONFIG_BBQUE_LINUX_CG_BANDWIDTH
+#ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
 	pcgd->pc_net_cls = cgroup_add_controller(pcgd->pcg, "net_cls");
 	if (!pcgd->pc_net_cls) {
 		logger->Error("PLAT LNX: CGroup resource mapping FAILED "
