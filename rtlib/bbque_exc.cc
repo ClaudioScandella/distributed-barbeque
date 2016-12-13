@@ -353,6 +353,12 @@ float BbqueEXC::GetCPS()
 	return rtlib->CPS.Get(exc_handler);
 }
 
+float BbqueEXC::GetLastCPS()
+{
+	return rtlib->CPS.GetLast(exc_handler);
+}
+
+
 float BbqueEXC::GetJPS()
 {
 	return rtlib->JPS.Get(exc_handler);

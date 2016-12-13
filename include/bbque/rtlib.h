@@ -1205,6 +1205,7 @@ struct RTLIB_Services {
 	struct {
 		RTLIB_CPS_Set Set;
 		RTLIB_CPS_Get Get;
+		RTLIB_CPS_Get GetLast;
 		RTLIB_CPS_Goal_Set SetGoal;
 		RTLIB_CPS_CTimeUs SetMinCycleTime_us;
 	} CPS;

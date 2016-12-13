@@ -521,6 +521,21 @@ public:
 	float GetCPS();
 
 	/**
+	 * @brief Get the cycle rate for this EXC
+	 *
+	 * The AEM defined by this API runs a processing cycle which corresponds to a
+	 * loop of \ref onRun and \ref onMonitor calls.
+	 *
+	 * This method allows to get the cycle time value, measured in milliseconds [ms],
+	 * which the application is currently getting.
+	 *
+	 * @return the current measured CPS value
+	 *
+	 * @ingroup rtlib_sec02_aem_utils
+	 */
+	float GetLastCPS();
+
+	/**
 	 * @brief Get the jobs rate for this EXC
 	 *
 	 * @return the current measured KPS value

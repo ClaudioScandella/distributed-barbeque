@@ -267,6 +267,15 @@ public:
 	float GetCPS(RTLIB_EXCHandler_t exc_handler);
 
 	/**
+	 * @brief Get the measured Cycles Per Second (CPS) value
+	 *
+	 * This allows to retrive the last CPS value
+	 *
+	 * @return the measured CPS value
+	 */
+	float GetLastCPS(RTLIB_EXCHandler_t exc_handler);
+
+	/**
 	 * @brief Get the measured Jobs Per Second (JPS) value
 	 *
 	 * @return the measured JPS value

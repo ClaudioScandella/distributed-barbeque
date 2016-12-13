@@ -3107,6 +3107,27 @@ float BbqueRPC::GetCPS(
 	return cps;
 }
 
+float BbqueRPC::GetLastCPS(
+	RTLIB_EXCHandler_t exc_handler)
+{
+	pRegisteredEXC_t exc;
+
+	// Get a reference to the EXC to control
+	assert(exc_handler);
+	exc = getRegistered(exc_handler);
+
+	if (! exc) {
+		fprintf(stderr, FE("Get Last CPS for EXC [%p] FAILED "
+						   "(EXC not registered)\n"), (void *) exc_handler);
+		return RTLIB_EXC_NOT_REGISTERED;
+	}
+
+	assert(isRegistered(exc) == true);
+
+	return (exc->cycletime_analyser_user.GetLastValue() == 0.0) ?
+			   0.0 : 1000.0 / exc->cycletime_analyser_user.GetLastValue();
+}
+
 float BbqueRPC::GetJPS(
 	RTLIB_EXCHandler_t exc_handler)
 {

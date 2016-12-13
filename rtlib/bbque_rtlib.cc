@@ -189,6 +189,10 @@ static float rtlib_cps_get(RTLIB_EXCHandler_t exc_handler) {
 	return rpc->GetCPS(exc_handler);
 }
 
+static float rtlib_cps_last_get(RTLIB_EXCHandler_t exc_handler) {
+	return rpc->GetLastCPS(exc_handler);
+}
+
 static float rtlib_jps_get(RTLIB_EXCHandler_t exc_handler) {
 	return rpc->GetJPS(exc_handler);
 }
@@ -291,6 +295,7 @@ RTLIB_ExitCode_t RTLIB_Init(const char * name, RTLIB_Services_t ** rtlib)
 	// Cycles Time Control interface
 	rtlib_services.CPS.Set = rtlib_cps_set;
 	rtlib_services.CPS.Get = rtlib_cps_get;
+	rtlib_services.CPS.GetLast = rtlib_cps_last_get;
 	rtlib_services.CPS.SetGoal = rtlib_cps_goal_set;
 	rtlib_services.CPS.SetMinCycleTime_us = rtlib_cps_set_ctime_us;
 	rtlib_services.JPS.Get = rtlib_jps_get;
