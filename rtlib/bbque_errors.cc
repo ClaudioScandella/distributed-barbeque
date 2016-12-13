@@ -93,7 +93,9 @@ const char * RTLIB_errorStr[] = {
 	//RTLIB_EXC_WORKLOAD_NONE
 	"No more workload to process",
 	//RTLIB_EXC_CGROUP_NONE
-	"Unable to identify the CGroup path"
+	"Unable to identify the CGroup path",
 
+	//---- RT Error codes
+	"The stack size requested is not allowed by the system."
 };
 

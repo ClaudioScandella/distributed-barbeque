@@ -11,6 +11,12 @@ configure_file (
 	"${PROJECT_BINARY_DIR}/include/bbque/bbque_exc.h" COPYONLY
 )
 
+## Copy the RT AEM header file where it is expected by AS-RTRM
+configure_file (
+	"${PROJECT_SOURCE_DIR}/include/bbque/rtlib/bbque_rtexc.h"
+	"${PROJECT_BINARY_DIR}/include/bbque/bbque_rtexc.h" COPYONLY
+)
+
 # Add "barbeque" specific flags
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBBQUE_RTLIB")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
@@ -22,6 +28,10 @@ endif (CONFIG_BBQUE_OPENCL)
 
 set (RTLIB_SRC bbque_rtlib bbque_rpc ${PROJECT_BINARY_DIR}/bbque/version.cc)
 set (RTLIB_SRC bbque_exc ${RTLIB_SRC})
+
+if (CONFIG_BBQUE_RT)
+	set (RTLIB_SRC ${RTLIB_SRC} bbque_rtexc)
+endif (CONFIG_BBQUE_RT)
 
 if (CONFIG_BBQUE_OPENCL)
 	set (RTLIB_SRC bbque_ocl ${RTLIB_SRC})
@@ -67,7 +77,8 @@ set_property (TARGET bbque_rtlib PROPERTY
 
 set_property (TARGET bbque_rtlib PROPERTY PUBLIC_HEADER
 		${PROJECT_SOURCE_DIR}/include/bbque/rtlib.h
-		${PROJECT_SOURCE_DIR}/include/bbque/rtlib/bbque_exc.h)
+		${PROJECT_SOURCE_DIR}/include/bbque/rtlib/bbque_exc.h
+		${PROJECT_SOURCE_DIR}/include/bbque/rtlib/bbque_rtexc.h)
 
 # Install the RTLib
 install (TARGETS bbque_rtlib LIBRARY

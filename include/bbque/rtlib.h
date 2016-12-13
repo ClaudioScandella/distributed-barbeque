@@ -193,6 +193,9 @@ typedef enum RTLIB_ExitCode {
 	/** Unable to identify the CGRoup path */
 	RTLIB_EXC_CGROUP_NONE,
 
+//---- RT Error codes
+	RTLIB_STACK_TOO_BIG,
+
 // NOTE The last entry should not overflow a uint8_t, otherwise some of the RPC
 // channel messages should be updated
 
