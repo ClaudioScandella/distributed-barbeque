@@ -663,6 +663,8 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 	double config_min, config_max, config_avg, config_var;
 	double run_min, run_max, run_avg, run_var;
 
+	uint32_t execution_time;
+
 	// Print RTLib stats for each AWM
 	for (auto & awm : exc->awm_stats) {
 		awm_id = awm.first;
@@ -697,44 +699,43 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 		run_avg = mean(awm_stats->run_samples);
 		run_var = variance(awm_stats->run_samples);
 
+		execution_time = awm_stats->time_spent_configuring
+			+ awm_stats->time_spent_running
+			+ awm_stats->time_spent_monitoring;
+
 		if (verbose) {
 			fprintf(output_file, STATS_AWM_SPLIT"\n");
 			fprintf(output_file, "%.8s %03d %8d  %8d | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
 					exc->name.c_str(), awm_id, awm_stats->number_of_uses, cycles_count,
-					awm_stats->time_spent_processing, cycle_min, cycle_max, cycle_avg, cycle_var);
+					execution_time, cycle_min, cycle_max, cycle_avg, cycle_var);
 		}
 		else {
 			logger->Debug(STATS_AWM_SPLIT);
 			logger->Debug("%.8s %03d %8d  %8d | %7u | %8.3f %8.3f | %8.3f %8.3f",
 						  exc->name.c_str(), awm_id, awm_stats->number_of_uses, cycles_count,
-						  awm_stats->time_spent_processing, cycle_min, cycle_max, cycle_avg, cycle_var);
+						  execution_time, cycle_min, cycle_max, cycle_avg, cycle_var);
 		}
 
 		if (verbose) {
 			fprintf(output_file, STATS_CYCLE_SPLIT "\n");
 
 			fprintf(output_file, "%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-					"Run", awm_stats->time_spent_processing,
+					"Run", awm_stats->time_spent_running,
 					run_min, run_max, run_avg, run_var);
 			fprintf(output_file, "%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
 					"Monitor", awm_stats->time_spent_monitoring,
 					monitor_min, monitor_max, monitor_avg, monitor_var);
-		}
-		else {
-			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-					"Run", awm_stats->time_spent_processing,
-					run_min, run_max, run_avg, run_var);
-			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-					"Monitor", awm_stats->time_spent_monitoring,
-					monitor_min, monitor_max, monitor_avg, monitor_var);
-		}
-
-		if (verbose) {
 			fprintf(output_file, "%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
 					"Configure - AWM wait", awm_stats->time_spent_configuring,
 					config_min, config_max, config_avg, config_var);
 		}
 		else {
+			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
+					"Run", awm_stats->time_spent_running,
+					run_min, run_max, run_avg, run_var);
+			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
+					"Monitor", awm_stats->time_spent_monitoring,
+					monitor_min, monitor_max, monitor_avg, monitor_var);
 			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
 					"Configure - AWM wait", awm_stats->time_spent_configuring,
 					config_min, config_max, config_avg, config_var);
@@ -1014,7 +1015,8 @@ void BbqueRPC::DumpStats(pRegisteredEXC_t exc, bool verbose)
 		fprintf(output_file, "  Latency to first processing burst : %7u [ms]\n\n", exc->starting_time_ms);
 		fprintf(output_file, "  Time spent waiting for resources  : %7u [ms]\n", exc->blocked_time_ms);
 		fprintf(output_file, "  Time spent (re)configuring        : %7u [ms]\n", exc->config_time_ms - exc->blocked_time_ms);
-		fprintf(output_file, "  Time spent processing             : %7u [ms]\n", exc->processing_time_ms);
+		fprintf(output_file, "  Time spent monitoring             : %7u [ms]\n", exc->monitor_time_ms);
+		fprintf(output_file, "  Time spent processing             : %7u [ms]\n", exc->run_time_ms);
 		fprintf(output_file, "\n");
 	}
 	else {
@@ -1025,7 +1027,8 @@ void BbqueRPC::DumpStats(pRegisteredEXC_t exc, bool verbose)
 		logger->Debug("");
 		logger->Debug("  Time spent waiting for resources  : %7u [ms]", exc->blocked_time_ms);
 		logger->Debug("  Time spent (re)configuring        : %7u [ms]", exc->config_time_ms - exc->blocked_time_ms);
-		logger->Debug("  Time spent processing             : %7u [ms]", exc->processing_time_ms);
+		logger->Debug("  Time spent monitoring             : %7u [ms]", exc->monitor_time_ms);
+		logger->Debug("  Time spent processing             : %7u [ms]", exc->run_time_ms);
 		logger->Debug("");
 	}
 
@@ -3180,9 +3183,9 @@ void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
 	double run_time_ms = cycle_time_ms - exc->run_tstart_ms;
 
 	exc->time_analyser_run.InsertValue(run_time_ms);
-	awm_stats->time_spent_processing += run_time_ms;
+	exc->run_time_ms += run_time_ms;
 	awm_stats->run_samples(run_time_ms);
-	exc->processing_time_ms += run_time_ms;
+	awm_stats->time_spent_running += run_time_ms;
 
 	// Execution Cycle of the EXC ends here
 	awm_stats->cycle_samples(cycle_time_ms);
@@ -3229,6 +3232,7 @@ void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler,
 		exc->execution_timer.getElapsedTimeMs() - exc->monitor_tstart_ms;
 
 	exc->time_analyser_monitor.InsertValue(monitor_time_ms);
+	exc->monitor_time_ms += monitor_time_ms;
 	awm_stats->time_spent_monitoring += monitor_time_ms;
 	awm_stats->monitor_samples(monitor_time_ms);
 

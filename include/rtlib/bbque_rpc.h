@@ -795,6 +795,8 @@ protected:
 		uint32_t number_of_uses;
 		/** The time [ms] spent on processing into this AWM */
 		uint32_t time_spent_processing;
+		/** The time [ms] spent on processing into this AWM */
+		uint32_t time_spent_running;
 		/** The time [ms] spent on monitoring this AWM */
 		uint32_t time_spent_monitoring;
 		/** The time [ms] spent on configuring this AWM */
@@ -842,6 +844,7 @@ protected:
 		AwmStats() :
 			number_of_uses(0),
 			time_spent_processing(0),
+			time_spent_running(0),
 			time_spent_monitoring(0),
 			time_spent_configuring(0) {};
 
@@ -932,8 +935,10 @@ protected:
 		uint32_t blocked_time_ms    = 0;
 		/** The time [ms] spent on reconfigurations */
 		uint32_t config_time_ms     = 0;
+		/** The time [ms] spent on monitoring */
+		uint32_t monitor_time_ms     = 0;
 		/** The time [ms] spent on processing */
-		uint32_t processing_time_ms = 0;
+		uint32_t run_time_ms = 0;
 
 #ifdef CONFIG_BBQUE_RTLIB_PERF_SUPPORT
 		/** Performance counters */
