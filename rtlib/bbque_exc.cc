@@ -309,6 +309,11 @@ RTLIB_ExitCode_t BbqueEXC::GetAssignedResources(
 										  array_size);
 }
 
+float BbqueEXC::GetTimingMs(RTLIB_ExecPhaseType_t aem_phase,
+			RTLIB_ExecTimingType_t timing_type) {
+	return rtlib->CPS.GetTimingMs(exc_handler, aem_phase, timing_type);
+}
+
 /*******************************************************************************
  *    Cycles Per Second (CPS) and Jobs Per Second (JPS) Control Support
  ******************************************************************************/

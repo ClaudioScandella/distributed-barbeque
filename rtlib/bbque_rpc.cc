@@ -2963,6 +2963,44 @@ RTLIB_ExitCode_t BbqueRPC::SetJPSGoal(
 	return SetCPSGoal(exc_handler, jps_min / jpc, jps_max / jpc);
 }
 
+float BbqueRPC::GetLastValueMs(RTLIB_EXCHandler_t exc_handler,
+		RTLIB_ExecPhaseType aem_phase) {
+
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
+
+	switch (aem_phase) {
+		case RTLIB_ExecPhaseType::CONFIGURE:
+			return exc->time_analyser_configure.GetLastValue();
+		case RTLIB_ExecPhaseType::MONITOR:
+			return exc->time_analyser_monitor.GetLastValue();
+		case RTLIB_ExecPhaseType::RUN:
+			return exc->time_analyser_run.GetLastValue();
+		default:
+			return exc->time_analyser_usercycle.GetLastValue();
+	}
+}
+
+float BbqueRPC::GetAverageValueMs(RTLIB_EXCHandler_t exc_handler,
+		RTLIB_ExecPhaseType aem_phase) {
+
+	// Getting registered Execution Context from its handler
+	pRegisteredEXC_t exc = getRegistered(exc_handler);
+	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
+
+	switch (aem_phase) {
+		case RTLIB_ExecPhaseType::CONFIGURE:
+			return exc->time_analyser_configure.GetMean();
+		case RTLIB_ExecPhaseType::MONITOR:
+			return exc->time_analyser_monitor.GetMean();
+		case RTLIB_ExecPhaseType::RUN:
+			return exc->time_analyser_run.GetMean();
+		default:
+			return exc->time_analyser_usercycle.GetMean();
+	}
+}
+
 /*******************************************************************************
  *    RTLib Notifiers Support
  ******************************************************************************/

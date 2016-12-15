@@ -568,6 +568,42 @@ public:
 			static_cast<float>(US_IN_A_SECOND) / max_cycle_time_us);
 	}
 
+	/**
+	 * @brief Get last duration in MS for a given AEM phase
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param aem_phase Which phase
+	 * @return timing for the requested phase [ms]
+	 */
+	float GetLastValueMs(RTLIB_EXCHandler_t exc_handler,
+		RTLIB_ExecPhaseType aem_phase);
+
+	/**
+	 * @brief Get average duration in MS for a given AEM phase
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param aem_phase Which phase
+	 * @return timing for the requested phase [ms]
+	 */
+	float GetAverageValueMs(RTLIB_EXCHandler_t exc_handler,
+		RTLIB_ExecPhaseType aem_phase);
+
+	/**
+	 * @brief Get elapsed time for a given AEM phase
+	 * @param exc_handler Handler of the target Execution Context
+	 * @param aem_phase Phase whom timing you want to get
+	 * @param timing_type Get average or last value
+	 * @return timing for the requested phase [ms]
+	 */
+	float inline GetAEMPhaseTimingMS (
+		RTLIB_EXCHandler_t exc_handler,
+		RTLIB_ExecPhaseType aem_phase,
+		RTLIB_ExecTimingType timing_type) {
+
+		if (timing_type == RTLIB_ExecTimingType::LAST_VALUE)
+			return GetLastValueMs(exc_handler, aem_phase);
+		else
+			return GetAverageValueMs(exc_handler, aem_phase);
+	}
+
 	/***********************************************************************
 	 *	Performance Monitoring Support
 	 **********************************************************************/

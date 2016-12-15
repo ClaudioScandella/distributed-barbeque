@@ -221,6 +221,13 @@ static RTLIB_ExitCode_t rtlib_cps_set_ctime_us(
 	return rpc->SetMinimumCycleTimeUs(exc_handler, us);
 }
 
+static float rtlib_get_timing_ms(
+		RTLIB_EXCHandler_t exc_handler,
+		RTLIB_ExecPhaseType aem_phase,
+		RTLIB_ExecTimingType timing_type) {
+	return rpc->GetAEMPhaseTimingMS(exc_handler, aem_phase, timing_type);
+}
+
 /*******************************************************************************
  *    Performance Monitoring Support
  ******************************************************************************/
@@ -299,6 +306,7 @@ RTLIB_ExitCode_t RTLIB_Init(const char * name, RTLIB_Services_t ** rtlib)
 	rtlib_services.CPS.Get = rtlib_cps_get;
 	rtlib_services.CPS.SetGoal = rtlib_cps_goal_set;
 	rtlib_services.CPS.SetMinCycleTime_us = rtlib_cps_set_ctime_us;
+	rtlib_services.CPS.GetTimingMs = rtlib_get_timing_ms;
 	rtlib_services.JPS.Get = rtlib_jps_get;
 	rtlib_services.JPS.SetGoal = rtlib_jps_goal_set;
 	rtlib_services.JPS.UpdateJPC = rtlib_jps_goal_update;

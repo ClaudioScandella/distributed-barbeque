@@ -388,6 +388,15 @@ public:
 		uint16_t number_of_systems
 	);
 
+	/**
+	 * @brief Get AWEM phase timing in milliseconds
+	 * @param aem_phase which phase
+	 * @param timing_time last or average value
+	 * @return the required timing [ms]
+	 */
+	float GetTimingMs(
+		RTLIB_ExecPhaseType_t aem_phase,
+		RTLIB_ExecTimingType_t timing_type);
 
 	/**
 	 * @brief Set the cycle rate for this EXC

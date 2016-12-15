@@ -264,6 +264,29 @@ typedef enum RTLIB_ResourceType {
 } RTLIB_ResourceType_t;
 
 /**
+ * @brief EXC execution phases
+ * @ingroup rtlib_sec03_plain_exc
+ *
+ * This enumerated type lists all the types of phases an EXC execution may
+ * pass through
+ */
+typedef enum RTLIB_ExecPhaseType {
+	CONFIGURE = 0, // onConfigure
+	RUN,           // onRun
+	MONITOR,       // onMonitor
+	CYCLE,         // the entire execution cycle
+} RTLIB_ExecPhaseType_t;
+
+/**
+ * @brief EXC statistics type for timing getters
+ * @ingroup rtlib_sec03_plain_exc
+ */
+typedef enum RTLIB_ExecTimingType {
+	AVERAGE_VALUE = 0,
+	LAST_VALUE,
+} RTLIB_ExecTimingType_t;
+
+/**
  * @brief The recipe of an Execution Context (EXC).
  * @ingroup rtlib_sec03_plain_exc
  *
@@ -741,6 +764,24 @@ typedef float (*RTLIB_CPS_Get)(
 typedef float (*RTLIB_JPS_Get)(
 	RTLIB_EXCHandler_t exc_handler);
 
+
+/**
+ * @brief Get elapsed time for a given execution phase
+ *
+ * The RTLib provides you the support to monitor the time spent
+ * in the AEM phases (Run, Monitor, Configure)
+ *
+ * @param ech the handler of the EXC to configure
+ * @param aem_phase phase whom duration you are interested in
+ * @param timing_type whether you want the last value or the average one
+ *
+ * @return the measured jobs rate
+ */
+typedef float (*RTLIB_Timing_GetMS)(
+	RTLIB_EXCHandler_t exc_handler,
+	RTLIB_ExecPhaseType aem_phase,
+	RTLIB_ExecTimingType timing_type);
+
 /**
  * @brief Update JPC value
  * @ingroup rtlib_sec03_plain_cps
@@ -1179,6 +1220,7 @@ struct RTLIB_Services {
 		RTLIB_CPS_Get Get;
 		RTLIB_CPS_Goal_Set SetGoal;
 		RTLIB_CPS_CTimeUs SetMinCycleTime_us;
+		RTLIB_Timing_GetMS GetTimingMs;
 	} CPS;
 
 	/* Cycles Time Control interface */
