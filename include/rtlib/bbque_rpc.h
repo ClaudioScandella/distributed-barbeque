@@ -794,8 +794,6 @@ protected:
 		/** Count of times this AWM has been in used */
 		uint32_t number_of_uses;
 		/** The time [ms] spent on processing into this AWM */
-		uint32_t time_spent_processing;
-		/** The time [ms] spent on processing into this AWM */
 		uint32_t time_spent_running;
 		/** The time [ms] spent on monitoring this AWM */
 		uint32_t time_spent_monitoring;
@@ -843,7 +841,6 @@ protected:
 
 		AwmStats() :
 			number_of_uses(0),
-			time_spent_processing(0),
 			time_spent_running(0),
 			time_spent_monitoring(0),
 			time_spent_configuring(0) {};

@@ -646,6 +646,8 @@ RTLIB_ExitCode_t BbqueRPC::SetupAWMStatistics(pRegisteredEXC_t exc)
 "#-------------------------------+---------+-------------------+------------------"
 #define STATS_CONF_SPLIT \
 "#-------------------------------+---------+-------------------+------------------"
+#define STATS_AWM_CLOSE \
+"                                +---------+-------------------+------------------"
 
 void BbqueRPC::DumpStatsHeader()
 {
@@ -728,6 +730,10 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 			fprintf(output_file, "%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
 					"Configure - AWM wait", awm_stats->time_spent_configuring,
 					config_min, config_max, config_avg, config_var);
+			fprintf(output_file, STATS_AWM_CLOSE"\n");
+			fprintf(output_file, "%31s | %.3f %%\n", "Management efficiency",
+				100.0 * (double) awm_stats->time_spent_running /
+				(double) execution_time);
 		}
 		else {
 			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
@@ -739,6 +745,10 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
 					"Configure - AWM wait", awm_stats->time_spent_configuring,
 					config_min, config_max, config_avg, config_var);
+			logger->Debug(STATS_AWM_CLOSE);
+			logger->Debug("%31s | %.3f %%", "Management efficiency",
+				100.0 * (double) awm_stats->time_spent_running /
+				(double) execution_time);
 		}
 	}
 
@@ -3178,9 +3188,10 @@ void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
 	// Cycle time including CPS enforcing
 	cycle_time_ms = exc->execution_timer.getElapsedTimeMs();
 
+	double run_time_ms = cycle_time_ms - exc->run_tstart_ms;
+
 	// Update total and AWM-wise time statistics
 	pAwmStats_t awm_stats(exc->current_awm_stats);
-	double run_time_ms = cycle_time_ms - exc->run_tstart_ms;
 
 	exc->time_analyser_run.InsertValue(run_time_ms);
 	exc->run_time_ms += run_time_ms;
