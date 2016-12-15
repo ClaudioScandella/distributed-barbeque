@@ -1033,18 +1033,34 @@ protected:
 		int jpc = 1;
 
 		/**
-		 * Moving Statistics for cycle times (user-side):
-		 * onRun + onMonitor + ForceCPS sleep
+		 * Moving Statistics for onConfigure method
 		 * @see NotifyPostMonitor
 		 */
-		bu::StatsAnalysis cycletime_analyser_user;
+		bu::StatsAnalysis time_analyser_configure;
+		/**
+		 * Moving Statistics for onMonitor method
+		 * @see NotifyPostMonitor
+		 */
+		bu::StatsAnalysis time_analyser_monitor;
+		/**
+		 * Moving Statistics for onRun method
+		 * @see NotifyPostMonitor
+		 */
+		bu::StatsAnalysis time_analyser_run;
 
 		/**
-		 * Moving Statistics for cycle times (bbque-side):
-		 * onRun + onMonitor
+		 * Moving Statistics for real cycle time [ms]
+		 * It does not include ForceCPS delay, if any
 		 * @see NotifyPostMonitor
 		 */
-		bu::StatsAnalysis cycletime_analyser_system;
+		bu::StatsAnalysis time_analyser_cycle;
+
+		/**
+		 * Moving Statistics for user cycle time [ms]
+		 * It includes ForceCPS delay, if any
+		 * @see NotifyPostMonitor
+		 */
+		bu::StatsAnalysis time_analyser_usercycle;
 
 		/**
 		 * The cycletime statistics accumulator may be reset, usually

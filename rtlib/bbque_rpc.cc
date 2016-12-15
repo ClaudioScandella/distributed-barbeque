@@ -717,7 +717,7 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 					"Run", awm_stats->time_spent_processing,
 					run_min, run_max, run_avg, run_var);
 			fprintf(output_file, "%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-					"Monitor - Enforce", awm_stats->time_spent_monitoring,
+					"Monitor", awm_stats->time_spent_monitoring,
 					monitor_min, monitor_max, monitor_avg, monitor_var);
 		}
 		else {
@@ -725,7 +725,7 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 					"Run", awm_stats->time_spent_processing,
 					run_min, run_max, run_avg, run_var);
 			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
-					"Monitor - Enforce", awm_stats->time_spent_monitoring,
+					"Monitor", awm_stats->time_spent_monitoring,
 					monitor_min, monitor_max, monitor_avg, monitor_var);
 		}
 
@@ -1008,22 +1008,24 @@ void BbqueRPC::DumpStats(pRegisteredEXC_t exc, bool verbose)
 		logger->Notice("Execution statistics:\n\n");
 
 	if (verbose) {
-		fprintf(output_file, "Cumulative execution stats for '%s':\n",
+		fprintf(output_file, "Cumulative execution statistics for '%s':\n\n",
 				exc->name.c_str());
-		fprintf(output_file, "  TotCycles    : %7lu\n", exc->cycles_count);
-		fprintf(output_file, "  StartLatency : %7u [ms]\n", exc->starting_time_ms);
-		fprintf(output_file, "  AwmWait      : %7u [ms]\n", exc->blocked_time_ms);
-		fprintf(output_file, "  Configure    : %7u [ms]\n", exc->config_time_ms - exc->blocked_time_ms);
-		fprintf(output_file, "  Process      : %7u [ms]\n", exc->processing_time_ms);
+		fprintf(output_file, "  Total processing bursts           : %7lu\n", exc->cycles_count);
+		fprintf(output_file, "  Latency to first processing burst : %7u [ms]\n\n", exc->starting_time_ms);
+		fprintf(output_file, "  Time spent waiting for resources  : %7u [ms]\n", exc->blocked_time_ms);
+		fprintf(output_file, "  Time spent (re)configuring        : %7u [ms]\n", exc->config_time_ms - exc->blocked_time_ms);
+		fprintf(output_file, "  Time spent processing             : %7u [ms]\n", exc->processing_time_ms);
 		fprintf(output_file, "\n");
 	}
 	else {
-		logger->Debug("Cumulative execution stats for '%s':", exc->name.c_str());
-		logger->Debug("  TotCycles    : %7lu", exc->cycles_count);
-		logger->Debug("  StartLatency : %7u [ms]", exc->starting_time_ms);
-		logger->Debug("  AwmWait      : %7u [ms]", exc->blocked_time_ms);
-		logger->Debug("  Configure    : %7u [ms]", exc->config_time_ms - exc->blocked_time_ms);
-		logger->Debug("  Process      : %7u [ms]", exc->processing_time_ms);
+		logger->Debug("");
+		logger->Debug("Cumulative execution statistics for '%s':", exc->name.c_str());
+		logger->Debug("  Total processing bursts           : %7lu", exc->cycles_count);
+		logger->Debug("  Latency to first processing burst : %7u [ms]", exc->starting_time_ms);
+		logger->Debug("");
+		logger->Debug("  Time spent waiting for resources  : %7u [ms]", exc->blocked_time_ms);
+		logger->Debug("  Time spent (re)configuring        : %7u [ms]", exc->config_time_ms - exc->blocked_time_ms);
+		logger->Debug("  Time spent processing             : %7u [ms]", exc->processing_time_ms);
 		logger->Debug("");
 	}
 
@@ -1086,12 +1088,12 @@ void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler,
 	if (! exc) return;
 
 	logger->Debug("SetCPSGoal: Resetting cycle time history");
-	exc->average_cycletime_pre_reset_ms = exc->cycletime_analyser_user.GetMean();
+	exc->average_cycletime_pre_reset_ms = exc->time_analyser_usercycle.GetMean();
 
-	exc->cycletime_analyser_system.Reset();
+	exc->time_analyser_cycle.Reset();
 
 	if (new_user_goal)
-		exc->cycletime_analyser_user.Reset();
+		exc->time_analyser_usercycle.Reset();
 
 	logger->Debug("SetCPSGoal: Resetting CPU quota history");
 	exc->cpu_usage_analyser.Reset();
@@ -1919,8 +1921,8 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 
 	// Allocation is not changed if there are not enough samples to compute
 	// meaningful statistics
-	float cycletime_ic99 = exc->cycletime_analyser_system.GetConfidenceInterval99();
-	if (exc->cycletime_analyser_system.GetWindowSize() == 0 || cycletime_ic99 == 0) {
+	float cycletime_ic99 = exc->time_analyser_cycle.GetConfidenceInterval99();
+	if (exc->time_analyser_cycle.GetWindowSize() == 0 || cycletime_ic99 == 0) {
 		logger->Debug("UpdateAllocation: No samples to analyse. SKIPPING.");
 		return RTLIB_OK;
 	}
@@ -1928,7 +1930,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	// Compute Goal Gap ////////////////////////////////////////////////////
 	if (exc->cps_goal_min + exc->cps_goal_max > 0.0f && ! exc->explicit_ggap_assertion) {
 		// Milliseconds per cycle
-		float avg_cycletime_ms = exc->cycletime_analyser_system.GetMean();
+		float avg_cycletime_ms = exc->time_analyser_cycle.GetMean();
 		float min_cycletime_ms = avg_cycletime_ms - cycletime_ic99;
 		float max_cycletime_ms = avg_cycletime_ms + cycletime_ic99;
 
@@ -1943,7 +1945,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 
 		STAT_LOG("PERFORMANCE:AVERAGE_CPS_SYSTEM %.2f", cps_avg);
 		STAT_LOG("PERFORMANCE:AVERAGE_CPS_USER %.2f",
-			 1000.0f / exc->cycletime_analyser_user.GetMean());
+			 1000.0f / exc->time_analyser_usercycle.GetMean());
 
 		float target_cps;
 		float current_cps;
@@ -2097,7 +2099,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 
 	// Ggap computing is inhibited for some ms when the application is
 	// assigned a new set of resources
-	int ms_from_last_allocation = exc->cycletime_analyser_user.GetSum();
+	int ms_from_last_allocation = exc->time_analyser_usercycle.GetSum();
 
 	if (ms_from_last_allocation <
 		rtlib_configuration.runtime_profiling.rt_profile_rearm_time_ms
@@ -2111,7 +2113,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	exc->is_waiting_for_sync = false;
 
 	// Forward is inhibited for some ms after a RTP has been forwarded.
-	exc->waiting_sync_timeout_ms -= exc->cycletime_analyser_user.GetLastValue();
+	exc->waiting_sync_timeout_ms -= exc->time_analyser_usercycle.GetLastValue();
 
 	if (exc->waiting_sync_timeout_ms > 0) {
 		logger->Info("RTP forward SKIPPED (waiting sync for %d more ms)",
@@ -2126,8 +2128,8 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	float cpu_usage = 100.0f *  exc->resource_assignment[0]->cpu_bandwidth / 100.0f;
 #endif
 	float goal_gap = exc->runtime_profiling.cpu_goal_gap;
-	float cycle_time_avg_ms = exc->cycletime_analyser_system.GetMean() +
-		exc->cycletime_analyser_system.GetConfidenceInterval99();
+	float cycle_time_avg_ms = exc->time_analyser_cycle.GetMean() +
+		exc->time_analyser_cycle.GetConfidenceInterval99();
 
 	exc->waiting_sync_timeout_ms =
 			rtlib_configuration.runtime_profiling.rt_profile_wait_for_sync_ms;
@@ -2852,12 +2854,12 @@ float BbqueRPC::GetCPS(
 	float cps = 0;
 
 	// If cycle was reset, return CPS up to last forward window
-	if (exc->cycletime_analyser_user.GetMean() == 0.0)
+	if (exc->time_analyser_usercycle.GetMean() == 0.0)
 		return (exc->average_cycletime_pre_reset_ms == 0.0) ?
 			   0.0 : 1000.0 / exc->average_cycletime_pre_reset_ms;
 
 	// Get the current measured CPS
-	ctime = exc->cycletime_analyser_user.GetMean();
+	ctime = exc->time_analyser_usercycle.GetMean();
 
 	if (ctime != 0)
 		cps = 1000.0 / ctime;
@@ -3034,6 +3036,7 @@ void BbqueRPC::NotifyPostConfigure(
 	double configure_time_ms =
 	    exc->execution_timer.getElapsedTimeMs() - exc->configure_tstart_ms;
 	exc->config_time_ms += configure_time_ms;
+	exc->time_analyser_configure.InsertValue(configure_time_ms);
 	awm_stats->time_spent_configuring += configure_time_ms;
 	awm_stats->config_samples(configure_time_ms);
 }
@@ -3123,12 +3126,34 @@ void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
 
 #endif // CONFIG_BBQUE_OPENCL
 
+	// Real cycle time for this execution cycle
+	double cycle_time_ms = exc->execution_timer.getElapsedTimeMs();
+	exc->time_analyser_cycle.InsertValue(cycle_time_ms);
+
+	// Enforce minimum cycle time if the application requested it
+	if (exc->cycle_time_enforced_ms != 0.0f)
+		ForceCPS(exc);
+
+	// Cycle time including CPS enforcing
+	cycle_time_ms = exc->execution_timer.getElapsedTimeMs();
+
 	// Update total and AWM-wise time statistics
 	pAwmStats_t awm_stats(exc->current_awm_stats);
-	double run_time_ms =
-	    exc->execution_timer.getElapsedTimeMs() - exc->run_tstart_ms;
+	double run_time_ms = cycle_time_ms - exc->run_tstart_ms;
+
+	exc->time_analyser_run.InsertValue(run_time_ms);
 	awm_stats->time_spent_processing += run_time_ms;
 	awm_stats->run_samples(run_time_ms);
+	exc->processing_time_ms += run_time_ms;
+
+	// Execution Cycle of the EXC ends here
+	awm_stats->cycle_samples(cycle_time_ms);
+	exc->time_analyser_usercycle.InsertValue(
+		exc->execution_timer.getElapsedTimeMs());
+
+	exc->cycles_count += 1;
+
+	STAT_LOG("APPLICATION:CYCLE_STOP %d", exc->cycles_count);
 }
 
 void BbqueRPC::NotifyPreMonitor(RTLIB_EXCHandler_t exc_handler)
@@ -3160,32 +3185,16 @@ void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler,
 			ForwardRuntimeProfile(exc_handler);
 	}
 
-	// Cycle time for last execution cycle
-	exc->cycletime_analyser_system.InsertValue(
-		exc->execution_timer.getElapsedTimeMs());
-
-	// Enforce minimum cycle time if the application requested it
-	if (exc->cycle_time_enforced_ms != 0.0f)
-		ForceCPS(exc);
-
-	// Cycle time for last onRun + CPS enforcing
-	exc->cycletime_analyser_user.InsertValue(
-		exc->execution_timer.getElapsedTimeMs());
-
 	// Update total and AWM-wise time statistics
 	pAwmStats_t awm_stats(exc->current_awm_stats);
-	double cycle_time_ms = exc->execution_timer.getElapsedTimeMs();
-	double monitor_time_ms = cycle_time_ms - exc->monitor_tstart_ms;
+	double monitor_time_ms =
+		exc->execution_timer.getElapsedTimeMs() - exc->monitor_tstart_ms;
+
+	exc->time_analyser_monitor.InsertValue(monitor_time_ms);
 	awm_stats->time_spent_monitoring += monitor_time_ms;
 	awm_stats->monitor_samples(monitor_time_ms);
 
-	// Execution Cycle (configure + run + monitor) of the EXC ends here
-	awm_stats->cycle_samples(cycle_time_ms);
-	exc->processing_time_ms += cycle_time_ms - exc->configure_tstart_ms;
-	exc->cycles_count += 1;
-
 	logger->Debug("<=== NotifyMonitor");
-	STAT_LOG("APPLICATION:CYCLE_STOP %d", exc->cycles_count);
 }
 
 #ifdef CONFIG_BBQUE_OPENCL
