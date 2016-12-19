@@ -1012,6 +1012,11 @@ protected:
 			/** IDs of all the currently allocated memory nodes */
 			std::string cpuset_mems;
 		} cg_current_allocation;
+
+#ifdef CONFIG_BBQUE_RTLIB_MIN_MGMT_EFFICIENCY
+		float min_allocation_efficiency =
+			0.001f * RTLIB_MIN_MGMT_EFFICIENCY;
+#endif // CONFIG_BBQUE_RTLIB_MIN_MGMT_EFFICIENCY
 #endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 
 		/**

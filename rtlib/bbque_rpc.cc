@@ -898,6 +898,24 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 	// Reading previous values
 	bu::CGroups::Read(cgroup_path, cgsetup);
 
+#ifdef CONFIG_BBQUE_RTLIB_MIN_MGMT_EFFICIENCY
+
+	if (likely(exc->run_time_ms > 0)) {
+		float current_mallocation_efficiency =
+			(float) (exc->run_time_ms) /
+			(float) (exc->run_time_ms + exc->config_time_ms + exc->monitor_time_ms);
+
+		if (current_mallocation_efficiency <= exc->min_allocation_efficiency) {
+			logger->Debug("Skipping CGW: low efficiency (%.3f <= %.3f)",
+				current_mallocation_efficiency,
+				exc->min_allocation_efficiency);
+
+			return RTLIB_OK;
+		}
+	}
+
+#endif // CONFIG_BBQUE_RTLIB_MIN_MGMT_EFFICIENCY
+
 	// CFS_PERIOD: the period over which cpu bandwidth. limit is enforced
 	cgsetup.cpu.cfs_period_us = std::to_string(DEFAULT_CFS_PERIOD);
 	// CFS_quota: the enforced CPU bandwidth wrt the period
