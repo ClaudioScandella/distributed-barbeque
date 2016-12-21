@@ -2067,8 +2067,10 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		// If there is a difference in either cpuset or number of
 		// exploitable pes, a new reconfiguration is needed.
 		if (curr_pe_usage != next_pe_usage ||
-			next_cpuset.compare(curr_cpuset) != 0)
+				next_cpuset.compare(curr_cpuset) != 0) {
 			exc->trigger_reconfigure = true;
+			STAT_LOG("APPLICATION:RECONFIGURATION");
+		}
 
 		CGroupCommitAllocation(exc);
 	}
@@ -3084,8 +3086,11 @@ void BbqueRPC::NotifyPreConfigure(
 	if(exc->cycles_count == 0)
 		STAT_LOG("APPLICATION:EXC_START");
 
-	logger->Debug("===> NotifyConfigure");
+#ifndef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	STAT_LOG("APPLICATION:RECONFIGURATION");
+#endif
+
+	logger->Debug("===> NotifyConfigure");
 }
 
 void BbqueRPC::NotifyPostConfigure(
