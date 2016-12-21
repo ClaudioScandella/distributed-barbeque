@@ -114,6 +114,18 @@ config RTLIB_DA_MIN_EFFICIENCY
   on performance enforcing, I do not care about efficiency",
   and 999 means "I want a minimum efficiency of 99.9%".
 
+config RTLIB_DA_ADAPTIVE_CFS_PERIOD
+  bool "CPU cfs adaptive period"
+  default y
+  depends on RTLIB_DA_LOCAL_CGROUP_WRITE
+  ---help---
+  CFS CPU bandwidth is enforced by allocating to the
+  application a given quota of CPU usage over a period.
+  The closer the period is wrt the duration of an onRun, the
+  more the enforcement is accurate. By enabling this option,
+  the enforcement period will be set equal to the duration
+  of the application onRun (max 1000000 us).
+
 endmenu # Control Groups Distributed Actuation
 endmenu # Linux Control Groups
 

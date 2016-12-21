@@ -39,9 +39,6 @@
 #undef  BBQUE_LOG_MODULE
 #define BBQUE_LOG_MODULE "rpc"
 
-// NOTE: cpu controller does not support periods > 1s (1000000 us))
-#define DEFAULT_CFS_PERIOD 100000
-
 namespace ba = bbque::app;
 namespace bu = bbque::utils;
 
@@ -665,8 +662,6 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 	double config_min, config_max, config_avg, config_var;
 	double run_min, run_max, run_avg, run_var;
 
-	uint32_t execution_time;
-
 	// Print RTLib stats for each AWM
 	for (auto & awm : exc->awm_stats) {
 		awm_id = awm.first;
@@ -908,10 +903,10 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 #endif // CONFIG_RTLIB_DA_MIN_EFFICIENCY
 
 	// CFS_PERIOD: the period over which cpu bandwidth. limit is enforced
-	cgsetup.cpu.cfs_period_us = std::to_string(DEFAULT_CFS_PERIOD);
+	cgsetup.cpu.cfs_period_us = std::to_string(exc->cgroup_cpu_cfs_period_us);
 	// CFS_quota: the enforced CPU bandwidth wrt the period
-	uint32_t cfs_quota =
-		(uint32_t) (exc->cg_current_allocation.cpu_budget * DEFAULT_CFS_PERIOD);
+	uint32_t cfs_quota = (uint32_t) (exc->cg_current_allocation.cpu_budget
+				* exc->cgroup_cpu_cfs_period_us);
 
 	logger->Debug("Updating cpu.cfs_quota_us: %s to %s",
 		cgsetup.cpu.cfs_quota_us.c_str(),
@@ -2946,6 +2941,21 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 	// Keep track of the maximum required CPS
 	exc->cps_goal_min = cps_min;
 	exc->cps_goal_max = cps_max;
+
+#ifdef CONFIG_RTLIB_DA_ADAPTIVE_CFS_PERIOD
+	// Adapting cfs period to average cycle time, which in turn equals to
+	// average_cps_goal^(-1).
+	// NOTE: libcgroup does not support period lengths greater than 1 sec
+	// (i.e. CPS must be >= 1.0)
+	float average_cps_goal = std::max(1.0f, cps_max);
+
+	// cpu.cfs_period must be integer and expressed in microseconds
+	uint32_t average_cycletime_us = 1e6 * (1.0f / average_cps_goal);
+
+	logger->Info("cpu.cfs_period_us adapted to %u us (%.2f periods / sec)",
+		average_cycletime_us, average_cps_goal);
+	exc->cgroup_cpu_cfs_period_us = average_cycletime_us;
+#endif // CONFIG_RTLIB_DA_ADAPTIVE_CFS_PERIOD
 
 	STAT_LOG("PERFORMANCE:CPSGOAL_MIN %.2f", exc->cps_goal_min);
 	STAT_LOG("PERFORMANCE:CPSGOAL_MAX %.2f", exc->cps_goal_max);

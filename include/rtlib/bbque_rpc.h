@@ -18,6 +18,9 @@
 #ifndef BBQUE_RPC_H_
 #define BBQUE_RPC_H_
 
+// NOTE: cpu controller does not support periods > 1s (1000000 us))
+#define DEFAULT_CFS_PERIOD 100000
+
 #include "rtlib/rtlib.h"
 #include "bbque/config.h"
 #include "rtlib/rpc_messages.h"
@@ -1012,6 +1015,8 @@ protected:
 			/** IDs of all the currently allocated memory nodes */
 			std::string cpuset_mems;
 		} cg_current_allocation;
+
+		uint32_t cgroup_cpu_cfs_period_us = DEFAULT_CFS_PERIOD;
 
 #ifdef CONFIG_RTLIB_DA_MIN_EFFICIENCY
 		float min_allocation_efficiency =

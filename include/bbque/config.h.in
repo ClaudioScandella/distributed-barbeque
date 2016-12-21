@@ -170,6 +170,9 @@
 /* Enable CGroups write reduction to achieve a desired minimum efficiency*/
 #cmakedefine CONFIG_RTLIB_DA_MIN_EFFICIENCY
 
+/* Enable adaptive cpu.cfs_period */
+#cmakedefine CONFIG_RTLIB_DA_ADAPTIVE_CFS_PERIOD
+
 /** Memory locality: L3 cache */
 #cmakedefine CONFIG_BBQUE_MEMLOC_L3
 
