@@ -334,6 +334,16 @@ RTLIB_ExitCode_t BbqueEXC::SetJPSGoal(float jps_min, float jps_max, int jpc)
 
 RTLIB_ExitCode_t BbqueEXC::SetCPSGoal(float cps_min, float cps_max)
 {
+	if (cps_min < 0.0f) {
+		logger->Error("SetCPSGoal FAILED (min CPS must be >= 0)");
+		return RTLIB_ERROR;
+	}
+
+	if (cps_min > cps_max) {
+		logger->Error("SetCPSGoal FAILED (min CPS must be <= max_cps)");
+		return RTLIB_ERROR;
+	}
+
 	logger->Debug("Set cycles-rate goal to [%.3f - %.3f] [Hz] for EXC [%s] (@%p)...",
 				  cps_min, cps_max, exc_name.c_str(), (void *) exc_handler);
 	return rtlib->CPS.SetGoal(exc_handler, cps_min, cps_max);

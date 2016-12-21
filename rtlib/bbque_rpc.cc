@@ -2924,15 +2924,12 @@ void BbqueRPC::ForceCPS(pRegisteredEXC_t exc)
 }
 
 RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
-	RTLIB_EXCHandler_t exc_handler,
-	float _cps_min, float _cps_max)
+	RTLIB_EXCHandler_t exc_handler, float cps_min, float cps_max)
 {
 	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
 	if (! exc) return RTLIB_EXC_NOT_REGISTERED;
 
-	float cps_min = _cps_min;
-	float cps_max = (_cps_max == 0.0 || _cps_max > cps_min) ? _cps_max : _cps_min;
 	// Keep track of the maximum required CPS
 	exc->cps_goal_min = cps_min;
 	exc->cps_goal_max = cps_max;
