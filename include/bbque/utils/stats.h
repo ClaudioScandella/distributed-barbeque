@@ -18,6 +18,9 @@
 #ifndef BBQUE_UTILS_STATS_H_
 #define BBQUE_UTILS_STATS_H_
 
+// Confidence Intervals have no meaning if the number of samples is too low
+#define IC_MIN_SAMPLES 5
+
 #include <memory>
 #include <cmath>
 #include <list>
@@ -118,19 +121,25 @@ public:
 				? 0.0f : GetStandartDeviation() / std::sqrt(samples_number);
 	}
 
-	// CI 90%: 1.96 * standard error
+	// CI 90%: 1.645 * standard error
 	inline double GetConfidenceInterval90() {
-		return 1.645 * GetStandardError();
+		return GetWindowSize() > IC_MIN_SAMPLES
+			? 1.645 * GetStandardError()
+			: 0.0;
 	}
 
 	// CI 95%: 1.96 * standard error
 	inline double GetConfidenceInterval95() {
-		return 1.96 * GetStandardError();
+		return GetWindowSize() > IC_MIN_SAMPLES
+			? 1.96 * GetStandardError()
+			: 0.0;
 	}
 
 	// CI 99%: 2.58 * standard error
 	inline double GetConfidenceInterval99() {
-		return 2.58 * GetStandardError();
+		return GetWindowSize() > IC_MIN_SAMPLES
+			? 2.58 * GetStandardError()
+			: 0.0;
 	}
 
 	inline double GetSum() {
@@ -156,10 +165,6 @@ public:
 
 	// Store a new value
 	void InsertValue(double value) {
-
-// Confidence Intervals have no meaning if the number of samples is too low
-#define IC_MIN_SAMPLES 5
-
 		if (detect_phase_changes && GetWindowSize() > IC_MIN_SAMPLES) {
 			// If phase did not change, the new sample should stay in the
 			// interval [MEAN-IC99 - MEAN+IC99]
