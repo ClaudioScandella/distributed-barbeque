@@ -701,7 +701,7 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 		run_avg = mean(awm_stats->run_samples);
 		run_var = variance(awm_stats->run_samples);
 
-		execution_time = awm_stats->time_spent_configuring
+		uint32_t execution_time = awm_stats->time_spent_configuring
 			+ awm_stats->time_spent_running
 			+ awm_stats->time_spent_monitoring;
 
@@ -714,8 +714,8 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 		else {
 			logger->Debug(STATS_AWM_SPLIT);
 			logger->Debug("%.8s %03d %8d  %8d | %7u | %8.3f %8.3f | %8.3f %8.3f",
-						  exc->name.c_str(), awm_id, awm_stats->number_of_uses, cycles_count,
-						  execution_time, cycle_min, cycle_max, cycle_avg, cycle_var);
+					exc->name.c_str(), awm_id, awm_stats->number_of_uses, cycles_count,
+					execution_time, cycle_min, cycle_max, cycle_avg, cycle_var);
 		}
 
 		if (verbose) {
@@ -730,10 +730,7 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 			fprintf(output_file, "%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
 					"Configure - AWM wait", awm_stats->time_spent_configuring,
 					config_min, config_max, config_avg, config_var);
-			fprintf(output_file, STATS_AWM_CLOSE"\n");
-			fprintf(output_file, "%31s | %.3f %%\n", "Management efficiency",
-				100.0 * (double) awm_stats->time_spent_running /
-				(double) execution_time);
+			fprintf(output_file, STATS_AWM_CLOSE"\n\n");
 		}
 		else {
 			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
@@ -745,17 +742,9 @@ void BbqueRPC::DumpStatsConsole(pRegisteredEXC_t exc, bool verbose)
 			logger->Debug("%31s | %7u | %8.3f %8.3f | %8.3f %8.3f\n",
 					"Configure - AWM wait", awm_stats->time_spent_configuring,
 					config_min, config_max, config_avg, config_var);
-			logger->Debug(STATS_AWM_CLOSE);
-			logger->Debug("%31s | %.3f %%", "Management efficiency",
-				100.0 * (double) awm_stats->time_spent_running /
-				(double) execution_time);
+			logger->Debug(STATS_AWM_CLOSE"\n");
 		}
 	}
-
-	if (verbose)
-		fprintf(output_file, "\n");
-	else
-		logger->Debug("\n");
 
 	if (! PerfRegisteredEvents(exc) || ! verbose)
 		return;
@@ -1036,6 +1025,10 @@ void BbqueRPC::DumpStats(pRegisteredEXC_t exc, bool verbose)
 	if (! rtlib_configuration.profile.output.file)
 		logger->Notice("Execution statistics:\n\n");
 
+	uint32_t execution_time = exc->config_time_ms + exc->monitor_time_ms + exc->run_time_ms;
+	uint32_t process_time = exc->run_time_ms + exc->config_time_ms - exc->blocked_time_ms;
+	double efficiency = (double) process_time / execution_time;
+
 	if (verbose) {
 		fprintf(output_file, "Cumulative execution statistics for '%s':\n\n",
 				exc->name.c_str());
@@ -1045,6 +1038,8 @@ void BbqueRPC::DumpStats(pRegisteredEXC_t exc, bool verbose)
 		fprintf(output_file, "  Time spent (re)configuring        : %7u [ms]\n", exc->config_time_ms - exc->blocked_time_ms);
 		fprintf(output_file, "  Time spent monitoring             : %7u [ms]\n", exc->monitor_time_ms);
 		fprintf(output_file, "  Time spent processing             : %7u [ms]\n", exc->run_time_ms);
+		fprintf(output_file, "\n");
+		fprintf(output_file, "  Management efficiency             : %7.2f %%\n", efficiency * 100.0);
 		fprintf(output_file, "\n");
 	}
 	else {
@@ -1057,6 +1052,8 @@ void BbqueRPC::DumpStats(pRegisteredEXC_t exc, bool verbose)
 		logger->Debug("  Time spent (re)configuring        : %7u [ms]", exc->config_time_ms - exc->blocked_time_ms);
 		logger->Debug("  Time spent monitoring             : %7u [ms]", exc->monitor_time_ms);
 		logger->Debug("  Time spent processing             : %7u [ms]", exc->run_time_ms);
+		logger->Debug("");
+		logger->Debug("  Management efficiency             : %7.2f %%", efficiency * 100.0);
 		logger->Debug("");
 	}
 
@@ -1093,11 +1090,6 @@ RTLIB_ExitCode_t BbqueRPC::UpdateCPUBandwidthStats(pRegisteredEXC_t exc)
 	exc->cpu_usage_analyser.InsertValue(cpu_usage);
 	logger->Debug("Measured CPU Usage: %f, average: %f",
 				  cpu_usage, exc->cpu_usage_analyser.GetMean());
-	exc->cpu_usage_info.previous_time = exc->cpu_usage_info.current_time;
-	exc->cpu_usage_info.previous_tms_stime =
-		exc->cpu_usage_info.time_sample.tms_stime;
-	exc->cpu_usage_info.previous_tms_utime =
-		exc->cpu_usage_info.time_sample.tms_utime;
 	return RTLIB_OK;
 }
 
