@@ -1097,8 +1097,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateCPUBandwidthStats(pRegisteredEXC_t exc)
 
 void BbqueRPC::InitCPUBandwidthStats(pRegisteredEXC_t exc)
 {
-	exc->cpu_usage_info.current_time = times(&exc->cpu_usage_info.time_sample);
-	exc->cpu_usage_info.previous_time = exc->cpu_usage_info.current_time;
+	exc->cpu_usage_info.previous_time = times(&exc->cpu_usage_info.time_sample);
 	exc->cpu_usage_info.previous_tms_stime =
 		exc->cpu_usage_info.time_sample.tms_stime;
 	exc->cpu_usage_info.previous_tms_utime =
