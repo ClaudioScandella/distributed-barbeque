@@ -1499,7 +1499,6 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 		}
 
 		GetWorkingModeParams(exc, working_mode_params);
-		ResetRuntimeProfileStats(exc_handler);
 
 		// Exit if the EXC has been disabled
 		if (! isEnabled(exc))
@@ -1518,6 +1517,8 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 			// allocation change (or EXC start), not on budget change
 			if (exc->event != RTLIB_EXC_GWM_START)
 				return RTLIB_OK;
+#else  // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
+			ResetRuntimeProfileStats(exc_handler);
 #endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 			break;
 
@@ -1539,6 +1540,7 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 	// If no new AWM was assigned but PostMonitor asked for a
 	// reconfiguration, mark the EXC as `migrating`
 	if (exc->trigger_reconfigure) {
+		ResetRuntimeProfileStats(exc_handler);
 		// Reset PostMonitor reconfigure flag
 		exc->trigger_reconfigure = false;
 		// Trigger migration
