@@ -2073,37 +2073,53 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		CGroupCommitAllocation(exc);
 	}
 
-	// Set Runtime Profile Forwarding flag if saturated ////////////////////
-	// Reset the flag
+	// Check if the current CPU bandwidth allocation is OK /////////////////
+
+	// If set to true, the profile will be forwarded
 	exc->runtime_profiling.rtp_forward = false;
-	// CPU usage for the next cycle will be less than this value with 90% probability
-	float cpu_usage_90 = ideal_cpu_usage +
-		exc->cpu_usage_analyser.GetConfidenceInterval90();
-	// CPU usage for the next cycle will be less than this value with 99% probability
-	float cpu_usage_99 = ideal_cpu_usage +
-		exc->cpu_usage_analyser.GetConfidenceInterval99();
 
+	// Ideal allocation should be enough to always guarantee to the
+	// application the needed CPU bandwidth. 99% of the time, the
+	// application will require less than ideal_allocation_99 CPU
+	// bandwidth. 90% of the time, the application will require less
+	// than ideal_allocation_90 CPU bandwidth.
+	// An allocation between ideal_allocation_90 and ideal_allocation_99
+	// should be often enough for the application to run properly.
+	float ideal_allocation_99 = ideal_cpu_usage +
+			exc->cpu_usage_analyser.GetConfidenceInterval99();
 
-	// Maximum CPU usage as decreed by the BarbequeRTRM
+	float ideal_allocation_90 = ideal_cpu_usage +
+			exc->cpu_usage_analyser.GetConfidenceInterval90();
+
+	if (ideal_allocation_90 == ideal_allocation_99) {
+		logger->Warn("Not enough samples to compute a valid usage metric");
+		return RTLIB_OK;
+	}
+
+	// Maximum CPU bandwidth as allocated by the BarbequeRTRM
 	float cpu_usage_budget = 100.0f * exc->cg_budget.cpu_budget_shared;
 
-	// I want the CPU budget to be enough from 90 to 95% of the time
-	if (cpu_usage_budget > cpu_usage_99 && goal_gap >= 0.0f) {
-		logger->Debug("CPU budget too high: should be %f but it is %f",
-			cpu_usage_99, cpu_usage_budget);
+	// If the application is satisfied with its performance, let us get rid
+	// of the surplus CPU bandwidth
+	if (goal_gap >= 0.0f && cpu_usage_budget > ideal_allocation_99) {
+		logger->Debug("CPU budget (%.2f) too high: need only %.2f",
+			cpu_usage_budget, ideal_allocation_99);
 		exc->runtime_profiling.rtp_forward = true;
 		exc->runtime_profiling.cpu_goal_gap = 100.0f *
-			(cpu_usage_budget - cpu_usage_99) / cpu_usage_99;
-	} else if (cpu_usage_budget < cpu_usage_90) {
-		logger->Debug("CPU budget too low: should be %f but it is %f",
-			cpu_usage_90, cpu_usage_budget);
+			(cpu_usage_budget - ideal_allocation_99) / ideal_allocation_99;
+	}
+	// If the application is not satisfied with its performance, let us
+	// ask for more CPU bandwidth
+	else if (goal_gap < 0.0f && cpu_usage_budget < ideal_allocation_90) {
+		logger->Debug("CPU budget (%.2f) too low: need at least %.2f",
+			cpu_usage_budget, ideal_allocation_90);
 		exc->runtime_profiling.rtp_forward = true;
 		exc->runtime_profiling.cpu_goal_gap = 100.0f *
-			(cpu_usage_budget - cpu_usage_90) / cpu_usage_90;
+			(cpu_usage_budget - ideal_allocation_90) / ideal_allocation_90;
 	}
 
 	logger->Debug("CPU budget goal gap is %f",
-		exc->runtime_profiling.cpu_goal_gap);
+			exc->runtime_profiling.cpu_goal_gap);
 
 	// Constraining gap to avoid harsh allocation changes:
 	// Never request less than half the budget
