@@ -1108,7 +1108,7 @@ void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler,
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
 	if (! exc) return;
 
-	logger->Debug("SetCPSGoal: Resetting cycle time history");
+	logger->Debug("Resetting cycle time history");
 	exc->average_cycletime_pre_reset_ms = exc->time_analyser_usercycle.GetMean();
 
 	exc->time_analyser_cycle.Reset();
@@ -1116,7 +1116,7 @@ void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler,
 	if (new_user_goal)
 		exc->time_analyser_usercycle.Reset();
 
-	logger->Debug("SetCPSGoal: Resetting CPU quota history");
+	logger->Debug("Resetting CPU quota history");
 	exc->cpu_usage_analyser.Reset();
 	exc->waiting_sync_timeout_ms = 0;
 	exc->is_waiting_for_sync = false;
@@ -2003,8 +2003,6 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 			goal_gap = std::min(0.33f, goal_gap);
 		}
 
-		logger->Debug("Performance goal gap is %f", 100.0f * goal_gap);
-
 		STAT_LOG("PERFORMANCE:PERFORMANCE_GAP %.2f", 100.0f * goal_gap);
 
 	} else if (exc->explicit_ggap_assertion){
@@ -2034,10 +2032,6 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 			logger->Debug("CPU quota computation not available. Skipping.");
 			return RTLIB_OK;
 		}
-
-		logger->Debug("Updating CPU allocation: %f -> %f",
-					avg_cpu_usage, ideal_cpu_usage);
-
 
 		// Current usage, to be compared later with the new one
 		float curr_pe_usage = std::floor(exc->cg_current_allocation.cpu_budget);
