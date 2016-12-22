@@ -896,6 +896,8 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 				current_allocation_efficiency,
 				exc->min_allocation_efficiency);
 
+			exc->trigger_reconfigure = false;
+
 			return RTLIB_OK;
 		}
 	}
