@@ -2000,7 +2000,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 			goal_gap = (current_cps - target_cps) / target_cps;
 			// Constraining gap to avoid harsh allocation changes:
 			// Never request less than half the budget
-			goal_gap = std::max(-0.33f, goal_gap);
+			goal_gap = std::min(0.33f, goal_gap);
 		}
 
 		logger->Debug("Performance goal gap is %f", 100.0f * goal_gap);
@@ -2144,7 +2144,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	// Constraining gap to avoid harsh allocation changes:
 	// Never request less than half the budget
 	exc->runtime_profiling.cpu_goal_gap =
-		std::max(-33.3f, exc->runtime_profiling.cpu_goal_gap);
+		std::min(33.3f, exc->runtime_profiling.cpu_goal_gap);
 
 	// In case of negative goal gaps, let's skip to forwarding
 	if (exc->runtime_profiling.cpu_goal_gap < 0.0f)
