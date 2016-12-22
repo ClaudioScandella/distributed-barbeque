@@ -680,6 +680,8 @@ public:
 
 protected:
 
+	enum class ResourceReleasePolicy {AGGRESSIVE, CONSERVATIVE, RELAXED};
+
 	/** Instance of the BarbequeRTRM logger*/
 	static std::unique_ptr<bu::Logger> logger;
 
@@ -1041,6 +1043,8 @@ protected:
 			 * @see NotifyPostMonitor, ForwardRuntimeProfile
 			 */
 			bool rtp_forward = false;
+
+			ResourceReleasePolicy release_policy;
 		} runtime_profiling;
 
 		/** Start time of the lase EXC configuration phase*/
@@ -1162,7 +1166,19 @@ protected:
 		bu::StatsAnalysis cpu_usage_analyser;
 
 		RegisteredExecutionContext(const char * _name, uint8_t id) :
-			name(_name), id(id) {}
+			name(_name), id(id) {
+
+			if (strcmp(RTLIB_RES_RELEASE_POLICY, "agg") == 0)
+				runtime_profiling.release_policy =
+					ResourceReleasePolicy::AGGRESSIVE;
+			else if (strcmp(RTLIB_RES_RELEASE_POLICY, "con") == 0)
+				runtime_profiling.release_policy =
+					ResourceReleasePolicy::CONSERVATIVE;
+			else
+				runtime_profiling.release_policy =
+					ResourceReleasePolicy::RELAXED;
+
+		}
 
 		~RegisteredExecutionContext()
 		{

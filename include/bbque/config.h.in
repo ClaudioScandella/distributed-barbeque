@@ -233,6 +233,11 @@
 /** CGroups Support */
 #cmakedefine CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT
 
+/** Resource release policy*/
+#cmakedefine CONFIG_BBQUE_RTLIB_RES_RELEASE_POLICY_AGG
+#cmakedefine CONFIG_BBQUE_RTLIB_RES_RELEASE_POLICY_CON
+#cmakedefine CONFIG_BBQUE_RTLIB_RES_RELEASE_POLICY_RLX
+
 /** Log4CPP Support */
 #cmakedefine CONFIG_EXTERNAL_LOG4CPP
 
@@ -353,6 +358,30 @@
  * the Runtime Library become once again able to forward runtime profiles.
  */
 #define BBQUE_DEFAULT_RTLIB_RTPROF_WAIT_FOR_SYNC_MS ${CONFIG_BBQUE_RTLIB_RTPROF_WAIT_FOR_SYNC_MS}
+
+/**
+ * @brief Resource release policy
+ *
+ *  By forwarding Runtime Profiles, the Runtime Library is able to release
+ *  resources, i.e., it is able to notify the BarbequeRTRM that a given amount
+ *  of resources is not currently used and can be allocated to other applications.
+ *  The aggressiveness of resources release impacts on the frequency of
+ *  Runtime Profiles forwardings.
+ *
+ *  Aggressive : release all the resources that will likely not be used.
+ *  Standard   : release all the resources that for sure will not be used.
+ *  Relaxed    : retain unused resources if the res. manager does not need them.
+ */
+
+#ifdef CONFIG_BBQUE_RTLIB_RES_RELEASE_POLICY_AGG
+#define RTLIB_RES_RELEASE_POLICY "agg"
+#else // CONFIG_BBQUE_RTLIB_RES_RELEASE_POLICY_AGG
+#ifdef CONFIG_BBQUE_RTLIB_RES_RELEASE_POLICY_CON
+#define RTLIB_RES_RELEASE_POLICY "con"
+#else // CONFIG_BBQUE_RTLIB_RES_RELEASE_POLICY_CON
+#define RTLIB_RES_RELEASE_POLICY "rlx"
+#endif // CONFIG_BBQUE_RTLIB_RES_RELEASE_POLICY_CON
+#endif // CONFIG_BBQUE_RTLIB_RES_RELEASE_POLICY_AGG
 
 /**
  * @brief Minimum management efficiency for rtlib

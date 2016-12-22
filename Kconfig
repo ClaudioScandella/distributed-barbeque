@@ -126,6 +126,46 @@ config RTLIB_DA_ADAPTIVE_CFS_PERIOD
   the enforcement period will be set equal to the duration
   of the application onRun (max 1000000 us).
 
+choice
+  prompt "Resource release policy"
+
+  config BBQUE_RTLIB_RES_RELEASE_POLICY_AGG
+    bool "Aggressive"
+    ---help---
+    By forwarding Runtime Profiles, the Runtime Library is able to release
+    resources, i.e., it is able to notify the BarbequeRTRM that a given amount
+    of resources is not currently used and can be allocated to other applications.
+    The aggressiveness of resources release impacts on the frequency of
+    Runtime Profiles forwardings.
+
+    Aggressive : release all the resources that will likely not be used.
+
+  config BBQUE_RTLIB_RES_RELEASE_POLICY_CON
+    bool "Conservative"
+    ---help---
+    By forwarding Runtime Profiles, the Runtime Library is able to release
+    resources, i.e., it is able to notify the BarbequeRTRM that a given amount
+    of resources is not currently used and can be allocated to other applications.
+    The aggressiveness of resources release impacts on the frequency of
+    Runtime Profiles forwardings.
+
+    Conservative : release all the resources that for sure will not be used.
+
+  config BBQUE_RTLIB_RES_RELEASE_POLICY_RLX
+    bool "Relaxed"
+    ---help---
+    By forwarding Runtime Profiles, the Runtime Library is able to release
+    resources, i.e., it is able to notify the BarbequeRTRM that a given amount
+    of resources is not currently used and can be allocated to other applications.
+    The aggressiveness of resources release impacts on the frequency of
+    Runtime Profiles forwardings.
+
+    Relaxed : retain unused resources if the resource manager does not need them.
+
+##NP
+
+endchoice
+
 endmenu # Control Groups Distributed Actuation
 endmenu # Linux Control Groups
 

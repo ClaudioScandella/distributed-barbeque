@@ -1939,6 +1939,8 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	// Init ggap info
 	float goal_gap = 0.0f;
 	exc->runtime_profiling.cpu_goal_gap = 0.0f;
+	// If set to true, the profile will be forwarded
+	exc->runtime_profiling.rtp_forward = false;
 
 	// Check SKIP conditions ///////////////////////////////////////////////
 
@@ -2074,8 +2076,14 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 
 	// Check if the current CPU bandwidth allocation is OK /////////////////
 
-	// If set to true, the profile will be forwarded
-	exc->runtime_profiling.rtp_forward = false;
+	// Relaxed resource release policy: unused resources will be retained
+	// until the resource manager actually needs them (and sizes them back)
+	if (exc->runtime_profiling.release_policy ==
+			ResourceReleasePolicy::RELAXED && goal_gap >= 0.0f) {
+		logger->Debug("Relaxed resource release policy: retaining "
+				"unused CPU resources");
+		return RTLIB_OK;
+	}
 
 	// Ideal allocation should be enough to always guarantee to the
 	// application the needed CPU bandwidth. 99% of the time, the
@@ -2120,10 +2128,38 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	logger->Debug("CPU budget goal gap is %f",
 			exc->runtime_profiling.cpu_goal_gap);
 
+	// Skip checks on CPU budget goal gap //////////////////////////////////
+
+	// Removing decimals. This number is already a percentage, and
+	// ideal quota computation is not that accurate.
+	exc->runtime_profiling.cpu_goal_gap =
+		floorf(exc->runtime_profiling.cpu_goal_gap);
+
+	if (exc->runtime_profiling.cpu_goal_gap == 0.0f) {
+		exc->runtime_profiling.rtp_forward = false;
+		logger->Debug("UpdateAllocation: zero gap, disabling RTP forward.");
+		return RTLIB_OK;
+	}
+
 	// Constraining gap to avoid harsh allocation changes:
 	// Never request less than half the budget
 	exc->runtime_profiling.cpu_goal_gap =
 		std::max(-33.3f, exc->runtime_profiling.cpu_goal_gap);
+
+	// In case of negative goal gaps, let's skip to forwarding
+	if (exc->runtime_profiling.cpu_goal_gap < 0.0f)
+		return RTLIB_OK;
+
+	// Conservative resource release policy: unused resources will be
+	// partially retained until the resource manager actually needs them
+	// (and sizes them back)
+	if (exc->runtime_profiling.release_policy
+			== ResourceReleasePolicy::CONSERVATIVE
+			&& exc->runtime_profiling.cpu_goal_gap < 5.0f) {
+		logger->Debug("Conservative resource release policy: retaining "
+				"some of the unused CPU resources");
+		exc->runtime_profiling.rtp_forward = false;
+	}
 #endif
 
 return RTLIB_OK;
@@ -3275,8 +3311,7 @@ void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler,
 		// given its history
 		UpdateAllocation(exc_handler);
 
-		// Check is there is a goal gap
-		if (std::fabs(exc->runtime_profiling.cpu_goal_gap) > 1.0f)
+		if (exc->runtime_profiling.rtp_forward == true)
 			ForwardRuntimeProfile(exc_handler);
 	}
 
