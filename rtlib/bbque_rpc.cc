@@ -849,6 +849,8 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCreate(pRegisteredEXC_t exc)
 	}
 	else {
 		bu::CGroups::Read("/user.slice/res", cgsetup);
+		cgsetup.cpu.cfs_period_us =
+			std::to_string(DEFAULT_CFS_PERIOD);
 	}
 
 	// Setup CGroup PATH
