@@ -998,6 +998,8 @@ protected:
 			float cpu_budget = 0.0;
 			/** IDs of all the currently allocated cores */
 			std::vector<int32_t> cpu_affinity_mask;
+			/** CFS enforcing: Periods per Cycle (PPC)*/
+			float cfs_periods_per_cycle = 5.0f;
 
 			// String representations for libcgroup ////////////////
 

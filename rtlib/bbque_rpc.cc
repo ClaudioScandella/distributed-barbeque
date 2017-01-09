@@ -904,6 +904,43 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 
 #endif // CONFIG_RTLIB_DA_MIN_EFFICIENCY
 
+#ifdef CONFIG_RTLIB_DA_ADAPTIVE_CFS_PERIOD
+	/********************************************************************
+	 * "Adaptive cfs period" is about adjusting the cpu.cfs_period to
+	 * achieve a more accurate cfs enforcement.
+	 *******************************************************************/
+
+	// Enforcing is accurate if the real cpu usage is close to the enforced one.
+	// enforcement error percent is computed as always as (real - ideal) / ideal
+	float real_cpu_usage = exc->cpu_usage_analyser.GetMean();
+	float avg_cycletime_us = exc->time_analyser_cycle.GetMean() * 1e3;
+
+	if (likely(real_cpu_usage > 0.0f && avg_cycletime_us > 0.0f)) {
+		float enf_cpu_usage = 100.0f * exc->cg_current_allocation.cpu_budget;
+		float enforcement_error = (real_cpu_usage - enf_cpu_usage) / enf_cpu_usage;
+		// Assuming that the number of Periods per Cycle (PPC) is proportional to
+		// enforcement error => ideal_ppc = current_ppc / (1 - enforcement_error)
+		float cfs_ppc_ideal = exc->cg_current_allocation.cfs_periods_per_cycle
+				/ (1.0f - enforcement_error);
+
+		// Limiting the number of cfs enforcement periods per execution cycle
+		// Note: the limit [1-100] comes from experimental results
+		if (cfs_ppc_ideal >= 1.0f && cfs_ppc_ideal <= 100.0f) {
+			logger->Debug("Setting cpu.cfs_period_us to 1/%.2f of the average cycle time",
+					cfs_ppc_ideal);
+			exc->cg_current_allocation.cfs_periods_per_cycle = cfs_ppc_ideal;
+		}
+
+		// Limiting the length of the cps period in [1000 - 1000000] us
+		// Note: currently, the period cannot be > 1000000: cgroup write would fail
+		exc->cgroup_cpu_cfs_period_us =
+			std::max((float) 1e3, std::min((float) 1e6,
+			avg_cycletime_us / exc->cg_current_allocation.cfs_periods_per_cycle));
+
+	}
+
+#endif // CONFIG_RTLIB_DA_ADAPTIVE_CFS_PERIOD
+
 	// CFS_PERIOD: the period over which cpu bandwidth. limit is enforced
 	cgsetup.cpu.cfs_period_us = std::to_string(exc->cgroup_cpu_cfs_period_us);
 	// CFS_quota: the enforced CPU bandwidth wrt the period
@@ -2971,18 +3008,15 @@ RTLIB_ExitCode_t BbqueRPC::SetCPSGoal(
 	exc->cps_goal_max = cps_max;
 
 #ifdef CONFIG_RTLIB_DA_ADAPTIVE_CFS_PERIOD
-	// Adapting cfs period to average cycle time, which in turn equals to
-	// average_cps_goal^(-1).
-	// NOTE: libcgroup does not support period lengths greater than 1 sec
-	// (i.e. CPS must be >= 1.0)
-	float average_cps_goal = std::max(1.0f, cps_max);
+	// Adapting cfs period to a fraction of the cycle time to improve enforcement accuracy
+	uint32_t cycletime_us = (uint32_t) (1e6 / cps_max);
+	uint32_t cfs_period_us = cycletime_us / exc->cg_current_allocation.cfs_periods_per_cycle;
 
-	// cpu.cfs_period must be integer and expressed in microseconds
-	uint32_t average_cycletime_us = 1e6 * (1.0f / average_cps_goal);
+	if (unlikely(cfs_period_us > (uint32_t) 1e6))
+		cfs_period_us = (uint32_t) 1e6;
 
-	logger->Info("cpu.cfs_period_us adapted to %u us (%.2f periods / sec)",
-		average_cycletime_us, average_cps_goal);
-	exc->cgroup_cpu_cfs_period_us = average_cycletime_us;
+	logger->Info("cpu.cfs_period_us adapted to %u us", cfs_period_us);
+	exc->cgroup_cpu_cfs_period_us = cfs_period_us;
 #endif // CONFIG_RTLIB_DA_ADAPTIVE_CFS_PERIOD
 
 	STAT_LOG("PERFORMANCE:CPSGOAL_MIN %.2f", exc->cps_goal_min);
