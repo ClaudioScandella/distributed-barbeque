@@ -93,6 +93,17 @@ config BBQUE_RTLIB_RTPROF_WAIT_FOR_SYNC_MS
   If the BarbequeRTRM does not change the allocation for a certain period of time,
   the Runtime Library become once again able to forward runtime profiles.
 
+config BBQUE_RTLIB_USERCYCLE_EMA_SAMPLES
+  int "Number of samples for user cycletime EMA computation"
+  default 5
+  ---help---
+  The cycletime of managed applications is computed by the Barbeque Runtime
+  Library, and it can be get by calling either the GetCPS (to be deprecated)
+  or the GetTimingMs function. The application can query either the cycletime
+  of the last cycle or the average cycletime. In the last case, the returned
+  value is a moving average of the last N cycles. This option sets the number
+  of cycles that are used to compute the average cycletime (i.e., N).
+
 endmenu # Performance
 
 comment "Advanced Options"

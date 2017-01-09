@@ -491,18 +491,9 @@ public:
 	 * so that future runtime profiles will not include any performance
 	 * statistics up to now.
 	 *
-	 * If new_user_goal is true, performance statistics will be erased also
-	 * from the user profile, that is, from the performance data that is
-	 * available to the EXC. This usually makes sense if the EXC just
-	 * declared a new performance goal, and it is no more interested of
-	 * the past performance statistics.
-	 *
 	 * @param exc_handler Handler of the target Execution Context
-	 * @param new_user_goal Whether user profile must also be re-set
 	 */
-	void ResetRuntimeProfileStats(
-			RTLIB_EXCHandler_t exc_handler,
-			bool new_user_goal = false);
+	void ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler);
 
 	/**
 	 * @brief Set the required Cycles Per Second rate (JPS)
@@ -1112,7 +1103,7 @@ protected:
 		 * It includes ForceCPS delay, if any
 		 * @see NotifyPostMonitor
 		 */
-		bu::StatsAnalysis time_analyser_usercycle;
+		bu::EMA ema_analyser_usercycle;
 
 		/**
 		 * The cycletime statistics accumulator may be reset, usually
@@ -1166,7 +1157,8 @@ protected:
 		bu::StatsAnalysis cpu_usage_analyser;
 
 		RegisteredExecutionContext(const char * _name, uint8_t id) :
-			name(_name), id(id) {
+			name(_name), id(id),
+			ema_analyser_usercycle(RTLIB_USERCYCLE_EMA_SAMPLES, 0) {
 
 			if (strcmp(RTLIB_RES_RELEASE_POLICY, "agg") == 0)
 				runtime_profiling.release_policy =

@@ -1101,20 +1101,16 @@ void BbqueRPC::InitCPUBandwidthStats(pRegisteredEXC_t exc)
 		exc->cpu_usage_info.time_sample.tms_utime;
 }
 
-void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler,
-			bool new_user_goal)
+void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler)
 {
 	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
 	if (! exc) return;
 
 	logger->Debug("Resetting cycle time history");
-	exc->average_cycletime_pre_reset_ms = exc->time_analyser_usercycle.GetMean();
+	exc->average_cycletime_pre_reset_ms = exc->ema_analyser_usercycle.get();
 
 	exc->time_analyser_cycle.Reset();
-
-	if (new_user_goal)
-		exc->time_analyser_usercycle.Reset();
 
 	logger->Debug("Resetting CPU quota history");
 	exc->cpu_usage_analyser.Reset();
@@ -1970,7 +1966,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 
 		STAT_LOG("PERFORMANCE:AVERAGE_CPS_SYSTEM %.2f", cps_avg);
 		STAT_LOG("PERFORMANCE:AVERAGE_CPS_USER %.2f",
-			 1000.0f / exc->time_analyser_usercycle.GetMean());
+			 1000.0f / exc->ema_analyser_usercycle.get());
 
 		float target_cps;
 		float current_cps;
@@ -2170,7 +2166,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 
 	// Ggap computing is inhibited for some ms when the application is
 	// assigned a new set of resources
-	int ms_from_last_allocation = exc->time_analyser_usercycle.GetSum();
+	int ms_from_last_allocation = exc->time_analyser_cycle.GetSum();
 
 	if (ms_from_last_allocation <
 		rtlib_configuration.runtime_profiling.rt_profile_rearm_time_ms
@@ -2184,7 +2180,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	exc->is_waiting_for_sync = false;
 
 	// Forward is inhibited for some ms after a RTP has been forwarded.
-	exc->waiting_sync_timeout_ms -= exc->time_analyser_usercycle.GetLastValue();
+	exc->waiting_sync_timeout_ms -= exc->ema_analyser_usercycle.last_value();
 
 	if (exc->waiting_sync_timeout_ms > 0) {
 		logger->Info("RTP forward SKIPPED (waiting sync for %d more ms)",
@@ -2925,12 +2921,12 @@ float BbqueRPC::GetCPS(
 	float cps = 0;
 
 	// If cycle was reset, return CPS up to last forward window
-	if (exc->time_analyser_usercycle.GetMean() == 0.0)
+	if (exc->ema_analyser_usercycle.get() == 0.0)
 		return (exc->average_cycletime_pre_reset_ms == 0.0) ?
 			   0.0 : 1000.0 / exc->average_cycletime_pre_reset_ms;
 
 	// Get the current measured CPS
-	ctime = exc->time_analyser_usercycle.GetMean();
+	ctime = exc->ema_analyser_usercycle.get();
 
 	if (ctime != 0)
 		cps = 1000.0 / ctime;
@@ -3061,7 +3057,7 @@ float BbqueRPC::GetLastValueMs(RTLIB_EXCHandler_t exc_handler,
 		case RTLIB_ExecPhaseType::RUN:
 			return exc->time_analyser_run.GetLastValue();
 		default:
-			return exc->time_analyser_usercycle.GetLastValue();
+			return exc->ema_analyser_usercycle.last_value();
 	}
 }
 
@@ -3080,7 +3076,7 @@ float BbqueRPC::GetAverageValueMs(RTLIB_EXCHandler_t exc_handler,
 		case RTLIB_ExecPhaseType::RUN:
 			return exc->time_analyser_run.GetMean();
 		default:
-			return exc->time_analyser_usercycle.GetMean();
+			return exc->ema_analyser_usercycle.get();
 	}
 }
 
@@ -3273,8 +3269,7 @@ void BbqueRPC::NotifyPostRun(RTLIB_EXCHandler_t exc_handler)
 
 	// Execution Cycle of the EXC ends here
 	awm_stats->cycle_samples(cycle_time_ms);
-	exc->time_analyser_usercycle.InsertValue(
-		exc->execution_timer.getElapsedTimeMs());
+	exc->ema_analyser_usercycle.update(exc->execution_timer.getElapsedTimeMs());
 
 	exc->cycles_count += 1;
 
