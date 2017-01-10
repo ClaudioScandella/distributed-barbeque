@@ -93,8 +93,8 @@ config RTLIB_DA_LOCAL_CGROUP_WRITE
   Indeed, what is written into the CGroups is nonetheless decided by Barbeque.
 
 config RTLIB_DA_MIN_EFFICIENCY
-  int "Min. enforcement efficiency (per-thousand)"
-  default 990
+  int "Min. enforcement efficiency (percent)"
+  default 99
   depends on RTLIB_DA_LOCAL_CGROUP_WRITE
   ---help---
   When Control Groups actuation is performed at Runtime Library
@@ -107,12 +107,12 @@ config RTLIB_DA_MIN_EFFICIENCY
   "how long the application was able to execute its own code,
   with respect to the total execution time". For example, an
   application executing its own code 990 milliseconds over
-  a second has an efficiency of 99.0%.
+  a second has an efficiency of 99%.
 
-  This option expresses efficiency in parts per thousand.
-  The value must be in [0 - 999], where 0 means "just focus
+  This option expresses efficiency %.
+  The value must be in [0 - 99], where 0 means "just focus
   on performance enforcing, I do not care about efficiency",
-  and 999 means "I want a minimum efficiency of 99.9%".
+  and 99 means "I want a minimum efficiency of 99%".
 
 config RTLIB_DA_ADAPTIVE_CFS_PERIOD
   bool "CPU cfs adaptive period"

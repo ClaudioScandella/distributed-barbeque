@@ -1014,8 +1014,8 @@ protected:
 		uint32_t cgroup_cpu_cfs_period_us = DEFAULT_CFS_PERIOD;
 
 #ifdef CONFIG_RTLIB_DA_MIN_EFFICIENCY
-		float min_allocation_efficiency =
-			0.001f * RTLIB_DA_MIN_EFFICIENCY;
+		/** Minimum allocation efficiency, in parts per thousand*/
+		uint16_t min_allocation_efficiency = RTLIB_DA_MIN_EFFICIENCY;
 #endif // CONFIG_RTLIB_DA_MIN_EFFICIENCY
 #endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 

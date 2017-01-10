@@ -887,14 +887,11 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 #ifdef CONFIG_RTLIB_DA_MIN_EFFICIENCY
 
 	if (likely(exc->run_time_ms > 0)) {
-		uint32_t execution_time = exc->config_time_ms + exc->monitor_time_ms + exc->run_time_ms;
-		uint32_t process_time = exc->run_time_ms + exc->config_time_ms - exc->blocked_time_ms;
-
-		float current_allocation_efficiency =
-			(float) process_time / execution_time;
+		uint16_t current_allocation_efficiency = 100 *
+			(1.0f - ((float) exc->monitor_time_ms / exc->run_time_ms));
 
 		if (current_allocation_efficiency < exc->min_allocation_efficiency) {
-			logger->Debug("Skipping CGW: low efficiency (%.3f < %.3f)",
+			logger->Debug("Skipping CGW: low efficiency (%u < %u)",
 				current_allocation_efficiency,
 				exc->min_allocation_efficiency);
 
