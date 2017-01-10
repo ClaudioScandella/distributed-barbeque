@@ -2030,9 +2030,11 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		if (bad_allocation) {
 			// Goal gap [%] = (real performance - ideal performance) / ideal performance
 			goal_gap = (current_cps - target_cps) / target_cps;
+#ifndef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 			// Constraining gap to avoid harsh allocation changes:
 			// Never request less than half the budget
 			goal_gap = std::min(0.33f, goal_gap);
+#endif
 		}
 
 		STAT_LOG("PERFORMANCE:PERFORMANCE_GAP %.2f", 100.0f * goal_gap);
@@ -2167,10 +2169,12 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 		return RTLIB_OK;
 	}
 
+#ifndef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	// Constraining gap to avoid harsh allocation changes:
 	// Never request less than half the budget
 	exc->runtime_profiling.cpu_goal_gap =
 		std::min(33.3f, exc->runtime_profiling.cpu_goal_gap);
+#endif
 
 	// In case of negative goal gaps, let's skip to forwarding
 	if (exc->runtime_profiling.cpu_goal_gap < 0.0f)
