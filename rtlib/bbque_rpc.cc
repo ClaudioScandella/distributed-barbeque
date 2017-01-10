@@ -3039,6 +3039,10 @@ RTLIB_ExitCode_t BbqueRPC::UpdateJPC(
 		return RTLIB_ERROR;
 	}
 
+	if (exc->cps_goal_max == 0.0f && exc->cps_goal_min == 0.0f) {
+		logger->Error("UpdateJPC: JPS was not set");
+		return RTLIB_ERROR;
+	}
 
 	if (exc->jpc != jpc) {
 		float correction_factor = (float) (exc->jpc) / (float) jpc;
