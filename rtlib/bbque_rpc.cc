@@ -1975,16 +1975,14 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	exc->runtime_profiling.rtp_forward = false;
 
 	// Check SKIP conditions ///////////////////////////////////////////////
-
-	// Allocation is not changed if there are not enough samples to compute
-	// meaningful statistics
-	float cycletime_ic99 = exc->time_analyser_cycle.GetConfidenceInterval99();
-	if (exc->time_analyser_cycle.GetWindowSize() == 0 || cycletime_ic99 == 0) {
+	// Allocation is not changed if there are not samples to analyze
+	if (exc->time_analyser_cycle.GetWindowSize() == 0) {
 		logger->Debug("UpdateAllocation: No samples to analyse. SKIPPING.");
 		return RTLIB_OK;
 	}
 
 	// Compute Goal Gap ////////////////////////////////////////////////////
+	float cycletime_ic99 = exc->time_analyser_cycle.GetConfidenceInterval99();
 	if (exc->cps_goal_min + exc->cps_goal_max > 0.0f && ! exc->explicit_ggap_assertion) {
 		// Milliseconds per cycle
 		float avg_cycletime_ms = exc->time_analyser_cycle.GetMean();
