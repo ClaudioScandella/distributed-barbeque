@@ -2130,7 +2130,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 			exc->cpu_usage_analyser.GetConfidenceInterval90();
 
 	if (ideal_allocation_90 == ideal_allocation_99) {
-		logger->Warn("Not enough samples to compute a valid usage metric");
+		logger->Debug("Not enough samples to build a valid runtime profile yet");
 		return RTLIB_OK;
 	}
 
