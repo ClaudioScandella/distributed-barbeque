@@ -1000,6 +1000,8 @@ protected:
 			std::vector<int32_t> cpu_affinity_mask;
 			/** CFS enforcing: Periods per Cycle (PPC)*/
 			float cfs_periods_per_cycle = 5.0f;
+			/** Whether configuration must be applied yet*/
+			bool is_applied = true;
 
 			// String representations for libcgroup ////////////////
 

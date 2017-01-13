@@ -884,25 +884,6 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 	// Reading previous values
 	bu::CGroups::Read(cgroup_path, cgsetup);
 
-#ifdef CONFIG_RTLIB_DA_MIN_EFFICIENCY
-
-	if (likely(exc->run_time_ms > 0)) {
-		uint16_t current_allocation_efficiency = 100 *
-			(1.0f - ((float) exc->monitor_time_ms / exc->run_time_ms));
-
-		if (current_allocation_efficiency < exc->min_allocation_efficiency) {
-			logger->Debug("Skipping CGW: low efficiency (%u < %u)",
-				current_allocation_efficiency,
-				exc->min_allocation_efficiency);
-
-			exc->trigger_reconfigure = false;
-
-			return RTLIB_OK;
-		}
-	}
-
-#endif // CONFIG_RTLIB_DA_MIN_EFFICIENCY
-
 #ifdef CONFIG_RTLIB_DA_ADAPTIVE_CFS_PERIOD
 	/********************************************************************
 	 * "Adaptive cfs period" is about adjusting the cpu.cfs_period to
@@ -991,6 +972,9 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 		cgsetup.cpu.cfs_period_us.c_str());
 
 	bu::CGroups::WriteCgroup(cgroup_path, cgsetup, channel_thread_pid);
+
+	// Mark cgroup budget as already applied
+	exc->cg_current_allocation.is_applied = true;
 
 	STAT_LOG("CGROUP:WRITE:CPUSET %s", cgsetup.cpuset.cpus.c_str());
 	STAT_LOG("CGROUP:WRITE:MEMS %s", cgsetup.cpuset.mems.c_str());
@@ -1779,6 +1763,9 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 			exc->cg_budget.cpu_global_ids;
 	}
 
+	// Mark cgroup budget as to be applied (due to bbque alloc change, in this case)
+	exc->cg_current_allocation.is_applied = false;
+
 #endif
 
 		STAT_LOG("APPLICATION:ALLOC_CHANGED");
@@ -2097,7 +2084,25 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 			STAT_LOG("APPLICATION:RECONFIGURATION");
 		}
 
-		CGroupCommitAllocation(exc);
+#ifdef CONFIG_RTLIB_DA_MIN_EFFICIENCY
+		uint16_t current_allocation_efficiency = 100 *
+			(1.0f - ((float) exc->monitor_time_ms / exc->run_time_ms));
+
+		if (current_allocation_efficiency < exc->min_allocation_efficiency) {
+			logger->Debug("Skipping CGW: low efficiency (%u < %u)",
+				current_allocation_efficiency,
+				exc->min_allocation_efficiency);
+
+			exc->trigger_reconfigure = false;
+		} else {
+			// Mark cgroup budget as to be applied (due to ggap)
+			exc->cg_current_allocation.is_applied = false;
+		}
+#else
+		// Mark cgroup budget as to be applied (due to ggap)
+		exc->cg_current_allocation.is_applied = false;
+#endif // CONFIG_RTLIB_DA_MIN_EFFICIENCY
+
 	}
 
 	// Check if the current CPU bandwidth allocation is OK /////////////////
@@ -3338,6 +3343,9 @@ void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler,
 		// Compute the ideal resource allocation for the application,
 		// given its history
 		UpdateAllocation(exc_handler);
+
+		if(exc->cg_current_allocation.is_applied == false)
+			CGroupCommitAllocation(exc);
 
 		if (exc->runtime_profiling.rtp_forward == true)
 			ForwardRuntimeProfile(exc_handler);
