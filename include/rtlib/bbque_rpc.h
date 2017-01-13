@@ -493,7 +493,7 @@ public:
 	 *
 	 * @param exc_handler Handler of the target Execution Context
 	 */
-	void ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler);
+	void ResetPerformanceStats(RTLIB_EXCHandler_t exc_handler);
 
 	/**
 	 * @brief Set the required Cycles Per Second rate (JPS)

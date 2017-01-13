@@ -1121,7 +1121,7 @@ void BbqueRPC::InitCPUBandwidthStats(pRegisteredEXC_t exc)
 		exc->cpu_usage_info.time_sample.tms_utime;
 }
 
-void BbqueRPC::ResetRuntimeProfileStats(RTLIB_EXCHandler_t exc_handler)
+void BbqueRPC::ResetPerformanceStats(RTLIB_EXCHandler_t exc_handler)
 {
 	// Getting registered Execution Context from its handler
 	pRegisteredEXC_t exc = getRegistered(exc_handler);
@@ -1530,7 +1530,8 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 			if (exc->event != RTLIB_EXC_GWM_START)
 				return RTLIB_OK;
 #else  // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
-			ResetRuntimeProfileStats(exc_handler);
+			// Allocation just changed. All previous history is not needed anymore
+			ResetPerformanceStats(exc_handler);
 #endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 			break;
 
@@ -1552,7 +1553,6 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 	// If no new AWM was assigned but PostMonitor asked for a
 	// reconfiguration, mark the EXC as `migrating`
 	if (exc->trigger_reconfigure) {
-		ResetRuntimeProfileStats(exc_handler);
 		// Reset PostMonitor reconfigure flag
 		exc->trigger_reconfigure = false;
 		// Trigger migration
@@ -3344,8 +3344,11 @@ void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler,
 		// given its history
 		UpdateAllocation(exc_handler);
 
-		if(exc->cg_current_allocation.is_applied == false)
+		if(exc->cg_current_allocation.is_applied == false) {
 			CGroupCommitAllocation(exc);
+			// Cgroups have been updated. All history up to now is not needed anymore
+			ResetPerformanceStats(exc_handler);
+		}
 
 		if (exc->runtime_profiling.rtp_forward == true)
 			ForwardRuntimeProfile(exc_handler);
