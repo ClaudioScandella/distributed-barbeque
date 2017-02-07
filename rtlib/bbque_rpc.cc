@@ -3344,11 +3344,13 @@ void BbqueRPC::NotifyPostMonitor(RTLIB_EXCHandler_t exc_handler,
 		// given its history
 		UpdateAllocation(exc_handler);
 
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		if(exc->cg_current_allocation.is_applied == false) {
 			CGroupCommitAllocation(exc);
 			// Cgroups have been updated. All history up to now is not needed anymore
 			ResetPerformanceStats(exc_handler);
 		}
+#endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 
 		if (exc->runtime_profiling.rtp_forward == true)
 			ForwardRuntimeProfile(exc_handler);
