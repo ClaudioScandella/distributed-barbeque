@@ -2044,9 +2044,23 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	float avg_cpu_usage = exc->cpu_usage_analyser.GetMean();
 	float ideal_cpu_usage = avg_cpu_usage / (1.0f + goal_gap);
 
+	bool cgroups_update = true;
+
+#ifdef CONFIG_RTLIB_DA_MIN_EFFICIENCY
+	uint16_t current_allocation_efficiency = 100 *
+			(1.0f - ((float) exc->monitor_time_ms / exc->run_time_ms));
+
+	if (current_allocation_efficiency < exc->min_allocation_efficiency) {
+		logger->Debug("Skipping CGW: low efficiency (%u < %u)",
+				current_allocation_efficiency, exc->min_allocation_efficiency);
+
+		exc->trigger_reconfigure = false;
+		cgroups_update = false;
+	}
+#endif // CONFIG_RTLIB_DA_MIN_EFFICIENCY
 
 	// Use Goal Gap to change Allocation ///////////////////////////////////
-	if (goal_gap != 0.0f) {
+	if (goal_gap != 0.0f && cgroups_update == true) {
 		if (ideal_cpu_usage == 0.0f) {
 			logger->Debug("CPU quota computation not available. Skipping.");
 			return RTLIB_OK;
@@ -2084,25 +2098,8 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 			STAT_LOG("APPLICATION:RECONFIGURATION");
 		}
 
-#ifdef CONFIG_RTLIB_DA_MIN_EFFICIENCY
-		uint16_t current_allocation_efficiency = 100 *
-			(1.0f - ((float) exc->monitor_time_ms / exc->run_time_ms));
-
-		if (current_allocation_efficiency < exc->min_allocation_efficiency) {
-			logger->Debug("Skipping CGW: low efficiency (%u < %u)",
-				current_allocation_efficiency,
-				exc->min_allocation_efficiency);
-
-			exc->trigger_reconfigure = false;
-		} else {
-			// Mark cgroup budget as to be applied (due to ggap)
-			exc->cg_current_allocation.is_applied = false;
-		}
-#else
 		// Mark cgroup budget as to be applied (due to ggap)
 		exc->cg_current_allocation.is_applied = false;
-#endif // CONFIG_RTLIB_DA_MIN_EFFICIENCY
-
 	}
 
 	// Check if the current CPU bandwidth allocation is OK /////////////////
