@@ -355,9 +355,9 @@ ApplicationProxy::SyncP_PreChangeSend(pcmdSn_t pcs) {
 	AppPtr_t papp = pcs->papp;
 	pconCtx_t pcon;
 	ssize_t result;
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	Application::CGroupSetupData_t cgroup_data = papp->GetCGroupSetupData();
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	bl::rpc_msg_BBQ_SYNCP_PRECHANGE_t syncp_prechange_msg = {
 		{bl::RPC_BBQ_SYNCP_PRECHANGE, pcs->pid,
 			static_cast<int>(papp->Pid()), papp->ExcId()},
@@ -365,14 +365,14 @@ ApplicationProxy::SyncP_PreChangeSend(pcmdSn_t pcs) {
 		// If the application is BLOCKING we don't have a NextAWM but we also
 		// don't care at RTLib side about the value of this parameter
 		0,
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		// cpuset.cpus
 		cgroup_data.cpu_ids,
 		// cpuset.cpus in isolation,
 		cgroup_data.cpus_ids_isolation,
 		// cpuset.mems
 		cgroup_data.mem_ids,
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		// Currently we consider only one system
 		1
 	};

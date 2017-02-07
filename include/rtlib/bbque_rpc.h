@@ -951,7 +951,7 @@ protected:
 		/** Statistics of currently selected AWM */
 		pAwmStats_t current_awm_stats;
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		/**
 		 * Maximum allocation according to the BarbequeRTRM.
 		 * Enforced allocation must always be less or equal to this
@@ -1013,11 +1013,11 @@ protected:
 			std::string cpuset_mems;
 		} cg_current_allocation;
 
-#ifdef CONFIG_BBQUE_RTLIB_MIN_MGMT_EFFICIENCY
+#ifdef CONFIG_RTLIB_DA_MIN_EFFICIENCY
 		float min_allocation_efficiency =
-			0.001f * RTLIB_MIN_MGMT_EFFICIENCY;
-#endif // CONFIG_BBQUE_RTLIB_MIN_MGMT_EFFICIENCY
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+			0.001f * RTLIB_DA_MIN_EFFICIENCY;
+#endif // CONFIG_RTLIB_DA_MIN_EFFICIENCY
+#endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 
 		/**
 		 * Runtime Profile of the application. It contains all the

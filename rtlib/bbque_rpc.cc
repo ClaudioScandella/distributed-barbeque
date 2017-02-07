@@ -891,14 +891,14 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 		rtlib_configuration.cgroup_support.static_configuration)
 		return RTLIB_OK;
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 
 	bu::CGroups::CGSetup cgsetup;
 	const char * cgroup_path = exc->cgroup_path.c_str();
 	// Reading previous values
 	bu::CGroups::Read(cgroup_path, cgsetup);
 
-#ifdef CONFIG_BBQUE_RTLIB_MIN_MGMT_EFFICIENCY
+#ifdef CONFIG_RTLIB_DA_MIN_EFFICIENCY
 
 	if (likely(exc->run_time_ms > 0)) {
 		float current_mallocation_efficiency =
@@ -914,7 +914,7 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 		}
 	}
 
-#endif // CONFIG_BBQUE_RTLIB_MIN_MGMT_EFFICIENCY
+#endif // CONFIG_RTLIB_DA_MIN_EFFICIENCY
 
 	// CFS_PERIOD: the period over which cpu bandwidth. limit is enforced
 	cgsetup.cpu.cfs_period_us = std::to_string(DEFAULT_CFS_PERIOD);
@@ -976,7 +976,7 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 #else
 	UNUSED(exc);
 
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 
 	return RTLIB_OK;
 }
@@ -1182,7 +1182,7 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingModeParams(
 		wm->systems[i].cpu_bandwidth = resource_assignment->cpu_bandwidth;
 		wm->systems[i].mem_bandwidth  = resource_assignment->mem_bandwidth;
 #ifdef CONFIG_BBQUE_OPENCL
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		wm->res_allocation[i].gpu_bandwidth  = resource_assignment->gpu_bandwidth;
 		wm->res_allocation[i].accelerator_bandwidth  =
 			resource_assignment->accelerator_bandwidth;
@@ -1231,19 +1231,19 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 		break;
 
 	case PROC_NR:
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		r_amount = (int32_t) std::ceil(exc->cg_current_allocation.cpu_budget);
-#else // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#else // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		r_amount = wm->systems[0].number_proc_elements;
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		break;
 
 	case PROC_ELEMENT:
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		r_amount = (int32_t) (100.0f * exc->cg_current_allocation.cpu_budget);
-#else // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#else // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		r_amount = wm->systems[0].cpu_bandwidth;
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		break;
 
 	case MEMORY:
@@ -1251,7 +1251,7 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 		break;
 
 #ifdef CONFIG_BBQUE_OPENCL
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	case GPU:
 		r_amount = wm->res_allocation[0].gpu_bandwidth;
 		break;
@@ -1282,7 +1282,7 @@ RTLIB_ExitCode_t BbqueRPC::GetAffinityMask(
 	for (int id = 0; id < vector_size; id ++)
 		ids_vector[id] = -1;
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
     int ids_number = std::min(
 			vector_size, (int) exc->cg_current_allocation.cpu_affinity_mask.size());
 
@@ -1343,7 +1343,7 @@ RTLIB_ExitCode_t BbqueRPC::GetAssignedResources(
 
 		break;
 #ifdef CONFIG_BBQUE_OPENCL
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	case GPU:
 		for (int i = 0; i < n_to_copy; i ++)
 			sys_array[i] = wm->res_allocation[i].gpu_bandwidth;
@@ -1519,12 +1519,12 @@ RTLIB_ExitCode_t BbqueRPC::GetWorkingMode(
 		case RTLIB_EXC_GWM_MIGREC:
 		case RTLIB_EXC_GWM_MIGRATE:
 			logger->Debug("[%s] Migration", exc->name.c_str());
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 			// Distributed actuation: EXC will reconfigure on
 			// allocation change (or EXC start), not on budget change
 			if (exc->event != RTLIB_EXC_GWM_START)
 				return RTLIB_OK;
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 			break;
 
 		case RTLIB_EXC_GWM_BLOCKED:
@@ -1628,7 +1628,7 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 			tmp->cpu_bandwidth = systems[i].r_proc;
 			tmp->mem_bandwidth  = systems[i].r_mem;
 #ifdef CONFIG_BBQUE_OPENCL
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 			tmp->gpu_bandwidth  = res_allocation[i].gpu_bandwidth;
 			tmp->accelerator_bandwidth  = res_allocation[i].accelerator_bandwidth;
 			tmp->ocl_device_id = res_allocation[i].dev;
@@ -1637,7 +1637,7 @@ RTLIB_ExitCode_t BbqueRPC::SyncP_PreChangeNotify( rpc_msg_BBQ_SYNCP_PRECHANGE_t
 			exc->resource_assignment[i] = tmp;
 		}
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 
 	// Initializing budget info:
 	exc->cg_budget.cpuset_cpus_isolation = ""; // PEs allocated in isolation
@@ -2023,7 +2023,7 @@ RTLIB_ExitCode_t BbqueRPC::UpdateAllocation(
 	} else
 		return RTLIB_OK;
 
-#ifndef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifndef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	// If CGroup handling happens at global resource manager level,
 	// Just set the goal gap. It willb e forwarded to bbque and used
 	// to change allocation.
@@ -2153,7 +2153,7 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	}
 
 	// Real CPU usage according to the statistical analysis
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	float cpu_usage = 100.0f * exc->cg_budget.cpu_budget_shared;
 #else
 	float cpu_usage = 100.0f *  exc->resource_assignment[0]->cpu_bandwidth / 100.0f;

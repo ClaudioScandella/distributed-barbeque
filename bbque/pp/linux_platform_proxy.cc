@@ -165,7 +165,7 @@ void LinuxPlatformProxy::InitNetworkManagement() {
 	bbque_assert ( 0 == rtnl_open(&network_info.rth_2, 0) );
 	memset(&network_info.kernel_addr, 0, sizeof(network_info.kernel_addr));
 	network_info.kernel_addr.nl_family = AF_NETLINK;
-	
+
 	logger->Debug("NetoworkManagement: sockets to kernel initialized.");
 }
 
@@ -237,7 +237,7 @@ LinuxPlatformProxy::ExitCode_t LinuxPlatformProxy::MakeCLS(int if_index) {
 	req.t.tcm_ifindex = if_index;
 
 	//try to talk
-	int err = rtnl_talk(&network_info.kernel_addr, &network_info.rth_2, 
+	int err = rtnl_talk(&network_info.kernel_addr, &network_info.rth_2,
 					&req.n, 0, 0, NULL, NULL, NULL);
 	if (unlikely(err < 0)) {
 		if (EEXIST == errno) {
@@ -505,7 +505,7 @@ LinuxPlatformProxy::MapResources(AppPtr_t papp, ResourceAssignmentMapPtr_t pres,
 
 	logger->Debug("PLAT LNX: CGroup resource mapping DONE!");
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	logger->Debug("PLAT LNX: Distributed actuation: retrieving masks and ranking");
 
 	br::ResourceBitset proc_elements =
@@ -550,11 +550,12 @@ LinuxPlatformProxy::MapResources(AppPtr_t papp, ResourceAssignmentMapPtr_t pres,
 			proc_elements.ToString().c_str(),
 			proc_elements_exclusive.ToString().c_str(),
 			mem_nodes.ToString().c_str());
+
 	papp->SetCGroupSetupData(
 			proc_elements.ToULong(),
 			mem_nodes.ToULong(),
 			proc_elements_exclusive.ToULong());
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 
 	return PLATFORM_OK;
 }
@@ -577,7 +578,7 @@ LinuxPlatformProxy::SetCGNetworkBandwidth(AppPtr_t papp, CGroupDataPtr_t pcgd,
 	// the procces PID
 	sstream_PID << std::hex << papp->Pid();
 	std::string PID( "0x10" + sstream_PID.str() );
-	
+
 	cgroup_add_value_string(pcgd->pc_net_cls,
 			BBQUE_LINUXPP_NETCLS_PARAM, PID.c_str());
 	res = cgroup_modify_cgroup(pcgd->pcg);
@@ -606,7 +607,7 @@ LinuxPlatformProxy::SetCGNetworkBandwidth(AppPtr_t papp, CGroupDataPtr_t pcgd,
 
 		int64_t assigned_net_bw = prlb->amount_net_bw;
 		if (assigned_net_bw < 0) {
-			assigned_net_bw = ra.Total("sys0.net" + 
+			assigned_net_bw = ra.Total("sys0.net" +
 						std::to_string(interface_id));
 		}
 		MakeNetClass(papp->Pid(), assigned_net_bw, interface_id);
@@ -725,7 +726,7 @@ LinuxPlatformProxy::ExitCode_t LinuxPlatformProxy::Refresh() noexcept {
 
 LinuxPlatformProxy::ExitCode_t
 LinuxPlatformProxy::LoadPlatformData() noexcept {
-	
+
 	logger->Info("Loading platform data...");
 
 	return this->ScanPlatformDescription();
@@ -744,7 +745,7 @@ LinuxPlatformProxy::ScanPlatformDescription() noexcept {
 		logger->Fatal("Unable to get the PlatformDescription object");
 		return PLATFORM_LOADING_FAILED;
 	}
-	
+
 	this->memory_ids_all = "";
 
 	for (const auto sys : pd->GetSystemsAll()) {
@@ -777,7 +778,7 @@ LinuxPlatformProxy::ScanPlatformDescription() noexcept {
 			ExitCode_t result = this->RegisterNET(*net);
 			if (unlikely(PLATFORM_OK != result)) {
 				logger->Fatal("Register NETIF %d (%s) failed "
-						"[%d]", 
+						"[%d]",
 					net->GetId(), net->GetName().c_str(), result);
 				return result;
 			}
@@ -799,9 +800,9 @@ LinuxPlatformProxy::RegisterCPU(const PlatformDescription::CPU &cpu) noexcept {
 
 	for (const auto pe : cpu.GetProcessingElementsAll()) {
 		auto pe_type = pe.GetPartitionType();
-		if (PlatformDescription::MDEV == pe_type || 
+		if (PlatformDescription::MDEV == pe_type ||
 			PlatformDescription::SHARED == pe_type) {
-		
+
 			const std::string resource_path = pe.GetPath();
 			const int share = pe.GetShare();
 			logger->Debug("Registration of <%s>: %d", resource_path.c_str(), share);
@@ -843,11 +844,11 @@ LinuxPlatformProxy::RegisterMEM(const PlatformDescription::Memory &mem) noexcept
 LinuxPlatformProxy::ExitCode_t
 LinuxPlatformProxy::RegisterNET(const PlatformDescription::NetworkIF &net) noexcept {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	
+
 	std::string resource_path = net.GetPath();
 	logger->Debug("Registration of NETIF #%d <%s>",
 			net.GetId(), net.GetName().c_str());
-	
+
 	uint64_t bw;
 	try {
 		bw = GetNetIFBandwidth(net.GetName());
@@ -871,12 +872,12 @@ LinuxPlatformProxy::RegisterNET(const PlatformDescription::NetworkIF &net) noexc
 	logger->Debug("NETIF #%d (%s) has the kernel index %d", net.GetId(),
 			net.GetName().c_str(), interface_idx);
 	if (PLATFORM_OK != MakeQDisk(interface_idx)) {
-		logger->Error("MakeQDisk FAILED on device #%d (%s)", 
+		logger->Error("MakeQDisk FAILED on device #%d (%s)",
 					net.GetId(), net.GetName().c_str());
 		return PLATFORM_GENERIC_ERROR;
 	}
 	if (PLATFORM_OK != MakeCLS(interface_idx)) {
-		logger->Error("MakeCLS FAILED on device #%d (%s)", 
+		logger->Error("MakeCLS FAILED on device #%d (%s)",
 					net.GetId(), net.GetName().c_str());
 		return PLATFORM_GENERIC_ERROR;
 	}
@@ -1120,7 +1121,7 @@ LinuxPlatformProxy::BuildCGroup(CGroupDataPtr_t &pcgd) noexcept {
 LinuxPlatformProxy::ExitCode_t
 LinuxPlatformProxy::GetCGroupData(AppPtr_t papp, CGroupDataPtr_t &pcgd) noexcept {
 	ExitCode_t result;
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	logger->Warn("Distributed cgroup actuation: cgroup will be written by "
 				 "the EXC itself.");
 	return PLATFORM_OK;
@@ -1153,7 +1154,7 @@ LinuxPlatformProxy::SetupCGroup(
 		bool excl,
 		bool move) noexcept
 {
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	logger->Warn("Distributed cgroup actuation: cgroup will be setup by "
 				 "the EXC itself.");
 	return PLATFORM_OK;
@@ -1259,7 +1260,7 @@ LinuxPlatformProxy::SetupCGroup(
 					pcgd->papp->StrId(),
 					cfs_c,
 					cpus_quota);
-		} else { 
+		} else {
 
 			logger->Debug("PLAT LNX: Setup CPU for [%s]: "
 					"{period [%s], quota [-]}",

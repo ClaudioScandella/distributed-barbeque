@@ -1103,7 +1103,7 @@ typedef struct RTLIB_Config {
 
 	// CGroup enforcing
 	struct {
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 		bool enabled = true;
 #else
 		bool enabled = false;

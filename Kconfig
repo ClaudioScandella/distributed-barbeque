@@ -81,8 +81,9 @@ config BBQUE_LINUX_CG_NET_BANDWIDTH
   Enable the Control Groups net_cls controller for enforcing the network
   bandwidth assignment control.
 
+menu "Control Groups Distributed Actuation"
 
-config BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+config RTLIB_DA_LOCAL_CGROUP_WRITE
   bool "CGroups handled at RTLIb level"
   default n
   depends on TARGET_LINUX
@@ -91,6 +92,29 @@ config BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
   Control Groups are written by the RTLib rather than the Platform Proxy.
   Indeed, what is written into the CGroups is nonetheless decided by Barbeque.
 
+config RTLIB_DA_MIN_EFFICIENCY
+  int "Min. enforcement efficiency (per-thousand)"
+  default 990
+  depends on RTLIB_DA_LOCAL_CGROUP_WRITE
+  ---help---
+  When Control Groups actuation is performed at Runtime Library
+  level, Control Groups could be written into up to one time per
+  execution cycle. Given that writing into Control Groups can
+  be quite expensive (even 20 ms), applications with a short
+  execution cycle time may suffer from this.
+
+  We can define the performance enforcement efficiency as
+  "how long the application was able to execute its own code,
+  with respect to the total execution time". For example, an
+  application executing its own code 990 milliseconds over
+  a second has an efficiency of 99.0%.
+
+  This option expresses efficiency in parts per thousand.
+  The value must be in [0 - 999], where 0 means "just focus
+  on performance enforcing, I do not care about efficiency",
+  and 999 means "I want a minimum efficiency of 99.9%".
+
+endmenu # Control Groups Distributed Actuation
 endmenu # Linux Control Groups
 
 

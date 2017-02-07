@@ -238,11 +238,11 @@ typedef struct rpc_msg_BBQ_SYNCP_PRECHANGE {
 	/** The selected AWM */
 	int8_t awm;
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	unsigned long cpu_ids;
 	unsigned long cpu_ids_isolation;
 	unsigned long mem_ids;
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#endif // CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	/** The number of systems assigned, that corresponds
 	 * to the number of subsequent rpc_msg_BBQ_SYNCP_PRECHANGE_SYSTEM_t
 	 * messages **/

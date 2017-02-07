@@ -162,7 +162,7 @@ public:
 		};
 	};
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 	struct CGroupSetupData_t {
 		unsigned long cpu_ids;
 		unsigned long cpus_ids_isolation;

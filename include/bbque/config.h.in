@@ -165,10 +165,10 @@
 #cmakedefine CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
 
 /* Enable Linux Control Groups RTLib-level actuation */
-#cmakedefine CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
+#cmakedefine CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
 
 /* Enable CGroups write reduction to achieve a desired minimum efficiency*/
-#cmakedefine CONFIG_BBQUE_RTLIB_MIN_MGMT_EFFICIENCY
+#cmakedefine CONFIG_RTLIB_DA_MIN_EFFICIENCY
 
 /** Memory locality: L3 cache */
 #cmakedefine CONFIG_BBQUE_MEMLOC_L3
@@ -361,7 +361,7 @@
  * time during which the application is able to execute its own code) under
  * an user-defined threshold.
  */
-#define RTLIB_MIN_MGMT_EFFICIENCY ${CONFIG_BBQUE_RTLIB_MIN_MGMT_EFFICIENCY}
+#define RTLIB_DA_MIN_EFFICIENCY ${CONFIG_RTLIB_DA_MIN_EFFICIENCY}
 
 /**
  * @brief The number of bits used to represent the EXC_ID into the UID
