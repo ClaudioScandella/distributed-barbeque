@@ -130,6 +130,12 @@ public:
 	inline const TaskMap_t & Tasks() { return tasks; }
 
 	/**
+	 * \brief Get the tasks vector
+	 * \return A vector of shared pointers to Task objects
+	 */
+	inline const TaskMap_t & Tasks() const { return tasks; }
+
+	/**
 	 * \brief Get a task descriptor
 	 * \param id The task id number
 	 * \return A shared pointer to Task object in case of success,
@@ -163,6 +169,12 @@ public:
 	 * \return A map with shared pointers to all the Buffer objects
 	 */
 	inline const BufferMap_t & Buffers() { return buffers; }
+
+	/**
+	 * \brief The buffers included in the task-graph
+	 * \return A map with shared pointers to all the Buffer objects
+	 */
+	inline const BufferMap_t & Buffers() const { return buffers; }
 
 	/**
 	 * \brief Get a buffer descriptor
