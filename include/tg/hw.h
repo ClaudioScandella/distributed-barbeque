@@ -27,7 +27,7 @@
 namespace bbque {
 
 
-enum class ArchType {
+typedef enum class ArchType {
 	NONE,
 	GN,
 	GPU,
@@ -36,8 +36,12 @@ enum class ArchType {
 	NUP,
 
 	STOP
-};
+} ArchType_t;
 
+typedef struct Bandwidth_t {
+	uint32_t in_kbps  = 0;
+	uint32_t out_kbps = 0;
+} Bandwidth_t;
 
 inline ArchType GetArchTypeFromString(std::string const & str) {
 	std::string arch_str(UpperString(str));

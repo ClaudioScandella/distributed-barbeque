@@ -195,6 +195,35 @@ public:
 		hw_targets.erase(arch);
 	}
 
+	/**
+	 * \brief Set the selected HW architecture for this task  by the policy
+	 * \param arch Type of HW architecture
+	 */
+	inline void SetAssignedArch(ArchType arch) {
+		assigned_arch = arch;
+	}
+
+	/**
+	 * \brief Get the selected HW architecture for this task  by the policy
+	 */
+	inline ArchType GetAssignedArch() const {
+		return assigned_arch;
+	}
+
+	/**
+	 * \brief Set the selected HW architecture for this task  by the policy
+	 * \param arch Type of HW architecture
+	 */
+	inline void SetAssignedBandwidth(Bandwidth_t bw) {
+		assigned_bandwidth = bw;
+	}
+
+	/**
+	 * \brief Get the selected HW architecture for this task  by the policy
+	 */
+	inline Bandwidth_t GetAssignedBandwidth() const {
+		return assigned_bandwidth;
+	}
 
 private:
 
@@ -206,6 +235,9 @@ private:
 
 	int processor_id = -1;
 
+	ArchType assigned_arch;
+
+	Bandwidth_t assigned_bandwidth;
 
 	std::list<uint32_t> in_buffers;
 

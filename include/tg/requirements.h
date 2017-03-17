@@ -91,16 +91,20 @@ public:
 	 */
 	inline size_t NumArchPreferences() const noexcept { return hw_prefs.size(); }
 
+	/**
+	 * \brief Get the selected HW architecture for this task  by the policy
+	 */
+	inline Bandwidth_t GetAssignedBandwidth() const {
+		return bandwidth;
+	}
+
 private:
 
 	float throughput;
 
 	uint32_t ctime_ms;
 
-	struct Bandwidth_t {
-		uint32_t in_kbps  = 0;
-		uint32_t out_kbps = 0;
-	} bandwidth;
+	Bandwidth_t bandwidth; 
 
 	std::vector<ArchType> hw_prefs;
 };
