@@ -49,7 +49,7 @@ static void perform_stack_prefault(size_t bytes) {
 #ifndef BBQUE_DEBUG
 		// We can move to the next page, thus we don't loose time to
 		// write every single cell
-		i += sysconf(_SC_PAGESIZE)
+		i += sysconf(_SC_PAGESIZE);
 #else
 		// But if we are in debug, we set all items in order to check
 		// later if we have reached the top or not.
