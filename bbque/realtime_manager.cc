@@ -139,18 +139,22 @@ RealTimeManager::~RealTimeManager() {
 }
 
 RealTimeManager::ExitCode_t RealTimeManager::SetupApp(app::AppPtr_t papp) {
-	
+
 	int err;
 
 	if (unlikely(papp->RTLevel() == RT_NONE)) {
 		throw std::runtime_error("The application is not RT.");
 	}
 
+	std::vector<int> pids;
+
+#ifndef CONFIG_BBQUE_TEST_PLATFORM_DATA
 	pp::LinuxPlatformProxy *lpp = pp::LinuxPlatformProxy::GetInstance();
 
-	std::vector<int> pids;
 	lpp->GetRegisteredTasks(papp, pids);
-
+#else
+	pids.push_back(papp->Pid());
+#endif
 
 	// The BBQ priority has a positive range between 0 (highest) and
 	// BBQUE_APP_PRIO_LEVELS (lower priority). Instead the RT scheduler wants a

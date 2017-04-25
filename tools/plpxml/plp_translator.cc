@@ -241,8 +241,15 @@ std::string PLPTranslator::get_output() const noexcept {
 	std::string mdev_mems_str = bitset_to_string(this->mdev_memory_nodes);
 
 #ifdef CONFIG_BBQUE_RT
-	std::string rt_period_us_str  = std::to_string(BBQUE_RT_PERIOD);
-	std::string rt_runtime_us_str = std::to_string(BBQUE_RT_MAX_CPU*1000);
+	std::string rt_string = "";
+	if (data.cpu_real_time_available == "1") {
+		std::string rt_period_us_str  = std::to_string(BBQUE_RT_PERIOD);
+		std::string rt_runtime_us_str = std::to_string(BBQUE_RT_MAX_CPU*1000);
+                rt_string =   "    cpu {\n"
+                   "        cpu.rt_period_us = \""  + rt_period_us_str  +  "\";\n"
+                   "        cpu.rt_runtime_us = \"" + rt_runtime_us_str +  "\";\n"
+                   "    }\n";
+	}
 #endif
 
 	return std::string("") +
@@ -272,10 +279,9 @@ std::string PLPTranslator::get_output() const noexcept {
 	       "        cpuset.mem_exclusive = \"1\";\n"
 	       "    }\n"
 #ifdef CONFIG_BBQUE_RT
-		   "    cpu {\n"
-		   "        cpu.rt_period_us = \""  + rt_period_us_str  +  "\";\n"
-		   "        cpu.rt_runtime_us = \"" + rt_runtime_us_str +  "\";\n"
-		   "    }\n"
+
+		+ rt_string +
+
 #endif
 	       "}\n"
 	       "\n"
@@ -325,10 +331,8 @@ std::string PLPTranslator::get_output() const noexcept {
 	       "        cpuset.mems = \"" + mdev_mems_str + "\";\n"
 	       "    }\n"
 #ifdef CONFIG_BBQUE_RT
-		   "    cpu {\n"
-		   "        cpu.rt_period_us = \""  + rt_period_us_str  +  "\";\n"
-		   "        cpu.rt_runtime_us = \"" + rt_runtime_us_str +  "\";\n"
-		   "    }\n"
+
+                + rt_string +
 #endif
 	       "}\n" + subnodes
 	       ;

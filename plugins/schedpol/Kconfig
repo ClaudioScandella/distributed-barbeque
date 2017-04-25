@@ -105,9 +105,5 @@ source barbeque/plugins/schedpol/tempura/Kconfig
 source barbeque/plugins/schedpol/gridbalance/Kconfig
 source barbeque/plugins/schedpol/perdetemp/Kconfig
 source barbeque/plugins/schedpol/contrex/Kconfig
-<<<<<<< HEAD
 source barbeque/plugins/schedpol/cloves/Kconfig
-=======
-source barbeque/plugins/schedpol/test/Kconfig
 source barbeque/plugins/schedpol/emulsion/Kconfig
->>>>>>> b944529d... [Schedpol] Add new RT schedpols and empy Emulsion [RT] policy

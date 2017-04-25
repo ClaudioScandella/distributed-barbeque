@@ -71,6 +71,9 @@ void manage_v_arg(std::string arg, plp_data_t* data) {
 	case bhash("BBQUE_FEAT_MEMC"):
 		data->memory_controller_available = content;
 		break;
+	case bhash("BBQUE_CG_HAS_RT"):
+		data->cpu_real_time_available = content;
+		break;
 
 	default:
 		std::cerr << "WARNING: argument " << arg.substr(0,pos)

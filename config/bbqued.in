@@ -55,6 +55,8 @@ BBQUE_RT_RUNTIME_MAX="@CONFIG_BBQUE_RT_MAX_CPU@"
 # Extra arguments to pass to Barbeque
 BBQUE_EXTRA_ARGS=""
 
+CGROUPS_HAS_RT=0
+
 # Check mouting status of required controllers
 check_controllers() {
 
@@ -136,6 +138,7 @@ rt_config() {
 	RUNTIME=`echo "$BBQUE_RT_RUNTIME_MAX"*"1000" | bc`
 
 	bbqued_notice "Setting real-time global constraints..."
+	
 	echo $PERIOD > /proc/sys/kernel/sched_rt_period_us
 	echo $RUNTIME > /proc/sys/kernel/sched_rt_runtime_us
 
@@ -151,6 +154,13 @@ rt_config_cg() {
 	bbqued_notice "Setting real-time top-level CGroups constraints..."
 	echo $PERIOD > $BBQUE_CGMOUNT/cpu.rt_period_us
 	echo $RUNTIME > $BBQUE_CGMOUNT/cpu.rt_runtime_us
+
+        if [ $? -ne 0 ]; then
+                bbqued_warning "Unable to set $BBQUE_CGMOUNT/cpu.rt_runtime_us"
+		return
+        fi
+
+	CGROUPS_HAS_RT=1
 }
 
 
@@ -236,6 +246,7 @@ setup() {
 				-v BBQUE_PLAT_MEMS="$PLAT_MEMS" \
 				-v BBQUE_FEAT_CPUQ="$CGROUP_FEATURES_CPUQ" \
 				-v BBQUE_FEAT_MEMC="$CGROUP_FEATURES_MEMC" \
+				-v BBQUE_CG_HAS_RT="$CGROUPS_HAS_RT" \
 				$PILSETUP > $CGSETUP
 
 		if [ $? -ne 0 ]; then

@@ -220,7 +220,9 @@ SchedulerManager::Schedule() {
 
 	SetState(State_t::SCHEDULING);  // --> Applications from now in a not consistent state
 
-	ExitCode_t ec = InitView(svt);
+	br::RViewToken_t sched_view_id;
+
+	ExitCode_t ec = InitView(sched_view_id);
 	if (ec != DONE) {
 		return ec;
 	}
@@ -237,8 +239,10 @@ SchedulerManager::Schedule() {
 
 	System &sv = System::GetInstance();
 
+	SchedulerPolicyIF::ExitCode result;
+
 #ifdef CONFIG_BBQUE_RT
-	result = rt_policy->Schedule(sv, svt);
+	result = rt_policy->Schedule(sv, sched_view_id);
 	if (result != SchedulerPolicyIF::SCHED_DONE) {
 		logger->Error("RT Scheduling [%d] FAILED", sched_count);
 		return FAILED;
@@ -251,7 +255,7 @@ SchedulerManager::Schedule() {
 	// Reset timer for schedule execution time collection
 	SM_RESET_TIMING(sm_tmr);
 
-//	SchedulerPolicyIF::ExitCode result = policy->Schedule(sv, svt);
+//	result = policy->Schedule(sv, sched_view_id);
 //
 //	if (result != SchedulerPolicyIF::SCHED_DONE) {
 //		logger->Error("Scheduling [%d] FAILED", sched_count);

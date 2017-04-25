@@ -36,6 +36,7 @@ typedef struct plp_data_s {
 	std::string system_mems;
 	std::string cpu_controller_available;
 	std::string memory_controller_available;
+	std::string cpu_real_time_available;
 } plp_data_t;
 
 class PLPTranslator {
