@@ -987,7 +987,8 @@ RTLIB_ExitCode_t BbqueRPC::CGroupDelete(pRegisteredEXC_t exc)
 
 RTLIB_ExitCode_t BbqueRPC::CGroupCreate(pRegisteredEXC_t exc, int pid)
 {
-	(void) exc;
+	UNUSED(exc);
+	UNUSED(pid);
 	return RTLIB_OK;
 }
 
@@ -2287,25 +2288,39 @@ RTLIB_ExitCode_t BbqueRPC::ForwardRuntimeProfile(
 	// assigned a new set of resources
 	int ms_from_last_allocation = exc->cycletime_analyser_user.GetSum();
 
-	if (ms_from_last_allocation <
-		rtlib_configuration.runtime_profiling.rt_profile_rearm_time_ms
-		&& exc->is_waiting_for_sync) {
-		logger->Info("RTP forward SKIPPED (inhibited for %d more ms)",
-					  rtlib_configuration.runtime_profiling.rt_profile_rearm_time_ms -
-					  ms_from_last_allocation);
-		return RTLIB_OK;
+#ifdef CONFIG_BBQUE_RT
+	if(exc->parameters.rt_level > RT_NONE
+		&& exc->explicit_ggap_assertion
+		&& exc->explicit_ggap_value >= 0) {
+	// In real-time case, we want to notify immediately for a deadline miss
+
+#endif	// CONFIG_BBQUE_RT
+
+		if (ms_from_last_allocation <
+			rtlib_configuration.runtime_profiling.rt_profile_rearm_time_ms
+			&& exc->is_waiting_for_sync) {
+			logger->Info("RTP forward SKIPPED (inhibited for %d more ms)",
+						  rtlib_configuration.runtime_profiling.rt_profile_rearm_time_ms -
+						  ms_from_last_allocation);
+			return RTLIB_OK;
+		}
+
+		exc->is_waiting_for_sync = false;
+
+		// Forward is inhibited for some ms after a RTP has been forwarded.
+		exc->waiting_sync_timeout_ms -= exc->cycletime_analyser_user.GetLastValue();
+
+		if (exc->waiting_sync_timeout_ms > 0) {
+			logger->Info("RTP forward SKIPPED (waiting sync for %d more ms)",
+						  exc->waiting_sync_timeout_ms);
+			return RTLIB_OK;
+		}
+
+#ifdef CONFIG_BBQUE_RT
+	} else {
+		logger->Debug("Immediately sending RTP to BBQ due to deadline miss");
 	}
-
-	exc->is_waiting_for_sync = false;
-
-	// Forward is inhibited for some ms after a RTP has been forwarded.
-	exc->waiting_sync_timeout_ms -= exc->cycletime_analyser_user.GetLastValue();
-
-	if (exc->waiting_sync_timeout_ms > 0) {
-		logger->Info("RTP forward SKIPPED (waiting sync for %d more ms)",
-					  exc->waiting_sync_timeout_ms);
-		return RTLIB_OK;
-	}
+#endif	// CONFIG_BBQUE_RT
 
 	// Real CPU usage according to the statistical analysis
 #ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
