@@ -875,10 +875,6 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 		return RTLIB_OK;
 
 #ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
-	const char * cgroup_path = exc->cgroup_path.c_str();
-	// Reading previous values
-	bu::CGroups::Read(cgroup_path, cgsetup);
-
 #ifdef CONFIG_RTLIB_DA_ADAPTIVE_CFS_PERIOD
 	/********************************************************************
 	 * "Adaptive cfs period" is about adjusting the cpu.cfs_period to
@@ -966,6 +962,7 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 		cgsetup.cpu.cfs_quota_us.c_str(),
 		cgsetup.cpu.cfs_period_us.c_str());
 
+	const char * cgroup_path = exc->cgroup_path.c_str();
 	bu::CGroups::WriteCgroup(cgroup_path, cgsetup, channel_thread_pid);
 
 	// Mark cgroup budget as already applied
