@@ -57,8 +57,8 @@ std::unique_ptr<bu::Logger> BbqueRPC::stat_logger;
 RTLIB_Conf_t BbqueRPC::rtlib_configuration;
 
 #ifdef CONFIG_BBQUE_RTLIB_CGROUPS_SUPPORT
-// The CGroup forcing configuration (for UNMANAGED applications)
 static bu::CGroups::CGSetup cgsetup;
+// The CGroup forcing configuration (for UNMANAGED applications)
 static std::string cg_cpuset_cpus;
 static std::string cg_cpuset_mems;
 static std::string cg_cpu_cfs_period_us;
