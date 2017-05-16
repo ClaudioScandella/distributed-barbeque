@@ -805,8 +805,6 @@ RTLIB_ExitCode_t BbqueRPC::CGroupPathSetup(pRegisteredEXC_t exc)
 
 RTLIB_ExitCode_t BbqueRPC::CGroupDelete(pRegisteredEXC_t exc)
 {
-	bu::CGroups::CGSetup cgsetup;
-
 	if (! rtlib_configuration.cgroup_support.enabled)
 		return RTLIB_OK;
 
@@ -831,7 +829,6 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCreate(pRegisteredEXC_t exc)
 	if (! rtlib_configuration.cgroup_support.enabled)
 		return RTLIB_OK;
 
-	bu::CGroups::CGSetup cgsetup;
 	const char * cgroup_path = exc->cgroup_path.c_str();
 
 	if (rtlib_configuration.cgroup_support.static_configuration) {
@@ -878,8 +875,6 @@ RTLIB_ExitCode_t BbqueRPC::CGroupCommitAllocation(pRegisteredEXC_t exc)
 		return RTLIB_OK;
 
 #ifdef CONFIG_RTLIB_DA_LOCAL_CGROUP_WRITE
-
-	bu::CGroups::CGSetup cgsetup;
 	const char * cgroup_path = exc->cgroup_path.c_str();
 	// Reading previous values
 	bu::CGroups::Read(cgroup_path, cgsetup);
