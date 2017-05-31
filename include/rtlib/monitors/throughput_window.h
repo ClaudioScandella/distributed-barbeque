@@ -15,12 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BBQUE_TIME_WINDOW_H_
-#define BBQUE_TIME_WINDOW_H_
+#ifndef BBQUE_THROUGHPUT_WINDOW_H_
+#define BBQUE_THROUGHPUT_WINDOW_H_
 
 #include <bbque/cpp11/chrono.h>
 
-#include <bbque/monitors/generic_window.h>
+#include <rtlib/monitors/generic_window.h>
 
 namespace bbque
 {
@@ -30,38 +30,45 @@ namespace as
 {
 
 /**
- * @class TimeWindow
- * @ingroup rtlib_sec04_mon_time
+ * @brief A THROUGHPUT data window
+ * @ingroup rtlib_sec04_mon_thgpt
  *
  * @details
- * This class provides a window specifically created for the time monitor.
+ * This class provides a window specifically created for the throughpput
+ * monitor.
  */
-class TimeWindow : public GenericWindow <uint32_t>
+class ThroughputWindow : public GenericWindow <double>
 {
 public:
 
-	typedef std::vector<TimeWindow::Target> Targets;
+	typedef std::vector<ThroughputWindow::Target> Targets;
 	typedef std::shared_ptr<Targets> TargetsPtr;
 
 	/**
 	 * @brief Initializes internal variables
 	 */
-	TimeWindow(std::string metricName,
-			   TargetsPtr targets,
-			   uint16_t windowSize = defaultWindowSize) :
-		GenericWindow<uint32_t>(metricName,
-								targets,
-								windowSize)
+	ThroughputWindow(std::string metricName,
+					 TargetsPtr targets,
+					 uint16_t windowSize = defaultWindowSize):
+		GenericWindow<double>(metricName,
+							  targets,
+							  windowSize)
 	{
 	}
 
 	/**
 	 * @brief Initializes internal variables
 	 */
-	TimeWindow(uint16_t windowSize = defaultWindowSize) :
-		GenericWindow<uint32_t>(windowSize)
+	ThroughputWindow(uint16_t windowSize = defaultWindowSize):
+		GenericWindow<double>(windowSize)
 	{
 	}
+
+	/**
+	 * @brief Indicates whether a starting time has been set or not
+	 */
+	bool started = false;
+
 	/**
 	 * @brief The start time of the basic time monitor
 	 */
@@ -72,11 +79,6 @@ public:
 	 */
 	std::chrono::steady_clock::time_point tStop;
 
-	/**
-	 * @brief Indicates whether a starting time has been set or not
-	 */
-	bool started = false;
-
 };
 
 } // namespace as
@@ -85,4 +87,4 @@ public:
 
 } // namespace bbque
 
-#endif /* BBQUE_TIME_WINDOW_H_ */
+#endif /* BBQUE_THROUGHPUT_WINDOW_H_ */

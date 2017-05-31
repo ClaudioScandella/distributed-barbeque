@@ -18,7 +18,7 @@
 #ifndef BBQUE_PLUGINS_FIFO_RPC_H_
 #define BBQUE_PLUGINS_FIFO_RPC_H_
 
-#include "bbque/rtlib/rpc_fifo_server.h"
+#include "rtlib/rpc_fifo_server.h"
 
 #include "bbque/plugins/rpc_channel.h"
 #include "bbque/plugins/plugin.h"

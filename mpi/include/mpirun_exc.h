@@ -18,7 +18,7 @@
 #ifndef MPIRUN_EXC_H_
 #define MPIRUN_EXC_H_
 
-#include <bbque/bbque_exc.h>
+#include <rtlib/bbque_exc.h>
 #include <netinet/in.h>
 #include <memory>
 #include <vector>

@@ -18,7 +18,7 @@
 ############################## USAGE NOTES #####################################
 # This is a simple filter to translate an XML OPs file into a statically
 # allocates vector of operating points, which type is the OperatingPointsList
-# class as defined by bbque/monitors/operating_point.h
+# class as defined by rtlib/monitors/operating_point.h
 #
 # Given an input XML file of OPs, this script produce in output a C source file
 # which is suitable to be compiled and linked with the OP consumer code, which
@@ -49,7 +49,7 @@ BEGIN {
 	# Dump Source header
 	printf "/* This file has been automatically generated using */\n" >OUTF
 	printf "/* the bbque-opp Operating Points parser script. */\n" >OUTF
-	printf "#include <bbque/monitors/operating_point.h>\n" >OUTF
+	printf "#include <rtlib/monitors/operating_point.h>\n" >OUTF
 	printf "using bbque::rtlib::as::OperatingPointsList;\n" >OUTF
 	printf "OperatingPointsList %s = {\n", BBQUE_RTLIB_OPLIST >OUTF
 }

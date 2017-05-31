@@ -18,9 +18,9 @@
 #ifndef BBQUE_RPC_H_
 #define BBQUE_RPC_H_
 
-#include "bbque/rtlib.h"
+#include "rtlib/rtlib.h"
 #include "bbque/config.h"
-#include "bbque/rtlib/rpc_messages.h"
+#include "rtlib/rpc_messages.h"
 #include "bbque/utils/stats.h"
 #include "bbque/utils/utility.h"
 #include "bbque/utils/timer.h"
@@ -36,7 +36,7 @@
 #endif
 
 #ifdef CONFIG_BBQUE_OPENCL
-#include "bbque/rtlib/bbque_ocl_stats.h"
+#include "rtlib/bbque_ocl_stats.h"
 #endif
 
 #include <map>

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "bbque/rtlib/monitors/throughput_monitor.h"
+#include "rtlib/monitors/throughput_monitor.h"
 #include "bbque/utils/utility.h"
 
 using std::chrono::duration_cast;

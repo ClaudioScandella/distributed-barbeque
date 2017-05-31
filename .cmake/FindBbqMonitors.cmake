@@ -6,7 +6,7 @@
 # BBQUE_MONITORS_LIBRARIES, the libraries to link against to use the RTLib.
 # BBQUE_MONITORS_FOUND, If false, don't try to use RTLib.
 
-find_path(BBQUE_MONITORS_INCLUDE_DIR bbque/monitors/monitor.h)
+find_path(BBQUE_MONITORS_INCLUDE_DIR rtlib/monitors/monitor.h)
 find_library(BBQUE_MONITORS_LIBRARY bbque_monitors
 	PATH_SUFFIXES bbque)
 

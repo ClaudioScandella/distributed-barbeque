@@ -43,7 +43,7 @@ This inizialization could be done using this simple code snippet:
 
 \code
 // The RTlib header file
-#include <bbque/rtlib.h>
+#include "rtlib/rtlib.h"
 
 // The RTLib handler
 RTLIB_Services_t *rtlib;

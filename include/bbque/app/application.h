@@ -35,7 +35,7 @@
 #include <unistd.h>
 
 #include "bbque/config.h"
-#include "bbque/rtlib.h"
+#include "rtlib/rtlib.h"
 #include "bbque/app/application_conf.h"
 #include "bbque/app/recipe.h"
 #include "bbque/utils/logging/logger.h"

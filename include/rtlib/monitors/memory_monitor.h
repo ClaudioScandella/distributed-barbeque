@@ -18,7 +18,7 @@
 #ifndef BBQUE_MEMORY_MONITOR_H_
 #define BBQUE_MEMORY_MONITOR_H_
 
-#include <bbque/monitors/monitor.h>
+#include <rtlib/monitors/monitor.h>
 
 namespace bbque
 {

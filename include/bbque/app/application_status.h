@@ -24,7 +24,7 @@
 
 #include "bbque/config.h"
 #include "bbque/cpp11/mutex.h"
-#include "bbque/rtlib.h"
+#include "rtlib/rtlib.h"
 #include "bbque/utils/extra_data_container.h"
 #include "tg/requirements.h"
 

@@ -18,7 +18,7 @@
 #ifndef BBQUE_RPC_MESSAGES_H_
 #define BBQUE_RPC_MESSAGES_H_
 
-#include "bbque/rtlib.h"
+#include "rtlib/rtlib.h"
 #include <string>
 
 #define RPC_PKT_SIZE(type) sizeof(bbque::rtlib::rpc_msg_##type##_t)

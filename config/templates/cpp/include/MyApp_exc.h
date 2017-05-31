@@ -17,7 +17,7 @@
 #ifndef MYAPP_EXC_H_
 #define MYAPP_EXC_H_
 
-#include <bbque/bbque_exc.h>
+#include <rtlib/bbque_exc.h>
 
 using bbque::rtlib::BbqueEXC;
 

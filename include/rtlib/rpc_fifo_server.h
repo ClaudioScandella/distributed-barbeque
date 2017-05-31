@@ -18,10 +18,10 @@
 #ifndef BBQUE_RPC_FIFO_SERVER_H_
 #define BBQUE_RPC_FIFO_SERVER_H_
 
-#include "bbque/rtlib.h"
+#include "rtlib/rtlib.h"
 
 #include "bbque/config.h"
-#include "bbque/rtlib/rpc_messages.h"
+#include "rtlib/rpc_messages.h"
 #include "bbque/utils/utility.h"
 
 #include <cstdio>

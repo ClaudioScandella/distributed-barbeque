@@ -20,11 +20,11 @@
 
 #include <vector>
 
-#include <bbque/bbque_exc.h>
+#include <rtlib/bbque_exc.h>
 
-#include <bbque/monitors/goal_info.h>
-#include <bbque/monitors/op_manager.h>
-#include <bbque/monitors/generic_window.h>
+#include <rtlib/monitors/goal_info.h>
+#include <rtlib/monitors/op_manager.h>
+#include <rtlib/monitors/generic_window.h>
 
 using bbque::rtlib::BbqueEXC;
 

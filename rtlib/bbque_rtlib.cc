@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "bbque/rtlib.h"
+#include "rtlib/rtlib.h"
 
 #include "bbque/version.h"
 #include "bbque/utils/timer.h"
@@ -23,9 +23,9 @@
 #include "bbque/utils/logging/logger.h"
 #include "bbque/utils/logging/console_logger.h"
 
-#include "bbque/rtlib/bbque_rpc.h"
+#include "rtlib/bbque_rpc.h"
 #ifdef CONFIG_BBQUE_OPENCL
-#include "bbque/rtlib/bbque_ocl.h"
+#include "rtlib/bbque_ocl.h"
 #endif
 
 #ifdef CONFIG_TARGET_ANDROID

@@ -22,7 +22,7 @@
 #include "bbque/utils/worker.h"
 #include "bbque/utils/logging/logger.h"
 #include "bbque/plugins/rpc_channel.h"
-#include "bbque/rtlib/rpc_messages.h"
+#include "rtlib/rpc_messages.h"
 #include "bbque/cpp11/thread.h"
 #include "bbque/cpp11/future.h"
 

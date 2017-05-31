@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "bbque/rtlib/monitors/time_monitor.h"
+#include "rtlib/monitors/time_monitor.h"
 #include "bbque/utils/utility.h"
 #include "bbque/cpp11/ratio.h"
 
