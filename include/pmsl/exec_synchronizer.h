@@ -34,7 +34,7 @@
 #include <boost/accumulators/statistics.hpp>
 
 #include "bbque/config.h"
-#include "bbque/bbque_exc.h"
+#include "rtlib/bbque_exc.h"
 #include "bbque/utils/timer.h"
 #include "tg/task_graph.h"
 

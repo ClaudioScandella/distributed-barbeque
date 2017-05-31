@@ -20,7 +20,7 @@
 
 #include <string>
 
-#include "bbque/rtlib.h"
+#include "rtlib/rtlib.h"
 #include <bbque/utils/logging/logger.h>
 
 #include "tg/task_graph.h"
@@ -142,4 +142,3 @@ private:
  }  // namespace bbque
 
  #endif  // BBQUE_EXC_APP_CONTROL_H_
-
