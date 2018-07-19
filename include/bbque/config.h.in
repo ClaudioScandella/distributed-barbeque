@@ -285,6 +285,8 @@
 
 #define MANGO_BASE_NUM_PARTITIONS ${CONFIG_MANGO_BASE_NUM_PARTITIONS}
 
+#cmakedefine ${CONFIG_LIBMANGO_GN}
+
 /*******************************************************************************
  * BarbequeRTRM Global Features
  ******************************************************************************/

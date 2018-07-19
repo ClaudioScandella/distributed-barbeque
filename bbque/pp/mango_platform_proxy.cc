@@ -25,6 +25,7 @@ namespace po = boost::program_options;
 namespace bbque {
 namespace pp {
 
+std::unique_ptr<bu::Logger> logger;
 
 MangoPlatformProxy * MangoPlatformProxy::GetInstance() {
 	static MangoPlatformProxy * instance;
@@ -495,6 +496,13 @@ static void FindUnitsSets(
 	// Fill the computing resources requested
 	int i=0;
 	for (auto t : tg.Tasks()) {
+
+		#ifndef CONFIG_LIBMANGO_GN
+		if (t.second->GetAssignedArch() == ArchType::GN) {
+			logger->Error("Tile %i is of type GN but Barbeque is not compiled in GN emulation mode. This will probably lead to an allocation failure.", i);
+		}
+		#endif
+
 		tiles_family[i++] = ArchTypeToMangoType(
 			t.second->GetAssignedArch(), t.second->GetThreadCount());
 	}
