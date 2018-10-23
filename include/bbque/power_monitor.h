@@ -159,6 +159,13 @@ public:
 	 */
 	int32_t GetSysPowerBudget();
 
+	/**
+	 * @brief Return the length of the sampling period (in milliseconds)
+	 */
+	uint32_t GetPeriodLengthMs() const {
+		return wm_info.period_ms;
+	}
+
 private:
 
 	/**
