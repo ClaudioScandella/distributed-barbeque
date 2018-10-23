@@ -25,17 +25,71 @@ namespace bbque {
 
 MangoPowerManager::MangoPowerManager() {
 	logger->Info("MangoPowerManager initialization...");
-	memset(&tile_stats, 0, sizeof(hn_tile_stats_t));
+//	memset(&tile_stats, 0, sizeof(hn_tile_stats_t));
+
+	int err = hn_get_num_tiles(&num_tiles[0], &num_tiles[1], &num_tiles[2]);
+	if (err == HN_SUCCEEDED) {
+		tiles_info.resize(num_tiles[0]);
+		tiles_stats.resize(num_tiles[0]);
+	}
+	else {
+		logger->Fatal("Unable to get the number of MANGO tiles [error=%d].", err);
+		return;
+	}
+
+	for (uint_fast32_t i = 0; i < num_tiles[0]; i++) {
+		int err = hn_get_tile_info(i, &tiles_info[i]);
+		if (HN_SUCCEEDED != err) {
+			logger->Fatal("Unable to get the tile nr.%d [error=%d].", i, err);
+			return;
+		}
+	}
 }
+
 
 PowerManager::PMResult
 MangoPowerManager::GetLoad(ResourcePathPtr_t const & rp, uint32_t & perc) {
 	uint32_t tile_id = rp->GetID(br::ResourceType::ACCELERATOR);
+	uint32_t core_id = rp->GetID(br::ResourceType::PROC_ELEMENT);
+/*
 	if (hn_get_tile_stats(tile_id, &tile_stats) != 0) {
 		logger->Warn("GetLoad: error in HN library call...");
 		return PMResult::ERR_UNKNOWN;
 	}
 	perc = tile_stats.unit_utilization;
+*/
+	if (tiles_info[tile_id].unit_family == HN_TILE_FAMILY_PEAK) {
+		return GetLoadPEAK(tile_id, core_id, perc);
+	}
+
+	return PMResult::OK;
+}
+
+PowerManager::PMResult
+MangoPowerManager::GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t perc) {
+	perc = 0;
+	hn_stats_monitor_t * curr_stats = new hn_stats_monitor_t;
+	uint32_t err = hn_stats_monitor_read(tile_id, &core_id, &curr_stats);
+	if (err == 0) {
+		float cycles_ratio =
+			float(curr_stats->core_cycles - tiles_stats[tile_id].core_cycles) /
+			(curr_stats->timestamp - tiles_stats[tile_id].timestamp);
+		tiles_stats[tile_id] = *curr_stats;
+		perc = cycles_ratio * 100;
+		logger->Crit("t<%d>.c<%d>:  timestamp   = %lld", tile_id, core_id, curr_stats->timestamp);
+		logger->Crit("t<%d>.c<%d>:  tics_sleep = %d", tile_id, core_id, curr_stats->tics_sleep);
+		logger->Crit("t<%d>.c<%d>:  core_cycles = %d", tile_id, core_id, curr_stats->core_cycles);
+/*
+		logger->Crit("t<%d>.c<%d>:  core_instr  = %d", tile_id, core_id, curr_stats->core_instr);
+		logger->Crit("t<%d>.c<%d>:  core_cpi    = %.2f", tile_id, core_id, curr_stats->core_cpi);
+		logger->Crit("t<%d>.c<%d>:  mc_accesses = %d", tile_id, core_id, curr_stats->mc_accesses);
+		logger->Crit("t<%d>.c<%d>:  load = %f", tile_id, core_id, ratio);
+*/
+		logger->Crit("t<%d>.c<%d>:  perc = %d", tile_id, core_id, perc);
+	}
+	else
+		logger->Error("t<%d>.c<%d>:  error!", tile_id, core_id);
+	delete curr_stats;
 	return PMResult::OK;
 }
 

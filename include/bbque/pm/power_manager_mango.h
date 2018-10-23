@@ -19,6 +19,7 @@
 #ifndef BBQUE_POWER_MANAGER_MANGO_H_
 #define BBQUE_POWER_MANAGER_MANGO_H_
 
+#include <vector>
 #include "bbque/pm/power_manager.h"
 #include "bbque/res/resources.h"
 
@@ -165,10 +166,21 @@ public:
 
 protected:
 
+//	hn_tile_stats_t tile_stats;
+
+	/// Dimensions of the MANGO platform
+	uint32_t num_tiles[3]; // 0: total, 1:X, 2:Y
+
+	/// Runtime counter statistics of a MANGO tiles
+	std::vector<hn_stats_monitor_t> tiles_stats;
+
+	/// Overall MANGO tiles information
+	std::vector<hn_tile_info_t> tiles_info;
+
 	/**
-	 * @brief Runtime status of a MANGO tile
+	 * @brief Current load estimation for PEAK processors
 	 */
-	hn_tile_stats_t tile_stats;
+	PMResult GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t perc);
 
 };
 
