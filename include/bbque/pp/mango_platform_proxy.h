@@ -104,6 +104,9 @@ private:
 	// the next keeps track of the memory tiles & addresses where peakos has been uploaded
 	std::vector<std::pair<uint32_t, uint32_t>> allocated_resources_peakos;
 
+	/// length of the monitoring period (default=2000ms if PowerMonitor not compiled)
+	uint32_t monitor_period_len = 2000;
+
 //-------------------- METHODS
 
 	MangoPlatformProxy();

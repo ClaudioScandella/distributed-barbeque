@@ -159,6 +159,25 @@ MangoPlatformProxy::MapResources(AppPtr_t papp, ResourceAssignmentMapPtr_t pres,
 
 void MangoPlatformProxy::Exit() {
 	logger->Info("Exit: Termination...");
+
+	// Stop HW counter monitors
+	hn_tile_info_t tile_info;
+	for (uint_fast32_t i=0; i < num_tiles; i++) {
+		int err = hn_get_tile_info(i, &tile_info);
+		if (HN_SUCCEEDED != err) {
+			logger->Fatal("Unable to get the tile nr.%d [error=%d].", i, err);
+			continue;
+		}
+
+		if (tile_info.unit_family == HN_TILE_FAMILY_PEAK) {
+			err = hn_stats_monitor_configure_tile(i, 0);
+			if (err == 0)
+				logger->Error("Stopping monitor on tile nr=%d", i);
+			else
+				logger->Error("Unable to enable profiling on tile nr=%d", i);
+		}
+	}
+
 	// first release occupied resources, p.e. allocated memory for peakOS
 	// Hope Partitions are unset correctly too
 	for (auto rsc : allocated_resources_peakos) {
@@ -264,6 +283,18 @@ MangoPlatformProxy::BootTiles() noexcept {
 				logger->Error("Unable to boot tile nr=%d", i);
 				return PLATFORM_INIT_FAILED;
 			}
+
+			// Enable monitoring stuff
+			err = hn_stats_monitor_configure_tile(i, 1);
+			if (err == 0) {
+				err = hn_stats_monitor_set_polling_period(monitor_period_len);
+				if (err == 0)
+					logger->Info("Monitoring period set for tile nr=%d", i);
+				else
+					logger->Error("Monitoring period set failed for tile nr=%d", i);
+			}
+			else
+				logger->Error("Unable to enable profiling on tile nr=%d", i);
 		}
 	}
 
@@ -282,6 +313,7 @@ MangoPlatformProxy::RegisterTiles() noexcept {
 
 #ifdef CONFIG_BBQUE_WM
 	PowerMonitor & wm(PowerMonitor::GetInstance());
+	monitor_period_len = wm.GetPeriodLengthMs();
 #endif
 
 	for (uint_fast32_t i=0; i < num_tiles; i++) {
@@ -850,7 +882,8 @@ MangoPlatformProxy::MangoPartitionSkimmer::SetPartition(
 	ExitCode_t err = SetAddresses(tg, partition);
 
 	for ( auto task : tg.Tasks()) {
-		task.second->SetMappedProcessor( partition.GetUnit(task.second) );
+		auto tile_id = partition.GetUnit(task.second);
+		task.second->SetMappedProcessor(tile_id);
 	}
 
 	// Now, we have to ask for the location in TileReg of events
