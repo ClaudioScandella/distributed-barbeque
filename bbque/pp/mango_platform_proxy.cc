@@ -168,7 +168,7 @@ void MangoPlatformProxy::Exit() {
 			logger->Fatal("Unable to get the tile nr.%d [error=%d].", i, err);
 			continue;
 		}
-
+#ifdef CONFIG_BBQUE_PM_MANGO
 		if (tile_info.unit_family == HN_TILE_FAMILY_PEAK) {
 			err = hn_stats_monitor_configure_tile(i, 0);
 			if (err == 0)
@@ -176,6 +176,7 @@ void MangoPlatformProxy::Exit() {
 			else
 				logger->Error("Unable to enable profiling on tile nr=%d", i);
 		}
+#endif
 	}
 
 	// first release occupied resources, p.e. allocated memory for peakOS
@@ -284,6 +285,7 @@ MangoPlatformProxy::BootTiles() noexcept {
 				return PLATFORM_INIT_FAILED;
 			}
 
+#ifdef CONFIG_BBQUE_PM_MANGO
 			// Enable monitoring stuff
 			err = hn_stats_monitor_configure_tile(i, 1);
 			if (err == 0) {
@@ -295,6 +297,7 @@ MangoPlatformProxy::BootTiles() noexcept {
 			}
 			else
 				logger->Error("Unable to enable profiling on tile nr=%d", i);
+#endif
 		}
 	}
 
