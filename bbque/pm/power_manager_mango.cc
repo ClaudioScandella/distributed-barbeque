@@ -61,9 +61,11 @@ MangoPowerManager::GetLoad(ResourcePathPtr_t const & rp, uint32_t & perc) {
 	if (tiles_info[tile_id].unit_family == HN_TILE_FAMILY_PEAK) {
 		return GetLoadPEAK(tile_id, core_id, perc);
 	}
-
+	else
+		perc = 0;
 	return PMResult::OK;
 }
+
 
 PowerManager::PMResult
 MangoPowerManager::GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t & perc) {
@@ -76,12 +78,10 @@ MangoPowerManager::GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t & pe
 			(curr_stats->timestamp - tiles_stats[tile_id].timestamp);
 		tiles_stats[tile_id] = *curr_stats;
 		perc = cycles_ratio * 100;
-/*
-		logger->Debug("t<%d>.c<%d>:  timestamp   = %lld", tile_id, core_id, curr_stats->timestamp);
-		logger->Debug("t<%d>.c<%d>:  tics_sleep = %d", tile_id, core_id, curr_stats->tics_sleep);
-		logger->Debug("t<%d>.c<%d>:  core_cycles = %d", tile_id, core_id, curr_stats->core_cycles);
-*/
-		logger->Debug("t<%d>.c<%d>:  perc = %d", tile_id, core_id, perc);
+		logger->Debug("t<%d>.c<%d>: ts=%ld tics_sleep=%d core_cycles=%d load=%d",
+			tile_id, core_id,
+			curr_stats->timestamp, curr_stats->tics_sleep, curr_stats->core_cycles,
+			perc);
 	}
 	else
 		logger->Error("t<%d>.c<%d>:  error!", tile_id, core_id);
