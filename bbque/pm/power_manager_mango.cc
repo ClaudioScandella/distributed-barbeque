@@ -66,7 +66,7 @@ MangoPowerManager::GetLoad(ResourcePathPtr_t const & rp, uint32_t & perc) {
 }
 
 PowerManager::PMResult
-MangoPowerManager::GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t perc) {
+MangoPowerManager::GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t & perc) {
 	perc = 0;
 	hn_stats_monitor_t * curr_stats = new hn_stats_monitor_t;
 	uint32_t err = hn_stats_monitor_read(tile_id, &core_id, &curr_stats);

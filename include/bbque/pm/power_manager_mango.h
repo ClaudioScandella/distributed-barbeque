@@ -180,7 +180,7 @@ protected:
 	/**
 	 * @brief Current load estimation for PEAK processors
 	 */
-	PMResult GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t perc);
+	PMResult GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t & perc);
 
 };
 
