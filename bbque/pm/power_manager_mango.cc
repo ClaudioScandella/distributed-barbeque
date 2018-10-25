@@ -76,16 +76,12 @@ MangoPowerManager::GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t & pe
 			(curr_stats->timestamp - tiles_stats[tile_id].timestamp);
 		tiles_stats[tile_id] = *curr_stats;
 		perc = cycles_ratio * 100;
-		logger->Crit("t<%d>.c<%d>:  timestamp   = %lld", tile_id, core_id, curr_stats->timestamp);
-		logger->Crit("t<%d>.c<%d>:  tics_sleep = %d", tile_id, core_id, curr_stats->tics_sleep);
-		logger->Crit("t<%d>.c<%d>:  core_cycles = %d", tile_id, core_id, curr_stats->core_cycles);
 /*
-		logger->Crit("t<%d>.c<%d>:  core_instr  = %d", tile_id, core_id, curr_stats->core_instr);
-		logger->Crit("t<%d>.c<%d>:  core_cpi    = %.2f", tile_id, core_id, curr_stats->core_cpi);
-		logger->Crit("t<%d>.c<%d>:  mc_accesses = %d", tile_id, core_id, curr_stats->mc_accesses);
-		logger->Crit("t<%d>.c<%d>:  load = %f", tile_id, core_id, ratio);
+		logger->Debug("t<%d>.c<%d>:  timestamp   = %lld", tile_id, core_id, curr_stats->timestamp);
+		logger->Debug("t<%d>.c<%d>:  tics_sleep = %d", tile_id, core_id, curr_stats->tics_sleep);
+		logger->Debug("t<%d>.c<%d>:  core_cycles = %d", tile_id, core_id, curr_stats->core_cycles);
 */
-		logger->Crit("t<%d>.c<%d>:  perc = %d", tile_id, core_id, perc);
+		logger->Debug("t<%d>.c<%d>:  perc = %d", tile_id, core_id, perc);
 	}
 	else
 		logger->Error("t<%d>.c<%d>:  error!", tile_id, core_id);
