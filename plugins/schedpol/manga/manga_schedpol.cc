@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include "bbque/binding_manager.h"
 #include "bbque/modules_factory.h"
 #include "bbque/utils/logging/logger.h"
 #include "bbque/utils/assert.h"
@@ -94,6 +95,20 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::Init() {
 	}
 	logger->Debug("Init: resources state view token: %ld", sched_status_view);
 
+	// Get the amount of processing elements from each accelerator
+	if (pe_per_acc.empty()) {
+		BindingManager & bdm(BindingManager::GetInstance());
+		BindingMap_t & bindings(bdm.GetBindingDomains());
+		auto acc_binding_info = bindings[br::ResourceType::ACCELERATOR];
+		for (br::ResourcePtr_t const & acc_rsrc: acc_binding_info->resources) {
+			std::string pe_resource_path(std::string("sys.") + acc_rsrc->Name() + std::string(".pe"));
+			pe_per_acc[acc_rsrc->ID()] = sys->ResourceTotal(pe_resource_path) / 100 ;
+			logger->Info("%s: proc_element=%d",
+				pe_resource_path.c_str(), pe_per_acc[acc_rsrc->ID()]);
+		}
+	}
+
+	// Load the application task graphs
 	logger->Debug("Init: loading the applications task graphs");
 	fut_tg = std::async(std::launch::async, &System::LoadTaskGraphs, sys);
 
@@ -331,26 +346,25 @@ MangASchedPol::SelectTheBestPartition(ba::AppCPtr_t papp, const std::list<Partit
 		pawm = std::make_shared<ba::WorkingMode>(
 				papp->WorkingModes().size(),"Run-time", 1, papp);
 	}
-
 	logger->Info("Allocated app %s with following mapping:", papp->Name().c_str());
-
 	int32_t ref_num = -1;
 
 	// Now I will update the Resource Accounter in order to trace the resource allocation
 	// This has no effect in the platform resource assignment, since the effective 
 	// assignment was performed (by the platform proxy) during the PropagatePartition
+	uint32_t nr_cores = 1;
 	for (auto task : tg->Tasks()) {
+		// if thread count not specified, assign all the available cores
+		logger->Debug("- > Task %d thread count = %d", task.first, task.second->GetThreadCount());
+		if (task.second->GetThreadCount() <= 0)
+			nr_cores = pe_per_acc[selected_partition.GetUnit(task.second)];
+		pawm->AddResourceRequest("sys.acc.pe", 100 * nr_cores,
+				br::ResourceAssignment::Policy::BALANCED);
 
-		pawm->AddResourceRequest("sys0.acc.pe", 100 * task.second->GetThreadCount(),
-					 br::ResourceAssignment::Policy::BALANCED);
-
-		ref_num = pawm->BindResource(br::ResourceType::ACCELERATOR, R_ID_ANY, 
-                                             selected_partition.GetUnit(task.second), ref_num);
-
+		ref_num = pawm->BindResource(br::ResourceType::ACCELERATOR, R_ID_ANY,
+				selected_partition.GetUnit(task.second), ref_num);
 		logger->Info(" -> Task %d allocated in tile %d", task.first, selected_partition.GetUnit(task.second));
 	}
-
-
 
 	for (auto buff : tg->Buffers()) {
 		logger->Info(" -> Buffer %d allocated in memory bank %d", buff.first, 

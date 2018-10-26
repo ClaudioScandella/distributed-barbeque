@@ -101,6 +101,9 @@ private:
 
 	std::future<void> fut_tg;
 
+	/** Number of cores per accelerator */
+	std::map<uint32_t, uint32_t> pe_per_acc;
+
 	/**
 	 * @brief Constructor
 	 *
