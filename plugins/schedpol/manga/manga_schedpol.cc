@@ -325,18 +325,15 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::AllocateArchitectural(ba::AppCPtr_t
 
 SchedulerPolicyIF::ExitCode_t
 MangASchedPol::SelectTheBestPartition(ba::AppCPtr_t papp, const std::list<Partition> &partitions) noexcept {
-
 	bbque_assert(partitions.size() > 0);
 
 	// TODO: Intelligent policy
 
 	// For the demo just select the first partition
 	logger->Warn("TODO: now selecting the first available partition");
-
 	auto tg = papp->GetTaskGraph();
 	auto selected_partition = partitions.front();
-
-	papp->SetPartition(std::make_shared<Partition>(selected_partition));		// For cleanup and similar
+	papp->SetPartition(std::make_shared<Partition>(selected_partition)); // For cleanup and similar
 	rmv.PropagatePartition(*tg, selected_partition);
 
 	// We now update the resource accounter
@@ -378,7 +375,7 @@ MangASchedPol::SelectTheBestPartition(ba::AppCPtr_t papp, const std::list<Partit
 		return SCHED_ERROR;
 	}
 
-	 papp->SetTaskGraph(tg);
+	papp->SetTaskGraph(tg);
 
 	return SCHED_OK;
 
