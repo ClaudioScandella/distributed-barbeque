@@ -50,8 +50,8 @@ MangoPowerManager::MangoPowerManager() {
 PowerManager::PMResult
 MangoPowerManager::GetLoad(ResourcePathPtr_t const & rp, uint32_t & perc) {
 	uint32_t tile_id = rp->GetID(br::ResourceType::ACCELERATOR);
-	uint32_t core_id = rp->GetID(br::ResourceType::PROC_ELEMENT);
 /*
+	uint32_t core_id = rp->GetID(br::ResourceType::PROC_ELEMENT);
 	if (hn_get_tile_stats(tile_id, &tile_stats) != 0) {
 		logger->Warn("GetLoad: error in HN library call...");
 		return PMResult::ERR_UNKNOWN;
@@ -59,7 +59,8 @@ MangoPowerManager::GetLoad(ResourcePathPtr_t const & rp, uint32_t & perc) {
 	perc = tile_stats.unit_utilization;
 */
 	if (tiles_info[tile_id].unit_family == HN_TILE_FAMILY_PEAK) {
-		return GetLoadPEAK(tile_id, core_id, perc);
+		logger->Debug("GetLoad: tile id=%d is a PEAK processor", tile_id);
+		return GetLoadPEAK(tile_id, 0, perc); // core_id not supported
 	}
 	else
 		perc = 0;
@@ -69,22 +70,25 @@ MangoPowerManager::GetLoad(ResourcePathPtr_t const & rp, uint32_t & perc) {
 
 PowerManager::PMResult
 MangoPowerManager::GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t & perc) {
-	perc = 0;
 	hn_stats_monitor_t * curr_stats = new hn_stats_monitor_t;
-	uint32_t err = hn_stats_monitor_read(tile_id, &core_id, &curr_stats);
+	uint32_t nr_cores = 0;
+	uint32_t err = hn_stats_monitor_read(tile_id, &nr_cores, &curr_stats);
 	if (err == 0) {
 		float cycles_ratio =
 			float(curr_stats->core_cycles - tiles_stats[tile_id].core_cycles) /
-			(curr_stats->timestamp - tiles_stats[tile_id].timestamp);
+				(curr_stats->timestamp - tiles_stats[tile_id].timestamp);
 		tiles_stats[tile_id] = *curr_stats;
 		perc = cycles_ratio * 100;
-		logger->Debug("t<%d>.c<%d>: ts=%ld tics_sleep=%d core_cycles=%d load=%d",
-			tile_id, core_id,
+		logger->Debug("GetLoadPEAK: tile id=%d [cores=%d]: ts=%ld tics_sleep=%d core_cycles=%d load=%d",
+			tile_id, nr_cores,
 			curr_stats->timestamp, curr_stats->tics_sleep, curr_stats->core_cycles,
 			perc);
 	}
-	else
-		logger->Error("t<%d>.c<%d>:  error!", tile_id, core_id);
+	else {
+		perc = 0;
+		logger->Error("GetLoadPEAK: tile id=%d, error=%d", tile_id, err);
+	}
+
 	delete curr_stats;
 	return PMResult::OK;
 }
@@ -94,8 +98,9 @@ PowerManager::PMResult
 MangoPowerManager::GetTemperature(ResourcePathPtr_t const & rp, uint32_t &celsius) {
 	uint32_t tile_id = rp->GetID(br::ResourceType::ACCELERATOR);
 	float temp = 0;
-	if (hn_get_tile_temperature(tile_id, &temp) != 0) {
-		logger->Warn("GetTemperature: error in HN library call...");
+	int err = hn_get_tile_temperature(tile_id, &temp);
+	if (err != 0) {
+		logger->Error("GetTemperature: tile id=%d, error=%d", tile_id, err);
 		return PMResult::ERR_UNKNOWN;
 	}
 	celsius = static_cast<uint32_t>(temp);
