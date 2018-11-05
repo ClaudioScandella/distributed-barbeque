@@ -162,16 +162,8 @@ MangASchedPol::ServeApplicationsWithPriority(int priority) noexcept {
 		// Get all the applications @ this priority
 		papp = sys->GetFirstWithPrio(priority, app_iterator);
 		for (; papp; papp = sys->GetNextWithPrio(priority, app_iterator)) {
-
-			logger->Debug("Trying to allocate resources for application %s [pid=%d]", 
-					papp->Name().c_str(), papp->Pid());
-
-			// Try to allocate resourced for the application
-			if (papp->State() == ba::Application::State_t::RUNNING) {
-				logger->Debug("Skipping already running aplication [%s]",
+			logger->Debug("ServeApplicationsWithPriority: [%s]: looking for resources...",
 					papp->StrId());
-				continue;
-			}
 
 			err = ServeApp(papp);
 			if (err == SCHED_SKIP_APP) {
@@ -214,7 +206,13 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::ServeApp(ba::AppCPtr_t papp) noexce
 	SchedulerPolicyIF::ExitCode_t err;
 	ResourcePartitionValidator::ExitCode_t rmv_err;
 	std::list<Partition> partitions;
-	
+
+	// Try to allocate resourced for the application
+	if (papp->State() == ba::Application::State_t::RUNNING) {
+		logger->Debug("ServeApp: [%s] is RUNNING -> rescheduling", papp->StrId());
+		return ReassignWorkingMode(papp);
+	}
+
 	// First of all we have to decide which processor type to assign to each task
 	err = CheckHWRequirements(papp);
 	if (err != SCHED_OK) {
@@ -401,6 +399,18 @@ MangASchedPol::SelectWorkingMode(ba::AppCPtr_t papp, const Partition & selected_
 	auto ret = papp->ScheduleRequest(pawm, sched_status_view, ref_num);
 	if (ret != ba::ApplicationStatusIF::APP_SUCCESS) {
 		logger->Error("SelectWorkingMode: [%s] schedule request failed", papp->StrId());
+		return SCHED_ERROR;
+	}
+
+	return SCHED_OK;
+}
+
+
+SchedulerPolicyIF::ExitCode_t
+MangASchedPol::ReassignWorkingMode(ba::AppCPtr_t papp) noexcept {
+	auto ret = papp->ScheduleRequestAsPrev(sched_status_view);
+	if (ret != ba::ApplicationStatusIF::APP_SUCCESS) {
+		logger->Error("ReassignWorkingMode: [%s] rescheduling failed", papp->StrId());
 		return SCHED_ERROR;
 	}
 

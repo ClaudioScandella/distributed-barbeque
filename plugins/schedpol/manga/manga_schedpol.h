@@ -133,6 +133,8 @@ private:
 
 	ExitCode_t SelectWorkingMode(ba::AppCPtr_t papp, const Partition & selected_partition) noexcept;
 
+	ExitCode_t ReassignWorkingMode(ba::AppCPtr_t papp) noexcept;
+
 };
 
 
