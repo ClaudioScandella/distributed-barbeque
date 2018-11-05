@@ -675,8 +675,9 @@ Application::ExitCode_t Application::ScheduleRequestAsPrev(br::RViewToken_t stat
 	}
 
 	// Application must be already running
-	if (_Running()) {
-		logger->Warn("ScheduleRequestAsPrev: [%s] not in RUNNING state", papp->StrId());
+	if (!_Running()) {
+		logger->Warn("ScheduleRequestAsPrev: [%s] not in RUNNING state [%s]",
+			papp->StrId(), StateStr(_State()));
 		return APP_STATUS_NOT_EXP;
 	}
 
