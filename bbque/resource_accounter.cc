@@ -1266,7 +1266,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::DoResourceBooking(
 	// Amount of resource to book and list of resource descriptors
 	auto requested = r_assign->GetAmount();
 	size_t num_left_resources = r_assign->GetResourcesList().size();
-	logger->Debug("DRBooking: amount % " PRIu64 " to be spread over %d resources",
+	logger->Debug("DoResourceBooking: amount % " PRIu64 " to be spread over %d resources",
 		requested, num_left_resources);
 	auto alloc_amount_per_resource = 0;
 
@@ -1299,15 +1299,15 @@ ResourceAccounter::ExitCode_t ResourceAccounter::DoResourceBooking(
 
 		--num_left_resources;
 
-		logger->Debug("<%s> requested=%d num_left=%d",
+		logger->Debug("DoResourceBooking: <%s> requested=%d num_left=%d",
 				resource->Path().c_str(), requested, num_left_resources);
 	}
 
 	// The availability of resources mismatches the one checked in the
 	// scheduling phase. This should never happen!
 	if (requested != 0 && alloc_policy == br::ResourceAssignment::Policy::BALANCED) {
-		logger->Crit("DRBooking: resource assignment mismatch in view=[%ld]."
-				"Left=%d",status_view, requested);
+		logger->Crit("DoResourceBooking: resource assignment mismatch in view=[%ld]."
+				" Left=%d",status_view, requested);
 		assert(requested != 0);
 		return RA_ERR_USAGE_EXC;
 	}
@@ -1343,10 +1343,10 @@ inline void ResourceAccounter::SchedResourceBooking(
 		uint64_t alloc_amount_per_resource) {
 	// Check the available amount in the current resource binding
 	uint64_t available = rsrc->Available(papp, status_view);
-	logger->Debug("DRBooking (sched): [%s] request for <%s> [view=%ld] ",
+	logger->Debug("SchedResourceBooking: [%s] request for <%s> [view=%ld] ",
 			papp->StrId(), rsrc->Path().c_str(), status_view);
 
-	logger->Debug("DRBooking (sched): [%s] request for <%s> "
+	logger->Debug("SchedResourceBooking: [%s] request for <%s> "
 			"requested=%d alloca=%d available=%d",
 			papp->StrId(), rsrc->Path().c_str(), requested,
 			alloc_amount_per_resource, available);
@@ -1367,15 +1367,15 @@ inline void ResourceAccounter::SyncResourceBooking(
 	// Skip the resource binding if the not assigned by the scheduler
 	uint64_t sched_usage = rsrc->ApplicationUsage(papp, sch_view_token);
 	if (sched_usage == 0) {
-		logger->Debug("DRBooking (sync): no usage of {%s} scheduled for [%s]",
-				rsrc->Name().c_str(), papp->StrId());
+		logger->Debug("SyncResourceBooking: [%s] no assignment of <%s>",
+				papp->StrId(), rsrc->Name().c_str());
 		return;
 	}
 
 	// Acquire the resource according to the amount assigned by the
 	// scheduler
 	requested -= rsrc->Acquire(papp, sched_usage, sync_ssn.view);
-	logger->Debug("DRBooking (sync): %s acquires %s (%d left) in view=[%ld]",
+	logger->Debug("SyncResourceBooking: [%s] acquires %s (%d left) in view=[%ld]",
 			papp->StrId(), rsrc->Name().c_str(), requested, sch_view_token);
 }
 
