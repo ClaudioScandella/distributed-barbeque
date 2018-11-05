@@ -386,8 +386,14 @@ MangASchedPol::SelectWorkingMode(ba::AppCPtr_t papp, const Partition & selected_
 	}
 
 	for (auto buff : tg->Buffers()) {
+		pawm->AddResourceRequest("sys.mem", buff.second->Size(),
+				br::ResourceAssignment::Policy::SEQUENTIAL);
 		// Resource binding: buffers to memory banks
-		logger->Info(" * Buffer %d -> memory bank %d", buff.first,
+		ref_num = pawm->BindResource(
+				br::ResourceType::MEMORY, R_ID_ANY,
+				selected_partition.GetMemoryBank(buff.second),
+				ref_num);
+		logger->Info(" * Buffer %d -> memory bank %d (to fix)", buff.first,
 				selected_partition.GetMemoryBank(buff.second));
 	}
 
