@@ -171,6 +171,7 @@ category.bq.am =	NOTICE
 category.bq.mc =	ERROR
 category.bq.om =	NOTICE
 category.bq.cm =	INFO
+category.bq.dm =	INFO
 #category.bq.tpd = 	INFO
 #category.bq.Test =	INFO
 category.bq.ra =	NOTICE
