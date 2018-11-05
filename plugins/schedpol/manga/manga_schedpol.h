@@ -127,8 +127,11 @@ private:
 
 	ExitCode_t DealWithNoPartitionFound(ba::AppCPtr_t papp) noexcept; 
 
-	ExitCode_t SelectTheBestPartition(ba::AppCPtr_t papp, 
-					  const std::list<Partition> &partitions) noexcept;
+	ExitCode_t ScheduleApplication(ba::AppCPtr_t papp, const std::list<Partition> &partitions) noexcept;
+
+	ExitCode_t SortPartitions(ba::AppCPtr_t papp, const std::list<Partition> &partitions) noexcept;
+
+	ExitCode_t SelectWorkingMode(ba::AppCPtr_t papp, const Partition & selected_partition) noexcept;
 
 };
 
