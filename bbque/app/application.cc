@@ -660,15 +660,13 @@ Application::ExitCode_t Application::ScheduleRequest(AwmPtr_t const & awm,
 }
 
 
-
 Application::ExitCode_t Application::ScheduleRequestAsPrev(br::RViewToken_t status_view) {
 	std::unique_lock<std::recursive_mutex> schedule_ul(schedule.mtx);
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	ResourceAccounter::ExitCode_t ra_result;
 
 	AppSPtr_t papp(schedule.awm->Owner());
-	logger->Notice(": [%p == %p] ?", papp.get(), this);
-
+	logger->Debug("ScheduleRequestAsPrev: [%p == %p] ?", papp.get(), this);
 	if (papp == nullptr) {
 		logger->Error(": [%s] hey!", papp->StrId());
 		return APP_ABORT;
