@@ -123,7 +123,7 @@ private:
 
 	ExitCode_t RelaxRequirements(int priority) noexcept;
 
-	ExitCode_t AllocateArchitectural(ba::AppCPtr_t papp) noexcept;
+	ExitCode_t CheckHWRequirements(ba::AppCPtr_t papp) noexcept;
 
 	ExitCode_t DealWithNoPartitionFound(ba::AppCPtr_t papp) noexcept; 
 

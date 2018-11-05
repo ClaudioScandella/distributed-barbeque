@@ -125,7 +125,6 @@ MangASchedPol::Schedule(
 	// Class providing query functions for applications and resources
 	sys = &system;
 	Init();
-
 	fut_tg.get();
 
 	for (AppPrio_t priority = 0; priority <= sys->ApplicationLowestPriority(); priority++) {
@@ -133,8 +132,7 @@ MangASchedPol::Schedule(
 		if (!sys->HasApplications(priority))
 			continue;
 
-		logger->Debug("Serving applications with priority %d", priority);
-
+		logger->Debug("Schedule: serving applications with priority %d", priority);
 		ExitCode_t err = ServeApplicationsWithPriority(priority);
 		if (err == SCHED_R_UNAVAILABLE) {
 			// We have finished the resources, suspend all other apps and returns
@@ -143,11 +141,10 @@ MangASchedPol::Schedule(
 			result = SCHED_DONE;
 			break;
 		} else if (err != SCHED_OK) {
-			logger->Error("Unexpected error in policy scheduling: %d", err);
+			logger->Error("Schedule: unexpected error: %d", err);
 			result = err;
 			break;
 		}
-
 	}
 
 	// Return the new resource status view according to the new resource
@@ -180,26 +177,24 @@ MangASchedPol::ServeApplicationsWithPriority(int priority) noexcept {
 			if (err == SCHED_SKIP_APP) {
 				// In this case we have no sufficient memory to start it, the only
 				// one thing to do is to ignore it
-				logger->Warn("Unable to find resource for application %s [pid=%d]",
-					papp->Name().c_str(), papp->Pid());
+				logger->Warn("ServeApplicationsWithPriority: [%s]: unable to find resources",
+					papp->StrId());
 				papp->NoSchedule();
 				continue;
 			}
-
 			else if (err == SCHED_R_UNAVAILABLE) {
 				// In this case we have no bandwidth feasibility, so we can try to
 				// fairly reduce the bandwidth for non strict applications.
 				err_relax = RelaxRequirements(priority);
 				break;
 			}
-			
 			else if (err != SCHED_OK) {
 				// It returns  error exit code in case of error.
 				return err;
 			}
 
-			logger->Info("Application %s [pid=%d] allocated successfully",
-				     papp->Name().c_str(), papp->Pid());
+			logger->Info("ServeApplicationsWithPriority: [%s] successfully scheduled",
+				     papp->StrId());
 		}
 
 	} while (err == SCHED_R_UNAVAILABLE && err_relax == SCHED_OK);
@@ -221,7 +216,7 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::ServeApp(ba::AppCPtr_t papp) noexce
 	std::list<Partition> partitions;
 	
 	// First of all we have to decide which processor type to assign to each task
-	err = AllocateArchitectural(papp);
+	err = CheckHWRequirements(papp);
 	if (err != SCHED_OK) {
 		logger->Error("Allocate architectural failed");
 		return err;
@@ -231,17 +226,17 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::ServeApp(ba::AppCPtr_t papp) noexce
 	rmv_err = rmv.LoadPartitions(*papp->GetTaskGraph(), partitions);
 	switch(rmv_err) {
 		case ResourcePartitionValidator::PMV_OK:
-			logger->Debug("LoadPartitions SUCCESS");
+			logger->Debug("ServeApp: HW partitions successfully retrieved");
 			return ScheduleApplication(papp, partitions);
 		case ResourcePartitionValidator::PMV_SKIMMER_FAIL:
-			logger->Error("At least one skimmer failed unexpectly");
+			logger->Error("ServeApp: at least one skimmer failed unexpectly");
 			return SCHED_ERROR;
 		case ResourcePartitionValidator::PMV_NO_PARTITION:
-			logger->Debug("LoadPartitions NO PARTITION");
+			logger->Warn("ServeApp: no HW partitions available");
 			return DealWithNoPartitionFound(papp);
 		default:
-			logger->Fatal("Unexpected LoadPartitions return (?)");
 			// Ehi what's happened here?
+			logger->Fatal("ServeApp: unexpected error while retrieving partitions");
 			return SCHED_ERROR;
 	}
 }
@@ -261,7 +256,7 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::DealWithNoPartitionFound(ba::AppCPt
 	}
 }
 
-SchedulerPolicyIF::ExitCode_t MangASchedPol::AllocateArchitectural(ba::AppCPtr_t papp) noexcept {
+SchedulerPolicyIF::ExitCode_t MangASchedPol::CheckHWRequirements(ba::AppCPtr_t papp) noexcept {
 	// Trivial allocation policy: we select always the best one for the receipe
 	// TODO: a smart one
 	if (nullptr == papp->GetTaskGraph()) {
@@ -278,15 +273,16 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::AllocateArchitectural(ba::AppCPtr_t
 		const auto targets = task->Targets();
 
 		for ( auto targ : task->Targets() ) {
-			logger->Debug("Task %d available [arch=%s (%d)]",task->Id(),
+			logger->Debug("CheckHWrequirements: task %d available [arch=%s (%d)]",
+					task->Id(),
 					GetStringFromArchType(targ.first), targ.first);
 		}
 
 		do {	// Select every time the best preferred available architecture
 			if ( i > 0 ) {
-				logger->Warn("Architecture %s (%d) available in "
-					     "receipe but task %i does not support it",
-					     GetStringFromArchType(preferred_type), preferred_type, task->Id() );
+				logger->Warn("CheckHWRequirements: architecture %s (%d) available in "
+					"recipe but task %i does not support it",
+					GetStringFromArchType(preferred_type), preferred_type, task->Id());
 			}
 			if ( i > requirements.NumArchPreferences() ) {
 				break;
@@ -296,7 +292,7 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::AllocateArchitectural(ba::AppCPtr_t
 		} while(targets.find(preferred_type) == targets.end());
 
 		if (preferred_type == ArchType_t::NONE) {
-			logger->Error("No architecture available for task %d", task->Id());
+			logger->Error("CheckHWRequirements: no architecture available for task %d", task->Id());
 			return SCHED_SKIP_APP;
 		}
 
@@ -347,6 +343,7 @@ MangASchedPol::ScheduleApplication(ba::AppCPtr_t papp, const std::list<Partition
 
 SchedulerPolicyIF::ExitCode_t
 MangASchedPol::SortPartitions(ba::AppCPtr_t papp, const std::list<Partition> &partitions) noexcept {
+	UNUSED(papp);
 	bbque_assert(partitions.size() > 0);
 	// TODO: Intelligent policy. For the demo just select the first
 	// partition
@@ -373,7 +370,7 @@ MangASchedPol::SelectWorkingMode(ba::AppCPtr_t papp, const Partition & selected_
 	auto tg = papp->GetTaskGraph();
 	for (auto task : tg->Tasks()) {
 		// if thread count not specified, assign all the available cores
-		logger->Debug("* Task %d thread_count = %d",
+		logger->Debug(" * Task %d thread_count = %d",
 			task.first, task.second->GetThreadCount());
 		if (task.second->GetThreadCount() <= 0)
 			nr_cores = pe_per_acc[selected_partition.GetUnit(task.second)];
