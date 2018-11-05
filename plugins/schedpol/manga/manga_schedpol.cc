@@ -103,7 +103,7 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::Init() {
 		for (br::ResourcePtr_t const & acc_rsrc: acc_binding_info->resources) {
 			std::string pe_resource_path(std::string("sys.") + acc_rsrc->Name() + std::string(".pe"));
 			pe_per_acc[acc_rsrc->ID()] = sys->ResourceTotal(pe_resource_path) / 100 ;
-			logger->Info("%s: proc_element=%d",
+			logger->Debug("Init: <%s> #proc_element=%d",
 				pe_resource_path.c_str(), pe_per_acc[acc_rsrc->ID()]);
 		}
 	}
@@ -333,7 +333,7 @@ MangASchedPol::ScheduleApplication(ba::AppCPtr_t papp, const std::list<Partition
 	}
 
 	// Update task-graph info
-	logger->Debug("ScheduleApplication: [%s] updating task-graph mapping", papp->StrId());
+	logger->Debug("ScheduleApplication: [%s] updating task-graph mapping...", papp->StrId());
 	papp->SetTaskGraph(tg);
 	return SCHED_OK;
 }
@@ -343,9 +343,10 @@ SchedulerPolicyIF::ExitCode_t
 MangASchedPol::SortPartitions(ba::AppCPtr_t papp, const std::list<Partition> &partitions) noexcept {
 	UNUSED(papp);
 	bbque_assert(partitions.size() > 0);
+	logger->Debug("SortPartitions: sorting the list of partitions... (TODO)");
 	// TODO: Intelligent policy. For the demo just select the first
 	// partition
-	logger->Warn("TODO: now pick the first available partition");
+	logger->Warn("SortPartitions: just pick the first available partition");
 	return SCHED_OK;
 }
 
@@ -402,6 +403,7 @@ MangASchedPol::SelectWorkingMode(ba::AppCPtr_t papp, const Partition & selected_
 		return SCHED_ERROR;
 	}
 
+	logger->Info("SelectWorkingMode: [%s] schedule request accepted", papp->StrId());
 	return SCHED_OK;
 }
 
@@ -414,6 +416,7 @@ MangASchedPol::ReassignWorkingMode(ba::AppCPtr_t papp) noexcept {
 		return SCHED_ERROR;
 	}
 
+	logger->Info("ReassignWorkingMode: [%s] rescheduling done", papp->StrId());
 	return SCHED_OK;
 }
 
