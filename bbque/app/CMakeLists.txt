@@ -5,7 +5,7 @@ include_directories(
 )
 
 # Add sources in the current directory to the target binary
-set (APPLICATION_SRC application working_mode recipe)
+set (APPLICATION_SRC application working_mode recipe schedulable)
 
 #Add as library
 add_library(bbque_apps STATIC ${APPLICATION_SRC})

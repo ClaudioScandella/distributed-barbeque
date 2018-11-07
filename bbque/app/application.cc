@@ -74,11 +74,11 @@ Application::Application(std::string const & _name,
 		uint8_t _exc_id,
 		RTLIB_ProgrammingLanguage_t lang,
 		bool container):
-	name(_name),
-	pid(_pid),
 	exc_id(_exc_id),
 	language(lang),
 	container(container) {
+	name = _name;
+	pid  = _pid;
 
 	// Init the working modes vector
 	awms.recipe_vect.resize(MAX_NUM_AWM);
@@ -218,121 +218,6 @@ AwmPtr_t Application::GetWorkingMode(uint8_t wmId) {
 /*******************************************************************************
  *  EXC State and SyncState Management
  ******************************************************************************/
-
-bool Application::_Disabled() const {
-	return ((_State() == DISABLED) ||
-			(_State() == FINISHED));
-}
-
-bool Application::Disabled() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Disabled();
-}
-
-bool Application::_Active() const {
-	return ((schedule.state == READY) ||
-			(schedule.state == RUNNING));
-}
-
-bool Application::Active() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Active();
-}
-
-bool Application::_Running() const {
-	return ((schedule.state == RUNNING));
-}
-
-bool Application::Running() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Running();
-}
-
-bool Application::_Synching() const {
-	return (schedule.state == SYNC);
-}
-
-bool Application::Synching() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Synching();
-}
-
-bool Application::_Starting() const {
-	return (_Synching() && (_SyncState() == STARTING));
-}
-
-bool Application::Starting() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Starting();
-}
-
-bool Application::_Blocking() const {
-	return (_Synching() && (_SyncState() == BLOCKED));
-}
-
-bool Application::Blocking() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Blocking();
-}
-
-Application::State_t Application::_State() const {
-	return schedule.state;
-}
-
-Application::State_t Application::State() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _State();
-}
-
-Application::State_t Application::_PreSyncState() const {
-	return schedule.preSyncState;
-}
-
-Application::State_t Application::PreSyncState() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _PreSyncState();
-}
-
-Application::SyncState_t Application::_SyncState() const {
-	return schedule.syncState;
-}
-
-Application::SyncState_t Application::SyncState() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _SyncState();
-}
-
-AwmPtr_t const & Application::_CurrentAWM() const {
-	return schedule.awm;
-}
-
-AwmPtr_t const & Application::CurrentAWM() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _CurrentAWM();
-}
-
-AwmPtr_t const & Application::_NextAWM() const {
-	return schedule.next_awm;
-}
-
-AwmPtr_t const & Application::NextAWM() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _NextAWM();
-}
-
-bool Application::_SwitchingAWM() const {
-	if (schedule.state != SYNC)
-		return false;
-	if (schedule.awm->Id() == schedule.next_awm->Id())
-		return false;
-	return true;
-}
-
-bool Application::SwitchingAWM() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _SwitchingAWM();
-}
-
 // NOTE: this requires a lock on schedule.mtx
 void Application::SetSyncState(SyncState_t sync) {
 	logger->Debug("Changing sync state [%s, %d:%s => %d:%s]",

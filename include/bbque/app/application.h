@@ -140,23 +140,6 @@ public:
 	/**
 	 * @see ApplicationStatusIF
 	 */
-	inline std::string const & Name() const noexcept { return name; }
-
-	/**
-	 * @brief Set the application name
-	 * @param app_name The application name
-	 */
-	inline void SetName(std::string const & app_name) noexcept { name = app_name; }
-
-	/**
-	 * @brief Get the process ID of the application
-	 * @return PID value
-	 */
-	inline AppPid_t Pid() const noexcept { return pid; }
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
 	inline uint8_t ExcId() const noexcept { return exc_id; }
 
 	/**
@@ -171,11 +154,6 @@ public:
 	 * @return String ID
 	 */
 	inline const char *StrId() const noexcept { return str_id; }
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	AppPrio_t Priority() const noexcept { return priority; }
 
 	/**
 	 * @brief Set the priority of the application
@@ -256,21 +234,6 @@ public:
 	 */
 	inline void SetPlatformData() noexcept { platform_data = true; }
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-	inline void SetCGroupSetupData(
-		unsigned long cpu_ids, unsigned long mem_ids,
-		unsigned long cpu_ids_isolation)
-	{
-		cgroup_data.cpu_ids = cpu_ids;
-		cgroup_data.cpus_ids_isolation = cpu_ids_isolation;
-		cgroup_data.mem_ids = mem_ids;
-	}
-
-	CGroupSetupData_t GetCGroupSetupData()
-	{
-		return cgroup_data;
-	}
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 
 	/**
 	 * @brief Check Platform Specific Data initialization
@@ -306,69 +269,11 @@ public:
 	inline bool IsLocal() const noexcept { return locally_scheduled; }
 
 	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Disabled();
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Active();
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Running();
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Synching();
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Starting();
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Blocking();
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	State_t State();
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	State_t PreSyncState();
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	SyncState_t SyncState();
-
-	/**
 	 * @see ApplicationStatusIF
 	 */
 	bool IsContainer() const noexcept { return container; }
 
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	AwmPtr_t const & CurrentAWM();
 
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	AwmPtr_t const & NextAWM();
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	bool SwitchingAWM();
 
 	/**
 	 * @see ApplicationStatusIF
@@ -625,14 +530,8 @@ private:
 	/** The logger used by the application */
 	std::unique_ptr<bu::Logger> logger;
 
-	/** The application name */
-	std::string name;
-
 	/** The user who has launched the application */
 	std::string user;
-
-	/** The PID assigned from the OS */
-	AppPid_t pid;
 
 	/** The ID of this Execution Context */
 	uint8_t exc_id;
@@ -646,14 +545,6 @@ private:
 	/** True if this is an application container */
 	bool container;
 
-	/** A numeric priority value */
-	AppPrio_t priority = BBQUE_APP_PRIO_LEVELS - 1;
-
-	/** Current scheduling informations */
-	SchedulingInfo_t schedule;
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-	CGroupSetupData_t cgroup_data;
-#endif
 	/**
 	 * @brief Store profiling information collected at runtime
 	 */
@@ -661,6 +552,7 @@ private:
 
 	std::mutex rt_prof_mtx;
 
+#ifdef CONFIG_BBQUE_TG_PROG_MODEL
 	/**
 	 * Task-graph serialization file path
 	 */
@@ -677,6 +569,8 @@ private:
 	 * Task-graph descriptor (shared pointer to)
 	 */
 	std::shared_ptr<TaskGraph> task_graph;
+
+#endif // CONFIG_BBQUE_TG_PROG_MODEL
 
 	/**
 	 * Assigned partition
@@ -751,29 +645,6 @@ private:
 	void InitResourceConstraints();
 
 
-	bool _Disabled() const;
-
-	bool _Active() const;
-
-	bool _Running() const;
-
-	bool _Synching() const;
-
-	bool _Starting() const;
-
-	bool _Blocking() const;
-
-	State_t _State() const;
-
-	State_t _PreSyncState() const;
-
-	SyncState_t _SyncState() const;
-
-	AwmPtr_t const & _CurrentAWM() const;
-
-	AwmPtr_t const & _NextAWM() const;
-
-	bool _SwitchingAWM() const;
 
 	/**
 	 * @brief Assert a specific resource constraint.
