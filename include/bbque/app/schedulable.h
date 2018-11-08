@@ -109,7 +109,7 @@ public:
 	 * choosed by the scheduler/optimizer module.
 	 */
 	struct SchedulingInfo_t {
-		std::recursive_mutex mtx; /** The mutex to serialize access to scheduling info */
+		mutable std::recursive_mutex mtx; /** The mutex to serialize access to scheduling info */
 		State_t state;            /** The current scheduled state */
 		State_t preSyncState;     /** The state before a sync has been required */
 		SyncState_t syncState;    /** The current synchronization state */
@@ -176,56 +176,55 @@ public:
 	 * @brief Get the schedule state
 	 * @return The current scheduled state
 	 */
-	virtual State_t State();
+	virtual State_t State() const;
 
 	/**
 	 * @brief Get the pre-synchronization state
 	 */
-	virtual State_t PreSyncState();
+	virtual State_t PreSyncState() const;
 
 	/**
 	 * @brief Get the synchronization state
 	 */
-	virtual SyncState_t SyncState();
+	virtual SyncState_t SyncState() const;
 
 
 	/**
 	 * @brief Check if this EXC is currently DISABLED
 	 */
-	virtual bool Disabled();
+	virtual bool Disabled() const;
 
 	/**
 	 * @brief Check if this EXC is currently READY of RUNNING
 	 */
-	virtual bool Active();
+	virtual bool Active() const;
 
 	/**
 	 * @brief Check if this EXC is currently RUNNING
 	 */
-	virtual bool Running();
+	virtual bool Running() const;
 
 	/**
 	 * @brief Check if this EXC is currently in SYNC state
 	 */
-	virtual bool Synching();
+	virtual bool Synching() const;
 
 	/**
 	 * @brief Check if this EXC is currently STARTING
 	 */
-	virtual bool Starting();
+	virtual bool Starting() const;
 
 	/**
 	 * @brief Check if this EXC is being BLOCKED
 	 */
-	virtual bool Blocking();
-
+	virtual bool Blocking() const;
 
 
 	/**
 	 * @brief Get the current working mode
 	 * @return A shared pointer to the current application working mode
 	 */
-	virtual AwmPtr_t const & CurrentAWM();
+	virtual AwmPtr_t const & CurrentAWM() const;
 
 	/**
 	 * @brief Get next working mode to switch in when the application is
@@ -233,14 +232,14 @@ public:
 	 * @return A shared pointer to working mode descriptor (optimizer
 	 * interface)
 	 */
-	virtual AwmPtr_t const & NextAWM();
+	virtual AwmPtr_t const & NextAWM() const;
 
 	/**
 	 * @brief Check if the current AWM is going to be changed
 	 * @return true if the application is going to be reconfigured with
 	 * 	also a change of the current AWM
 	 */
-	virtual bool SwitchingAWM();
+	virtual bool SwitchingAWM() const noexcept;
 
 	/**
 	 * @brief Number of schedulations
