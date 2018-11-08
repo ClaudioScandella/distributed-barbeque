@@ -245,6 +245,41 @@ void Application::SetState(State_t state, SyncState_t sync) {
 	}
 }
 
+
+Application::ExitCode_t Application::SetState2(State_t state, SyncState_t sync) {
+	logger->Debug("Changing state [%s, %d:%s => %d:%s]",
+			StrId(),
+			_State(), StateStr(_State()),
+			state, StateStr(state));
+
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
+	if (state == SYNC) {  // Entering a Synchronization state
+		assert(sync != SYNC_NONE);
+		if (sync == SYNC_NONE)
+			return APP_ERR_SYNC_STATUS;
+		schedule.preSyncState = _State();           // Previous pre-synchronization state
+		SetSyncState(sync);                         // Update synchronization state
+		schedule.state = Application::SYNC;         // Update state
+		return APP_SUCCESS;
+	}
+	else {                // Entering a Stable state
+		assert(sync == SYNC_NONE);
+		if (sync != SYNC_NONE)
+			return APP_ERR_SYNC_STATUS;
+		schedule.preSyncState = state;  // Previous pre-synchronization state
+		schedule.state = state;         // Updating state
+		SetSyncState(sync);             // Update synchronization state
+	}
+
+	// Release current selected AWM
+	if ((state == DISABLED) || (state == READY)) {
+		schedule.awm.reset();
+		schedule.next_awm.reset();
+	}
+
+	return APP_SUCCESS;
+}
+
 /*******************************************************************************
  *  EXC Destruction
  ******************************************************************************/

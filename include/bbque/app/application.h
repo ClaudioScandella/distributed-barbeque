@@ -779,6 +779,8 @@ private:
 	 */
 	void SetState(State_t state, SyncState_t sync = SYNC_NONE);
 
+	ExitCode_t SetState2(State_t state, SyncState_t sync = SYNC_NONE);
+
 	/**
 	 * @brief Update the application synchronization state
 	 */
