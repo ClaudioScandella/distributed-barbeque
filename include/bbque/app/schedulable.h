@@ -92,7 +92,7 @@ public:
 		RECONF ,      	/** Must change working mode */
 		MIGREC,       	/** Must migrate and change working mode */
 		MIGRATE,    	/** Must migrate into another cluster */
-		BLOCKED,    	/** Must be blocked becaus of resource are not more available */
+		BLOCKED,    	/** Must be blocked because of resource are not more available */
 
 		SYNC_STATE_COUNT /** This must alwasy be the last entry */
 	} SyncState_t;
@@ -172,6 +172,7 @@ public:
 	 */
 	virtual	AppPrio_t Priority() const noexcept { return priority; }
 
+
 	/**
 	 * @brief Get the schedule state
 	 * @return The current scheduled state
@@ -245,6 +246,12 @@ public:
 	 * @brief Number of schedulations
 	 */
 	virtual uint64_t ScheduleCount() const noexcept;
+
+// Scheduling
+
+
+// Synchronization
+
 
 protected:
 
