@@ -45,9 +45,9 @@ log.enabled   = 0
 # output directory for the power monitor logs
 log.dir       = /tmp
 # monitoring period
-period_ms     = 1000
+period_ms     = 4000
 # number of monitoring threads to spawn
-nr_threads    = 2
+nr_threads    = 1
 # trigger types: over_threshold, ...
 temp.threshold_high  = 80
 temp.threshold_low = 75
