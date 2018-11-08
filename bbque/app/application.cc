@@ -611,26 +611,6 @@ void Application::NoSchedule() {
  *  EXC Synchronization
  ******************************************************************************/
 
-Application::ExitCode_t Application::SetRunning() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	SetState(RUNNING);
-	++schedule.count;
-	logger->Debug("Scheduling count: %" PRIu64 "", schedule.count);
-	schedule.awm->IncSchedulingCount();
-	return APP_SUCCESS;
-}
-
-Application::ExitCode_t Application::SetBlocked() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	// If the application as been marked FINISHED, than it is released
-	if (_State() == FINISHED)
-		return APP_SUCCESS;
-
-	// Otherwise mark it as READY to be re-scheduled when possible
-	SetState(READY);
-	return APP_SUCCESS;
-}
-
 Application::ExitCode_t Application::ScheduleCommit() {
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 

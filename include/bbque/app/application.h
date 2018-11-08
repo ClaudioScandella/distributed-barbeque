@@ -848,25 +848,6 @@ private:
 	 */
 	bool Reshuffling(AwmPtr_t const & next_awm);
 
-	/**
-	 * @brief Notify the EXC being run
-	 *
-	 * This method is called by ScheduleCommit once an EXC has been
-	 * synchronized to the RUNNING state. It update the current EXC state to
-	 * RUNNING
-	 */
-	ExitCode_t SetRunning();
-
-	/**
-	 * @brief Notify the EXC being blocked
-	 *
-	 * This method is called by ScheduleCommit once an EXC has been
-	 * synchronized to the BLOCKED state. It update the current EXC state to
-	 * either READY or FINISHED according to what happened meanwhile. If the
-	 * EXC has been simply disabled, it becomes READY, while insted
-	 */
-	ExitCode_t SetBlocked();
-
 };
 
 } // namespace app
