@@ -329,13 +329,14 @@ public:
 	 */
 	ExitCode_t NotifyNewState(AppPtr_t papp, ApplicationStatusIF::State_t next);
 
+
 	/**
 	 * @brief Commit the "continue to run" for the specified application
 	 *
 	 * @param papp a pointer to the interested application
 	 * @return AM_SUCCESS on success, AM_ABORT on failure
 	 */
-	ExitCode_t RunningCommit(AppPtr_t papp);
+	ExitCode_t SyncContinue(AppPtr_t papp);
 
 	/**
 	 * @brief Update runtime profiling information of each active

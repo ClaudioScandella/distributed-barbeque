@@ -1724,7 +1724,7 @@ void ApplicationManager::SyncAbort(AppPtr_t papp) {
 }
 
 ApplicationManager::ExitCode_t
-ApplicationManager::RunningCommit(AppPtr_t papp) {
+ApplicationManager::SyncContinue(AppPtr_t papp) {
 	Application::ExitCode_t app_result;
 
 	app_result = papp->ScheduleContinue();

@@ -222,7 +222,7 @@ void SchedulerManager::CommitRunningApplications() {
 	AppPtr_t papp = am.GetFirst(ApplicationStatusIF::RUNNING, apps_it);
 	for (; papp; papp = am.GetNext(ApplicationStatusIF::RUNNING, apps_it)) {
 		// Commit a running state (this cleans the next AWM)
-		am.RunningCommit(papp);
+		am.SyncContinue(papp);
 	}
 }
 
