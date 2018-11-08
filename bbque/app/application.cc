@@ -202,13 +202,13 @@ AwmPtr_t Application::GetWorkingMode(uint8_t wmId) {
 /*******************************************************************************
  *  EXC State and SyncState Management
  ******************************************************************************/
-// NOTE: this requires a lock on schedule.mtx
+
 void Application::SetSyncState(SyncState_t sync) {
 	logger->Debug("Changing sync state [%s, %d:%s => %d:%s]",
 			StrId(),
 			_SyncState(), SyncStateStr(_SyncState()),
 			sync, SyncStateStr(sync));
-
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 	schedule.syncState = sync;
 }
 
