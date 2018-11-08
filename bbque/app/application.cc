@@ -685,35 +685,8 @@ void Application::ScheduleAbort() {
 
 Application::ExitCode_t Application::ScheduleContinue() {
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-
-	// Current AWM must be set
-	assert(schedule.awm);
-
-	// This must be called only for RUNNING App/ExC
-	if (_State() != RUNNING) {
-		logger->Error("ScheduleRunning: [%s] is not running. State {%s/%s}",
-				StrId(), StateStr(_State()), SyncStateStr(_SyncState()));
-		assert(_State() == RUNNING);
-		assert(_SyncState() == SYNC_NONE);
-		return APP_ABORT;
-	}
-
-	// Return if Next AWN is already blank
-	if (!schedule.next_awm)
-		return APP_SUCCESS;
-
-	// AWM current and next must match
-	if (schedule.awm->Id() != schedule.next_awm->Id()) {
-		logger->Error("ScheduleRunning: [%s] AWMs differs. "
-				"{curr=%d / next=%d}", StrId(),
-				schedule.awm->Id(), schedule.next_awm->Id());
-		assert(schedule.awm->Id() != schedule.next_awm->Id());
-		return APP_ABORT;
-	}
-
 	// Reset next AWM (only current must be set)
 	schedule.next_awm.reset();
-
 	schedule.awm->IncSchedulingCount();
 	return APP_SUCCESS;
 }

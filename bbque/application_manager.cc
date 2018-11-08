@@ -1725,12 +1725,39 @@ void ApplicationManager::SyncAbort(AppPtr_t papp) {
 
 ApplicationManager::ExitCode_t
 ApplicationManager::SyncContinue(AppPtr_t papp) {
-	Application::ExitCode_t app_result;
+	Application::State_t state = papp->State();
+	Application::SyncState_t syncState = papp->SyncState();
+	assert(papp->CurrentAWM()); // This must be called only for RUNNING App/ExC
+	if (papp->State() != app::Schedulable::RUNNING) {
+		logger->Error("SyncContinue: [%s] is not running. State {%s/%s}",
+				papp->StrId(),
+				papp->StateStr(state),
+				papp->SyncStateStr(syncState));
+		assert(papp->State() == app::Schedulable::RUNNING);
+		assert(papp->SyncState() == app::Schedulable::SYNC_NONE);
+		return AM_ABORT;
+	}
 
-	app_result = papp->ScheduleContinue();
+	// Return if Next AWN is already blank
+	if (papp->NextAWM() == nullptr)
+		return AM_SUCCESS;
+
+	// AWM current and next must match
+	if (papp->CurrentAWM()->Id() != papp->NextAWM()->Id()) {
+		logger->Error("SyncContinue: [%s] AWMs differs. "
+				"{curr=%d / next=%d}",
+				papp->StrId(),
+				papp->CurrentAWM()->Id(),
+				papp->NextAWM()->Id());
+		return AM_ABORT;
+	}
+
+	// Notify the application
+	auto app_result = papp->ScheduleContinue();
 	if (app_result != Application::APP_SUCCESS)
 		return AM_ABORT;
 
+	logger->Debug("SyncContinue: completed ");
 	return AM_SUCCESS;
 }
 
