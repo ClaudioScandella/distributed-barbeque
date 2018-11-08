@@ -50,6 +50,8 @@ namespace bu = bbque::utils;
 
 namespace bbque {
 
+class ApplicationManager;
+
 namespace res {
 class Resource;
 class ResourcePath;
@@ -116,6 +118,8 @@ struct RuntimeProfiling_t {
  * recipe object, the list of enabled working modes and resource constraints.
  */
 class Application: public ApplicationConfIF {
+
+friend class bbque::ApplicationManager;
 
 public:
 
