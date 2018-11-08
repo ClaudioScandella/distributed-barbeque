@@ -111,15 +111,15 @@ ApplicationManager::ApplicationManager() :
 			"Remove an existing EXC Container");
 
 #define CMD_UNREGISTER ".unregister"
-    cm.RegisterCommand(MODULE_NAMESPACE CMD_UNREGISTER,
-            static_cast<CommandHandler*>(this),
-            "Unregister the specified EXC");
+	cm.RegisterCommand(MODULE_NAMESPACE CMD_UNREGISTER,
+	    static_cast<CommandHandler*>(this),
+	    "Unregister the specified EXC");
 }
 
 int ApplicationManager::CommandsCb(int argc, char *argv[]) {
 	ResourceManager &rm(ResourceManager::GetInstance());
 	uint8_t cmd_offset = ::strlen(MODULE_NAMESPACE) + 1;
-    uint32_t pid, prio, eid;
+	uint32_t pid, prio, eid;
 	AppPtr_t papp;
 
 	logger->Debug("Processing command [%s]", argv[0] + cmd_offset);
