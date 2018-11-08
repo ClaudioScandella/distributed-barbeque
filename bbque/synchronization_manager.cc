@@ -692,22 +692,17 @@ SynchronizationManager::SyncSchedule() {
 	ResourceAccounter::ExitCode_t raResult;
 	bu::Timer syncp_tmr;
 	ExitCode_t result;
-
 	// TODO add here proper tracing/monitoring events for statistics
 	// collection
 
+	// Update session count
 	++sync_count;
-	logger->Notice("Synchronization [%d] START, policy [%s]",
-			sync_count,
-			policy->Name());
+	logger->Notice("SyncSchedule: synchronization [%d] START, policy [%s]",
+			sync_count, policy->Name());
 	am.ReportStatusQ();
 	am.ReportSyncQ();
-
-	// Account for SyncP runs
-	SM_COUNT_EVENT(metrics, SM_SYNCP_RUNS);
-
-	// Reset the SyncP overall timer
-	SM_RESET_TIMING(syncp_tmr);
+	SM_COUNT_EVENT(metrics, SM_SYNCP_RUNS); // Account for SyncP runs
+	SM_RESET_TIMING(syncp_tmr);             // Reset the SyncP overall timer
 
 	// TODO here a synchronization decision policy is used
 	// to decide if a synchronization should be run or not, e.g. based on
@@ -719,9 +714,8 @@ SynchronizationManager::SyncSchedule() {
 	// syncronization is considered terminated and will start again only at
 	// the next synchronization event.
 	syncState = policy->GetApplicationsQueue(sv, true);
-
 	if (syncState == ApplicationStatusIF::SYNC_NONE) {
-		logger->Info("Synchronization [%d] ABORTED", sync_count);
+		logger->Info("SyncSchedule: session=%d ABORTED", sync_count);
 		// Possibly this should never happens
 		assert(syncState != ApplicationStatusIF::SYNC_NONE);
 		return OK;
@@ -730,24 +724,21 @@ SynchronizationManager::SyncSchedule() {
 	// Start the resource accounter synchronized session
 	raResult = ra.SyncStart();
 	if (raResult != ResourceAccounter::RA_SUCCESS) {
-		logger->Fatal("SynchSchedule: Unable to start resource accounting "
-				"sync session");
+		logger->Fatal("SyncSchedule: session=%d unable to start resource accounting ",
+			sync_count);
 		return ABORTED;
 	}
 
+	// Synchronize the policy selected applications
 	while (syncState != ApplicationStatusIF::SYNC_NONE) {
-
-		// Synchronize these policy selected apps
 		result = SyncApps(syncState);
 		if ((result != NO_EXC_IN_SYNC) && (result != OK)) {
-			logger->Warn("SynchSchedule: apps sync FAILED, "
-					"aborting sync...");
+			logger->Warn("SyncSchedule: session=%d FAILED, aborting...", sync_count);
 			ra.SyncAbort();
 			DisableFailedEXC();
 			return result;
 		}
-
-		// Select next set of apps to synchronize (if any)
+		// Next set of applications to synchronize (if any)
 		syncState = policy->GetApplicationsQueue(sv);
 	}
 
@@ -755,27 +746,22 @@ SynchronizationManager::SyncSchedule() {
 	// enpty, this should be checked probably here before to commit the
 	// system view
 
+	// TODO Synchronization of generic processes
+
 	// Commit the resource accounter synchronized session
 	raResult = ra.SyncCommit();
 	if (raResult != ResourceAccounter::RA_SUCCESS) {
-		logger->Fatal("SynchSchedule: Resource accounting sync session commit"
-				"failed");
+		logger->Fatal("SyncSchedule: session=%d resource accounting commit failed", sync_count);
 		DisableFailedEXC();
 		return ABORTED;
 	}
-
-	// Collecing overall SyncP execution time
-	SM_GET_TIMING(metrics, SM_SYNCP_TIME, syncp_tmr);
-
-	// Account for SyncP completed
-	SM_COUNT_EVENT(metrics, SM_SYNCP_COMP);
+	SM_GET_TIMING(metrics, SM_SYNCP_TIME, syncp_tmr); // Overall SyncP execution time
+	SM_COUNT_EVENT(metrics, SM_SYNCP_COMP);           // Account for SyncP completed
 
 	DisableFailedEXC();
-
-	logger->Notice("Synchronization [%d] DONE", sync_count);
+	logger->Notice("SyncSchedule: session=%d DONE", sync_count);
 	am.ReportStatusQ();
 	am.ReportSyncQ();
-
 	return OK;
 }
 
