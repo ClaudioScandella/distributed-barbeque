@@ -888,6 +888,55 @@ ApplicationManager::NotifyNewState(AppPtr_t papp, Application::State_t next) {
 	return UpdateStatusMaps(papp, papp->State(), next);
 }
 
+
+
+
+ApplicationManager::ExitCode_t
+ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next) {
+	std::unique_lock<std::mutex> currState_ul(
+			status_mtx[papp->State()], std::defer_lock);
+	std::unique_lock<std::mutex> nextState_ul(
+			status_mtx[next], std::defer_lock);
+	logger->Debug("ChangeEXCState: [%s] state transition [%d:%s => %d:%s]",
+			papp->StrId(),
+			papp->State(), Application::StateStr(papp->State()),
+			next, Application::StateStr(next));
+
+	// Update application status
+	auto ret = papp->SetState2(next);
+	if (ret != Application::APP_SUCCESS) {
+		logger->Error("ChangeEXCState: transition not allowed [%d:%s => %d:%s]",
+			papp->StrId(),
+			papp->State(), Application::StateStr(papp->State()),
+			next, Application::StateStr(next));
+		return AM_EXC_STATUS_CHANGE_FAILED;
+	}
+/*
+	if (papp->State() == next) {
+		// This should never happen
+		assert(papp->State() != next);
+		return AM_SUCCESS;
+	}
+*/
+	logger->Debug("ChangeEXCState: updating [%s] state queue [%d:%s => %d:%s]",
+			papp->StrId(),
+			papp->State(), Application::StateStr(papp->State()),
+			next, Application::StateStr(next));
+	// Lock curr and next queue
+	// FIXME: unfortunately g++ seem not yet to support the C++0x standard
+	// double locking mechnism provided by std::lock(). Thus we emulate it
+	// there by ensuring to acquire locks alwasy starting from the higher
+	// queue to the lower one.
+	std::lock(currState_ul, nextState_ul);
+	//DOUBLE_LOCK(papp->State(), next);
+	if (next != Application::SYNC)
+		SyncRemove(papp);  // if next state is not SYNC remove the app from the sync map
+	else
+		SyncAdd(papp);     // otherwise add to the proper sync map
+
+	return UpdateStatusMaps(papp, papp->State(), next);
+}
+
 int ApplicationManager::UpdateRuntimeProfiles() {
 	ApplicationProxy & ap(ApplicationProxy::GetInstance());
 	AppsUidMapIt app_it;

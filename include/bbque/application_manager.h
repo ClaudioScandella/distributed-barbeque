@@ -624,6 +624,14 @@ private:
 	 */
 	void UpdateIterators(AppsUidMapItRetainer_t & ret, AppPtr_t papp);
 
+
+	/**
+	 *
+	 */
+	ExitCode_t ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next);
+
+
+
 	/**
 	 * @brief Move the application from state vectors
 	 *
