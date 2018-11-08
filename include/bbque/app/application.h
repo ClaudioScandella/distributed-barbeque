@@ -170,10 +170,6 @@ public:
 	 */
 	inline void SetValue(float sched_metrics) noexcept { schedule.value = sched_metrics; }
 
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	inline uint64_t ScheduleCount() noexcept { return schedule.count; }
 
 	/**
 	 * @brief Enable the application for resources assignment

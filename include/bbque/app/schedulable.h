@@ -220,11 +220,6 @@ public:
 	virtual bool Blocking();
 
 
-	/**
-	 * @brief Number of schedulations
-	 */
-	virtual uint64_t ScheduleCount() = 0;
-
 
 	/**
 	 * @brief Get the current working mode
@@ -246,6 +241,11 @@ public:
 	 * 	also a change of the current AWM
 	 */
 	virtual bool SwitchingAWM();
+
+	/**
+	 * @brief Number of schedulations
+	 */
+	virtual uint64_t ScheduleCount() const noexcept;
 
 protected:
 

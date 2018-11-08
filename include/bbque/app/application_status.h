@@ -134,11 +134,6 @@ public:
 	}
 
 	/**
-	 * @brief Number of schedulations
-	 */
-	virtual uint64_t ScheduleCount() = 0;
-
-	/**
 	 * @brief Check if this is an Application Container
 	 * @return True if this is an application container
 	 */

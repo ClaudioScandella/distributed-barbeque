@@ -137,6 +137,11 @@ bool Schedulable::SwitchingAWM() {
 	return _SwitchingAWM();
 }
 
+uint64_t Schedulable::ScheduleCount() const noexcept {
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
+	return schedule.count;
+}
+
 } // namespace app
 
 } // namespace bbque
