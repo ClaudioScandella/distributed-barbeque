@@ -189,6 +189,16 @@ public:
 	 */
 	virtual SyncState_t SyncState() const;
 
+	/**
+	 * @brief Verbose application state names
+	 */
+	static char const *stateStr[STATE_COUNT];
+
+	/**
+	 * @brief Verbose synchronization state names
+	 */
+	static char const *syncStateStr[SYNC_STATE_COUNT+1];
+
 
 	/**
 	 * @brief Check if this EXC is currently DISABLED

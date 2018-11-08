@@ -42,22 +42,6 @@ namespace bp = bbque::plugins;
 
 namespace bbque { namespace app {
 
-char const *ApplicationStatusIF::stateStr[] = {
-	"DISABLED",
-	"READY",
-	"SYNC",
-	"RUNNING",
-	"FINISHED"
-};
-
-char const *ApplicationStatusIF::syncStateStr[] = {
-	"STARTING",
-	"RECONF",
-	"MIGREC",
-	"MIGRATE",
-	"BLOCKED",
-	"NONE"
-};
 
 // Compare two working mode values.
 // This is used to sort the list of enabled working modes.

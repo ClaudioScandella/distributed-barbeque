@@ -22,6 +22,24 @@
 namespace bbque { namespace app {
 
 
+char const *Schedulable::stateStr[] = {
+	"DISABLED",
+	"READY",
+	"SYNC",
+	"RUNNING",
+	"FINISHED"
+};
+
+char const *Schedulable::syncStateStr[] = {
+	"STARTING",
+	"RECONF",
+	"MIGREC",
+	"MIGRATE",
+	"BLOCKED",
+	"NONE"
+};
+
+
 Schedulable::State_t Schedulable::_State() const {
 	return schedule.state;
 }

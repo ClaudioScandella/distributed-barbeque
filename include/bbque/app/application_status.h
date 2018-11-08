@@ -198,15 +198,6 @@ public:
 
 #endif // CONFIG_BBQUE_TG_PROG_MODEL
 
-	/**
-	 * @brief Verbose application state names
-	 */
-	static char const *stateStr[STATE_COUNT];
-
-	/**
-	 * @brief Verbose synchronization state names
-	 */
-	static char const *syncStateStr[SYNC_STATE_COUNT+1];
 
 };
 
