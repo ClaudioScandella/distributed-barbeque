@@ -73,7 +73,7 @@ MangoPowerManager::GetLoadPEAK(uint32_t tile_id, uint32_t core_id, uint32_t & pe
 	hn_stats_monitor_t * curr_stats = new hn_stats_monitor_t;
 	uint32_t nr_cores = 0;
 	uint32_t err = hn_stats_monitor_read(tile_id, &nr_cores, &curr_stats);
-	if (err == 0) {
+	if (err == 0 && (curr_stats != nullptr)) {
 		float cycles_ratio =
 			float(curr_stats->core_cycles - tiles_stats[tile_id].core_cycles) /
 				(curr_stats->timestamp - tiles_stats[tile_id].timestamp);
