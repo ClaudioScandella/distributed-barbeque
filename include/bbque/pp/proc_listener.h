@@ -22,12 +22,14 @@
 #include <memory>
 #include <string>
 #include <linux/cn_proc.h>
+
+#include "bbque/app/application.h"
 #include "bbque/config.h"
 #include "bbque/configuration_manager.h"
 #include "bbque/command_manager.h"
 #include "bbque/modules_factory.h"
-#include "bbque/app/application.h"
 #include "bbque/pm/power_manager.h"
+#include "bbque/process_manager.h"
 #include "bbque/res/identifier.h"
 #include "bbque/utils/worker.h"
 
@@ -50,6 +52,10 @@ public:
 	int Setup(std::string const & name, std::string const & logname);
 
 private:
+
+	/*** ProcessManager instance */
+	ProcessManager & prm;
+
 	/*** Constructor */
 	ProcessListener();
 
