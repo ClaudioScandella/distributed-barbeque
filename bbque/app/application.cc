@@ -246,34 +246,42 @@ void Application::SetState(State_t state, SyncState_t sync) {
 }
 
 
-Application::ExitCode_t Application::SetState2(State_t state, SyncState_t sync) {
+Application::ExitCode_t Application::SetState2(State_t next_state, SyncState_t next_sync) {
 	logger->Debug("Changing state [%s, %d:%s => %d:%s]",
 			StrId(),
 			_State(), StateStr(_State()),
-			state, StateStr(state));
+			next_state, StateStr(next_state));
 
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	if (state == SYNC) {  // Entering a Synchronization state
-		assert(sync != SYNC_NONE);
-		if (sync == SYNC_NONE)
+	// Switching to a sychronization state
+	if (next_state == SYNC) {
+		assert(next_sync != SYNC_NONE);
+		if (next_sync == SYNC_NONE)
 			return APP_ERR_SYNC_STATUS;
-		schedule.preSyncState = _State();           // Previous pre-synchronization state
-		SetSyncState(sync);                         // Update synchronization state
-		schedule.state = Application::SYNC;         // Update state
+		schedule.preSyncState = _State();         // Previous pre-synchronization state
+		SetSyncState(next_sync);                  // Update synchronization state
+		schedule.state = Application::SYNC;       // Update state
 		return APP_SUCCESS;
 	}
-	else {                // Entering a Stable state
-		assert(sync == SYNC_NONE);
-		if (sync != SYNC_NONE)
+	// Switching to a stable state
+	else {
+		assert(next_sync == SYNC_NONE);
+		if (next_sync != SYNC_NONE)
 			return APP_ERR_SYNC_STATUS;
-		schedule.preSyncState = state;  // Previous pre-synchronization state
-		schedule.state = state;         // Updating state
-		SetSyncState(sync);             // Update synchronization state
+		schedule.preSyncState = schedule.state;   // Previous pre-synchronization state
+		schedule.state = next_state;              // Updating state
+		SetSyncState(next_sync);                  // Update synchronization state
 	}
 
-	// Release current selected AWM
-	if ((state == DISABLED) || (state == READY)) {
+	// Update current and next working mode: SYNC case
+	if ((next_state == DISABLED) || (next_state == READY)) {
 		schedule.awm.reset();
+		schedule.next_awm.reset();
+	}
+	else if (next_state == RUNNING) {
+		schedule.awm = schedule.next_awm;
+		schedule.awm->IncSchedulingCount();
+		++schedule.count;
 		schedule.next_awm.reset();
 	}
 
