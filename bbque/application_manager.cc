@@ -937,6 +937,7 @@ ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next
 	return UpdateStatusMaps(papp, papp->State(), next);
 }
 
+
 int ApplicationManager::UpdateRuntimeProfiles() {
 	ApplicationProxy & ap(ApplicationProxy::GetInstance());
 	AppsUidMapIt app_it;
@@ -1715,13 +1716,21 @@ ApplicationManager::SyncCommit(AppPtr_t papp) {
 
 void ApplicationManager::SyncAbort(AppPtr_t papp) {
 	Application::SyncState_t syncState = papp->SyncState();
-
-	logger->Warn("SyncAbort: [%s, %s] synchronization aborted...",
+	logger->Warn("SyncAbort: [%s, sync_state=%s] synchronization aborted...",
 			papp->StrId(), papp->SyncStateStr(syncState));
 
-	// Notify application
-	papp->ScheduleAbort();
+	// The abort must be performed only for SYNC applications
+	Application::State_t state = papp->State();
+	if (!papp->Synching()) {
+		logger->Error("SyncAbort: [%s, state=%s] (expected SYNC)",
+				papp->StrId(), papp->StateStr(state));
+	}
+
+	// Set as READY;
+	papp->SetState2(app::Schedulable::READY);
+	logger->Info("SyncAbort: completed ");
 }
+
 
 ApplicationManager::ExitCode_t
 ApplicationManager::SyncContinue(AppPtr_t papp) {
