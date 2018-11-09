@@ -1726,9 +1726,9 @@ void ApplicationManager::SyncAbort(AppPtr_t papp) {
 				papp->StrId(), papp->StateStr(state));
 	}
 
-	// Set as READY;
-	papp->SetState2(app::Schedulable::READY);
-	logger->Info("SyncAbort: completed ");
+	// Move to READY map
+	ChangeEXCState(papp, app::Schedulable::READY);
+	logger->Debug("SyncAbort: completed ");
 }
 
 
