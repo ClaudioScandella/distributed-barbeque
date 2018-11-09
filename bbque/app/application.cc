@@ -611,7 +611,7 @@ void Application::NoSchedule() {
  *  EXC Synchronization
  ******************************************************************************/
 
-Application::ExitCode_t Application::ScheduleCommit() {
+Application::ExitCode_t Application::SyncCommit() {
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 
 	// Ignoring applications disabled during a SYNC
@@ -665,7 +665,7 @@ Application::ExitCode_t Application::ScheduleCommit() {
 
 
 
-Application::ExitCode_t Application::ScheduleContinue() {
+Application::ExitCode_t Application::SyncContinue() {
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 	// Reset next AWM (only current must be set)
 	schedule.next_awm.reset();

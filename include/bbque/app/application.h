@@ -326,7 +326,7 @@ public:
 	 * @return APP_SUCCESS on successful update of internal data
 	 * structures, APP_ABORT on errors.
 	 */
-	ExitCode_t ScheduleCommit();
+	ExitCode_t SyncCommit();
 
 
 	/**
@@ -339,7 +339,7 @@ public:
 	 *
 	 * @return APP_SUCCESS for success, APP_ABORT for failed.
 	 */
-	ExitCode_t ScheduleContinue();
+	ExitCode_t SyncContinue();
 
 	/**
 	 * @brief Terminate this EXC by releasing all resources.

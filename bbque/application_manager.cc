@@ -1707,7 +1707,7 @@ ApplicationManager::SyncCommit(AppPtr_t papp) {
 			papp->StrId(), papp->SyncStateStr());
 
 	// Notify application
-	papp->ScheduleCommit();
+	papp->SyncCommit();
 	logger->Debug("SyncCommit: [%s, %s] synchronization COMPLETED",
 			papp->StrId(), papp->SyncStateStr());
 
@@ -1762,7 +1762,7 @@ ApplicationManager::SyncContinue(AppPtr_t papp) {
 	}
 
 	// Notify the application
-	auto app_result = papp->ScheduleContinue();
+	auto app_result = papp->SyncContinue();
 	if (app_result != Application::APP_SUCCESS)
 		return AM_ABORT;
 
