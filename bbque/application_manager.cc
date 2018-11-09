@@ -892,7 +892,7 @@ ApplicationManager::NotifyNewState(AppPtr_t papp, Application::State_t next) {
 
 
 ApplicationManager::ExitCode_t
-ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next) {
+ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next_state) {
 	std::unique_lock<std::mutex> currState_ul(
 			status_mtx[papp->State()], std::defer_lock);
 	std::unique_lock<std::mutex> nextState_ul(
@@ -900,15 +900,17 @@ ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next
 	logger->Debug("ChangeEXCState: [%s] state transition [%d:%s => %d:%s]",
 			papp->StrId(),
 			papp->State(), Application::StateStr(papp->State()),
-			next, Application::StateStr(next));
+			next_state, Application::StateStr(next_state));
+
+	auto curr_state = papp->State();
 
 	// Update application status
-	auto ret = papp->SetState2(next);
+	auto ret = papp->SetState2(next_state);
 	if (ret != Application::APP_SUCCESS) {
 		logger->Error("ChangeEXCState: transition not allowed [%d:%s => %d:%s]",
 			papp->StrId(),
-			papp->State(), Application::StateStr(papp->State()),
-			next, Application::StateStr(next));
+			curr_state, Application::StateStr(curr_state),
+			next_state, Application::StateStr(next_state));
 		return AM_EXC_STATUS_CHANGE_FAILED;
 	}
 /*
@@ -921,7 +923,7 @@ ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next
 	logger->Debug("ChangeEXCState: updating [%s] state queue [%d:%s => %d:%s]",
 			papp->StrId(),
 			papp->State(), Application::StateStr(papp->State()),
-			next, Application::StateStr(next));
+			next_state, Application::StateStr(next_state));
 	// Lock curr and next queue
 	// FIXME: unfortunately g++ seem not yet to support the C++0x standard
 	// double locking mechnism provided by std::lock(). Thus we emulate it
@@ -929,12 +931,12 @@ ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next
 	// queue to the lower one.
 	std::lock(currState_ul, nextState_ul);
 	//DOUBLE_LOCK(papp->State(), next);
-	if (next != Application::SYNC)
+	if (next_state != Application::SYNC)
 		SyncRemove(papp);  // if next state is not SYNC remove the app from the sync map
 	else
 		SyncAdd(papp);     // otherwise add to the proper sync map
 
-	return UpdateStatusMaps(papp, papp->State(), next);
+	return UpdateStatusMaps(papp, curr_state, next_state);
 }
 
 
