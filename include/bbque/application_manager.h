@@ -314,24 +314,6 @@ public:
 	 */
 	void SyncAbort(AppPtr_t papp);
 
-	/**
-	 * @brief Notify an application is changin state
-	 *
-	 * This method should be called by the Application once it is changing its
-	 * scheduling state so that the ApplicationManager could update its
-	 * internal maps.
-	 *
-	 * @param papp a pointer to the interested application
-	 * @param next the new state the application is entering
-	 *
-	 * @note this method must acquire the mutex of both current and next state
-	 * queues.
-	 *
-	 * @return AM_SUCCESS on internal maps update success, AM_ABORT on
-	 * failure.
-	 */
-	ExitCode_t NotifyNewState(AppPtr_t papp, ApplicationStatusIF::State_t next);
-
 
 	/**
 	 * @brief Commit the "continue to run" for the specified application
@@ -634,11 +616,15 @@ private:
 
 
 	/**
-	 *
+	 * @brief Change the status of an application/EXC
+	 * @param papp the application
+	 * @param next_state next stable state
+	 * @param next_sync next synchronization state
 	 */
-	ExitCode_t ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next);
-
-
+	ExitCode_t ChangeEXCState(
+		AppPtr_t papp,
+		app::Schedulable::State_t next_state,
+		app::Schedulable::SyncState_t next_sync = app::Schedulable::SYNC_NONE);
 
 	/**
 	 * @brief Move the application from state vectors

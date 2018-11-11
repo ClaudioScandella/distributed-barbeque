@@ -857,56 +857,29 @@ void ApplicationManager::PrintStatusReport(bool verbose) {
 	PRINT_NOTICE_IF_VERBOSE(verbose, RP_DIV1);
 }
 
+
 ApplicationManager::ExitCode_t
-ApplicationManager::NotifyNewState(AppPtr_t papp, Application::State_t next) {
+ApplicationManager::ChangeEXCState(
+		AppPtr_t papp,
+		app::Schedulable::State_t next_state,
+		app::Schedulable::SyncState_t next_sync) {
 	std::unique_lock<std::mutex> currState_ul(
 			status_mtx[papp->State()], std::defer_lock);
 	std::unique_lock<std::mutex> nextState_ul(
-			status_mtx[next], std::defer_lock);
-
-	logger->Debug("NotifyNewState: updating [%s] state queue [%d:%s => %d:%s]",
-			papp->StrId(),
-			papp->State(), Application::StateStr(papp->State()),
-			next, Application::StateStr(next));
-
-	if (papp->State() == next) {
-		// This should never happen
-		assert(papp->State() != next);
-		return AM_SUCCESS;
-	}
-
-	// Lock curr and next queue
-	// FIXME: unfortunately g++ seem not yet to support the C++0x standard
-	// double locking mechnism provided by std::lock(). Thus we emulate it
-	// there by ensuring to acquire locks alwasy starting from the higher
-	// queue to the lower one.
-	//std::lock(currState_ul, nextState_ul);
-	DOUBLE_LOCK(papp->State(), next);
-
-	if (next != Application::SYNC) {
-		SyncRemove(papp);  // if next state is not SYNC remove the app from the sync map
-	} else {
-		SyncAdd(papp);     // otherwise add to the proper sync map
-	}
-
-	return UpdateStatusMaps(papp, papp->State(), next);
-}
-
-
-
-
-ApplicationManager::ExitCode_t
-ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next_state) {
-	std::unique_lock<std::mutex> currState_ul(
-			status_mtx[papp->State()], std::defer_lock);
-	std::unique_lock<std::mutex> nextState_ul(
-			status_mtx[next], std::defer_lock);
+			status_mtx[next_state], std::defer_lock);
 	logger->Debug("ChangeEXCState: [%s] state transition [%d:%s => %d:%s]",
 			papp->StrId(),
 			papp->State(), Application::StateStr(papp->State()),
 			next_state, Application::StateStr(next_state));
 
 	auto curr_state = papp->State();
+	auto curr_sync  = papp->SyncState();
+
+	// Is there an actual change?
+	if ((curr_state == next_state) && (curr_sync == next_sync)) {
+		logger->Warn("ChangeEXCState: nothing to ho here");
+		return AM_SUCCESS;
+	}
 
 	// Update application status
 	auto ret = papp->SetState(next_state, next_sync);
@@ -917,29 +890,20 @@ ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next
 			next_state, Application::StateStr(next_state));
 		return AM_EXC_STATUS_CHANGE_FAILED;
 	}
-/*
-	if (papp->State() == next) {
-		// This should never happen
-		assert(papp->State() != next);
-		return AM_SUCCESS;
-	}
-*/
+
 	logger->Debug("ChangeEXCState: updating [%s] state queue [%d:%s => %d:%s]",
 			papp->StrId(),
 			papp->State(), Application::StateStr(papp->State()),
 			next_state, Application::StateStr(next_state));
+
 	// Lock curr and next queue
-	// FIXME: unfortunately g++ seem not yet to support the C++0x standard
-	// double locking mechnism provided by std::lock(). Thus we emulate it
-	// there by ensuring to acquire locks alwasy starting from the higher
-	// queue to the lower one.
 	std::lock(currState_ul, nextState_ul);
-	//DOUBLE_LOCK(papp->State(), next);
 	if (next_state != Application::SYNC)
 		RemoveFromSyncMap(papp);  // if next state is not SYNC remove the app from the sync map
 	else
 		AddToSyncMap(papp);     // otherwise add to the proper sync map
 
+	// Update the stable status maps
 	return UpdateStatusMaps(papp, curr_state, next_state);
 }
 
