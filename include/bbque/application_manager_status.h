@@ -154,23 +154,18 @@ public:
 	 * @brief Exit code to return
 	 */
 	enum ExitCode_t {
-		/** Success */
-		AM_SUCCESS = 0,
-		/** Reschedule required */
-		AM_RESCHED_REQUIRED,
-		/** Application Execution Context not found */
-		AM_EXC_NOT_FOUND,
-		/** */
-		AM_EXC_STATUS_CHANGE_FAILED,
-		/** Error accessing the platform proxy */
-		AM_PLAT_PROXY_ERROR,
-		/** Execution of a method interrupted by an unexpected state in an
-		 * internal data structure state */
-		AM_DATA_CORRUPT,
-		/** Execution of a method interrupted but without critical errors */
-		AM_SKIPPING,
-		/** Method forced to exit */
-		AM_ABORT
+		AM_SUCCESS = 0,           /** Success */
+		AM_RESCHED_REQUIRED,      /** Reschedule required */
+		AM_AWM_NULL,              /** AWM descriptor is null */
+		AM_AWM_NOT_SCHEDULABLE,   /** Not enough resource to assign the AWM */
+		AM_APP_DISABLED,          /** Application in disabled status */
+		AM_EXC_NOT_FOUND,         /** Application Execution Context not found */
+		AM_EXC_INVALID_STATUS,    /** Operation failed due to invalid status */
+		AM_EXC_STATUS_CHANGE_FAILED,  /** Failed change of application status */
+		AM_PLAT_PROXY_ERROR,      /** Error accessing the platform proxy */
+		AM_DATA_CORRUPT,          /** Inconsistency in internal data structures */
+		AM_SKIPPING,              /** Interrupted operation */
+		AM_ABORT                  /** Forced termination */
 	};
 
 	/**
