@@ -909,7 +909,7 @@ ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next
 	auto curr_state = papp->State();
 
 	// Update application status
-	auto ret = papp->SetState2(next_state);
+	auto ret = papp->SetState(next_state, next_sync);
 	if (ret != Application::APP_SUCCESS) {
 		logger->Error("ChangeEXCState: transition not allowed [%d:%s => %d:%s]",
 			papp->StrId(),

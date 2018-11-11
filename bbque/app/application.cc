@@ -212,41 +212,8 @@ void Application::SetSyncState(SyncState_t sync) {
 	schedule.syncState = sync;
 }
 
-// NOTE: this requires a lock on schedule.mtx
-void Application::SetState(State_t state, SyncState_t sync) {
-	bbque::ApplicationManager &am(bbque::ApplicationManager::GetInstance());
-	AppPtr_t papp = am.GetApplication(Uid());
-	logger->Debug("Changing state [%s, %d:%s => %d:%s]",
-			StrId(),
-			_State(), StateStr(_State()),
-			state, StateStr(state));
 
-	// Entering a Synchronization state
-	if (state == SYNC) {
-		assert(sync != SYNC_NONE);
-		schedule.preSyncState = _State();           // Previous pre-synchronization state
-		SetSyncState(sync);                         // Update synchronization state
-		am.NotifyNewState(papp, Application::SYNC); // Update status queues
-		schedule.state = Application::SYNC;         // Update state
-		return;
-	}
-
-	// Entering a Stable state
-	assert(sync == SYNC_NONE);
-	am.NotifyNewState(papp, state); // Update status queues
-	schedule.preSyncState = state;  // Previous pre-synchronization state
-	schedule.state = state;         // Updating state
-	SetSyncState(sync);             // Update synchronization state
-
-	// Release current selected AWM
-	if ((state == DISABLED) || (state == READY)) {
-		schedule.awm.reset();
-		schedule.next_awm.reset();
-	}
-}
-
-
-Application::ExitCode_t Application::SetState2(State_t next_state, SyncState_t next_sync) {
+Application::ExitCode_t Application::SetState(State_t next_state, SyncState_t next_sync) {
 	logger->Debug("Changing state [%s, %d:%s => %d:%s]",
 			StrId(),
 			_State(), StateStr(_State()),
@@ -270,7 +237,7 @@ Application::ExitCode_t Application::SetState2(State_t next_state, SyncState_t n
 			return APP_ERR_SYNC_STATUS;
 		schedule.preSyncState = schedule.state;   // Previous pre-synchronization state
 		schedule.state = next_state;              // Updating state
-		SetSyncState(next_sync);                  // Update synchronization state
+		SetSyncState(SYNC_NONE);                  // Update synchronization state
 	}
 
 	// Update current and next working mode: SYNC case

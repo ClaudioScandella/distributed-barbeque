@@ -515,6 +515,7 @@ public:
 
 #endif // CONFIG_BBQUE_TG_PROG_MODEL
 
+
 private:
 
 	/** The logger used by the application */
@@ -761,17 +762,16 @@ private:
 	void UpdateEnabledWorkingModes();
 
 	/**
-	 * @brief Update the application state and sync state
+	 * @brief Update the application state and synchronization state
 	 *
 	 * @param state the new application state
 	 * @param sync the new synchronization state (SYNC_NONE by default)
 	 */
-	void SetState(State_t state, SyncState_t sync = SYNC_NONE);
-
-	ExitCode_t SetState2(State_t state, SyncState_t sync = SYNC_NONE);
+	ExitCode_t SetState(State_t state, SyncState_t sync = SYNC_NONE);
 
 	/**
 	 * @brief Update the application synchronization state
+	 * @param sync the synchronization state to set
 	 */
 	void SetSyncState(SyncState_t sync);
 
