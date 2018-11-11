@@ -439,6 +439,7 @@ Application::ExitCode_t Application::ScheduleRequest(AwmPtr_t const & awm,
 		return APP_DISABLED;
 	}
 
+void Application::SetNextAWM(AwmPtr_t awm) {
 	// Checking for resources availability
 	ra_result = ra.BookResources(papp, awm->GetSchedResourceBinding(b_refn), status_view);
 
@@ -461,11 +462,9 @@ Application::ExitCode_t Application::ScheduleRequest(AwmPtr_t const & awm,
 		return APP_WM_REJECTED;
 	}
 
-	// Set next awm
 	schedule.next_awm = awm;
 	awms.curr_inv = false;
-
-	return APP_SUCCESS;
+	logger->Debug("SetNewAWM: next_awm=%d", schedule.next_awm->Id());
 }
 
 

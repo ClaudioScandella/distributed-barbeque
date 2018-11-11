@@ -318,8 +318,11 @@ public:
 			size_t b_refn = 0);
 
 	/**
+	 * @brief Set the AWM according to which schedule the application.
+	 * @param awm the working mode
 	 * @see ApplicationConfIF
 	 */
+	void SetNextAWM(AwmPtr_t awm);
 	ExitCode_t ScheduleRequestAsPrev(br::RViewToken_t status_view);
 
 	/**
