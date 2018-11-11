@@ -426,7 +426,8 @@ bool Application::Reshuffling(AwmPtr_t const & next_awm) {
 	return false;
 }
 
-Application::SyncState_t Application::SyncRequired(AwmPtr_t const & awm) {
+Application::SyncState_t Application::NextSyncState(AwmPtr_t const & awm) const {
+	std::unique_lock<std::recursive_mutex> schedule_ul(schedule.mtx);
 	// This must be called only by running applications
 	assert(_State() == RUNNING);
 	assert(_CurrentAWM().get());
@@ -435,28 +436,28 @@ Application::SyncState_t Application::SyncRequired(AwmPtr_t const & awm) {
 	if ((_CurrentAWM()->Id() != awm->Id()) &&
 			(_CurrentAWM()->BindingSet(br::ResourceType::CPU) !=
 			           awm->BindingSet(br::ResourceType::CPU))) {
-		logger->Debug("SynchRequired: [%s] to MIGREC", StrId());
+		logger->Debug("NextSyncState: [%s] to MIGREC", StrId());
 		return MIGREC;
 	}
 
 	if ((_CurrentAWM()->Id() == awm->Id()) &&
 			(_CurrentAWM()->BindingChanged(br::ResourceType::CPU))) {
-		logger->Debug("SynchRequired: [%s] to MIGRATE", StrId());
+		logger->Debug("NextSyncState: [%s] to MIGRATE", StrId());
 		return MIGRATE;
 	}
 
 	if (_CurrentAWM()->Id() != awm->Id()) {
-		logger->Debug("SynchRequired: [%s] to RECONF", StrId());
+		logger->Debug("NextSyncState: [%s] to RECONF", StrId());
 		return RECONF;
 	}
 
 	// Check for inter-cluster resources re-assignement
 	if (Reshuffling(awm)) {
-		logger->Debug("SynchRequired: [%s] to AWM-RECONF", StrId());
+		logger->Debug("NextSyncState: [%s] to AWM-RECONF", StrId());
 		return RECONF;
 	}
 
-	logger->Debug("SynchRequired: [%s] SYNC_NONE", StrId());
+	logger->Debug("NextSyncState: [%s] SYNC_NONE", StrId());
 	// NOTE: By default no reconfiguration is assumed to be required, thus we
 	// return the SYNC_STATE_COUNT which must be read as false values
 	return SYNC_NONE;

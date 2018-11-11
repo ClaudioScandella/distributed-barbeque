@@ -119,6 +119,14 @@ public:
 	 */
 	virtual float Value() const = 0;
 
+	/**
+	 * @brief Get the synchronization state due to the assignment of the
+	 * given AWM
+	 * @param awm the pointer to the WorkingMode objecy
+	 *
+	 * @return An index value
+	 */
+	virtual SyncState_t NextSyncState(AwmPtr_t const & awm) const = 0;
 
 	/**
 	 * @brief Check if this is an Application Container
