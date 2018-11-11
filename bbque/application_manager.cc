@@ -1151,16 +1151,11 @@ void ApplicationManager::Cleanup() {
 ApplicationManager::ExitCode_t
 ApplicationManager::DestroyEXC(AppPtr_t papp) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	uint32_t timeout = 0;
 	ExitCode_t result;
-
 	logger->Debug("DestroyEXC: destroying descriptor for [%s]...", papp->StrId());
 
-	// Mark the EXC as finished
-	if (papp->Terminate() == Application::APP_FINISHED) {
-		// This EXC has already been (or is going to be) finished
-		return AM_SUCCESS;
-	}
+	// Change status to FINISHED
+	ChangeEXCState(papp, app::Schedulable::FINISHED);
 
 	// Remove execution context form priority and apps maps
 	result = PriorityRemove(papp);
@@ -1181,12 +1176,15 @@ ApplicationManager::DestroyEXC(AppPtr_t papp) {
 	// applications waiting to start, if there are a new optimization run
 	// is scheduled before than the case in which all applications are
 	// runnig.
+	uint32_t timeout = 0;
 	timeout = 100 - (10 * (AppsCount(ApplicationStatusIF::READY) % 5));
 	cleanup_dfr.Schedule(milliseconds(timeout));
 
 	// Ensure resources have been returned to the system view
-	if (papp->CurrentAWM())
+	if (papp->CurrentAWM()) {
+		logger->Debug("DestroyEXC: resources released?");
 		ra.ReleaseResources(papp);
+	}
 
 	logger->Info("DestroyEXC: [%s] FINISHED", papp->StrId());
 	ReportStatusQ();
@@ -1474,8 +1472,11 @@ void ApplicationManager::LoadTaskGraphAll() {
 ApplicationManager::ExitCode_t
 ApplicationManager::EnableEXC(AppPtr_t papp) {
 	logger->Debug("EnableEXC: [%s] enabling...", papp->StrId());
-	if (papp->Enable() != Application::APP_SUCCESS) {
-		return AM_ABORT;
+
+	auto ret = ChangeEXCState(papp, app::Schedulable::READY);
+	if (ret != AM_SUCCESS) {
+		logger->Error("EnableEXC: [%s] enabling...", papp->StrId());
+		return ret;
 	}
 
 	logger->Info("EnableEXC: [%s] ENABLED", papp->StrId());
@@ -1510,17 +1511,21 @@ ApplicationManager::DisableEXC(AppPtr_t papp, bool release) {
 			Application::stateStr[papp->State()],
 			Application::syncStateStr[papp->SyncState()]);
 
+	// Scheduling in progress?
 	logger->Debug("DisableEXC: waiting for scheduler manager...");
 	SchedulerManager &sm(SchedulerManager::GetInstance());
 	sm.WaitForReady();
 
+	// System resources registration in progress?
 	logger->Debug("DisableEXC: waiting for resource accounter...");
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	ra.SyncWait();
 
-	if (papp->Disable() != Application::APP_SUCCESS) {
-		logger->Debug("DisableEXC: [%s] already disabled");
-		return AM_ABORT;
+	// Update the status to DISABLED
+	auto ret = ChangeEXCState(papp, app::Schedulable::DISABLED);
+	if (ret != AM_SUCCESS) {
+		logger->Error("DisableEXC: [%s] disabling...", papp->StrId());
+		return ret;
 	}
 
 	// Check if the application is dead, in case unregister it
@@ -1591,7 +1596,6 @@ ApplicationManager::CheckEXC(AppPtr_t papp, bool release) {
 	// If required, release application resources
 	if (likely(dead && release)) {
 		logger->Debug("CheckEXC: [%s] check => release...", papp->StrId());
-		papp->Disable();
 		DestroyEXC(papp);
 		logger->Info("CheckEXC: [%s] RELEASED", papp->StrId());
 	}

@@ -172,23 +172,9 @@ public:
 	/**
 	 * @see ApplicationConfIF
 	 */
-	inline void SetValue(float sched_metrics) noexcept { schedule.value = sched_metrics; }
-
-
-	/**
-	 * @brief Enable the application for resources assignment
-	 *
-	 * A newly created application is disabled by default, thus it will not be
-	 * considered for resource scheduling until it is enabled.
-	 */
-	ExitCode_t Enable();
-
-	/**
-	 * @brief Disabled the application for resources assignment
-	 *
-	 * A disabled application will not be considered for resources scheduling.
-	 */
-	ExitCode_t Disable();
+	inline void SetValue(float sched_metrics) noexcept {
+		schedule.value = sched_metrics;
+	}
 
 	/**
 	 * @brief This returns all the informations loaded from the recipe and
@@ -361,17 +347,6 @@ public:
 	 * @return APP_SUCCESS for success, APP_ABORT for failed.
 	 */
 	ExitCode_t SyncContinue();
-
-	/**
-	 * @brief Terminate this EXC by releasing all resources.
-	 *
-	 * This method requires to mark the EXC as terminated and to prepare the
-	 * ground for releasing all resources as soon as possible. Due to
-	 * asynchronous nature of this event and the activation of Optimized and
-	 * Synchronizer, a valid reference to the object is granted to be keept
-	 * alive until all of its users have terminated.
-	 */
-	ExitCode_t Terminate();
 
 
 	// --------------------- Working Modes ----------------------------- //
@@ -658,7 +633,6 @@ private:
 	 * The method reads the "static" constraints on resources.
 	 */
 	void InitResourceConstraints();
-
 
 
 	/**
