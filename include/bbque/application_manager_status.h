@@ -89,10 +89,13 @@ private:
 
 	/** The map to visit */
 	AppsUidMap_t *map = NULL;
+
 	/** An interator on a UIDs map */
 	AppsUidMap_t::iterator it;
+
 	/** A flag to track iterator validity */
 	bool updated = false;
+
 	/** The retantion list on which this has been inserted */
 	AppsUidMapItRetainer_t *ret = NULL;
 

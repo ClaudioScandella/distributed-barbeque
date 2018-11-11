@@ -132,7 +132,7 @@ int ApplicationManager::CommandsCb(int argc, char *argv[]) {
 
 		pid = atoi(argv[1]);
 		eid = atoi(argv[1]+13);
-		logger->Info("EXC [%d:%d] checking for release...", pid, eid);
+		logger->Info("CommandsCb: [%d:%d] checking for release...", pid, eid);
 		CheckEXC(pid, eid);
 		return 0;
 	}
@@ -141,10 +141,10 @@ int ApplicationManager::CommandsCb(int argc, char *argv[]) {
 	switch (argv[0][cmd_offset]) {
 	case 'w': // Recipes wiping
 		  // recipes_wipe
-		logger->Debug("Commands: # recipes = %d", recipes.size());
-		logger->Info("Commands: wiping out all the recipes...");
+		logger->Debug("CommandsCb: # recipes = %d", recipes.size());
+		logger->Info("CommandsCb: wiping out all the recipes...");
 		recipes.clear();
-		logger->Debug("Commands: # recipes = %d", recipes.size());
+		logger->Debug("CommandsCb: # recipes = %d", recipes.size());
 		return 0;
 	}
 
@@ -711,16 +711,20 @@ ApplicationManager::UpdateStatusMaps(AppPtr_t papp,
 	assert(prev != next);
 
 	// Retrieve the runtime map from the status vector
-	AppsUidMap_t *currStateMap = &(status_vec[prev]);
-	AppsUidMap_t *nextStateMap = &(status_vec[next]);
-	assert(currStateMap != nextStateMap);
+	AppsUidMap_t *curr_state_map = &(status_vec[prev]);
+	AppsUidMap_t *next_state_map = &(status_vec[next]);
+	assert(curr_state_map != next_state_map);
+	logger->Debug("UpdateStatusMap: [%s] moving %s => %s (sync=%s)",
+		papp->StrId(),
+		papp->StateStr(prev),
+		papp->StateStr(next),
+		papp->SyncStateStr(papp->SyncState()));
 
 	// Move it from the current to the next status map
 	// FIXME: maybe we could avoid to enqueue FINISHED EXCs
-	nextStateMap->insert(UidsMapEntry_t(papp->Uid(), papp));
-
+	next_state_map->insert(UidsMapEntry_t(papp->Uid(), papp));
 	UpdateIterators(status_ret[prev], papp);
-	currStateMap->erase(papp->Uid());
+	curr_state_map->erase(papp->Uid());
 
 	ReportStatusQ();
 	ReportSyncQ();
@@ -1521,12 +1525,12 @@ ApplicationManager::DisableEXC(AppPtr_t papp, bool release) {
 
 	// Check if the application is dead, in case unregister it
 	if (CheckEXC(papp, true) != AM_SUCCESS) {
-		logger->Debug("DisableEXC: [%s] termination checked");
+		logger->Debug("DisableEXC: [%s] termination checked", papp->StrId());
 		return AM_SUCCESS;
 	}
 
 	// If required, return application resources to the system view
-	PlatformManager::ExitCode_t result;
+	PlatformManager::ExitCode_t result = PlatformManager::PLATFORM_OK;
 	if (likely(release)) {
 		logger->Debug("DisableEXC: [%s] releasing assigned resources...", papp->StrId());
 		ra.ReleaseResources(papp);

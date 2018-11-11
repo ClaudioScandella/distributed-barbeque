@@ -294,6 +294,9 @@ public:
 	 * AM_ABORT on synchronization request errors
 	 */
 	ExitCode_t SyncRequest(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
+/*******************************************************************************
+ *     Synchronization functions
+ ******************************************************************************/
 
 	/**
 	 * @brief Commit the synchronization for the specified application
@@ -338,14 +341,9 @@ public:
 	 */
 	ExitCode_t SyncContinue(AppPtr_t papp);
 
-	/**
-	 * @brief Update runtime profiling information of each active
-	 * application/EXC
-	 *
-	 * This is set set of information that can be used by the optimization
-	 * policy
-	 */
-	int UpdateRuntimeProfiles();
+/*******************************************************************************
+ *     Report status functions
+ ******************************************************************************/
 
 	/**
 	 * @brief Dump a logline to report on current Status queue counts
@@ -383,6 +381,15 @@ public:
 	 */
 	ExitCode_t IsReschedulingRequired(AppPtr_t papp,
 			struct app::RuntimeProfiling_t &profile);
+
+	/**
+	 * @brief Update runtime profiling information of each active
+	 * application/EXC
+	 *
+	 * This is set set of information that can be used by the optimization
+	 * policy
+	 */
+	int UpdateRuntimeProfiles();
 
 	/**
 	 * @see ApplicationManagerConfIF
@@ -641,7 +648,8 @@ private:
 	 * @param next next application status
 	 */
 	ExitCode_t UpdateStatusMaps(AppPtr_t papp,
-			ApplicationStatusIF::State_t prev, ApplicationStatusIF::State_t next);
+			ApplicationStatusIF::State_t prev,
+			ApplicationStatusIF::State_t next);
 
 	/**
 	 * @brief Release a synchronization request for the specified application
