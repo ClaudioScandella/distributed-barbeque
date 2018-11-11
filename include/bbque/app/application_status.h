@@ -111,15 +111,6 @@ public:
 	 */
 	virtual const char *StrId() const = 0;
 
-	inline static char const *StateStr(State_t state) {
-		assert(state < STATE_COUNT);
-		return stateStr[state];
-	}
-
-	inline static char const *SyncStateStr(SyncState_t state) {
-		assert(state < SYNC_STATE_COUNT+1);
-		return syncStateStr[state];
-	}
 
 	/**
 	 * @brief The value set by the scheduling policy
@@ -128,10 +119,6 @@ public:
 	 */
 	virtual float Value() const = 0;
 
-
-	inline char const *SyncStateStr() {
-		return syncStateStr[SyncState()];
-	}
 
 	/**
 	 * @brief Check if this is an Application Container

@@ -18,6 +18,7 @@
 #ifndef BBQUE_SCHEDULABLE_H_
 #define BBQUE_SCHEDULABLE_H_
 
+#include <cassert>
 #include <memory>
 
 #include "bbque/config.h"
@@ -199,6 +200,22 @@ public:
 	 * @brief Verbose synchronization state names
 	 */
 	static char const *syncStateStr[SYNC_STATE_COUNT+1];
+
+	/**
+	 * @brief String of the given state
+	 */
+	inline static char const *StateStr(State_t state) {
+		assert(state < STATE_COUNT);
+		return stateStr[state];
+	}
+
+	/**
+	 * @brief String of the given synchronization state
+	 */
+	inline static char const *SyncStateStr(SyncState_t state) {
+		assert(state < SYNC_STATE_COUNT+1);
+		return syncStateStr[state];
+	}
 
 
 	/**
