@@ -1594,6 +1594,163 @@ void ApplicationManager::CheckActiveEXCs() {
 		CheckEXC(papp, true);
 	}
 }
+/*******************************************************************************
+ *  EXC Scheduling
+ ******************************************************************************/
+
+ApplicationManager::ExitCode_t ApplicationManager::ScheduleRequest(
+		ba::AppCPtr_t papp,
+		ba::AwmPtr_t awm,
+		br::RViewToken_t status_view,
+		size_t b_refn) {
+
+	ResourceAccounter &ra(ResourceAccounter::GetInstance());
+	ResourceAccounter::ExitCode_t ra_result;
+	logger->Info("ScheduleRequest: [%s] schedule request for binding @[%d] view=%ld",
+		papp->StrId(), b_refn, status_view);
+
+	// AWM safety check
+	if (!awm) {
+		logger->Crit("ScheduleRequest: [%s] AWM not existing)", papp->StrId());
+		assert(awm);
+		return AM_AWM_NULL;
+	}
+	logger->Debug("ScheduleRequest: [%s] request for scheduling in AWM [%02d:%s]",
+			papp->StrId(), awm->Id(), awm->Name().c_str());
+
+	// App is SYNC/BLOCKED for a previously failed scheduling.
+	// Reset state and syncState for this new attempt.
+	if (papp->Blocking()) {
+		logger->Warn("ScheduleRequest: [%s] request for blocking application",
+			papp->StrId());
+		logger->Warn("ScheduleRequest: [%s] forcing a new state transition",
+			papp->StrId());
+		ChangeEXCState(papp, papp->PreSyncState(), app::Schedulable::SYNC_NONE);
+	}
+
+	// Nothing to schedule if already disabled
+	if (papp->Disabled()) {
+		logger->Error("ScheduleRequest: [%s] already disabled", papp->StrId());
+		return AM_APP_DISABLED;
+	}
+
+	// Checking for resources availability: unschedule if not
+	ra_result = ra.BookResources(
+		papp, awm->GetSchedResourceBinding(b_refn), status_view);
+	if (ra_result != ResourceAccounter::RA_SUCCESS) {
+		logger->Debug("ScheduleRequest: [%s] not enough resources...",
+			papp->StrId());
+		Unschedule(papp);
+		return AM_AWM_NOT_SCHEDULABLE;
+	}
+
+	// Bind the resource set to the working mode
+	awm->SetResourceBinding(status_view, b_refn);
+
+	// Reschedule accordingly to "awm"
+	logger->Debug("ScheduleRequest: (re)scheduling [%s] into AWM [%d:%s]...",
+			papp->StrId(), awm->Id(), awm->Name().c_str());
+	auto ret = Reschedule(papp, awm);
+	if (ret != AM_SUCCESS) {
+		ra.ReleaseResources(papp, status_view);
+		awm->ClearResourceBinding();
+		return ret;
+	}
+
+	// Set next awm
+	papp->SetNextAWM(awm);
+
+	return AM_SUCCESS;
+}
+
+ApplicationManager::ExitCode_t ApplicationManager::ScheduleRequestAsPrev(
+		ba::AppCPtr_t papp,
+		br::RViewToken_t status_view) {
+	ResourceAccounter &ra(ResourceAccounter::GetInstance());
+	ResourceAccounter::ExitCode_t ra_result;
+	if (papp == nullptr) {
+		logger->Crit("ScheduleRequestAsPrev: null application pointer");
+		return AM_ABORT;
+	}
+	logger->Debug("ScheduleRequestAsPrev: [%p == %p] ?", papp.get(), this);
+
+	// Application must be already running
+	if (!papp->Running()) {
+		logger->Warn("ScheduleRequestAsPrev: [%s] not in RUNNING state [%s]",
+			papp->StrId(), papp->StateStr(papp->State()));
+		return AM_EXC_INVALID_STATUS;
+	}
+
+	// Checking resources are still available
+	ra_result = ra.BookResources(
+		papp, papp->CurrentAWM()->GetResourceBinding(), status_view);
+	if (ra_result != ResourceAccounter::RA_SUCCESS) {
+		logger->Warn("ScheduleRequestAsPrev: [%s] unscheduling...", papp->StrId());
+		return AM_AWM_NOT_SCHEDULABLE;
+	}
+
+	// Set next awm to the previous one
+	papp->SetNextAWM(papp->CurrentAWM());
+	logger->Debug("ScheduleRequestAsPrev: [%s] rescheduled as previously: AWM [%d -> %d]",
+			papp->StrId(), papp->CurrentAWM()->Id(), papp->NextAWM()->Id());
+
+	return AM_SUCCESS;
+}
+
+
+ApplicationManager::ExitCode_t ApplicationManager::Reschedule(
+		ba::AppCPtr_t papp,
+		ba::AwmPtr_t awm) {
+	// Ready application could be synchronized to start
+	if (papp->State() == app::Schedulable::READY) {
+		logger->Debug("(Re)schedule: [%s] for STARTING", papp->StrId());
+		return SetForSynchronization(papp, app::Schedulable::STARTING);
+	}
+
+	// Otherwise, the application should be running...
+	if (papp->State() != app::Schedulable::RUNNING) {
+		logger->Crit("(Re)schedule: [%s] wrong status {%s/%s}",
+			papp->StrId(),
+			papp->StateStr(papp->State()),
+			papp->SyncStateStr(papp->SyncState()));
+		return AM_ABORT;
+	}
+
+	// Checking if a synchronization is required
+	auto next_sync = papp->NextSyncState(awm);
+		logger->Debug("(Re)schedule: [%s] for %s",
+			papp->StrId(),
+			papp->SyncStateStr(next_sync));
+	if (next_sync == app::Schedulable::SYNC_NONE)
+		return AM_SUCCESS;
+
+	// Request a synchronization for the identified reconfiguration
+	return SetForSynchronization(papp, next_sync);
+}
+
+
+ApplicationManager::ExitCode_t ApplicationManager::Unschedule(
+		ba::AppCPtr_t papp) {
+	// Do nothing if already ready or blocking
+	if ((papp->State() == app::Schedulable::READY) || (papp->Blocking())) {
+		logger->Debug("Unschedule: [%s] current status = {%s/%s})",
+			papp->StrId(),
+			papp->StateStr(papp->State()),
+			papp->SyncStateStr(papp->SyncState()));
+		logger->Debug("Unschedule: [%s] no need further actions",
+			papp->StrId());
+		return AM_SUCCESS;
+	}
+	// Request a synchronization to block the application
+	return SetForSynchronization(papp, app::Schedulable::BLOCKED);
+}
+
+ApplicationManager::ExitCode_t ApplicationManager::NoSchedule(
+		ba::AppCPtr_t papp) {
+	logger->Debug("NoSchedule: [%s] not scheduled", papp->StrId());
+	return ChangeEXCState(papp, app::Schedulable::DISABLED);
+}
+
 ApplicationManager::ExitCode_t
 ApplicationManager::SetForSynchronization(
 		app::AppCPtr_t papp, Application::SyncState_t next_sync) {

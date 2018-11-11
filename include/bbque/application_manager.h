@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "bbque/config.h"
+#include "bbque/app/application_conf.h"
 #include "bbque/application_manager_conf.h"
 #include "bbque/command_manager.h"
 #include "bbque/utils/deferrable.h"
@@ -284,8 +285,71 @@ public:
 		return BBQUE_APP_PRIO_LEVELS-1;
 	};
 
+/*******************************************************************************
+ *     Scheduling functions
+ ******************************************************************************/
+
 	/**
-	 * @brief Request the synchronization of an application
+	 * @brief Request to re-schedule this application into a new configuration
+	 *
+	 * The Optimizer call this method when an AWM is selected for this
+	 * application to verify if it could be scheduled, i.e. bound resources
+	 * are available, and eventually to update the application status.
+	 *
+	 * First the application verify resources availability. If the quality and
+	 * amount of required resources could be satisfied, the application is
+	 * going to be re-scheduled otherwise, it is un-scheduled.
+	 *
+	 * @param papp The application/EXC to schedule
+	 * @param awm Next working mode scheduled for the application
+	 * @param status_view The token referencing the resources state view
+	 * @param bid An optional identifier for the resource binding
+	 *
+	 * @return The method returns an exit code representing the decision taken:
+	 * AM_SUCCESS if the specified working mode can be scheduled for
+	 * this application, APP_AWM_NOT_SCHEDULABLE if the working mode cannot
+	 * not be scheduled. If the application is currently disabled this call
+	 * returns always AM_APP_DISABLED.
+	 */
+	ExitCode_t ScheduleRequest(
+		app::AppCPtr_t papp, app::AwmPtr_t  awm,
+		br::RViewToken_t status_view, size_t b_refn);
+
+	/**
+	 * @brief Re-schedule this application according to previous scheduling
+	 * policy run
+	 *
+	 * @param papp The application to re-schedule
+	 * @param status_view The token referencing the resources state view
+	 *
+	 * @return The method returns AM_SUCCESS if the application can be
+	 * rescheduled, AM_EXC_INVALID_STATUS if the application is not in "running"
+	 * stats, APP_AWM_NOT_SCHEDULABLE if required resources are no longer available.
+	 */
+	ExitCode_t ScheduleRequestAsPrev(
+		app::AppCPtr_t papp, br::RViewToken_t status_view);
+
+	/**
+	 * @brief Configure this application to switch to the specified AWM
+	 * @param papp the application
+	 * @param awm the working mode
+	 * @return @see ExitCode_t
+	 */
+	ExitCode_t Reschedule(app::AppCPtr_t papp, app::AwmPtr_t awm);
+
+	/**
+	 * @brief Configure this application to release resources.
+	 * @param papp the application
+	 * @return @see ExitCode_t
+	 */
+	ExitCode_t Unschedule(app::AppCPtr_t papp);
+
+	/**
+	 * @brief Do not schedule the application
+	 * @param papp the application
+	 */
+	ExitCode_t NoSchedule(app::AppCPtr_t papp);
+
 
 	/**
 	 * @brief Flag the application as "to synchronize"

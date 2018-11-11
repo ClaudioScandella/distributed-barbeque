@@ -312,23 +312,14 @@ public:
 	 *
 	 */
 	SyncState_t NextSyncState(AwmPtr_t const & awm) const;
-	ExitCode_t ScheduleRequest(
-			AwmPtr_t const & awm,
-			br::RViewToken_t status_view,
-			size_t b_refn = 0);
 
 	/**
 	 * @brief Set the AWM according to which schedule the application.
 	 * @param awm the working mode
-	 * @see ApplicationConfIF
 	 */
 	void SetNextAWM(AwmPtr_t awm);
-	ExitCode_t ScheduleRequestAsPrev(br::RViewToken_t status_view);
 
-	/**
-	 * @see ApplicationConfIF
-	 */
-	void NoSchedule();
+
 	// ------------------- Synchronization functions --------------------- //
 
 	/**
@@ -778,20 +769,6 @@ private:
 	 * @param sync the synchronization state to set
 	 */
 	void SetSyncState(SyncState_t sync);
-
-	/**
-
-	/**
-	 * @brief Configure this application to switch to the specified AWM
-	 * @return @see ExitCode_t
-	 */
-	ExitCode_t Reschedule(AwmPtr_t const & awm);
-
-	/**
-	 * @brief Configure this application to release resources.
-	 * @return @see ExitCode_t
-	 */
-	ExitCode_t Unschedule();
 
 	/**
 	 * @brief Check if this is a reshuffling
