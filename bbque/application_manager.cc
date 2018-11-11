@@ -936,9 +936,9 @@ ApplicationManager::ChangeEXCState(AppPtr_t papp, app::Schedulable::State_t next
 	std::lock(currState_ul, nextState_ul);
 	//DOUBLE_LOCK(papp->State(), next);
 	if (next_state != Application::SYNC)
-		SyncRemove(papp);  // if next state is not SYNC remove the app from the sync map
+		RemoveFromSyncMap(papp);  // if next state is not SYNC remove the app from the sync map
 	else
-		SyncAdd(papp);     // otherwise add to the proper sync map
+		AddToSyncMap(papp);     // otherwise add to the proper sync map
 
 	return UpdateStatusMaps(papp, curr_state, next_state);
 }
@@ -1636,16 +1636,15 @@ void ApplicationManager::CheckActiveEXCs() {
  *  EXC Synchronization
  ******************************************************************************/
 
-void
-ApplicationManager::SyncRemove(AppPtr_t papp, Application::SyncState_t state) {
+void ApplicationManager::RemoveFromSyncMap(AppPtr_t papp, Application::SyncState_t state) {
 	std::unique_lock<std::mutex> sync_ul(sync_mtx[state]);
 	assert(papp);
 	UpdateIterators(sync_ret[state], papp);
 
 	// Get the applications map
 	if (sync_vec[state].erase(papp->Uid())) {
-		logger->Debug("SyncRemove: [%s, %s] removed sync request",
-			papp->StrId(), papp->SyncStateStr());
+		logger->Debug("RemoveFromSyncMap: [%s, %s] removed sync request",
+			papp->StrId(), papp->SyncStateStr(state));
 		return;
 	}
 
@@ -1653,31 +1652,30 @@ ApplicationManager::SyncRemove(AppPtr_t papp, Application::SyncState_t state) {
 	assert(false);
 }
 
-void
-ApplicationManager::SyncRemove(AppPtr_t papp) {
+void ApplicationManager::RemoveFromSyncMap(AppPtr_t papp) {
 	assert(papp);
-	logger->Debug("SyncRemove: [%s] removing sync request ...", papp->StrId());
+	logger->Debug("RemoveFromSyncMap: [%s] removing sync request ...", papp->StrId());
 
 	// Disregard EXCs which are not in SYNC state
 	if (!papp->Synching())
 		return;
 
-	SyncRemove(papp, papp->SyncState());
+	RemoveFromSyncMap(papp, papp->SyncState());
 }
 
-void
-ApplicationManager::SyncAdd(AppPtr_t papp, Application::SyncState_t state) {
+void ApplicationManager::AddToSyncMap(AppPtr_t papp, Application::SyncState_t state) {
 	std::unique_lock<std::mutex> sync_ul(sync_mtx[state]);
 	assert(papp);
 	sync_vec[state].insert(UidsMapEntry_t(papp->Uid(), papp));
 }
 
-void
-ApplicationManager::SyncAdd(AppPtr_t papp) {
+void ApplicationManager::AddToSyncMap(AppPtr_t papp) {
 	assert(papp);
-	SyncAdd(papp, papp->SyncState());
-	logger->Debug("SyncAdd: [%s, %d:%s] added synchronization request",
-			papp->StrId(), papp->SyncState(), papp->SyncStateStr());
+	AddToSyncMap(papp, papp->SyncState());
+	logger->Debug("AddToSyncMap: [%s, %d:%s] added synchronization request",
+			papp->StrId(),
+			papp->SyncState(),
+			papp->SyncStateStr(papp->SyncState()));
 }
 
 ApplicationManager::ExitCode_t

@@ -657,7 +657,7 @@ private:
 	 * @param papp the application to release
 	 * @param state the synchronization state to remove
 	 */
-	void SyncRemove(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
+	void RemoveFromSyncMap(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
 
 	/**
 	 * @brief Release any synchronization request for the specified
@@ -665,7 +665,7 @@ private:
 	 *
 	 * @param papp the application to release
 	 */
-	void SyncRemove(AppPtr_t papp);
+	void RemoveFromSyncMap(AppPtr_t papp);
 
 	/**
 	 * @brief Add a synchronization request for the specified application
@@ -673,7 +673,7 @@ private:
 	 * @param papp the application to synchronize
 	 * @param state the synchronization state to add
 	 */
-	void SyncAdd(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
+	void AddToSyncMap(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
 
 	/**
 	 * @brief Add the configured synchronization request for the specified
@@ -681,7 +681,7 @@ private:
 	 *
 	 * @param papp the application to synchronize
 	 */
-	void SyncAdd(AppPtr_t papp);
+	void AddToSyncMap(AppPtr_t papp);
 
 
 	/**
