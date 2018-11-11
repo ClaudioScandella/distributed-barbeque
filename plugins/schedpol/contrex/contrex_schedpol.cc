@@ -263,9 +263,9 @@ SchedulerPolicyIF::ExitCode_t ContrexSchedPol::ScheduleApplication(
 	ref_num = pawm->BindResource(br::ResourceType::CPU, R_ID_ANY, bind_cpu_id, ref_num);
 
 	// Schedule request
-	bbque::app::Application::ExitCode_t app_result =
-		papp->ScheduleRequest(pawm, sched_status_view, ref_num);
-	if (app_result != bbque::app::Application::APP_SUCCESS) {
+	ApplicationManager & am(ApplicationManager::GetInstance());
+	auto ret = am.ScheduleRequest(papp, pawm, sched_status_view, ref_num);
+	if (ret != ApplicationManager::AM_SUCCESS) {
 		logger->Error("Schedule: scheduling of [%s] failed", papp->StrId());
 		return SCHED_ERROR;
 	}

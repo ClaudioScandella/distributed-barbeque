@@ -215,9 +215,12 @@ TestSchedPol::DoCPUBinding(
 		if (pe_count == CPU_QUOTA_TO_ALLOCATE / 100) break;
 	}
 
-	auto ret = papp->ScheduleRequest(pawm, sched_status_view, ref_num);
-	if (ret != ba::ApplicationStatusIF::APP_SUCCESS) {
-		logger->Error("AssignWorkingMode: schedule request failed for [%d]", papp->StrId());
+	ApplicationManager & am(ApplicationManager::GetInstance());
+	ApplicationManager::ExitCode_t ret =
+		am.ScheduleRequest(papp, pawm, sched_status_view, ref_num);
+	if (ret != ApplicationManager::AM_SUCCESS) {
+		logger->Error("AssignWorkingMode: schedule request failed for [%d]",
+			papp->StrId());
 		return SCHED_ERROR;
 	}
 

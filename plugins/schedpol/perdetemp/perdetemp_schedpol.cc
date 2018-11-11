@@ -147,9 +147,11 @@ PerdetempSchedPol::Schedule(System & _system, RViewToken_t & status_view) {
 		// Scheduling request
 		logger->Debug("DoScheduling: [%s] scheduling request",
 				sched_entity->StrId());
-		if (sched_entity->papp->ScheduleRequest(
-				sched_entity->pawm, sched_status_view, sched_entity->bind_refn)
-					!= ApplicationStatusIF::APP_SUCCESS) {
+		ApplicationManager & am(ApplicationManager::GetInstance());
+		auto ret = am.ScheduleRequest(
+				sched_entity->papp, sched_entity->pawm,
+				sched_status_view, sched_entity->bind_refn);
+		if (ret != ApplicationManager::AM_SUCCESS) {
 			logger->Error("DoScheduling: [%s] failed", sched_entity->StrId());
 			continue;
 		}

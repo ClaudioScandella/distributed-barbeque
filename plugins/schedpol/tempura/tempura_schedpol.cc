@@ -553,9 +553,11 @@ SchedulerPolicyIF::ExitCode_t TempuraSchedPol::DoScheduling() {
 		// Scheduling request
 		logger->Debug("DoScheduling: [%s] scheduling request...",
                         psched->StrId());
-		app_result = psched->papp->ScheduleRequest(
-				psched->pawm, sched_status_view, psched->bind_refn);
-		if (app_result != ApplicationStatusIF::APP_SUCCESS) {
+		ApplicationManager & am(ApplicationManager::GetInstance());
+		auto ret = am.ScheduleRequest(
+				psched->papp, psched->pawm,
+				sched_status_view, psched->bind_refn);
+		if (ret != ApplicationManager::AM_SUCCESS) {
 			logger->Error("DoScheduling: [%s] failed", psched->StrId());
 			continue;
 		}

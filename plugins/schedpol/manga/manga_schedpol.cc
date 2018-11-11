@@ -397,8 +397,9 @@ MangASchedPol::SelectWorkingMode(ba::AppCPtr_t papp, const Partition & selected_
 	}
 
 	// Update the accounting of resources
-	auto ret = papp->ScheduleRequest(pawm, sched_status_view, ref_num);
-	if (ret != ba::ApplicationStatusIF::APP_SUCCESS) {
+	ApplicationManager & am(ApplicationManager::GetInstance());
+	auto ret = am.ScheduleRequest(papp, pawm, sched_status_view, ref_num);
+	if (ret != ApplicationManager::AM_SUCCESS) {
 		logger->Error("SelectWorkingMode: [%s] schedule request failed", papp->StrId());
 		return SCHED_ERROR;
 	}

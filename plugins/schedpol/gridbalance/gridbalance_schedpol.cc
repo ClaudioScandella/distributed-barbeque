@@ -206,8 +206,10 @@ SchedulerPolicyIF::ExitCode_t GridBalanceSchedPol::BindWorkingModesAndSched() {
 		sched_entity->bind_refn =
 			sched_entity->pawm->BindResource(proc_path, proc_mask);
 
-		sched_entity->papp->ScheduleRequest(
-			sched_entity->pawm, sched_status_view, sched_entity->bind_refn);
+		ApplicationManager & am(ApplicationManager::GetInstance());
+		am.ScheduleRequest(
+			sched_entity->papp, sched_entity->pawm,
+			sched_status_view, sched_entity->bind_refn);
 	}
 
 	return SCHED_OK;
