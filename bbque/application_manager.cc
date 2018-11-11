@@ -877,7 +877,7 @@ ApplicationManager::ChangeEXCState(
 
 	// Is there an actual change?
 	if ((curr_state == next_state) && (curr_sync == next_sync)) {
-		logger->Warn("ChangeEXCState: nothing to ho here");
+		logger->Debug("ChangeEXCState: nothing to ho here");
 		return AM_SUCCESS;
 	}
 
@@ -1082,7 +1082,7 @@ ApplicationManager::CleanupEXC(AppPtr_t papp) {
 
 	// Remove platform specific data
 	if (papp->HasPlatformData()) {
-		logger->Warn("CleanupEXC: [%s] missing platform data", papp->StrId());
+		logger->Debug("CleanupEXC: [%s] missing platform data", papp->StrId());
 		pp_result = plm.Release(papp);
 		if (pp_result != PlatformManager::PLATFORM_OK) {
 			logger->Error("CleanupEXC: [%s] cleanup FAILED: platform data error", papp->StrId());
@@ -1833,21 +1833,20 @@ void ApplicationManager::AddToSyncMap(AppPtr_t papp) {
 
 ApplicationManager::ExitCode_t
 ApplicationManager::SyncCommit(AppPtr_t papp) {
-	logger->Warn("SyncCommit: [%s, %s] synchronization in progress...",
+	logger->Debug("SyncCommit: [%s, %s] synchronization in progress...",
 			papp->StrId(), papp->SyncStateStr(papp->SyncState()));
-
 	auto curr_state = papp->State();
 	auto curr_sync  = papp->SyncState();
 
 	// Notify application
 	papp->SyncCommit();
 
-	logger->Warn("SyncCommit: [%s] prev state = %s ...",
+	logger->Debug("SyncCommit: [%s] prev state [%s]...",
 			papp->StrId(), papp->StateStr(papp->PreSyncState()));
-
+	// Update status maps
 	UpdateStatusMaps(papp, curr_state, papp->State());
 	RemoveFromSyncMap(papp, curr_sync);
-	logger->Warn("SyncCommit: [%s, %s] synchronization COMPLETED",
+	logger->Debug("SyncCommit: [%s, %s] synchronization COMPLETED",
 			papp->StrId(), papp->SyncStateStr(papp->SyncState()));
 
 	return AM_SUCCESS;
