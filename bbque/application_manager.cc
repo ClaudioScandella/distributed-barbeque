@@ -1056,11 +1056,12 @@ ApplicationManager::AppsRemove(AppPtr_t papp) {
 		((*it).second)->ExcId() != papp->ExcId()) {
 		++it;
 	}
-	assert(it != range.second);
+
+	// Application/EXC could have been already removed...
 	if (it == range.second) {
-		logger->Crit("AppsRemove: [%s] not found: data structure corruption?",
+		logger->Debug("AppsRemove: [%s] not found: alredy removed?",
 			papp->StrId());
-		return AM_DATA_CORRUPT;
+		return AM_SUCCESS;
 	}
 	apps.erase(it);
 
