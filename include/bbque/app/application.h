@@ -779,13 +779,6 @@ private:
 	void SetSyncState(SyncState_t sync);
 
 	/**
-	 * @brief Request a synchronization of this application into the specied
-	 * state.
-	 *
-	 * @param sync the new synchronization state (SYNC_NONE by default)
-	 * @return @see ExitCode_t
-	 */
-	ExitCode_t RequestSync(SyncState_t sync);
 
 	/**
 	 * @brief Configure this application to switch to the specified AWM

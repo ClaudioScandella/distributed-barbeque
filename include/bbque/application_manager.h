@@ -286,14 +286,19 @@ public:
 
 	/**
 	 * @brief Request the synchronization of an application
+
+	/**
+	 * @brief Flag the application as "to synchronize"
 	 *
 	 * @param papp the application to synchronize
-	 * @param state the synchronization state required
+	 * @param next_state the synchronization state
 	 *
 	 * @return AM_SUCCESS if the synchronization request has been accepted,
 	 * AM_ABORT on synchronization request errors
 	 */
-	ExitCode_t SyncRequest(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
+	ExitCode_t SetForSynchronization(
+		app::AppCPtr_t papp, ApplicationStatusIF::SyncState_t next_sync);
+
 /*******************************************************************************
  *     Synchronization functions
  ******************************************************************************/

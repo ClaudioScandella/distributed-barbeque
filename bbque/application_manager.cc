@@ -1594,6 +1594,35 @@ void ApplicationManager::CheckActiveEXCs() {
 		CheckEXC(papp, true);
 	}
 }
+ApplicationManager::ExitCode_t
+ApplicationManager::SetForSynchronization(
+		app::AppCPtr_t papp, Application::SyncState_t next_sync) {
+	// Check valid state has beed required
+	if (next_sync >= Application::SYNC_STATE_COUNT) {
+		logger->Crit("SetForSynchronization: [%s] FAILED : invalid sync state [%d]",
+				papp->StrId(), next_sync);
+		assert(next_sync < app::Schedulable::SYNC_STATE_COUNT);
+		return AM_ABORT;
+	}
+	logger->Debug("SetForSynchronization: [%s, %s] requesting synchronization...",
+			papp->StrId(), Application::SyncStateStr(next_sync));
+
+	// Change synchronization state
+	ChangeEXCState(papp, app::Schedulable::SYNC, next_sync);
+	if (!papp->Synching()) {
+		logger->Crit("SetForSynchronization: [%s] FAILED: invalid EXC state [%d]",
+				papp->StrId(), next_sync);
+		assert(papp->Synching());
+		return AM_ABORT;
+	}
+
+	// TODO notify the Resource Manager
+
+	logger->Debug("SetForSynchronization: [%s, %s] completed", papp->StrId(),
+			Application::SyncStateStr(papp->SyncState()));
+
+	return AM_SUCCESS;
+}
 
 
 /*******************************************************************************
@@ -1642,35 +1671,7 @@ void ApplicationManager::AddToSyncMap(AppPtr_t papp) {
 			papp->SyncStateStr(papp->SyncState()));
 }
 
-ApplicationManager::ExitCode_t
-ApplicationManager::SyncRequest(AppPtr_t papp, Application::SyncState_t state) {
 
-	logger->Debug("SyncRequest: [%s, %s] requesting synchronization...",
-			papp->StrId(), Application::SyncStateStr(state));
-
-	// The state at this point should be SYNC
-	if (!papp->Synching()) {
-		logger->Crit("SyncRequest: [%s] synchronization request FAILED: invalid EXC state [%d]",
-				papp->StrId(), papp->State());
-		assert(papp->Synching());
-		return AM_ABORT;
-	}
-
-	// Check valid state has beed required
-	if (state >= Application::SYNC_STATE_COUNT) {
-		logger->Crit("SyncRequest: [%s] synchronization request FAILED : invalid sync state [%d]",
-				papp->StrId(), state);
-		assert(state < Application::SYNC_STATE_COUNT);
-		return AM_ABORT;
-	}
-
-	// TODO notify the Resource Manager
-
-	logger->Debug("SyncRequest: [%s, %s] synchronization request is valid", papp->StrId(),
-			Application::SyncStateStr(state));
-
-	return AM_SUCCESS;
-}
 
 ApplicationManager::ExitCode_t
 ApplicationManager::SyncCommit(AppPtr_t papp) {

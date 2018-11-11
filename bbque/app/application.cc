@@ -261,47 +261,6 @@ Application::ExitCode_t Application::SetState(State_t next_state, SyncState_t ne
  *  EXC Optimization
  ******************************************************************************/
 
-// NOTE: this requires a lock on schedule.mtx
-Application::ExitCode_t Application::RequestSync(SyncState_t sync) {
-	bbque::ApplicationManager &am(bbque::ApplicationManager::GetInstance());
-	AppPtr_t papp = am.GetApplication(Uid());
-	ApplicationManager::ExitCode_t result;
-
-	if (!_Active()) {
-		logger->Crit("Sync request FAILED (Error: wrong application status)");
-		assert(_Active());
-		return APP_ABORT;
-	}
-
-	logger->Debug("Request synchronization [%s, %d:%s]", StrId(), sync, SyncStateStr(sync));
-
-	// Ensuring the AM has an hander for this application
-	if (!papp) {
-		logger->Crit("Request synchronization [%s, %d:%s] FAILED "
-				"(Error: unable to get an application handler",
-				StrId(), sync, SyncStateStr(sync));
-		assert(papp);
-		return APP_ABORT;
-	}
-
-	// Update our state
-	SetState(SYNC, sync);
-
-	// Request the application manager to synchronization this application
-	// accorting to our new state
-	result = am.SyncRequest(papp, sync);
-	if (result != ApplicationManager::AM_SUCCESS) {
-		logger->Error("Synchronization request FAILED (Error: %d)", result);
-		// This is not an error on AWM scheduling but only on the notification
-		// of the SynchronizationManager module. The AWM could still be
-		// accepted.
-	}
-
-	logger->Info("Sync scheduled [%s, %d:%s]", StrId(), sync, SyncStateStr(sync));
-
-	return APP_SUCCESS;
-
-}
 
 bool Application::Reshuffling(AwmPtr_t const & next_awm) const {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
