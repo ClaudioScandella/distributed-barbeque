@@ -262,6 +262,11 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::GetApplicationsQueue(
 
 bool SasbSyncPol::DoSync(AppPtr_t papp) {
 	bool reconf = true;
+	logger->Debug("Checking [%s] @ step [%d]: sync_state [%s]",
+			papp->StrId(),
+			status,
+			papp->SyncStateStr(papp->SyncState())
+		    );
 
 	// Steps specific synchronization hinibitors
 	switch(status) {

@@ -577,6 +577,7 @@ SynchronizationManager::Sync_Platform(ApplicationStatusIF::SyncState_t syncState
 
 	papp = am.GetFirst(syncState, apps_it);
 	for ( ; papp; papp = am.GetNext(syncState, apps_it)) {
+		logger->Info("STEP M: SyncPlatform() state [%s]", papp->SyncStateStr(syncState));
 		if (!policy->DoSync(papp))
 			continue;
 		logger->Info("STEP M: SyncPlatform() ===> [%s]", papp->StrId());
