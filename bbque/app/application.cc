@@ -336,7 +336,7 @@ Application::ExitCode_t Application::RequestSync(SyncState_t sync) {
 
 }
 
-bool Application::Reshuffling(AwmPtr_t const & next_awm) {
+bool Application::Reshuffling(AwmPtr_t const & next_awm) const {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
 	auto pumc = _CurrentAWM()->GetResourceBinding();
 	auto puma = next_awm->GetResourceBinding();

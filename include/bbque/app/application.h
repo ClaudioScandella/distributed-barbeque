@@ -835,7 +835,7 @@ private:
 	 * @return true if the specified next_awm will produce a resources
 	 * reshuffling
 	 */
-	bool Reshuffling(AwmPtr_t const & next_awm);
+	bool Reshuffling(AwmPtr_t const & next_awm) const;
 
 };
 
