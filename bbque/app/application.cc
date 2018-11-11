@@ -476,10 +476,11 @@ void Application::NoSchedule() {
 
 Application::ExitCode_t Application::SyncCommit() {
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
+	Application::ExitCode_t ret;
 
 	// Ignoring applications disabled during a SYNC
 	if (_Disabled()) {
-		logger->Info("ScheduleCommit: synchronization completed (on disabled EXC)"
+		logger->Info("SyncCommit: synchronization completed (on disabled EXC)"
 			" [%s, %d:%s]",
 			StrId(), _State(), StateStr(_State()));
 		return APP_SUCCESS;
@@ -487,40 +488,46 @@ Application::ExitCode_t Application::SyncCommit() {
 
 	assert(_State() == SYNC);
 
+	// Synchronization state
 	switch(_SyncState()) {
-	case STARTING:
-	case RECONF:
-	case MIGREC:
-	case MIGRATE:
-		// Reset GoalGap whether the Application has been scheduled into a AWM
-		// having a value higher than the previous one
-		if (schedule.awm &&
-				(schedule.awm->Value() < schedule.next_awm->Value())) {
+		case STARTING:
+		case RECONF:
+		case MIGREC:
+		case MIGRATE:
+			// Reset GoalGap whether the Application has been scheduled into a AWM
+			// having a value higher than the previous one
+			if (schedule.awm &&
+					(schedule.awm->Value() < schedule.next_awm->Value())) {
+				logger->Debug("Resetting GoalGap (%d%c) on [%s]",
+						rt_prof.ggap_percent, '%', StrId());
+				rt_prof.ggap_percent = 0;
+			}
 
-			logger->Debug("Resetting GoalGap (%d%c) on [%s]",
-					rt_prof.ggap_percent, '%', StrId());
-			rt_prof.ggap_percent = 0;
-		}
+			ret = SetState(RUNNING);
+			if (ret != APP_SUCCESS) {
+				logger->Error("SyncCommit: status transition failed");
+				return ret;
+			}
+			logger->Debug("Scheduling count: %" PRIu64 "", schedule.count);
+			break;
 
-		schedule.awm = schedule.next_awm;
-		schedule.next_awm.reset();
-		SetRunning();
-		break;
+		case BLOCKED:
+			if (_State() != FINISHED)
+				SetState(READY);
+			else {
+				schedule.awm.reset();
+				schedule.next_awm.reset();
+			}
+			break;
 
-	case BLOCKED:
-		schedule.awm.reset();
-		schedule.next_awm.reset();
-		SetBlocked();
-		break;
-
-	default:
-		logger->Crit("ScheduleCommit: synchronization failed for EXC [%s]"
-				"(Error: invalid synchronization state)");
-		assert(_SyncState() < Application::SYNC_NONE);
-		return APP_ABORT;
+		default:
+			logger->Crit("SyncCommit: synchronization failed for EXC [%s]"
+					"(Error: invalid synchronization state)");
+			assert(_SyncState() < Application::SYNC_NONE);
+			return APP_ABORT;
 	}
 
-	logger->Info("ScheduleCommit: synchronization completed [%s, %d:%s]",
+	logger->Info("SyncCommit: synchronization completed [%s, %d:%s]",
 			StrId(), _State(), StateStr(_State()));
 
 	return APP_SUCCESS;

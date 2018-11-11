@@ -1675,14 +1675,22 @@ void ApplicationManager::AddToSyncMap(AppPtr_t papp) {
 
 ApplicationManager::ExitCode_t
 ApplicationManager::SyncCommit(AppPtr_t papp) {
+	logger->Warn("SyncCommit: [%s, %s] synchronization in progress...",
+			papp->StrId(), papp->SyncStateStr(papp->SyncState()));
 
-	logger->Debug("SyncCommit: [%s, %s] synchronization in progress...",
-			papp->StrId(), papp->SyncStateStr());
+	auto curr_state = papp->State();
+	auto curr_sync  = papp->SyncState();
 
 	// Notify application
 	papp->SyncCommit();
-	logger->Debug("SyncCommit: [%s, %s] synchronization COMPLETED",
-			papp->StrId(), papp->SyncStateStr());
+
+	logger->Warn("SyncCommit: [%s] prev state = %s ...",
+			papp->StrId(), papp->StateStr(papp->PreSyncState()));
+
+	UpdateStatusMaps(papp, curr_state, papp->State());
+	RemoveFromSyncMap(papp, curr_sync);
+	logger->Warn("SyncCommit: [%s, %s] synchronization COMPLETED",
+			papp->StrId(), papp->SyncStateStr(papp->SyncState()));
 
 	return AM_SUCCESS;
 }

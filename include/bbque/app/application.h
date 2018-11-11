@@ -329,6 +329,7 @@ public:
 	 * @see ApplicationConfIF
 	 */
 	void NoSchedule();
+	// ------------------- Synchronization functions --------------------- //
 
 	/**
 	 * @brief Commit a previously required re-scheduling request
@@ -791,32 +792,6 @@ private:
 	 * @return @see ExitCode_t
 	 */
 	ExitCode_t Unschedule();
-
-	/**
-	 * @brief Verify if a synchronization is required to move into the
-	 * specified AWM.
-	 *
-	 * The method is called only if the Application is currently RUNNING.
-	 * Compare the WorkingMode specified with the currently used by the
-	 * Application. Compare the Resources set with the one binding the
-	 * resources of the current WorkingMode, in order to check if the
-	 * Application is going to run using processing elements from the same
-	 * clusters used in the previous execution step.
-	 *
-	 * @param awm the target working mode
- 	 *
-	 * @return One of the following values:
-	 * - RECONF: Application is being scheduled for using PEs from the same
-	 *   clusters, but with a different WorkingMode.
-	 * - MIGRATE: Application is going to run in the same WorkingMode, but
-	 *   it’s going to be moved onto a different clusters set.
-	 * - MIGREC: Application changes completely its execution profile. Both
-	 *   WorkingMode and clusters set are different from the previous run.
-	 * - SYNC_NONE: Nothing changes. Application is going to run in the same
-	 *   operating point.
-	 *
-	 */
-	SyncState_t SyncRequired(AwmPtr_t const & awm);
 
 	/**
 	 * @brief Check if this is a reshuffling
