@@ -22,6 +22,8 @@
 #define MODULE_NAMESPACE "bq.prm"
 #define MODULE_CONFIG    "ProcessManager"
 
+#define PRM_MAX_ARG_LENGTH 15
+
 using namespace bbque::app;
 
 
@@ -55,17 +57,23 @@ ProcessManager::ProcessManager():
 
 int ProcessManager::CommandsCb(int argc, char *argv[]) {
 	uint8_t cmd_offset = ::strlen(MODULE_NAMESPACE) + 1;
-	std::string command_name(argv[0]);
+	std::string command_name(argv[0], PRM_MAX_ARG_LENGTH);
+	std::string arg1;
 	logger->Debug("CommandsCb: processing command <%s>", command_name.c_str());
 
+	// bq.prm.add <process_name>
 	if (command_name.compare(MODULE_NAMESPACE CMD_ADD_PROCESS) == 0) {
 		if (argc < 1) {
 		    logger->Error("CommandsCb: <%s> : missing argument", command_name.c_str());
 		    return -1;
 		}
-
+		arg1.assign(argv[1], PRM_MAX_ARG_LENGTH);
 		logger->Info("CommandsCb: adding <%s> to managed processes", argv[1]);
-		Add(argv[1]);
+		Add(arg1);
+		return 0;
+	}
+
+	// bq.prm.remove <process_name>
 		return 0;
 	}
 /*
