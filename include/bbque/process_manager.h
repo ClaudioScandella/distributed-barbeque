@@ -31,7 +31,8 @@
 
 namespace bbque {
 
-using ProcPtr_t = std::shared_ptr<app::Process>;
+using ProcPtr_t    = std::shared_ptr<app::Process>;
+using ProcessMap_t = std::map<app::AppPid_t, ProcPtr_t>;
 
 using namespace app;
 
@@ -92,6 +93,7 @@ public:
 	 * @return A pointer to a process descriptor
 	 */
 	ProcPtr_t GetFirst() { return nullptr; }
+
 	/**
 	 * @brief Get the next process in the map
 	 * @return A pointer to a process descriptor
@@ -126,13 +128,13 @@ private:
 	std::map<std::string, ProcessInstancesInfo> managed_procs;
 
 	/** Processes to schedule */
-	std::map<AppPid_t, ProcPtr_t> proc_to_schedule;
+	ProcessMap_t proc_ready;
 
 	/** Processes scheduled but not synchronized yet */
-	std::map<AppPid_t, ProcPtr_t> proc_to_synchronize;
+	ProcessMap_t proc_to_sync;
 
 	/** Processes currently running */
-	std::map<AppPid_t, ProcPtr_t> proc_running;
+	ProcessMap_t proc_running;
 
 
 	/**
