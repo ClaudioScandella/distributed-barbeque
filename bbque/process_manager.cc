@@ -18,6 +18,7 @@
 #include "bbque/process_manager.h"
 
 #include <cstring>
+#include <ctype.h>
 
 #define MODULE_NAMESPACE "bq.prm"
 #define MODULE_CONFIG    "ProcessManager"
@@ -52,6 +53,11 @@ ProcessManager::ProcessManager():
 			MODULE_NAMESPACE CMD_REMOVE_PROCESS,
 			static_cast<CommandHandler*>(this),
 			"Remove a managed process (by executable name)");
+#define CMD_SETSCHED_PROCESS ".setsched"
+	cm.RegisterCommand(
+			MODULE_NAMESPACE CMD_SETSCHED_PROCESS,
+			static_cast<CommandHandler*>(this),
+			"Set a resource allocation request for a process/program");
 }
 
 
@@ -74,21 +80,83 @@ int ProcessManager::CommandsCb(int argc, char *argv[]) {
 	}
 
 	// bq.prm.remove <process_name>
+	if (command_name.compare(MODULE_NAMESPACE CMD_REMOVE_PROCESS) == 0) {
+		if (argc < 1) {
+		    logger->Error("CommandsCb: <%s> : missing argument", command_name.c_str());
+		    return -1;
+		}
+
+		arg1.assign(argv[1], PRM_MAX_ARG_LENGTH);
+		logger->Info("CommandsCb: removing <%s> from managed processes", argv[1]);
+		Remove(arg1);
 		return 0;
 	}
-/*
-	cmd_offset = ::strlen(MODULE_NAMESPACE) + sizeof(""); // ...
-	switch (argv[0][cmd_offset]) {
-	case 'w':
-		logger->Debug("Commands: # recipes = %d", recipes.size());
-		logger->Info("Commands: wiping out all the recipes...");
-		recipes.clear();
-		logger->Debug("Commands: # recipes = %d", recipes.size());
+
+	// bq.prm.setsched <process_name> ...
+	if (command_name.compare(MODULE_NAMESPACE CMD_SETSCHED_PROCESS) == 0) {
+		CommandManageSetSchedule(argc, argv);
 		return 0;
 	}
-*/
+
 	logger->Error("CommandsCb: <%s> not supported by this module", command_name.c_str());
 	return -1;
+}
+
+
+void ProcessManager::CommandManageSetSchedule(int argc, char * argv[]) {
+	app::Process::ScheduleRequest sched_req;
+	app::AppPid_t pid = 0;
+	std::string name;
+	char c;
+	while ((c = getopt(argc, argv, "n:p:c:a:m:h")) != -1) {
+		switch (c) {
+		case 'n':
+			if (optarg != nullptr) {
+				name.assign(optarg);
+				Add(name);
+			}
+			break;
+		case 'p':
+			if (optarg != nullptr)
+				pid = atoi(optarg);
+			break;
+		case 'c':
+			if (optarg != nullptr)
+				sched_req.cpu_cores = atoi(optarg);
+			break;
+		case 'a':
+			if (optarg != nullptr)
+				sched_req.acc_cores = atoi(optarg);
+			break;
+		case 'm':
+			if (optarg != nullptr)
+				sched_req.memory_mb = atoi(optarg);
+			break;
+		case 'h':
+		default :
+			CommandManageSetScheduleHelp();
+		}
+	}
+
+	if (name.empty()) {
+		logger->Error("CommandsCb: wrong arguments specification");
+		CommandManageSetScheduleHelp();
+		return;
+	}
+
+	*(managed_procs[name].sched_req) = sched_req;
+	logger->Notice("CommandsCb: <%s> schedule request: cpus=%d accs=%d mem=%d",
+		name.c_str(),
+		managed_procs[name].sched_req->cpu_cores,
+		managed_procs[name].sched_req->acc_cores,
+		managed_procs[name].sched_req->memory_mb);
+}
+
+
+void ProcessManager::CommandManageSetScheduleHelp() const {
+	logger->Notice("%s -n=<process_name> [-p=<pid>] -c=<cpu_cores> "
+		"[-a=<accelerator_cores>] [-m=<memory_MB>]",
+		MODULE_NAMESPACE CMD_SETSCHED_PROCESS);
 }
 
 
