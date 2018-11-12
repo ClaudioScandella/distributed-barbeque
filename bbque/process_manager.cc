@@ -86,22 +86,27 @@ int ProcessManager::CommandsCb(int argc, char *argv[]) {
 
 void ProcessManager::Add(std::string const & name) {
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
-	managed_proc_names.emplace(name);
-	logger->Debug("Add: processes with name '%s' in the managed list", name.c_str());
+	auto it = managed_procs.find(name);
+	if (it == managed_procs.end()) {
+		managed_procs.emplace(name, ProcessManager::ProcessInstancesInfo());
+		logger->Debug("Add: processes with name '%s' in the managed map", name.c_str());
+	}
+	else
+		logger->Debug("Add: processes with name '%s' already n the managed map", name.c_str());
 }
 
 
 void ProcessManager::Remove(std::string const & name) {
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
-	managed_proc_names.erase(name);
-	logger->Debug("Remove: processes with name '%s' no longer in the managed list",
+	managed_procs.erase(name);
+	logger->Debug("Remove: processes with name '%s' no longer in the managed map",
 		name.c_str());
 }
 
 
 bool ProcessManager::IsToManage(std::string const & name) const {
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
-	if (managed_proc_names.find(name) == managed_proc_names.end())
+	if (managed_procs.find(name) == managed_procs.end())
 		return false;
 	return true;
 }
@@ -112,8 +117,9 @@ void ProcessManager::NotifyStart(std::string const & name, app::AppPid_t pid) {
 		logger->Debug("NotifyStart: %s not managed", name.c_str());
 		return;
 	}
-	logger->Debug("NotifyStart: scheduling required for '%s'", name.c_str());
+	logger->Debug("NotifyStart: scheduling required for [%s: %d]", name.c_str(), pid);
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
+	managed_procs[name].pid_set->emplace(pid);
 	proc_to_schedule.emplace(pid, std::make_shared<Process>(pid));
 }
 
@@ -123,9 +129,25 @@ void ProcessManager::NotifyStop(std::string const & name, app::AppPid_t pid) {
 		logger->Debug("NotifyStop: %s not managed", name.c_str());
 		return;
 	}
-	logger->Debug("NotifyStop: scheduling required for '%s'", name.c_str());
-	//std::unique_lock<std::mutex> u_lock(proc_mutex);
-	//proc_to_schedule.emplace(pid, std::make_shared<Process>(pid));
+	logger->Debug("NotifyStop: process [%s: %d] terminated", name.c_str(), pid);
+	std::unique_lock<std::mutex> u_lock(proc_mutex);
+
+	// Remove from the managed map
+	logger->Debug("NotifyStop: [%s: %d] removing from managed map...", name.c_str(), pid);
+	auto pid_it = managed_procs[name].pid_set->find(pid);
+	if (pid_it != managed_procs[name].pid_set->end()) {
+		managed_procs[name].pid_set->erase(pid_it);
+		logger->Debug("NotifyStop: [%s: %d] removed from managed map", name.c_str(), pid);
+	}
+
+	// Remove from the runtime maps...
+	auto run_it = proc_running.find(pid);
+	if (run_it != proc_running.end()) {
+		proc_running.erase(run_it);
+		logger->Debug("NotifyStop: [%s: %d] removed from the running map", name.c_str(), pid);
+	}
+
+	// TODO: Should be removed also from "to_schedule" and "to_synchronize"
 }
 
 } // namespace bbque

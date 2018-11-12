@@ -32,6 +32,7 @@
 namespace bbque {
 
 using ProcPtr_t = std::shared_ptr<app::Process>;
+
 using namespace app;
 
 
@@ -47,7 +48,6 @@ public:
 		SUCCESS = 0,
 		PROCESS_NOT_FOUND
 	};
-
 
 	/**
 	 * @brief Get the ProcessManager instance
@@ -101,6 +101,19 @@ public:
 
 private:
 
+	using PidSet_t    = std::set<app::AppPid_t>;
+	using PidSetPtr_t = std::shared_ptr<PidSet_t>;
+
+	class ProcessInstancesInfo {
+	public:
+		ProcessInstancesInfo() {
+			sched_req = std::make_shared<app::Process::ScheduleRequest>();
+			pid_set   = std::make_shared<PidSet_t>();
+		}
+		app::Process::ScheduleRequestPtr_t sched_req; // Scheduling request
+		PidSetPtr_t pid_set;                          // Set of PIDs of active process instances
+	};
+
 	/** The logger used by the application manager */
 	std::unique_ptr<bu::Logger> logger;
 
@@ -110,7 +123,7 @@ private:
 	mutable std::mutex proc_mutex;
 
 	/** The set containing the names of the managed processes */
-	std::set<std::string> managed_proc_names;
+	std::map<std::string, ProcessInstancesInfo> managed_procs;
 
 	/** Processes to schedule */
 	std::map<AppPid_t, ProcPtr_t> proc_to_schedule;
@@ -131,6 +144,12 @@ private:
 	 * @brief The handler for commands defined by this module
 	 */
 	int CommandsCb(int argc, char *argv[]);
+
+	/**
+	 * @brief The handler for the command used to set a scheduling request
+	 */
+	void CommandManageSetSchedule(int argc, char * argv[]);
+	void CommandManageSetScheduleHelp() const;
 
 };
 
