@@ -62,7 +62,6 @@ ProcessManager::ProcessManager():
 
 
 int ProcessManager::CommandsCb(int argc, char *argv[]) {
-	uint8_t cmd_offset = ::strlen(MODULE_NAMESPACE) + 1;
 	std::string command_name(argv[0], PRM_MAX_ARG_LENGTH);
 	std::string arg1;
 	logger->Debug("CommandsCb: processing command <%s>", command_name.c_str());
