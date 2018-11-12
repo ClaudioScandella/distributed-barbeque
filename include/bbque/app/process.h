@@ -18,6 +18,7 @@
 #ifndef BBQUE_PROCESS_H_
 #define BBQUE_PROCESS_H_
 
+#include <cstring>
 #include "bbque/app/schedulable.h"
 #include "bbque/utils/logging/logger.h"
 
@@ -31,6 +32,20 @@ namespace bbque { namespace app {
 class Process: public Schedulable {
 
 public:
+	/**
+	 * @struct SchedRequest_t
+	 * @brief The set of resources required to schedule the process
+	 */
+	class ScheduleRequest {
+	public:
+		ScheduleRequest():
+			cpu_cores(0), acc_cores(0), memory_mb(0) {}
+		uint32_t cpu_cores;
+		uint32_t acc_cores;
+		uint32_t memory_mb;
+	};
+
+	using ScheduleRequestPtr_t = std::shared_ptr<ScheduleRequest>;
 
 	/**
 	 * @brief Constructur
@@ -46,6 +61,27 @@ public:
 	 * @brief Destructor
 	 */
 	virtual ~Process() { }
+
+	/**
+	 * @brief Set the scheduling request of resources
+	 * @param sched_req a ScheduleRequest_t object
+	 */
+	inline void SetScheduleRequestInfo(ScheduleRequestPtr_t sched_req) {
+		this->sched_req = sched_req;
+	}
+
+	/**
+	 * @brief Get the scheduling request of resources
+	 * @param sched_req a ScheduleRequest_t object
+	 */
+	inline ScheduleRequestPtr_t const & GetScheduleRequestInfo() {
+		return this->sched_req;
+	}
+
+private:
+
+	/** Request of resources for scheduling */
+	ScheduleRequestPtr_t sched_req;
 
 };
 
