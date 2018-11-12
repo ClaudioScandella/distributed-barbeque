@@ -47,7 +47,7 @@ ProcessManager::ProcessManager():
 			"Add a process to manage (by executable name)");
 #define CMD_REMOVE_PROCESS ".remove"
 	cm.RegisterCommand(
-			MODULE_NAMESPACE CMD_ADD_PROCESS,
+			MODULE_NAMESPACE CMD_REMOVE_PROCESS,
 			static_cast<CommandHandler*>(this),
 			"Remove a managed process (by executable name)");
 }
