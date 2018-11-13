@@ -205,6 +205,7 @@ AwmPtr_t Application::GetWorkingMode(uint8_t wmId) {
  ******************************************************************************/
 
 void Application::SetNextAWM(AwmPtr_t awm) {
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 	schedule.next_awm = awm;
 	awms.curr_inv = false;
 	logger->Debug("SetNewAWM: next_awm=%d", schedule.next_awm->Id());
