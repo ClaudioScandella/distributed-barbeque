@@ -17,6 +17,7 @@
 
 #include "bbque/app/schedulable.h"
 #include "bbque/app/working_mode.h"
+#include "bbque/resource_accounter.h"
 
 
 namespace bbque { namespace app {
@@ -38,6 +39,66 @@ char const *Schedulable::syncStateStr[] = {
 	"BLOCKED",
 	"NONE"
 };
+
+
+/*******************************************************************************
+ *  EXC State and SyncState Management
+ ******************************************************************************/
+
+void Schedulable::SetSyncState(SyncState_t sync) {
+/*
+	logger->Debug("Changing sync state [%s, %d:%s => %d:%s]",
+			StrId(),
+			_SyncState(), SyncStateStr(_SyncState()),
+			sync, SyncStateStr(sync));
+*/
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
+	schedule.syncState = sync;
+}
+
+
+Schedulable::ExitCode_t Schedulable::SetState(State_t next_state, SyncState_t next_sync) {
+/*
+	logger->Debug("Changing state [%s, %d:%s => %d:%s]",
+			StrId(),
+			_State(), StateStr(_State()),
+			next_state, StateStr(next_state));
+*/
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
+	// Switching to a sychronization state
+	if (next_state == SYNC) {
+		assert(next_sync != SYNC_NONE);
+		if (next_sync == SYNC_NONE)
+			return APP_SYNC_NOT_EXP;
+		schedule.preSyncState = _State();         // Previous pre-synchronization state
+		SetSyncState(next_sync);                  // Update synchronization state
+		schedule.state = Schedulable::SYNC;       // Update state
+		return APP_SUCCESS;
+	}
+	// Switching to a stable state
+	else {
+		assert(next_sync == SYNC_NONE);
+		if (next_sync != SYNC_NONE)
+			return APP_SYNC_NOT_EXP;
+		schedule.preSyncState = schedule.state;   // Previous pre-synchronization state
+		schedule.state = next_state;              // Updating state
+		SetSyncState(SYNC_NONE);                  // Update synchronization state
+	}
+
+	// Update current and next working mode: SYNC case
+	if ((next_state == DISABLED) || (next_state == READY)) {
+		schedule.awm.reset();
+		schedule.next_awm.reset();
+	}
+	else if (next_state == RUNNING) {
+		schedule.awm = schedule.next_awm;
+		schedule.awm->IncSchedulingCount();
+		++schedule.count;
+		schedule.next_awm.reset();
+	}
+
+	return APP_SUCCESS;
+}
 
 
 Schedulable::State_t Schedulable::_State() const {
@@ -67,6 +128,41 @@ Schedulable::SyncState_t Schedulable::SyncState() const {
 	return _SyncState();
 }
 
+Schedulable::SyncState_t Schedulable::NextSyncState(AwmPtr_t const & next_awm) const {
+	std::unique_lock<std::recursive_mutex> schedule_ul(schedule.mtx);
+	assert(schedule.state == RUNNING); // Must be called only by running applications
+	assert(schedule.awm);
+
+	// Check if the assigned operating point implies RECONF|MIGREC|MIGRATE
+	if ((schedule.awm->Id() != next_awm->Id()) &&
+			(schedule.awm->BindingSet(br::ResourceType::CPU) !=
+			           next_awm->BindingSet(br::ResourceType::CPU))) {
+		return MIGREC;
+	}
+
+	if ((schedule.awm->Id() == next_awm->Id()) &&
+			(schedule.awm->BindingChanged(br::ResourceType::CPU))) {
+		return MIGRATE;
+	}
+
+	if (schedule.awm->Id() != next_awm->Id()) {
+		return RECONF;
+	}
+
+	// Check for inter-cluster resources re-assignement
+	if (Reshuffling(next_awm)) {
+		return RECONF;
+	}
+
+	// NOTE: By default no reconfiguration is assumed to be required, thus we
+	// return the SYNC_STATE_COUNT which must be read as false values
+	return SYNC_NONE;
+}
+
+void Schedulable::SetNextAWM(AwmPtr_t awm) {
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
+	schedule.next_awm = awm;
+}
 
 bool Schedulable::_Disabled() const {
 	return ((_State() == DISABLED) ||
@@ -159,6 +255,18 @@ uint64_t Schedulable::ScheduleCount() const noexcept {
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 	return schedule.count;
 }
+
+bool Schedulable::Reshuffling(AwmPtr_t const & next_awm) const {
+	ResourceAccounter &ra(ResourceAccounter::GetInstance());
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
+	auto pumc = schedule.awm->GetResourceBinding();
+	auto puma = next_awm->GetResourceBinding();
+	state_ul.unlock();
+	if (ra.IsReshuffling(pumc, puma))
+		return true;
+	return false;
+}
+
 
 } // namespace app
 

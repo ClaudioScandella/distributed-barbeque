@@ -288,37 +288,9 @@ public:
 	// -------------- Scheduling management ----------------------------- //
 
 	/**
-	 * @brief Verify if a synchronization is required to move into the
-	 * specified AWM.
-	 *
-	 * The method is called only if the Application is currently RUNNING.
-	 * Compare the WorkingMode specified with the currently used by the
-	 * Application. Compare the Resources set with the one binding the
-	 * resources of the current WorkingMode, in order to check if the
-	 * Application is going to run using processing elements from the same
-	 * clusters used in the previous execution step.
-	 *
-	 * @param awm the target working mode
-	 *
-	 * @return One of the following values:
-	 * - RECONF: Application is being scheduled for using PEs from the same
-	 *   clusters, but with a different WorkingMode.
-	 * - MIGRATE: Application is going to run in the same WorkingMode, but
-	 *   it’s going to be moved onto a different clusters set.
-	 * - MIGREC: Application changes completely its execution profile. Both
-	 *   WorkingMode and clusters set are different from the previous run.
-	 * - SYNC_NONE: Nothing changes. Application is going to run in the same
-	 *   operating point.
-	 *
-	 */
-	SyncState_t NextSyncState(AwmPtr_t const & awm) const;
-
-	/**
-	 * @brief Set the AWM according to which schedule the application.
-	 * @param awm the working mode
+	 * @brief @see Schedulable
 	 */
 	void SetNextAWM(AwmPtr_t awm);
-
 
 	// ------------------- Synchronization functions --------------------- //
 
@@ -755,35 +727,6 @@ private:
 	 * which is out of the bounds set by a resource constraint assertion.
 	 */
 	void UpdateEnabledWorkingModes();
-
-	/**
-	 * @brief Update the application state and synchronization state
-	 *
-	 * @param state the new application state
-	 * @param sync the new synchronization state (SYNC_NONE by default)
-	 */
-	ExitCode_t SetState(State_t state, SyncState_t sync = SYNC_NONE);
-
-	/**
-	 * @brief Update the application synchronization state
-	 * @param sync the synchronization state to set
-	 */
-	void SetSyncState(SyncState_t sync);
-
-	/**
-	 * @brief Check if this is a reshuffling
-	 *
-	 * Resources reshuffling happens when two resources bindings are not
-	 * the same, i.e. different kind or amount of resources, while the
-	 * application is not being reconfigured or migrated.
-	 *
-	 * This method check if the specified AWM will produce a reshuffling.
-	 *
-	 * @param next_awm the AWM to compare with current
-	 * @return true if the specified next_awm will produce a resources
-	 * reshuffling
-	 */
-	bool Reshuffling(AwmPtr_t const & next_awm) const;
 
 };
 

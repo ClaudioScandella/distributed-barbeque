@@ -199,132 +199,16 @@ AwmPtr_t Application::GetWorkingMode(uint8_t wmId) {
 	return nullptr;
 }
 
-/*******************************************************************************
- *  EXC State and SyncState Management
- ******************************************************************************/
-
-void Application::SetSyncState(SyncState_t sync) {
-	logger->Debug("Changing sync state [%s, %d:%s => %d:%s]",
-			StrId(),
-			_SyncState(), SyncStateStr(_SyncState()),
-			sync, SyncStateStr(sync));
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	schedule.syncState = sync;
-}
-
-
-Application::ExitCode_t Application::SetState(State_t next_state, SyncState_t next_sync) {
-	logger->Debug("Changing state [%s, %d:%s => %d:%s]",
-			StrId(),
-			_State(), StateStr(_State()),
-			next_state, StateStr(next_state));
-
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	// Switching to a sychronization state
-	if (next_state == SYNC) {
-		assert(next_sync != SYNC_NONE);
-		if (next_sync == SYNC_NONE)
-			return APP_ERR_SYNC_STATUS;
-		schedule.preSyncState = _State();         // Previous pre-synchronization state
-		SetSyncState(next_sync);                  // Update synchronization state
-		schedule.state = Application::SYNC;       // Update state
-		return APP_SUCCESS;
-	}
-	// Switching to a stable state
-	else {
-		assert(next_sync == SYNC_NONE);
-		if (next_sync != SYNC_NONE)
-			return APP_ERR_SYNC_STATUS;
-		schedule.preSyncState = schedule.state;   // Previous pre-synchronization state
-		schedule.state = next_state;              // Updating state
-		SetSyncState(SYNC_NONE);                  // Update synchronization state
-	}
-
-	// Update current and next working mode: SYNC case
-	if ((next_state == DISABLED) || (next_state == READY)) {
-		schedule.awm.reset();
-		schedule.next_awm.reset();
-	}
-	else if (next_state == RUNNING) {
-		schedule.awm = schedule.next_awm;
-		schedule.awm->IncSchedulingCount();
-		++schedule.count;
-		schedule.next_awm.reset();
-	}
-
-	return APP_SUCCESS;
-}
-
-
 
 /*******************************************************************************
  *  EXC Optimization
  ******************************************************************************/
-
-
-bool Application::Reshuffling(AwmPtr_t const & next_awm) const {
-	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	auto pumc = _CurrentAWM()->GetResourceBinding();
-	auto puma = next_awm->GetResourceBinding();
-
-	// NOTE: This method is intended to be called if we already know we
-	// are in a RECONF state.
-	assert(_CurrentAWM()->BindingSet(br::ResourceType::CPU) ==
-			    next_awm->BindingSet(br::ResourceType::CPU));
-	assert(_CurrentAWM()->Id() == next_awm->Id());
-
-	if (ra.IsReshuffling(pumc, puma)) {
-		logger->Notice("AWM Shuffling on [%s]", StrId());
-		return true;
-	}
-
-	return false;
-}
-
-Application::SyncState_t Application::NextSyncState(AwmPtr_t const & awm) const {
-	std::unique_lock<std::recursive_mutex> schedule_ul(schedule.mtx);
-	// This must be called only by running applications
-	assert(_State() == RUNNING);
-	assert(_CurrentAWM().get());
-
-	// Check if the assigned operating point implies RECONF|MIGREC|MIGRATE
-	if ((_CurrentAWM()->Id() != awm->Id()) &&
-			(_CurrentAWM()->BindingSet(br::ResourceType::CPU) !=
-			           awm->BindingSet(br::ResourceType::CPU))) {
-		logger->Debug("NextSyncState: [%s] to MIGREC", StrId());
-		return MIGREC;
-	}
-
-	if ((_CurrentAWM()->Id() == awm->Id()) &&
-			(_CurrentAWM()->BindingChanged(br::ResourceType::CPU))) {
-		logger->Debug("NextSyncState: [%s] to MIGRATE", StrId());
-		return MIGRATE;
-	}
-
-	if (_CurrentAWM()->Id() != awm->Id()) {
-		logger->Debug("NextSyncState: [%s] to RECONF", StrId());
-		return RECONF;
-	}
-
-	// Check for inter-cluster resources re-assignement
-	if (Reshuffling(awm)) {
-		logger->Debug("NextSyncState: [%s] to AWM-RECONF", StrId());
-		return RECONF;
-	}
-
-	logger->Debug("NextSyncState: [%s] SYNC_NONE", StrId());
-	// NOTE: By default no reconfiguration is assumed to be required, thus we
-	// return the SYNC_STATE_COUNT which must be read as false values
-	return SYNC_NONE;
-}
-
 
 void Application::SetNextAWM(AwmPtr_t awm) {
 	schedule.next_awm = awm;
 	awms.curr_inv = false;
 	logger->Debug("SetNewAWM: next_awm=%d", schedule.next_awm->Id());
 }
-
 
 /*******************************************************************************
  *  EXC Synchronization

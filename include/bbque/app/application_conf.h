@@ -57,16 +57,6 @@ public:
 	 */
 	virtual void SetValue(float sched_metrics) = 0;
 
-	/**
-	 * @brief Set the working mode assigned by the scheduling policy
-	 *
-	 * The usage of this method should be in charge of the
-	 * ApplicationManager, when a scheduling request has been accepted
-	 *
-	 * @param awm the working mode
-	 */
-	virtual void SetNextAWM(AwmPtr_t awm) = 0;
-
 #ifdef CONFIG_BBQUE_TG_PROG_MODEL
 
 	/**
