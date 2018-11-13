@@ -78,7 +78,6 @@ char const * RandomSchedPol::Name() {
 }
 
 void RandomSchedPol::ScheduleApp(ba::AppCPtr_t papp) {
-	Application::ExitCode_t app_result = Application::APP_SUCCESS;
 	ba::AwmPtr_t selected_awm;
 	int8_t selected_awm_id;
 	uint32_t selected_bd;

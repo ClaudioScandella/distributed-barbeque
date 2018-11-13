@@ -531,7 +531,6 @@ TempuraSchedPol::AssignWorkingMode(ba::AppCPtr_t papp) {
 
 SchedulerPolicyIF::ExitCode_t TempuraSchedPol::DoScheduling() {
 	SchedulerPolicyIF::ExitCode_t result;
-	Application::ExitCode_t app_result = Application::APP_SUCCESS;
 	logger->Debug("DoScheduling: START");
 
 	for (SchedEntityPtr_t & psched: entities) {
