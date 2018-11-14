@@ -123,6 +123,8 @@ public:
 		AwmPtr_t awm;             /** The current application working mode */
 		AwmPtr_t next_awm;        /** The next scheduled application working mode */
 		uint64_t count = 0;       /** How many times the application has been scheduled */
+		bool remote = false;      /** Set true if scheduled on a remote node */
+
 		/**
 		 * The metrics value set by the scheduling policy. The purpose of this
 		 * attribute is to provide a support for the evaluation of the schedule
@@ -312,6 +314,33 @@ public:
 	 */
 	virtual bool Reshuffling(AwmPtr_t const & next_awm) const;
 
+
+	/** @brief Set a remote application
+	 *
+	 * Mark the application as remote or local
+	 */
+	inline void SetRemote(bool is_remote) noexcept { schedule.remote = is_remote; }
+
+	/**
+	 * @brief Return true if the application is executing or will be
+	 *        executed remotely, false if not.
+	 */
+	inline bool IsRemote() const noexcept { return schedule.remote; }
+
+	/**
+	 * @brief Set a remote application
+	 *
+	 * Mark the application as remote or local
+	 */
+	inline void SetLocal(bool is_local) noexcept { schedule.remote = !is_local; }
+
+	/**
+	 * @brief Return true if the application is executing or will be
+	 *        executed locally, false if not.
+	 */
+	inline bool IsLocal() const noexcept { return !schedule.remote; }
+
+
 // Scheduling
 
 
@@ -331,6 +360,7 @@ protected:
 
 	/** Current scheduling informations */
 	SchedulingInfo_t schedule;
+
 
 #ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	CGroupSetupData_t cgroup_data;

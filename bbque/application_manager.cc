@@ -1081,7 +1081,7 @@ ApplicationManager::CleanupEXC(AppPtr_t papp) {
 	}
 
 	// Remove platform specific data
-	if (papp->HasPlatformData()) {
+	if (papp->ScheduleCount() > 0) {
 		logger->Debug("CleanupEXC: [%s] missing platform data", papp->StrId());
 		pp_result = plm.Release(papp);
 		if (pp_result != PlatformManager::PLATFORM_OK) {

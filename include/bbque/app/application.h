@@ -205,52 +205,12 @@ public:
 	 */
 	inline void ReloadWorkingModes(AppPtr_t & papp) { return InitWorkingModes(papp); }
 
-	/**
-	 * @brief Set Platform Specific Data initialized
-	 *
-	 * Mark the Platform Specific Data as initialized for this application
-	 */
-	inline void SetPlatformData() noexcept { platform_data = true; }
 
-
-	/**
-	 * @brief Check Platform Specific Data initialization
-	 *
-	 * Return true if this application has already a properly configured
-	 * set of Platform Specific Data.
-	 */
-	inline bool HasPlatformData() const noexcept { return platform_data; }
-
-	/** @brief Set a remote application
-	 *
-	 * Mark the application as remote or local
-	 */
-	inline void SetRemote(bool is_remote) noexcept { remotely_scheduled = is_remote; }
-
-	/**
-	 * @brief Return true if the application is executing or will be
-	 *        executed remotely, false if not.
-	 */
-	inline bool IsRemote() const noexcept { return remotely_scheduled; }
-
-	/**
-	 * @brief Set a remote application
-	 *
-	 * Mark the application as remote or local
-	 */
-	inline void SetLocal(bool is_local) noexcept { locally_scheduled = is_local; }
-
-	/**
-	 * @brief Return true if the application is executing or will be
-	 *        executed locally, false if not.
-	 */
-	inline bool IsLocal() const noexcept { return locally_scheduled; }
 
 	/**
 	 * @see ApplicationStatusIF
 	 */
 	bool IsContainer() const noexcept { return container; }
-
 
 
 	/**
@@ -523,21 +483,6 @@ private:
 	 * Assigned partition
 	 */
 	std::shared_ptr<Partition> assigned_partition = nullptr;
-
-	/**
-	 * Platform Specifica Data properly initialized
-	 */
-	bool platform_data = false;
-
-	/**
-	 * Remotely scheduled
-	 */
-	bool remotely_scheduled = false;
-
-	/**
-	 * Locally scheduled
-	 */
-	bool locally_scheduled = false;
 
 	/**
 	 * Recipe pointer for the current application instance.
