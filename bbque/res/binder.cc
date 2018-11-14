@@ -152,7 +152,7 @@ ResourceBitset ResourceBinder::GetMask(
 		br::ResourceType r_type,
 		br::ResourceType r_scope_type,
 		BBQUE_RID_TYPE r_scope_id,
-		AppSPtr_t papp,
+		SchedPtr_t papp,
 		RViewToken_t status_view) {
 	ResourceBitset r_mask;
 	br::ResourceType found_rsrc_type, found_scope_type;
@@ -210,7 +210,7 @@ ResourceBitset ResourceBinder::GetMask(
 		br::ResourceType r_type,
 		br::ResourceType r_scope_type,
 		BBQUE_RID_TYPE r_scope_id,
-		AppSPtr_t papp,
+		SchedPtr_t papp,
 		RViewToken_t status_view) {
 	ResourceBitset r_mask;
 	std::unique_ptr<bu::Logger> logger = bu::Logger::GetLogger(MODULE_NAMESPACE);

@@ -129,17 +129,17 @@ public:
 	uint64_t Available(
 	        std::string const & path,
 	        br::RViewToken_t status_view = 0,
-	        ba::AppSPtr_t papp = ba::AppSPtr_t());
+	        ba::SchedPtr_t papp = ba::SchedPtr_t());
 
 	uint64_t Available(
 	        br::ResourcePtrList_t & resources_list,
 	        br::RViewToken_t status_view = 0,
-	        ba::AppSPtr_t papp = ba::AppSPtr_t()) const;
+	        ba::SchedPtr_t papp = ba::SchedPtr_t()) const;
 
 	uint64_t Available(
 	        br::ResourcePathPtr_t resource_path_ptr, PathClass_t rpc = EXACT,
 	        br::RViewToken_t status_view = 0,
-	        ba::AppSPtr_t papp = ba::AppSPtr_t()) const;
+	        ba::SchedPtr_t papp = ba::SchedPtr_t()) const;
 
 	/**
 	 * @see ResourceAccounterStatusIF
@@ -223,7 +223,7 @@ public:
 	 */
 	uint64_t GetAssignedAmount(
 	        br::ResourceAssignmentMapPtr_t const & assign_map,
-	        ba::AppSPtr_t papp,
+	        ba::SchedPtr_t papp,
 	        br::RViewToken_t status_view,
 	        br::ResourceType r_type,
 	        br::ResourceType r_scope_type =
@@ -232,7 +232,7 @@ public:
 
 	uint64_t GetAssignedAmount(
 	        br::ResourceAssignmentMap_t const & assign_map,
-	        ba::AppSPtr_t papp,
+	        ba::SchedPtr_t papp,
 	        br::RViewToken_t status_view,
 	        br::ResourceType r_type,
 	        br::ResourceType r_scope_type =
@@ -348,7 +348,7 @@ public:
 	 * available.
 	 */
 	ExitCode_t BookResources(
-	        ba::AppSPtr_t papp,
+	        ba::SchedPtr_t papp,
 	        br::ResourceAssignmentMapPtr_t const & assign_map,
 	        br::RViewToken_t status_view = 0);
 
@@ -363,7 +363,7 @@ public:
 	 * @param papp The application holding the resources
 	 * @param status_view The token referencing the resource state view
 	 */
-	void ReleaseResources(ba::AppSPtr_t papp, br::RViewToken_t status_view = 0);
+	void ReleaseResources(ba::SchedPtr_t papp, br::RViewToken_t status_view = 0);
 
 
 	/**
@@ -485,7 +485,7 @@ public:
 	 *
 	 * @return @see ExitCode_t
 	 */
-	ExitCode_t SyncAcquireResources(ba::AppSPtr_t const & papp);
+	ExitCode_t SyncAcquireResources(ba::SchedPtr_t const & papp);
 
 	/**
 	 * @brief Abort a synchronized mode session
@@ -733,7 +733,7 @@ private:
 	uint64_t QueryStatus(
 	        br::ResourcePtrList_t const & resources_list,
 	        QueryOption_t q_opt, br::RViewToken_t status_view = 0,
-	        ba::AppSPtr_t papp = ba::AppSPtr_t()) const;
+	        ba::SchedPtr_t papp = ba::SchedPtr_t()) const;
 
 	/**
 	 * @brief Check the resource availability for a whole set
@@ -747,7 +747,7 @@ private:
 	ExitCode_t CheckAvailability(
 	        br::ResourceAssignmentMapPtr_t const & assign_map,
 	        br::RViewToken_t status_view = 0,
-	        ba::AppSPtr_t papp = ba::AppSPtr_t()) const;
+	        ba::SchedPtr_t papp = ba::SchedPtr_t()) const;
 
 	/**
 	 * @brief Get a pointer to the map of applications resource assignments
@@ -786,7 +786,7 @@ private:
 	 * available.
 	 */
 	ExitCode_t _BookResources(
-	        ba::AppSPtr_t papp,
+	        ba::SchedPtr_t papp,
 	        br::ResourceAssignmentMapPtr_t const & assign_map,
 	        br::RViewToken_t status_view = 0);
 
@@ -807,7 +807,7 @@ private:
 	 */
 	ExitCode_t IncBookingCounts(
 	        br::ResourceAssignmentMapPtr_t const & assign_map,
-	        ba::AppSPtr_t const & papp,
+	        ba::SchedPtr_t const & papp,
 	        br::RViewToken_t status_view = 0);
 
 	/**
@@ -825,7 +825,7 @@ private:
 	 * availability. RA_SUCCESS otherwise.
 	 */
 	ExitCode_t DoResourceBooking(
-	        ba::AppSPtr_t const & papp,
+	        ba::SchedPtr_t const & papp,
 	        br::ResourceAssignmentPtr_t & r_assign,
 	        br::RViewToken_t status_view,
 	        ResourceSetPtr_t & rsrc_set);
@@ -838,7 +838,7 @@ private:
 	 *
 	 * @see ReleaseResources
 	 */
-	void _ReleaseResources(ba::AppSPtr_t papp, br::RViewToken_t status_view = 0);
+	void _ReleaseResources(ba::SchedPtr_t papp, br::RViewToken_t status_view = 0);
 
 	/**
 	 * @brief Allocate a quota of resource in the scheduling case
@@ -852,7 +852,7 @@ private:
 	 * @param status_view The token referencing the resource state view
 	 */
 	void SchedResourceBooking(
-	        ba::AppSPtr_t const & papp,
+	        ba::SchedPtr_t const & papp,
 	        br::ResourcePtr_t & rsrc,
 	        br::RViewToken_t status_view,
 	        uint64_t & requested,
@@ -870,7 +870,7 @@ private:
 	 * @param requested The amount of resource required
 	 */
 	void SyncResourceBooking(
-	        ba::AppSPtr_t const & papp,
+	        ba::SchedPtr_t const & papp,
 	        br::ResourcePtr_t & rsrc,
 	        uint64_t & requested);
 
@@ -886,7 +886,7 @@ private:
 	 */
 	void DecBookingCounts(
 	        br::ResourceAssignmentMapPtr_t const & assign_map,
-	        ba::AppSPtr_t const & app,
+	        ba::SchedPtr_t const & app,
 	        br::RViewToken_t status_view = 0);
 
 	/**
@@ -906,7 +906,7 @@ private:
 	 * RA_ERR_APP_USAGES if the application is already scheduled.
 	 */
 	ExitCode_t UndoResourceBooking(
-	        ba::AppSPtr_t const & papp,
+	        ba::SchedPtr_t const & papp,
 	        br::ResourceAssignmentPtr_t & r_assign,
 	        br::RViewToken_t status_view,
 	        ResourceSetPtr_t & rsrc_set);

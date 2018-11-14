@@ -36,7 +36,7 @@
 #include "bbque/utils/stats.h"
 
 
-using bbque::app::AppSPtr_t;
+using bbque::app::SchedPtr_t;
 using bbque::app::AppUid_t;
 using bbque::utils::ExtraDataContainer;
 using bbque::utils::Timer;
@@ -257,7 +257,7 @@ public:
 	 * @return How much resource is still available including the amount of
 	 * resource used by the given application
 	 */
-	uint64_t Available(AppSPtr_t papp = AppSPtr_t(), RViewToken_t view_id = 0);
+	uint64_t Available(SchedPtr_t papp = SchedPtr_t(), RViewToken_t view_id = 0);
 
 	/**
 	 * @brief Count of applications using the resource
@@ -278,7 +278,7 @@ public:
 	 *
 	 * @return The 'quota' of resource used by the application
 	 */
-	uint64_t ApplicationUsage(AppSPtr_t const & papp, RViewToken_t view_id = 0);
+	uint64_t ApplicationUsage(SchedPtr_t const & papp, RViewToken_t view_id = 0);
 
 	/**
 	 * @brief Applications using the resource
@@ -573,7 +573,7 @@ private:
 	 * @param view_id The token referencing the resource view
 	 * @return The amount of resource acquired if success, 0 otherwise.
 	 */
-	 uint64_t Acquire(AppSPtr_t const & papp, uint64_t amount, RViewToken_t view_id = 0);
+	 uint64_t Acquire(SchedPtr_t const & papp, uint64_t amount, RViewToken_t view_id = 0);
 
 	/**
 	 * @brief Release the resource
@@ -584,7 +584,7 @@ private:
 	 * @param view_id The token referencing the resource view
 	 * @return The amount of resource released
 	 */
-	uint64_t Release(AppSPtr_t const & papp, RViewToken_t view_id);
+	uint64_t Release(SchedPtr_t const & papp, RViewToken_t view_id);
 
 	/**
 	 * @brief Release the resource
@@ -628,7 +628,7 @@ private:
 	 *
 	 * @return The 'quota' of resource used by the application
 	 */
-	uint64_t ApplicationUsage(AppSPtr_t const & papp, AppUsageQtyMap_t & apps_map);
+	uint64_t ApplicationUsage(SchedPtr_t const & papp, AppUsageQtyMap_t & apps_map);
 
 
 	/**

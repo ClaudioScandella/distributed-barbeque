@@ -200,12 +200,12 @@ public:
 	virtual uint64_t Available(
 			std::string const & path,
 			br::RViewToken_t status_view = 0,
-			ba::AppSPtr_t papp = ba::AppSPtr_t()) = 0;
+			ba::SchedPtr_t papp = ba::SchedPtr_t()) = 0;
 
 	virtual uint64_t Available(br::ResourcePathPtr_t ppath,
 			PathClass_t rpc = EXACT,
 			br::RViewToken_t status_view = 0,
-			ba::AppSPtr_t papp = ba::AppSPtr_t()) const = 0;
+			ba::SchedPtr_t papp = ba::SchedPtr_t()) const = 0;
 
 	/**
 	 * @brief Amount of resources available
@@ -230,7 +230,7 @@ public:
 	virtual uint64_t Available(
 			br::ResourcePtrList_t & rsrc_list,
 			br::RViewToken_t status_view = 0,
-			ba::AppSPtr_t papp = ba::AppSPtr_t()) const = 0;
+			ba::SchedPtr_t papp = ba::SchedPtr_t()) const = 0;
 
 	/**
 	 * @brief Amount of resources used

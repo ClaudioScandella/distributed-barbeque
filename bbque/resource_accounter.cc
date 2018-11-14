@@ -387,7 +387,7 @@ inline uint64_t ResourceAccounter::Used(
 inline uint64_t ResourceAccounter::Available(
 		std::string const & path,
 		br::RViewToken_t status_view,
-		ba::AppSPtr_t papp) {
+		ba::SchedPtr_t papp) {
 	br::ResourcePtrList_t matchings(GetResources(path));
 	return QueryStatus(matchings, RA_AVAIL, status_view, papp);
 }
@@ -395,7 +395,7 @@ inline uint64_t ResourceAccounter::Available(
 inline uint64_t ResourceAccounter::Available(
 		br::ResourcePtrList_t & resources_list,
 		br::RViewToken_t status_view,
-		ba::AppSPtr_t papp) const {
+		ba::SchedPtr_t papp) const {
 	if (resources_list.empty())
 		return 0;
 	return QueryStatus(resources_list, RA_AVAIL, status_view, papp);
@@ -405,7 +405,7 @@ inline uint64_t ResourceAccounter::Available(
 		ResourcePathPtr_t resource_path_ptr,
 		PathClass_t rpc,
 		br::RViewToken_t status_view,
-		ba::AppSPtr_t papp) const {
+		ba::SchedPtr_t papp) const {
 	br::ResourcePtrList_t matchings(GetList(resource_path_ptr, rpc));
 	return QueryStatus(matchings, RA_AVAIL, status_view, papp);
 }
@@ -456,7 +456,7 @@ inline uint64_t ResourceAccounter::QueryStatus(
 		br::ResourcePtrList_t const & resources_list,
 		QueryOption_t _att,
 		br::RViewToken_t status_view,
-		ba::AppSPtr_t papp) const {
+		ba::SchedPtr_t papp) const {
 	uint64_t value = 0;
 
 	// For all the descriptors in the list add the quantity of resource in the
@@ -482,7 +482,7 @@ inline uint64_t ResourceAccounter::QueryStatus(
 
 uint64_t ResourceAccounter::GetAssignedAmount(
 		br::ResourceAssignmentMapPtr_t const & assign_map,
-		ba::AppSPtr_t papp,
+		ba::SchedPtr_t papp,
 		br::RViewToken_t status_view,
 		br::ResourceType r_type,
 		br::ResourceType r_scope_type,
@@ -560,7 +560,7 @@ uint64_t ResourceAccounter::GetAssignedAmount(
 inline ResourceAccounter::ExitCode_t ResourceAccounter::CheckAvailability(
 		br::ResourceAssignmentMapPtr_t const & assign_map,
 		br::RViewToken_t status_view,
-		ba::AppSPtr_t papp) const {
+		ba::SchedPtr_t papp) const {
 	uint64_t avail = 0;
 
 	// Check availability for each Usage object
@@ -977,7 +977,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncStart() {
 ResourceAccounter::ExitCode_t ResourceAccounter::SyncInit() {
 	ResourceAccounter::ExitCode_t result;
 	AppsUidMapIt apps_it;
-	ba::AppSPtr_t papp;
+	ba::SchedPtr_t papp;
 
 	// Running Applications/ExC
 	papp = am.GetFirst(ApplicationStatusIF::RUNNING, apps_it);
@@ -1004,7 +1004,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::SyncInit() {
 }
 
 ResourceAccounter::ExitCode_t ResourceAccounter::SyncAcquireResources(
-		ba::AppSPtr_t const & papp) {
+		ba::SchedPtr_t const & papp) {
 	ResourceAccounter::ExitCode_t result = RA_SUCCESS;
 
 	// Check that we are in a synchronized session
@@ -1099,14 +1099,14 @@ void ResourceAccounter::SyncWait() {
  ************************************************************************/
 
  inline ResourceAccounter::ExitCode_t ResourceAccounter::_BookResources(
-		ba::AppSPtr_t papp,
+		ba::SchedPtr_t papp,
 		br::ResourceAssignmentMapPtr_t const & assign_map,
 		br::RViewToken_t status_view) {
 	return IncBookingCounts(assign_map, papp, status_view);
 }
 
 ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
-		ba::AppSPtr_t papp,
+		ba::SchedPtr_t papp,
 		br::ResourceAssignmentMapPtr_t const & assign_map,
 		br::RViewToken_t status_view) {
 	logger->Debug("Booking: assigning resources to [%s]", papp->StrId());
@@ -1140,7 +1140,7 @@ ResourceAccounter::ExitCode_t ResourceAccounter::BookResources(
 }
 
 void ResourceAccounter::ReleaseResources(
-		ba::AppSPtr_t papp,
+		ba::SchedPtr_t papp,
 		br::RViewToken_t status_view) {
 	std::unique_lock<std::mutex> sync_ul(status_mtx);
 	if (!papp) {
@@ -1163,7 +1163,7 @@ void ResourceAccounter::ReleaseResources(
 }
 
 void ResourceAccounter::_ReleaseResources(
-		ba::AppSPtr_t papp,
+		ba::SchedPtr_t papp,
 		br::RViewToken_t status_view) {
 	// Get the map of applications resource assignments related to the state view
 	// referenced by 'status_view'
@@ -1190,7 +1190,7 @@ void ResourceAccounter::_ReleaseResources(
 ResourceAccounter::ExitCode_t
 ResourceAccounter::IncBookingCounts(
 		br::ResourceAssignmentMapPtr_t const & assign_map,
-		ba::AppSPtr_t const & papp,
+		ba::SchedPtr_t const & papp,
 		br::RViewToken_t status_view) {
 	ResourceAccounter::ExitCode_t result;
 	logger->Debug("Booking: getting the assigned amount from view [%ld]...",
@@ -1259,7 +1259,7 @@ ResourceAccounter::IncBookingCounts(
 }
 
 ResourceAccounter::ExitCode_t ResourceAccounter::DoResourceBooking(
-		ba::AppSPtr_t const & papp,
+		ba::SchedPtr_t const & papp,
 		br::ResourceAssignmentPtr_t & r_assign,
 		br::RViewToken_t status_view,
 		ResourceSetPtr_t & rsrc_set) {
@@ -1336,7 +1336,7 @@ bool ResourceAccounter::IsReshuffling(
 }
 
 inline void ResourceAccounter::SchedResourceBooking(
-		ba::AppSPtr_t const & papp,
+		ba::SchedPtr_t const & papp,
 		br::ResourcePtr_t & rsrc,
 		br::RViewToken_t status_view,
 		uint64_t & requested,
@@ -1361,7 +1361,7 @@ inline void ResourceAccounter::SchedResourceBooking(
 }
 
 inline void ResourceAccounter::SyncResourceBooking(
-		ba::AppSPtr_t const & papp,
+		ba::SchedPtr_t const & papp,
 		br::ResourcePtr_t & rsrc,
 		uint64_t & requested) {
 	// Skip the resource binding if the not assigned by the scheduler
@@ -1381,7 +1381,7 @@ inline void ResourceAccounter::SyncResourceBooking(
 
 void ResourceAccounter::DecBookingCounts(
 		br::ResourceAssignmentMapPtr_t const & assign_map,
-		ba::AppSPtr_t const & papp,
+		ba::SchedPtr_t const & papp,
 		br::RViewToken_t status_view) {
 	ExitCode_t ra_result;
 	logger->Debug("DecCount: [%s] holds %d resources in view=[%ld]",
@@ -1410,7 +1410,7 @@ void ResourceAccounter::DecBookingCounts(
 }
 
 ResourceAccounter::ExitCode_t ResourceAccounter::UndoResourceBooking(
-		ba::AppSPtr_t const & papp,
+		ba::SchedPtr_t const & papp,
 		br::ResourceAssignmentPtr_t & r_assign,
 		br::RViewToken_t status_view,
 		ResourceSetPtr_t & rsrc_set) {

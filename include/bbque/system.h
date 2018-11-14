@@ -164,17 +164,17 @@ public:
 	 * @see ResourceAccounterStatusIF::Available()
 	 */
 	inline uint64_t ResourceAvailable(std::string const & path,
-			br::RViewToken_t status_view = 0, ba::AppCPtr_t papp = ba::AppCPtr_t()) const {
+			br::RViewToken_t status_view = 0, ba::SchedPtr_t papp = ba::SchedPtr_t()) const {
 		return ra.Available(path, status_view, papp);
 	}
 
 	inline uint64_t ResourceAvailable(ResourcePathPtr_t ppath,
-			br::RViewToken_t status_view = 0, AppSPtr_t papp = AppSPtr_t()) const {
+			br::RViewToken_t status_view = 0, ba::SchedPtr_t papp = SchedPtr_t()) const {
 		return ra.Available(ppath, ResourceAccounter::UNDEFINED, status_view, papp);
 	}
 
 	inline uint64_t ResourceAvailable(br::ResourcePtrList_t & rsrc_list,
-			br::RViewToken_t status_view = 0, ba::AppCPtr_t papp = ba::AppCPtr_t()) const {
+			br::RViewToken_t status_view = 0, ba::SchedPtr_t papp = ba::SchedPtr_t()) const {
 		return ra.Available(rsrc_list, status_view, papp);
 	}
 

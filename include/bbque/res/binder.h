@@ -135,7 +135,7 @@ public:
 			ResourceType r_type,
 			ResourceType r_scope_type,
 			BBQUE_RID_TYPE r_scope_id,
-			AppSPtr_t papp = nullptr,
+			SchedPtr_t papp = nullptr,
 			RViewToken_t status_view = 0);
 
 	/**
@@ -153,7 +153,7 @@ public:
 			ResourceType r_type,
 			ResourceType r_scope_type,
 			BBQUE_RID_TYPE r_scope_id,
-			AppSPtr_t papp = nullptr,
+			SchedPtr_t papp = nullptr,
 			RViewToken_t status_view = 0);
 
 	static ResourceBitset GetMaskInRange(

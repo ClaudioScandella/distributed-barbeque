@@ -254,7 +254,7 @@ private:
 
 
 	/** The application/EXC owning this resource usage */
-	AppSPtr_t owner_app;
+	SchedPtr_t owner_app;
 
 	/** The token referencing the state view of the resource usage */
 	RViewToken_t status_view = 0;
