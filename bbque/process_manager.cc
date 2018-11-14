@@ -62,7 +62,7 @@ ProcessManager::ProcessManager():
 
 
 int ProcessManager::CommandsCb(int argc, char *argv[]) {
-	std::string command_name(argv[0], PRM_MAX_ARG_LENGTH);
+	std::string command_name(argv[0]);
 	std::string arg1;
 	logger->Debug("CommandsCb: processing command <%s>", command_name.c_str());
 
@@ -72,7 +72,7 @@ int ProcessManager::CommandsCb(int argc, char *argv[]) {
 		    logger->Error("CommandsCb: <%s> : missing argument", command_name.c_str());
 		    return -1;
 		}
-		arg1.assign(argv[1], PRM_MAX_ARG_LENGTH);
+		arg1.assign(argv[1]);
 		logger->Info("CommandsCb: adding <%s> to managed processes", argv[1]);
 		Add(arg1);
 		return 0;
@@ -85,7 +85,7 @@ int ProcessManager::CommandsCb(int argc, char *argv[]) {
 		    return -1;
 		}
 
-		arg1.assign(argv[1], PRM_MAX_ARG_LENGTH);
+		arg1.assign(argv[1]);
 		logger->Info("CommandsCb: removing <%s> from managed processes", argv[1]);
 		Remove(arg1);
 		return 0;
