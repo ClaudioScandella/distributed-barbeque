@@ -25,7 +25,6 @@
 #include "bbque/config.h"
 #include "bbque/app/schedulable.h"
 #include "bbque/rtlib.h"
-#include "bbque/utils/extra_data_container.h"
 #include "tg/requirements.h"
 
 
@@ -50,7 +49,7 @@ typedef std::list<AwmPtr_t> AwmPtrList_t;
  * name, priority, current  working mode and scheduled state, next working
  * mode and scheduled state, and the list of all the active working modes
  */
-class ApplicationStatusIF: public bu::ExtraDataContainer, public bbque::app::Schedulable {
+class ApplicationStatusIF: public bbque::app::Schedulable {
 
 public:
 

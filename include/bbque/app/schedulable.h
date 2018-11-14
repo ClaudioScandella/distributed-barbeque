@@ -23,6 +23,7 @@
 
 #include "bbque/config.h"
 #include "bbque/cpp11/mutex.h"
+#include "bbque/utils/extra_data_container.h"
 
 #define SCHEDULABLE_ID_MAX_LEN  16
 
@@ -41,7 +42,7 @@ class WorkingMode;
 typedef std::shared_ptr<WorkingMode> AwmPtr_t;
 
 
-class Schedulable {
+class Schedulable: public utils::ExtraDataContainer {
 
 public:
 	/**
