@@ -196,7 +196,7 @@ void ProcessManager::NotifyStart(std::string const & name, app::AppPid_t pid) {
 	logger->Debug("NotifyStart: scheduling required for [%s: %d]", name.c_str(), pid);
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
 	managed_procs[name].pid_set->emplace(pid);
-	proc_ready.emplace(pid, std::make_shared<Process>(pid));
+	proc_ready.emplace(pid, std::make_shared<Process>(name, pid));
 }
 
 
