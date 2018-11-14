@@ -52,15 +52,13 @@ public:
 	 * @param _pid the process id
 	 * @param _prio the priority (optional)
 	 */
-	Process(AppPid_t _pid, AppPrio_t _prio=0) {
-		pid = _pid;
-		priority = _prio;
-	}
+	Process(std::string const & _name, AppPid_t _pid, AppPrio_t _prio=0);
 
 	/**
 	 * @brief Destructor
 	 */
 	virtual ~Process() { }
+
 
 	/**
 	 * @brief Set the scheduling request of resources
@@ -79,6 +77,8 @@ public:
 	}
 
 private:
+
+	std::unique_ptr<bbque::utils::Logger> logger;
 
 	/** Request of resources for scheduling */
 	ScheduleRequestPtr_t sched_req;
