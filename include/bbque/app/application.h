@@ -44,7 +44,6 @@
 #include "tg/partition.h"
 
 #define APPLICATION_NAMESPACE "bq.app"
-#define APPLICATION_NAME_LEN  16
 
 namespace bu = bbque::utils;
 
@@ -151,13 +150,6 @@ public:
 	 */
 	inline RTLIB_ProgrammingLanguage_t Language() const noexcept { return language; }
 
-	/**
-	 * @brief Get a string ID for this Execution Context
-	 * This method build a string ID according to this format:
-	 * PID:TASK_NAME:EXC_ID
-	 * @return String ID
-	 */
-	inline const char *StrId() const noexcept { return str_id; }
 
 	/**
 	 * @brief Set the priority of the application
@@ -496,9 +488,6 @@ private:
 
 	/** The programming language */
 	RTLIB_ProgrammingLanguage_t language;
-
-	/** The application string ID */
-	char str_id[APPLICATION_NAME_LEN];
 
 	/** True if this is an application container */
 	bool container;

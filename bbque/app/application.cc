@@ -71,8 +71,8 @@ Application::Application(std::string const & _name,
 	logger = bu::Logger::GetLogger(APPLICATION_NAMESPACE);
 	assert(logger);
 
-	// Format the EXC string identifier
-	snprintf(str_id, APPLICATION_NAME_LEN, "%05d:%5s:%02d",
+	// Format the application string identifier for logging purpose
+	snprintf(str_id, SCHEDULABLE_ID_MAX_LEN, "%05d:%5s:%02d",
 		Pid(), Name().substr(0,5).c_str(), ExcId());
 
 #ifdef CONFIG_BBQUE_TG_PROG_MODEL

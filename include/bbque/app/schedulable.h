@@ -24,7 +24,11 @@
 #include "bbque/config.h"
 #include "bbque/cpp11/mutex.h"
 
+#define SCHEDULABLE_ID_MAX_LEN  16
+
+
 namespace bbque { namespace app {
+
 
 /** The application identifier type */
 typedef uint32_t AppPid_t;
@@ -167,6 +171,23 @@ public:
 	 * @return PID value
 	 */
 	virtual AppPid_t Pid() const noexcept { return pid; }
+
+	/**
+	 * @brief Get the unique ID of the application
+	 *
+	 * If the application is a process, it will return the same value of
+	 * Pid()
+	 * @return PID value
+	 */
+	virtual AppPid_t Uid() const { return pid; }
+
+	/**
+	 * @brief Get a string ID for this Execution Context
+	 * This method build a string ID according to this format:
+	 * PID:TASK_NAME:EXC_ID
+	 * @return String ID
+	 */
+	virtual const char *StrId() const  { return str_id; }
 
 	/**
 	 * @brief Get the priority associated to
@@ -313,6 +334,9 @@ protected:
 #ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 	CGroupSetupData_t cgroup_data;
 #endif
+
+	/** A string id with information for logging */
+	char str_id[SCHEDULABLE_ID_MAX_LEN];
 
 	/**
 	 * @brief Update the application state and synchronization state
