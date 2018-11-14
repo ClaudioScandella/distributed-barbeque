@@ -27,7 +27,7 @@ const char* TestPlatformProxy::GetHardwareID(int16_t system_id) const {
 	return "test";
 }
 
-TestPlatformProxy::ExitCode_t TestPlatformProxy::Setup(AppPtr_t papp) {
+TestPlatformProxy::ExitCode_t TestPlatformProxy::Setup(SchedPtr_t papp) {
 	logger->Info("Setup: %s", papp->StrId());
 	return PLATFORM_OK;
 }
@@ -125,18 +125,18 @@ TestPlatformProxy::ExitCode_t TestPlatformProxy::Refresh() {
 	return PLATFORM_OK;
 }
 
-TestPlatformProxy::ExitCode_t TestPlatformProxy::Release(AppPtr_t papp) {
+TestPlatformProxy::ExitCode_t TestPlatformProxy::Release(SchedPtr_t papp) {
 	logger->Info("Release: %s", papp->StrId());
 	return PLATFORM_OK;
 }
 
-TestPlatformProxy::ExitCode_t TestPlatformProxy::ReclaimResources(AppPtr_t papp) {
+TestPlatformProxy::ExitCode_t TestPlatformProxy::ReclaimResources(SchedPtr_t papp) {
 	logger->Info("ReclaimResources: %s", papp->StrId());
 	return PLATFORM_OK;
 }
 
 TestPlatformProxy::ExitCode_t TestPlatformProxy::MapResources(
-		AppPtr_t papp,
+		SchedPtr_t papp,
 		ResourceAssignmentMapPtr_t pres,bool excl) {
 	(void) pres;
 	(void) excl;

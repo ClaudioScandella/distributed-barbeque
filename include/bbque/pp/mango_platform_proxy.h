@@ -39,7 +39,7 @@ public:
 	/**
 	 * @brief Mango specific resource setup interface.
 	 */
-	ExitCode_t Setup(AppPtr_t papp) noexcept override final;
+	ExitCode_t Setup(SchedPtr_t papp) noexcept override final;
 
 	/**
 	 * @brief Mango specific resources enumeration
@@ -57,18 +57,18 @@ public:
 	/**
 	 * @brief Mango specific resources release interface.
 	 */
-	ExitCode_t Release(AppPtr_t papp) noexcept override final;
+	ExitCode_t Release(SchedPtr_t papp) noexcept override final;
 
 	/**
 	 * @brief Mango specific resource claiming interface.
 	 */
-	ExitCode_t ReclaimResources(AppPtr_t papp) noexcept override final;
+	ExitCode_t ReclaimResources(SchedPtr_t papp) noexcept override final;
 
 	/**
 	 * @brief Mango specific resource binding interface.
 	 */
 	ExitCode_t MapResources(
-	        AppPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl) noexcept override final;
+	        SchedPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl) noexcept override final;
 
 	/**
 	 * @brief Mango specific termiantion.
@@ -81,7 +81,7 @@ public:
 	/**
 	 * @brief Mango specific resource claiming interface.
 	 */
-	ExitCode_t LoadPartitions(AppPtr_t papp) noexcept;
+	ExitCode_t LoadPartitions(SchedPtr_t papp) noexcept;
 	
 
 private:

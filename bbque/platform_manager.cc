@@ -183,7 +183,7 @@ const char * PlatformManager::GetHardwareID(int16_t system_id) const
 #endif
 }
 
-PlatformManager::ExitCode_t PlatformManager::Setup(AppPtr_t papp)
+PlatformManager::ExitCode_t PlatformManager::Setup(SchedPtr_t papp)
 {
 	logger->Error("Setup called at top-level");
 	// Not implemented at top-level.
@@ -247,11 +247,10 @@ PlatformManager::ExitCode_t PlatformManager::Refresh()
 	return PLATFORM_OK;
 }
 
-PlatformManager::ExitCode_t PlatformManager::Release(AppPtr_t papp)
+PlatformManager::ExitCode_t PlatformManager::Release(SchedPtr_t papp)
 {
 	assert(papp->ScheduleCount());
 	ExitCode_t ec;
-
 	if (papp->IsLocal()) {
 		ec = lpp->Release(papp);
 		if (unlikely(ec != PLATFORM_OK)) {
@@ -284,7 +283,7 @@ PlatformManager::ExitCode_t PlatformManager::Release(AppPtr_t papp)
 
 }
 
-PlatformManager::ExitCode_t PlatformManager::ReclaimResources(AppPtr_t papp)
+PlatformManager::ExitCode_t PlatformManager::ReclaimResources(SchedPtr_t papp)
 {
 	assert(papp->ScheduleCount());
 	ExitCode_t ec;
@@ -315,7 +314,7 @@ PlatformManager::ExitCode_t PlatformManager::ReclaimResources(AppPtr_t papp)
 }
 
 PlatformManager::ExitCode_t PlatformManager::MapResources(
-        AppPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl)
+        SchedPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl)
 {
 
 	ExitCode_t ec;

@@ -55,7 +55,7 @@ const char* LocalPlatformProxy::GetHardwareID(int16_t system_id) const {
 	return this->host->GetHardwareID(system_id);
 }
 
-LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Setup(AppPtr_t papp) {
+LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Setup(SchedPtr_t papp) {
 	ExitCode_t ec;
 
 	// Obviously, at least a PE in the cpu must be provided to application
@@ -114,7 +114,7 @@ LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Refresh() {
 }
 
 
-LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Release(AppPtr_t papp) {
+LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Release(SchedPtr_t papp) {
 	ExitCode_t ec;
 
 	ec = this->host->Release(papp);
@@ -134,7 +134,7 @@ LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Release(AppPtr_t papp) {
 }
 
 
-LocalPlatformProxy::ExitCode_t LocalPlatformProxy::ReclaimResources(AppPtr_t papp) {
+LocalPlatformProxy::ExitCode_t LocalPlatformProxy::ReclaimResources(SchedPtr_t papp) {
 
 	ExitCode_t ec;
 
@@ -155,7 +155,7 @@ LocalPlatformProxy::ExitCode_t LocalPlatformProxy::ReclaimResources(AppPtr_t pap
 
 
 LocalPlatformProxy::ExitCode_t LocalPlatformProxy::MapResources(
-        AppPtr_t papp,
+        SchedPtr_t papp,
         ResourceAssignmentMapPtr_t pres,
         bool excl) {
 	ExitCode_t ec;

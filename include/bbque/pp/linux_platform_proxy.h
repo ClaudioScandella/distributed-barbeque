@@ -38,7 +38,7 @@ public:
 	/**
 	 * @brief Linux specific resource setup interface.
 	 */
-	ExitCode_t Setup(AppPtr_t papp) noexcept override final;
+	ExitCode_t Setup(SchedPtr_t papp) noexcept override final;
 
 	/**
 	 * @brief Linux specific resources enumeration
@@ -56,18 +56,18 @@ public:
 	/**
 	 * @brief Linux specific resources release interface.
 	 */
-	ExitCode_t Release(AppPtr_t papp) noexcept override final;
+	ExitCode_t Release(SchedPtr_t papp) noexcept override final;
 
 	/**
 	 * @brief Linux specific resource claiming interface.
 	 */
-	ExitCode_t ReclaimResources(AppPtr_t papp) noexcept override final;
+	ExitCode_t ReclaimResources(SchedPtr_t papp) noexcept override final;
 
 	/**
 	 * @brief Linux specific resource binding interface.
 	 */
 	ExitCode_t MapResources(
-	        AppPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl) noexcept override final;
+	        SchedPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl) noexcept override final;
 
 	/**
 	 * @brief Linux platform specific termination.
@@ -135,7 +135,7 @@ private:
 
 	ExitCode_t MakeQDisk(int if_index);
 	ExitCode_t MakeCLS(int if_index);
-	ExitCode_t SetCGNetworkBandwidth(AppPtr_t papp, CGroupDataPtr_t pcgd,
+	ExitCode_t SetCGNetworkBandwidth(SchedPtr_t papp, CGroupDataPtr_t pcgd,
 					ResourceAssignmentMapPtr_t pres,
 					RLinuxBindingsPtr_t prlb);
 	ExitCode_t MakeNetClass(AppPid_t handle, unsigned rate, int if_index);
@@ -170,7 +170,7 @@ private:
 	 * @brief Resources Mapping and Assigment to Applications
 	 */
 	ExitCode_t GetResourceMapping(
-	        AppPtr_t papp,ResourceAssignmentMapPtr_t assign_map,
+	        SchedPtr_t papp, ResourceAssignmentMapPtr_t assign_map,
 	        RLinuxBindingsPtr_t prlb,
 	        BBQUE_RID_TYPE node_id,
 	        br::RViewToken_t rvt) noexcept;
@@ -182,13 +182,22 @@ private:
 	ExitCode_t RegisterNET(const PlatformDescription::NetworkIF &net, bool is_local=true) noexcept;
 
 	// --- CGroup-releated methods
-	ExitCode_t InitCGroups() noexcept;                          /**< Load the libcgroup and initialize the internal representation */
-	ExitCode_t BuildSilosCG(CGroupDataPtr_t &pcgd) noexcept;    /**< Load the silos */
+
+	/**
+	 * @brief Load the libcgroup and initialize the internal representation
+	 */
+	ExitCode_t InitCGroups() noexcept;
+
+	/**
+	 * @brief Load the silos for minimal resource allocation
+	 */
+	ExitCode_t BuildSilosCG(CGroupDataPtr_t &pcgd) noexcept;
+
 	ExitCode_t BuildCGroup(CGroupDataPtr_t &pcgd) noexcept;
-	ExitCode_t GetCGroupData(ba::AppPtr_t papp, CGroupDataPtr_t &pcgd) noexcept;
+	ExitCode_t GetCGroupData(ba::SchedPtr_t papp, CGroupDataPtr_t &pcgd) noexcept;
 	ExitCode_t SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 	                       bool excl = false, bool move = true) noexcept;
-	ExitCode_t BuildAppCG(AppPtr_t papp, CGroupDataPtr_t &pcgd) noexcept;
+	ExitCode_t BuildAppCG(SchedPtr_t papp, CGroupDataPtr_t &pcgd) noexcept;
 };
 
 }   // namespace pp

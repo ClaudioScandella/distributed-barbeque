@@ -24,7 +24,7 @@ const char* RemotePlatformProxy::GetHardwareID(int16_t system_id) const {
 }
 
 
-RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Setup(AppPtr_t papp) {
+RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Setup(SchedPtr_t papp) {
 	(void) papp;
 	logger->Error("Setup - Not implemented.");
 	return PLATFORM_OK;
@@ -64,20 +64,20 @@ RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Refresh() {
 	return PLATFORM_OK;
 }
 
-RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Release(AppPtr_t papp) {
+RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Release(SchedPtr_t papp) {
 	(void) papp;
 	logger->Error("Release - Not implemented.");
 	return PLATFORM_OK;
 }
 
-RemotePlatformProxy::ExitCode_t RemotePlatformProxy::ReclaimResources(AppPtr_t papp) {
+RemotePlatformProxy::ExitCode_t RemotePlatformProxy::ReclaimResources(SchedPtr_t papp) {
 	(void) papp;
 	logger->Error("ReclaimResources - Not implemented.");
 	return PLATFORM_OK;
 }
 
 RemotePlatformProxy::ExitCode_t RemotePlatformProxy::MapResources(
-		AppPtr_t papp,
+		SchedPtr_t papp,
 		ResourceAssignmentMapPtr_t pres,
                 bool excl) {
 	(void) papp;

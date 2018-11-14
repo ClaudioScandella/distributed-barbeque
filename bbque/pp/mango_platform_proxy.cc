@@ -114,21 +114,21 @@ bool MangoPlatformProxy::IsHighPerformance(
 	return false;
 }
 
-MangoPlatformProxy::ExitCode_t MangoPlatformProxy::Setup(AppPtr_t papp) noexcept {
+MangoPlatformProxy::ExitCode_t MangoPlatformProxy::Setup(SchedPtr_t papp) noexcept {
 	ExitCode_t result = PLATFORM_OK;
 	UNUSED(papp);
 	return result;
 }
 
 MangoPlatformProxy::ExitCode_t
-MangoPlatformProxy::Release(AppPtr_t papp) noexcept {
+MangoPlatformProxy::Release(SchedPtr_t papp) noexcept {
 	logger->Info("Release: application [%s]...", papp->StrId());
 	ReclaimResources(papp);
 	return PLATFORM_OK;
 }
 
 MangoPlatformProxy::ExitCode_t
-MangoPlatformProxy::ReclaimResources(AppPtr_t papp) noexcept {
+MangoPlatformProxy::ReclaimResources(SchedPtr_t papp) noexcept {
 	auto partition = papp->GetPartition();
 	if (partition != nullptr) {
 		ResourcePartitionValidator &rmv(ResourcePartitionValidator::GetInstance());
@@ -146,7 +146,7 @@ MangoPlatformProxy::ReclaimResources(AppPtr_t papp) noexcept {
 }
 
 MangoPlatformProxy::ExitCode_t
-MangoPlatformProxy::MapResources(AppPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl) noexcept {
+MangoPlatformProxy::MapResources(SchedPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl) noexcept {
 	UNUSED(papp);
 	UNUSED(pres);
 	UNUSED(excl);
