@@ -143,6 +143,7 @@ void ProcessManager::CommandManageSetSchedule(int argc, char * argv[]) {
 		return;
 	}
 
+	std::unique_lock<std::mutex> u_lock(proc_mutex);
 	*(managed_procs[name].sched_req) = sched_req;
 	logger->Notice("CommandsCb: <%s> schedule request: cpus=%d accs=%d mem=%d",
 		name.c_str(),
