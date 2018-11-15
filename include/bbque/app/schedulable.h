@@ -104,6 +104,15 @@ public:
 		SYNC_STATE_COUNT /** This must alwasy be the last entry */
 	} SyncState_t;
 
+	/**
+	 * @enum Type
+	 * @brief The type of schedulable object
+	 */
+	enum class Type {
+		ADAPTIVE, /// Adaptive Execution Model integrated
+		PROCESS   /// Not integrated generic process
+	};
+
 
 #define SYNC_NONE SYNC_STATE_COUNT
 
@@ -197,6 +206,12 @@ public:
 	 * @return The priority value
 	 */
 	virtual	AppPrio_t Priority() const noexcept { return priority; }
+
+	/**
+	 * @brief The type of schedulable object
+	 * @return ADAPTIVE or PROCESS
+	 */
+	virtual Type GetType() const noexcept { return type; }
 
 
 	/**
@@ -357,6 +372,9 @@ protected:
 
 	/** A numeric priority value */
 	AppPrio_t priority;
+
+	/** Type of application (AEM-integrated or process) */
+	Type type;
 
 	/** Current scheduling informations */
 	SchedulingInfo_t schedule;

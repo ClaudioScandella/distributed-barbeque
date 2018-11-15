@@ -63,6 +63,7 @@ Application::Application(std::string const & _name,
 	container(container) {
 	name = _name;
 	pid  = _pid;
+	type = Schedulable::Type::ADAPTIVE;
 
 	// Init the working modes vector
 	awms.recipe_vect.resize(MAX_NUM_AWM);

@@ -27,8 +27,8 @@ Process::Process(std::string const & _name, AppPid_t _pid, AppPrio_t _prio) {
 	name = _name;
 	pid = _pid;
 	priority = _prio;
+	type = Schedulable::Type::PROCESS;
 	logger = bbque::utils::Logger::GetLogger(MODULE_NAMESPACE);
-
 	// Format the application string identifier for logging purpose
 	snprintf(str_id, SCHEDULABLE_ID_MAX_LEN, "%05d:%10s",
 		Pid(), Name().substr(0,10).c_str());
