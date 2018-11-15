@@ -58,6 +58,9 @@ ProcessManager::ProcessManager():
 			MODULE_NAMESPACE CMD_SETSCHED_PROCESS,
 			static_cast<CommandHandler*>(this),
 			"Set a resource allocation request for a process/program");
+
+	// Status vector size equal to numbe of possible process states
+	state_procs.resize(app::Schedulable::STATE_COUNT);
 }
 
 
@@ -193,10 +196,10 @@ void ProcessManager::NotifyStart(std::string const & name, app::AppPid_t pid) {
 		logger->Debug("NotifyStart: %s not managed", name.c_str());
 		return;
 	}
-	logger->Debug("NotifyStart: scheduling required for [%s: %d]", name.c_str(), pid);
+	logger->Info("NotifyStart: scheduling required for [%s: %d]", name.c_str(), pid);
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
 	managed_procs[name].pid_set->emplace(pid);
-	proc_ready.emplace(pid, std::make_shared<Process>(name, pid));
+	state_procs[app::Schedulable::READY].emplace(pid, std::make_shared<Process>(name, pid));
 }
 
 
@@ -208,83 +211,40 @@ void ProcessManager::NotifyStop(std::string const & name, app::AppPid_t pid) {
 	logger->Debug("NotifyStop: process [%s: %d] terminated", name.c_str(), pid);
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
 
-	// Remove from the managed map
-	logger->Debug("NotifyStop: [%s: %d] removing from managed map...", name.c_str(), pid);
-	auto pid_it = managed_procs[name].pid_set->find(pid);
-	if (pid_it != managed_procs[name].pid_set->end()) {
-		managed_procs[name].pid_set->erase(pid_it);
-		logger->Debug("NotifyStop: [%s: %d] removed from managed map", name.c_str(), pid);
-	}
-
-	// Remove from the runtime maps...
-	auto run_it = proc_running.find(pid);
-	if (run_it != proc_running.end()) {
-		proc_running.erase(run_it);
-		logger->Debug("NotifyStop: [%s: %d] removed from the running map", name.c_str(), pid);
-	}
-
-	// TODO: Should be removed also from "ready" and "to_sync"
-
-bool ProcessManager::HasProcesses(app::Schedulable::State_t state) {
-	switch(state) {
-	case app::Schedulable::READY:
-		return !proc_ready.empty();
-	case app::Schedulable::SYNC:
-		return !proc_to_sync.empty();
-	case app::Schedulable::RUNNING:
-		return !proc_running.empty();
-	default:
-		return false;
+	// Remove from the status maps...
+	for (auto state_it = state_procs.begin(); state_it != state_procs.end(); ++state_it) {
+		auto & state_map(*state_it);
+		auto proc_it = state_map.find(pid);
+		if (proc_it != state_map.end()) {
+			state_map.erase(proc_it);
+			logger->Debug("NotifyStop: [%s: %d] removed from map",
+				name.c_str(), pid);
+		}
 	}
 }
 
 
+bool ProcessManager::HasProcesses(app::Schedulable::State_t state) {
+	std::unique_lock<std::mutex> u_lock(proc_mutex);
+	return !state_procs[state].empty();
+}
+
 ProcPtr_t ProcessManager::GetFirst(app::Schedulable::State_t state, ProcessMapIterator & it) {
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
-	switch(state) {
-	case app::Schedulable::READY:
-		it = proc_ready.begin();
-		if (it == proc_ready.end())
-			return nullptr;
-		break;
-	case app::Schedulable::SYNC:
-		it = proc_to_sync.begin();
-		if (it == proc_to_sync.end())
-			return nullptr;
-		break;
-	case app::Schedulable::RUNNING:
-		it = proc_running.begin();
-		if (it == proc_running.end())
-			return nullptr;
-		break;
-	default:
+	auto & state_map(state_procs[state]);
+	it = state_map.begin();
+	if (it == state_map.end())
 		return nullptr;
-	}
-
 	return it->second;
 }
 
 
 ProcPtr_t ProcessManager::GetNext(app::Schedulable::State_t state, ProcessMapIterator & it) {
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
+	auto & state_map(state_procs[state]);
 	it++;
-	switch(state) {
-	case app::Schedulable::READY:
-		if (it == proc_ready.end())
-			return nullptr;
-		break;
-	case app::Schedulable::SYNC:
-		if (it == proc_to_sync.end())
-			return nullptr;
-		break;
-	case app::Schedulable::RUNNING:
-		if (it == proc_running.end())
-			return nullptr;
-		break;
-	default:
+	if (it == state_map.end())
 		return nullptr;
-	}
-
 	return it->second;
 }
 } // namespace bbque

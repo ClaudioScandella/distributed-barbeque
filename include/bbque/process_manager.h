@@ -23,6 +23,7 @@
 #include <mutex>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "bbque/app/process.h"
 #include "bbque/command_manager.h"
@@ -113,6 +114,37 @@ public:
 	ProcPtr_t GetNext(app::Schedulable::State_t state, ProcessMapIterator & it);
 
 
+/*******************************************************************************
+ *     Synchronization functions
+ ******************************************************************************/
+
+	/**
+	 * @brief Commit the synchronization for the specified application
+	 *
+	 * @param proc the application which has been synchronized
+	 *
+	 * @return AM_SUCCESS on commit succesfull, AM_ABORT on errors.
+	 */
+	ExitCode_t SyncCommit(ProcPtr_t proc) {}
+
+	/**
+	 * @brief Abort the synchronization for the specified application
+	 *
+	 * @param proc the application which has been synchronized
+	 */
+	void SyncAbort(ProcPtr_t proc) {}
+
+
+	/**
+	 * @brief Commit the "continue to run" for the specified application
+	 *
+	 * @param proc a pointer to the interested application
+	 * @return AM_SUCCESS on success, AM_ABORT on failure
+	 */
+	ExitCode_t SyncContinue(ProcPtr_t proc) {}
+
+
+
 private:
 
 	using PidSet_t    = std::set<app::AppPid_t>;
@@ -139,15 +171,8 @@ private:
 	/** The set containing the names of the managed processes */
 	std::map<std::string, ProcessInstancesInfo> managed_procs;
 
-	/** Processes to schedule */
-	ProcessMap_t proc_ready;
-
-	/** Processes scheduled but not synchronized yet */
-	ProcessMap_t proc_to_sync;
-
-	/** Processes currently running */
-	ProcessMap_t proc_running;
-
+	/** State vectors of the managed processes */
+	std::vector<ProcessMap_t> state_procs;
 
 	/**
 	 * @brief Constructor
