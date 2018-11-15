@@ -30,16 +30,14 @@
 
 namespace bbque { namespace app {
 
-
-/** The application identifier type */
-typedef uint32_t AppPid_t;
-
-/** The application priority type */
-typedef uint16_t AppPrio_t;
+typedef uint32_t AppPid_t;  /** Application identifier type */
+typedef uint16_t AppPrio_t; /** Application priority type */
 
 // Forward declarations
 class WorkingMode;
-typedef std::shared_ptr<WorkingMode> AwmPtr_t;
+class Schedulable;
+using AwmPtr_t   = std::shared_ptr<WorkingMode>;
+using SchedPtr_t = std::shared_ptr<Schedulable>;
 
 
 class Schedulable: public utils::ExtraDataContainer {
