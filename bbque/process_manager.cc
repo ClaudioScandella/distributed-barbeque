@@ -238,7 +238,6 @@ ProcPtr_t ProcessManager::GetFirst(app::Schedulable::State_t state, ProcessMapIt
 	return it->second;
 }
 
-
 ProcPtr_t ProcessManager::GetNext(app::Schedulable::State_t state, ProcessMapIterator & it) {
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
 	auto & state_map(state_procs[state]);

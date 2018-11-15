@@ -59,6 +59,10 @@ public:
 	 */
 	static ProcessManager & GetInstance();
 
+/*******************************************************************************
+ *     Process manipulation
+ ******************************************************************************/
+
 	/**
 	 * @brief Add a process to the managed map
 	 * @param name the binary name
@@ -134,7 +138,6 @@ public:
 	 */
 	void SyncAbort(ProcPtr_t proc) {}
 
-
 	/**
 	 * @brief Commit the "continue to run" for the specified application
 	 *
@@ -144,12 +147,14 @@ public:
 	ExitCode_t SyncContinue(ProcPtr_t proc) {}
 
 
-
 private:
 
 	using PidSet_t    = std::set<app::AppPid_t>;
 	using PidSetPtr_t = std::shared_ptr<PidSet_t>;
 
+	/**
+	 * @brief Runtime information about the instances of managed processes
+	 */
 	class ProcessInstancesInfo {
 	public:
 		ProcessInstancesInfo() {
@@ -163,9 +168,10 @@ private:
 	/** The logger used by the application manager */
 	std::unique_ptr<bu::Logger> logger;
 
-	/**  Command manager instance */
+	/** Command manager instance */
 	CommandManager & cm;
 
+	/** Mutex to protect processes maps */
 	mutable std::mutex proc_mutex;
 
 	/** The set containing the names of the managed processes */
@@ -188,6 +194,10 @@ private:
 	 * @brief The handler for the command used to set a scheduling request
 	 */
 	void CommandManageSetSchedule(int argc, char * argv[]);
+
+	/**
+	 * @brief Help for the schedule request command
+	 */
 	void CommandManageSetScheduleHelp() const;
 
 };
