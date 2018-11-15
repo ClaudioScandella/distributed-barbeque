@@ -22,7 +22,11 @@
 #include "bbque/app/schedulable.h"
 #include "bbque/utils/logging/logger.h"
 
-namespace bbque { namespace app {
+namespace bbque {
+// Forward declaration
+class ProcessManager;
+
+namespace app {
 
 /**
  * @class Process
@@ -31,7 +35,11 @@ namespace bbque { namespace app {
  */
 class Process: public Schedulable {
 
+friend class bbque::ProcessManager;
+
 public:
+
+
 	/**
 	 * @struct SchedRequest_t
 	 * @brief The set of resources required to schedule the process
