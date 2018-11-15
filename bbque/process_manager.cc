@@ -224,7 +224,68 @@ void ProcessManager::NotifyStop(std::string const & name, app::AppPid_t pid) {
 	}
 
 	// TODO: Should be removed also from "ready" and "to_sync"
+
+bool ProcessManager::HasProcesses(app::Schedulable::State_t state) {
+	switch(state) {
+	case app::Schedulable::READY:
+		return !proc_ready.empty();
+	case app::Schedulable::SYNC:
+		return !proc_to_sync.empty();
+	case app::Schedulable::RUNNING:
+		return !proc_running.empty();
+	default:
+		return false;
+	}
 }
 
+
+ProcPtr_t ProcessManager::GetFirst(app::Schedulable::State_t state, ProcessMapIterator & it) {
+	std::unique_lock<std::mutex> u_lock(proc_mutex);
+	switch(state) {
+	case app::Schedulable::READY:
+		it = proc_ready.begin();
+		if (it == proc_ready.end())
+			return nullptr;
+		break;
+	case app::Schedulable::SYNC:
+		it = proc_to_sync.begin();
+		if (it == proc_to_sync.end())
+			return nullptr;
+		break;
+	case app::Schedulable::RUNNING:
+		it = proc_running.begin();
+		if (it == proc_running.end())
+			return nullptr;
+		break;
+	default:
+		return nullptr;
+	}
+
+	return it->second;
+}
+
+
+ProcPtr_t ProcessManager::GetNext(app::Schedulable::State_t state, ProcessMapIterator & it) {
+	std::unique_lock<std::mutex> u_lock(proc_mutex);
+	it++;
+	switch(state) {
+	case app::Schedulable::READY:
+		if (it == proc_ready.end())
+			return nullptr;
+		break;
+	case app::Schedulable::SYNC:
+		if (it == proc_to_sync.end())
+			return nullptr;
+		break;
+	case app::Schedulable::RUNNING:
+		if (it == proc_running.end())
+			return nullptr;
+		break;
+	default:
+		return nullptr;
+	}
+
+	return it->second;
+}
 } // namespace bbque
 

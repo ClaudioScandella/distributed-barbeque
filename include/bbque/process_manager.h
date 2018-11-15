@@ -27,12 +27,15 @@
 #include "bbque/app/process.h"
 #include "bbque/command_manager.h"
 #include "bbque/utils/logging/logger.h"
+#include "bbque/utils/map_iterator.h"
 
 
 namespace bbque {
 
 using ProcPtr_t    = std::shared_ptr<app::Process>;
 using ProcessMap_t = std::map<app::AppPid_t, ProcPtr_t>;
+//using ProcessMapIterator = MapIterator<ProcPtr_t>;
+using ProcessMapIterator = ProcessMap_t::iterator;
 
 using namespace app;
 
@@ -87,18 +90,27 @@ public:
 	 */
 	void NotifyStop(std::string const & name, app::AppPid_t pid);
 
+/*******************************************************************************
+ *     Map iterations
+ ******************************************************************************/
+
+	/**
+	 * @brief Check if there are processes in a given state
+	 * @return true if yes, fals for not
+	 */
+	bool HasProcesses(app::Schedulable::State_t state);
 
 	/**
 	 * @brief Get the first process in the map
 	 * @return A pointer to a process descriptor
 	 */
-	ProcPtr_t GetFirst() { return nullptr; }
+	ProcPtr_t GetFirst(app::Schedulable::State_t state, ProcessMapIterator & it);
 
 	/**
 	 * @brief Get the next process in the map
 	 * @return A pointer to a process descriptor
 	 */
-	ProcPtr_t GetNext() { return nullptr; }
+	ProcPtr_t GetNext(app::Schedulable::State_t state, ProcessMapIterator & it);
 
 
 private:
