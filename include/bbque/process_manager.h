@@ -27,6 +27,7 @@
 
 #include "bbque/app/process.h"
 #include "bbque/command_manager.h"
+#include "bbque/resource_accounter.h"
 #include "bbque/utils/logging/logger.h"
 #include "bbque/utils/map_iterator.h"
 
@@ -51,6 +52,7 @@ public:
 	 */
 	enum ExitCode_t {
 		SUCCESS = 0,
+		PROCESS_NOT_SCHEDULED,
 		PROCESS_NOT_FOUND
 	};
 
@@ -127,24 +129,26 @@ public:
 	 *
 	 * @param proc the application which has been synchronized
 	 *
-	 * @return AM_SUCCESS on commit succesfull, AM_ABORT on errors.
+	 * @return SUCCESS on succesful commit, PROCESS_NOT_FOUND or
+	 * PROCESS_NOT_SCHEDULED on errors.
 	 */
-	ExitCode_t SyncCommit(ProcPtr_t proc) {}
+	ExitCode_t SyncCommit(ProcPtr_t proc);
 
 	/**
 	 * @brief Abort the synchronization for the specified application
 	 *
 	 * @param proc the application which has been synchronized
 	 */
-	void SyncAbort(ProcPtr_t proc) {}
+	ExitCode_t SyncAbort(ProcPtr_t proc);
 
 	/**
 	 * @brief Commit the "continue to run" for the specified application
 	 *
 	 * @param proc a pointer to the interested application
-	 * @return AM_SUCCESS on success, AM_ABORT on failure
+	 * @return SUCCESS on succesful commit, PROCESS_NOT_FOUND or
+	 * PROCESS_NOT_SCHEDULED on errors.
 	 */
-	ExitCode_t SyncContinue(ProcPtr_t proc) {}
+	ExitCode_t SyncContinue(ProcPtr_t proc);
 
 
 private:
@@ -184,6 +188,14 @@ private:
 	 * @brief Constructor
 	 */
 	ProcessManager();
+
+	/**
+	 * @brief Change a process state
+	 */
+	ExitCode_t ChangeState(
+		ProcPtr_t proc,
+		Schedulable::State_t from_state,
+		Schedulable::State_t to_state);
 
 	/**
 	 * @brief The handler for commands defined by this module

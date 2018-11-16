@@ -246,5 +246,67 @@ ProcPtr_t ProcessManager::GetNext(app::Schedulable::State_t state, ProcessMapIte
 		return nullptr;
 	return it->second;
 }
+
+/*******************************************************************************
+ *     Synchronization functions
+ ******************************************************************************/
+
+ProcessManager::ExitCode_t ProcessManager::SyncCommit(ProcPtr_t proc) {
+	auto ret = ChangeState(proc, Schedulable::SYNC, Schedulable::RUNNING);
+	if (ret != SUCCESS) {
+		logger->Error("SyncCommit: [%s] failed (state=%s)",
+			proc->StrId(), proc->StateStr(proc->State()));
+	}
+	return ret;
+}
+
+ProcessManager::ExitCode_t ProcessManager::SyncAbort(ProcPtr_t proc) {
+	auto ret = ChangeState(proc, Schedulable::SYNC, Schedulable::DISABLED);
+	if (ret != SUCCESS) {
+		logger->Error("SyncAbort: [%s] failed (state=%s)",
+			proc->StrId(), proc->StateStr(proc->State()));
+	}
+	return ret;
+}
+
+ProcessManager::ExitCode_t ProcessManager::SyncContinue(ProcPtr_t proc) {
+	auto ret = ChangeState(proc, Schedulable::RUNNING, Schedulable::RUNNING);
+	if (ret != SUCCESS) {
+		logger->Error("SyncAbort: [%s] failed (state=%s)",
+			proc->StrId(), proc->StateStr(proc->State()));
+	}
+	return ret;
+}
+
+ProcessManager::ExitCode_t ProcessManager::ChangeState(
+		ProcPtr_t proc,
+		Schedulable::State_t from_state,
+		Schedulable::State_t to_state) {
+	std::unique_lock<std::mutex> u_lock(proc_mutex);
+	auto & from_map(state_procs[from_state]);
+	auto proc_it = from_map.find(proc->Pid());
+	if (proc_it == from_map.end()) {
+		logger->Warn("ChangeState: process PID=%d not found in state=%s)",
+			proc->Pid(), proc->StateStr(from_state));
+		return PROCESS_NOT_FOUND;
+	}
+
+	if (from_state == to_state) {
+		logger->Debug("ChangeState: process PID=%d already in state=%s",
+			proc->Pid(), proc->StateStr(from_state));
+		return SUCCESS;
+	}
+
+	auto & to_map(state_procs[to_state]);
+	to_map.emplace(proc->Pid(), proc);
+	from_map.erase(proc_it);
+
+	proc->SetState(to_state);
+	logger->Info("ChangeState: [%s] state=%s",
+		proc->StrId(), proc->StateStr(proc->State()));
+
+	return SUCCESS;
+}
+
 } // namespace bbque
 
