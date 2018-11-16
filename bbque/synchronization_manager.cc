@@ -106,7 +106,8 @@ SynchronizationManager::SynchronizationManager() :
 	ap(ApplicationProxy::GetInstance()),
 	mc(bu::MetricsCollector::GetInstance()),
 	ra(ResourceAccounter::GetInstance()),
-    plm(PlatformManager::GetInstance()),
+	plm(PlatformManager::GetInstance()),
+	prm(ProcessManager::GetInstance()),
 	sv(System::GetInstance()),
 	sync_count(0) {
 	std::string sync_policy;
@@ -160,7 +161,7 @@ SynchronizationManager::Reshuffling(AppPtr_t papp) {
 
 SynchronizationManager::ExitCode_t
 SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncState) {
-	ExitCode_t syncInProgress = NO_EXC_IN_SYNC;
+	ExitCode_t syncInProgress = NOTHING_TO_SYNC;
 	AppsUidMapIt apps_it;
 
 	typedef std::map<AppPtr_t, ApplicationProxy::pPreChangeRsp_t> RspMap_t;
@@ -241,14 +242,15 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 			sm_tmr, syncState);
 	logger->Debug("STEP 1: preChange() DONE");
 
-	if (syncInProgress == NO_EXC_IN_SYNC)
-		return NO_EXC_IN_SYNC;
+	if (syncInProgress == NOTHING_TO_SYNC)
+		return NOTHING_TO_SYNC;
 
 	return OK;
 }
 
-void SynchronizationManager::Sync_PreChange_Check_EXC_Response(AppPtr_t papp,
-								ApplicationProxy::pPreChangeRsp_t presp) const {
+void SynchronizationManager::Sync_PreChange_Check_EXC_Response(
+		AppPtr_t papp,
+		ApplicationProxy::pPreChangeRsp_t presp) const {
 
 	SynchronizationPolicyIF::ExitCode_t syncp_result;
 
@@ -517,7 +519,7 @@ SynchronizationManager::Sync_PostChange(ApplicationStatusIF::SyncState_t syncSta
 			continue;
 
 		// Perform resource acquisition for RUNNING App/ExC
-		DoAcquireResources(papp);
+		SyncCommit(papp);
 		excs++;
 	}
 
@@ -535,96 +537,176 @@ SynchronizationManager::Sync_PostChange(ApplicationStatusIF::SyncState_t syncSta
 	return OK;
 }
 
-void SynchronizationManager::DoAcquireResources(AppPtr_t papp) {
-	ApplicationManager &am(ApplicationManager::GetInstance());
-	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	ResourceAccounter::ExitCode_t raResult;
+SynchronizationManager::ExitCode_t
+SynchronizationManager::Sync_PostChangeForProcesses() {
+	logger->Debug("STEP 4.2: postChange() START: processes");
+
+	ProcessMapIterator procs_it;
+	ProcPtr_t proc = prm.GetFirst(Schedulable::SYNC, procs_it);
+	for ( ; proc; proc = prm.GetNext(Schedulable::SYNC, procs_it)) {
+		logger->Info("STEP 4.2: <--------- OK -- [%s]", proc->StrId());
+		if (proc->Disabled())
+			continue;
+		SyncCommit(proc);
+	}
+
+	logger->Debug("STEP 4.2: postChange() DONE: processes");
+	return OK;
+}
+
+
+void SynchronizationManager::SyncCommit(AppPtr_t papp) {
+	ResourceAccounter::ExitCode_t ra_result;
 
 	// Acquiring the resources for RUNNING Applications
 	if (!papp->Blocking()) {
-
-		logger->Debug("SyncAcquire: [%s] is in %s/%s", papp->StrId(),
+		logger->Debug("SyncCommit: [%s] is in %s/%s", papp->StrId(),
 				papp->StateStr(papp->State()),
 				papp->SyncStateStr(papp->SyncState()));
 
 		// Resource acquisition
-		raResult = ra.SyncAcquireResources(papp);
-
-		// If failed abort the single App/ExC sync
-		if (raResult != ResourceAccounter::RA_SUCCESS) {
-			logger->Error("SyncAcquire: failed for [%s]. Returned %d",
-					papp->StrId(), raResult);
+		ra_result = ra.SyncAcquireResources(papp);
+		if (ra_result != ResourceAccounter::RA_SUCCESS) {
+			logger->Error("SyncCommit: failed for [%s] (ret=%d)",
+					papp->StrId(), ra_result);
 			am.SyncAbort(papp);
 		}
 	}
 
-	// Committing change to the ApplicationManager
-	// NOTE: this should remove the current app from the queue,
-	// otherwise we enter an endless loop
+	// Committing change to the manager (to update queues)
+	logger->Debug("SyncCommit: [%s] (adaptive) commit...", papp->StrId());
 	am.SyncCommit(papp);
+}
+
+void SynchronizationManager::SyncCommit(ProcPtr_t proc) {
+	// Acquiring the resources for RUNNING Applications
+	if (!proc->Blocking()) {
+		logger->Debug("SyncCommit: [%s] is in %s/%s", proc->StrId(),
+				proc->StateStr(proc->State()),
+				proc->SyncStateStr(proc->SyncState()));
+		// Resource acquisition
+		auto ra_result = ra.SyncAcquireResources(proc);
+		if (ra_result != ResourceAccounter::RA_SUCCESS) {
+			logger->Error("SyncCommit: failed for [%s] (ret=%d)",
+					proc->StrId(), ra_result);
+			prm.SyncAbort(proc);
+		}
+	}
+
+	// Committing change to the manager (to update queues)
+	logger->Debug("SyncCommit: [%s] (process) commit...", proc->StrId());
+	prm.SyncCommit(proc);
 }
 
 
 SynchronizationManager::ExitCode_t
 SynchronizationManager::Sync_Platform(ApplicationStatusIF::SyncState_t syncState) {
-    PlatformManager::ExitCode_t result = PlatformManager::PLATFORM_OK;
-	AppsUidMapIt apps_it;
-	AppPtr_t papp;
+	ExitCode_t result;
 	bool at_least_one_success = false;
 
-	logger->Debug("STEP M: SyncPlatform() START");
+	logger->Debug("STEP M.1: SyncPlatform(%s) START: adaptive applications",
+		Schedulable::SyncStateStr(syncState));
 	SM_RESET_TIMING(sm_tmr);
 
+	AppsUidMapIt apps_it;
+	AppPtr_t papp;
 	papp = am.GetFirst(syncState, apps_it);
 	for ( ; papp; papp = am.GetNext(syncState, apps_it)) {
-		logger->Info("STEP M: SyncPlatform() state [%s]", papp->SyncStateStr(syncState));
+		logger->Info("STEP M.1: SyncPlatform(%s)", papp->SyncStateStr(syncState));
 		if (!policy->DoSync(papp))
 			continue;
-		logger->Info("STEP M: SyncPlatform() ===> [%s]", papp->StrId());
+		logger->Info("STEP M.1: SyncPlatform(%s) ===> [%s]",
+			papp->SyncStateStr(syncState), papp->StrId());
 
-		// TODO: reconfigure resources
-		switch (syncState) {
-		case ApplicationStatusIF::STARTING:
-			logger->Debug("STEP M: allocating resources to [%s]", papp->StrId());
-			result = plm.MapResources(papp,
-					papp->NextAWM()->GetResourceBinding());
-			break;
-		case ApplicationStatusIF::RECONF:
-		case ApplicationStatusIF::MIGREC:
-		case ApplicationStatusIF::MIGRATE:
-			logger->Debug("STEP M: re-mapping resources for [%s]", papp->StrId());
-			result = plm.MapResources(papp,
-					papp->NextAWM()->GetResourceBinding());
-			break;
-		case ApplicationStatusIF::BLOCKED:
-			logger->Debug("STEP M: reclaiming resources from [%s]", papp->StrId());
-			result = plm.ReclaimResources(papp);
-			break;
-		default:
-			break;
-		}
-
-		if (result != PlatformManager::PLATFORM_OK) {
-			logger->Error("STEP M: cannot synchronize application [%s]", papp->StrId());
+		result = MapResources(papp);
+		if (result != SynchronizationManager::OK) {
+			logger->Error("STEP M.1: cannot synchronize application [%s]", papp->StrId());
 			sync_fails_apps.push_back(papp);
 			continue;
 		}
 		else
 			if (!at_least_one_success)
 				at_least_one_success = true;
-
-		logger->Info("STEP M: <--------- OK -- [%s]", papp->StrId());
+		logger->Info("STEP M.1: <--------- OK -- [%s]", papp->StrId());
 	}
 
 	// Collecting execution metrics
 	SM_GET_TIMING_SYNCSTATE(metrics, SM_SYNCP_TIME_SYNCPLAT, sm_tmr, syncState);
-	logger->Debug("STEP M: SyncPlatform() DONE");
+	logger->Debug("STEP M.1: SyncPlatform(%s) DONE: adaptive applications",
+		papp->SyncStateStr(syncState));
 
 	if (at_least_one_success)
 		return OK;
-
 	return PLATFORM_SYNC_FAILED;
 }
+
+SynchronizationManager::ExitCode_t
+SynchronizationManager::Sync_PlatformForProcesses() {
+	ExitCode_t result;
+	bool at_least_one_success = false;
+
+	logger->Debug("STEP M.2: SyncPlatform() START: processes");
+	SM_RESET_TIMING(sm_tmr);
+
+	if (!prm.HasProcesses(Schedulable::SYNC)) {
+		logger->Debug("STEP M.2: SyncPlatform() NONE: no rocesses");
+		return NOTHING_TO_SYNC;
+	}
+
+	ProcessMapIterator procs_it;
+	ProcPtr_t proc = prm.GetFirst(Schedulable::SYNC, procs_it);
+	for ( ; proc; proc = prm.GetNext(Schedulable::SYNC, procs_it)) {
+		result = MapResources(proc);
+		if (result != SynchronizationManager::OK) {
+			logger->Error("STEP M.2: cannot synchronize application [%s]", proc->StrId());
+			sync_fails_procs.push_back(proc);
+			continue;
+		}
+		else
+			if (!at_least_one_success)
+				at_least_one_success = true;
+		logger->Info("STEP M.2: <--------- OK -- [%s]", proc->StrId());
+	}
+
+	// Collecting execution metrics
+	logger->Debug("STEP M.2: SyncPlatform() DONE: processes");
+	if (at_least_one_success)
+		return OK;
+	return PLATFORM_SYNC_FAILED;
+}
+
+
+SynchronizationManager::ExitCode_t
+SynchronizationManager::MapResources(SchedPtr_t papp) {
+	PlatformManager::ExitCode_t result = PlatformManager::PLATFORM_OK;
+	logger->Info("STEP M: SyncPlatform() ===> [%s]", papp->StrId());
+
+	switch (papp->SyncState()) {
+	case Schedulable::STARTING:
+		logger->Debug("STEP M: allocating resources to [%s]", papp->StrId());
+		result = plm.MapResources(papp,
+				papp->NextAWM()->GetResourceBinding());
+		break;
+	case Schedulable::RECONF:
+	case Schedulable::MIGREC:
+	case Schedulable::MIGRATE:
+		logger->Debug("STEP M: re-mapping resources for [%s]", papp->StrId());
+		result = plm.MapResources(papp,
+				papp->NextAWM()->GetResourceBinding());
+		break;
+	case Schedulable::BLOCKED:
+		logger->Debug("STEP M: reclaiming resources from [%s]", papp->StrId());
+		result = plm.ReclaimResources(papp);
+		break;
+	default:
+		break;
+	}
+
+	if (result != PlatformManager::PLATFORM_OK)
+		return PLATFORM_SYNC_FAILED;
+	return OK;
+}
+
 
 SynchronizationManager::ExitCode_t
 SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
@@ -664,7 +746,6 @@ SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
 		return result;
 
 #else
-
 	// Platform is synched before to:
 	// 1. speed-up resources assignement
 	// 2. properly setup platform specific data for the time the
@@ -685,6 +766,17 @@ SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
 		return result;
 
 	return OK;
+}
+
+SynchronizationManager::ExitCode_t
+SynchronizationManager::SyncProcesses() {
+	// Perform resource mapping
+	ExitCode_t result = Sync_PlatformForProcesses();
+	if (result != OK)
+		return result;
+
+	// Commit changes
+	return Sync_PostChangeForProcesses();
 }
 
 SynchronizationManager::ExitCode_t
@@ -730,49 +822,70 @@ SynchronizationManager::SyncSchedule() {
 		return ABORTED;
 	}
 
-	// Synchronize the policy selected applications
+	// Synchronize the adaptive applications/EXC in order of status as
+	// returned by the policy
 	while (syncState != ApplicationStatusIF::SYNC_NONE) {
 		result = SyncApps(syncState);
-		if ((result != NO_EXC_IN_SYNC) && (result != OK)) {
-			logger->Warn("SyncSchedule: session=%d FAILED, aborting...", sync_count);
+		if ((result != NOTHING_TO_SYNC) && (result != OK)) {
+			logger->Warn("SyncSchedule: session=%d FAILED, aborting "
+				"during adaptive applications synchronization...", sync_count);
 			ra.SyncAbort();
-			DisableFailedEXC();
+			DisableFailedApps();
 			return result;
 		}
+
 		// Next set of applications to synchronize (if any)
 		syncState = policy->GetApplicationsQueue(sv);
 	}
 
-	// FIXME at this point ALL apps must be committed and the sync queues
-	// enpty, this should be checked probably here before to commit the
-	// system view
+	// Synchronization of generic processes
+	result = SyncProcesses();
+	if ((result != NOTHING_TO_SYNC) && (result != OK)) {
+		logger->Warn("SyncSchedule: session=%d FAILED, aborting "
+			"during processes synchronization...", sync_count);
+		ra.SyncAbort();
+		DisableFailedApps();
+		return result;
+	}
 
-	// TODO Synchronization of generic processes
+	// FIXME at this point ALL apps must be committed and the sync queues
+	// empty, this should be checked probably here before to commit the
+	// system view
 
 	// Commit the resource accounter synchronized session
 	raResult = ra.SyncCommit();
 	if (raResult != ResourceAccounter::RA_SUCCESS) {
 		logger->Fatal("SyncSchedule: session=%d resource accounting commit failed", sync_count);
-		DisableFailedEXC();
+		DisableFailedApps();
 		return ABORTED;
 	}
 	SM_GET_TIMING(metrics, SM_SYNCP_TIME, syncp_tmr); // Overall SyncP execution time
 	SM_COUNT_EVENT(metrics, SM_SYNCP_COMP);           // Account for SyncP completed
 
-	DisableFailedEXC();
+	DisableFailedApps();
 	logger->Notice("SyncSchedule: session=%d DONE", sync_count);
 	am.ReportStatusQ();
 	am.ReportSyncQ();
 	return OK;
 }
 
-void SynchronizationManager::DisableFailedEXC() {
+void SynchronizationManager::DisableFailedApps() {
 	for (auto papp: sync_fails_apps) {
-		logger->Warn("DisableFailedEXC: disabling [%s] due to failure",
+		logger->Warn("DisableFailedApps: disabling [%s] due to failure",
 				papp->StrId());
 		am.DisableEXC(papp);
 	}
 }
+
+void SynchronizationManager::DisableFailedProcesses() {
+	for (auto proc: sync_fails_procs) {
+		logger->Warn("DisableFailedProcesses: disabling [%s] due to failure",
+				proc->StrId());
+	//	prm.NotifyStop(proc);
+		// TODO what to do for disabling?
+	}
+}
+
 
 } // namespace bbque
 

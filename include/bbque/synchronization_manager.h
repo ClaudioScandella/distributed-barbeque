@@ -22,7 +22,7 @@
 #include "bbque/plugin_manager.h"
 #include "bbque/application_proxy.h"
 #include "bbque/platform_manager.h"
-
+#include "bbque/process_manager.h"
 #include "bbque/utils/timer.h"
 #include "bbque/utils/metrics_collector.h"
 
@@ -66,7 +66,7 @@ public:
 	 */
 	typedef enum ExitCode {
 		OK = 0,
-		NO_EXC_IN_SYNC,
+		NOTHING_TO_SYNC,
 		ABORTED,
 		PLATFORM_SYNC_FAILED
 	} ExitCode_t;
@@ -92,7 +92,6 @@ public:
 	 */
 	ExitCode_t SyncSchedule();
 
-
 private:
 
 	/**
@@ -109,7 +108,8 @@ private:
 	ApplicationProxy & ap;
 	MetricsCollector & mc;
 	ResourceAccounter & ra;
-    PlatformManager & plm;
+	PlatformManager & plm;
+	ProcessManager & prm;
 	System & sv;
 
 	/**
@@ -144,7 +144,9 @@ private:
 
 	static MetricsCollector::MetricsCollection_t metrics[SM_METRICS_COUNT];
 
-	std::list<ba::AppPtr_t> sync_fails_apps;
+	std::list<AppPtr_t> sync_fails_apps;
+
+	std::list<ProcPtr_t> sync_fails_procs;
 
 	/**
 	 * @brief   Build a new instance of the synchronization manager
@@ -156,10 +158,16 @@ private:
 	 */
 	ExitCode_t SyncApps(ApplicationStatusIF::SyncState_t syncState);
 
+	ExitCode_t SyncProcesses();
+
 	/**
 	 * @brief Synchronize platform resources for the specified EXCs
 	 */
 	ExitCode_t Sync_Platform(ApplicationStatusIF::SyncState_t syncState);
+
+	ExitCode_t Sync_PlatformForProcesses();
+
+	ExitCode_t MapResources(SchedPtr_t papp);
 
 	/**
 	 * @brief Notify a Pre-Change to the specified EXCs
@@ -181,12 +189,16 @@ private:
 	 */
 	ExitCode_t Sync_PostChange(ApplicationStatusIF::SyncState_t syncState);
 
+	ExitCode_t Sync_PostChangeForProcesses();
+
 	/**
 	 * @brief Perform the synchronized resource acquisition
 	 *
-	 * @param The App/ExC that have to acquire resources
+	 * @param The application or process that has to acquire resources
 	 */
-	void DoAcquireResources(AppPtr_t);
+	void SyncCommit(AppPtr_t);
+
+	void SyncCommit(ProcPtr_t);
 
 	/**
 	 * @brief Check fo reshuffling reconfigurations
@@ -217,7 +229,10 @@ private:
 	 * @brief Disable EXCs for which the synchronization has not been
 	 * successfully performed
 	 */
-	void DisableFailedEXC();
+	void DisableFailedApps();
+
+	void DisableFailedProcesses();
+
 };
 
 } // namespace bbque
