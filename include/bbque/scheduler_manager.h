@@ -22,16 +22,14 @@
 #include <condition_variable>
 
 #include "bbque/config.h"
-#include "bbque/plugin_manager.h"
+#include "bbque/data_manager.h"
 #include "bbque/application_manager.h"
-
+#include "bbque/process_manager.h"
+#include "bbque/plugin_manager.h"
+#include "bbque/plugins/scheduler_policy.h"
 #include "bbque/utils/timer.h"
 #include "bbque/utils/metrics_collector.h"
-
 #include "bbque/utils/logging/logger.h"
-#include "bbque/plugins/scheduler_policy.h"
-
-#include "bbque/data_manager.h"
 
 namespace bu = bbque::utils;
 
@@ -127,6 +125,9 @@ private:
 	SchedulerPolicyIF *policy;
 
 	ApplicationManager & am;
+
+	ProcessManager & prm;
+
 	MetricsCollector & mc;
 	
 #ifdef CONFIG_BBQUE_DM

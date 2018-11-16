@@ -90,6 +90,7 @@ SchedulerManager & SchedulerManager::GetInstance() {
 
 SchedulerManager::SchedulerManager() :
 	am(ApplicationManager::GetInstance()),
+	prm(ProcessManager::GetInstance()),
 	mc(bu::MetricsCollector::GetInstance()),
 #ifdef CONFIG_BBQUE_DM
 	dm(DataManager::GetInstance()),
@@ -218,12 +219,20 @@ SchedulerManager::Schedule() {
 }
 
 void SchedulerManager::CommitRunningApplications() {
+	// Running (AEM) applications
 	AppsUidMapIt apps_it;
 	AppPtr_t papp = am.GetFirst(ApplicationStatusIF::RUNNING, apps_it);
 	for (; papp; papp = am.GetNext(ApplicationStatusIF::RUNNING, apps_it)) {
-		// Commit a running state (this cleans the next AWM)
 		am.SyncContinue(papp);
 	}
+
+	// Running processes
+	ProcessMapIterator proc_it;
+	ProcPtr_t proc = prm.GetFirst(Schedulable::RUNNING, proc_it);
+	for (; proc; proc = prm.GetNext(Schedulable::RUNNING, proc_it)) {
+		prm.SyncContinue(proc);
+	}
+
 }
 
 void SchedulerManager::SetState(State_t _s) {
