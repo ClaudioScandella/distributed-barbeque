@@ -200,8 +200,8 @@ private:
 	 */
 	ExitCode_t ChangeState(
 		ProcPtr_t proc,
-		Schedulable::State_t from_state,
-		Schedulable::State_t to_state);
+		Schedulable::State_t to_state,
+		Schedulable::SyncState_t next_state=Schedulable::SYNC_NONE);
 
 	/**
 	 * @brief The handler for commands defined by this module

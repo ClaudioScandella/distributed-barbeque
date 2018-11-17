@@ -261,7 +261,8 @@ uint32_t ProcessManager::ProcessesCount(app::Schedulable::State_t state) {
  ******************************************************************************/
 
 ProcessManager::ExitCode_t ProcessManager::SyncCommit(ProcPtr_t proc) {
-	auto ret = ChangeState(proc, Schedulable::SYNC, Schedulable::RUNNING);
+	logger->Debug("SyncCommit: [%s] changing to RUNNING...", proc->StrId());
+	auto ret = ChangeState(proc, Schedulable::RUNNING);
 	if (ret != SUCCESS) {
 		logger->Error("SyncCommit: [%s] failed (state=%s)",
 			proc->StrId(), proc->StateStr(proc->State()));
@@ -270,7 +271,8 @@ ProcessManager::ExitCode_t ProcessManager::SyncCommit(ProcPtr_t proc) {
 }
 
 ProcessManager::ExitCode_t ProcessManager::SyncAbort(ProcPtr_t proc) {
-	auto ret = ChangeState(proc, Schedulable::SYNC, Schedulable::DISABLED);
+	logger->Debug("SyncAbort: [%s] changing to DISABLED...", proc->StrId());
+	auto ret = ChangeState(proc, Schedulable::DISABLED);
 	if (ret != SUCCESS) {
 		logger->Error("SyncAbort: [%s] failed (state=%s)",
 			proc->StrId(), proc->StateStr(proc->State()));
@@ -279,9 +281,15 @@ ProcessManager::ExitCode_t ProcessManager::SyncAbort(ProcPtr_t proc) {
 }
 
 ProcessManager::ExitCode_t ProcessManager::SyncContinue(ProcPtr_t proc) {
-	auto ret = ChangeState(proc, Schedulable::RUNNING, Schedulable::RUNNING);
+	logger->Debug("SyncContinue: [%s] continuing with RUNNING...", proc->StrId());
+	if (proc->State() != Schedulable::RUNNING) {
+		logger->Error("SyncContinue: [%s] wrong status (state=%s)",
+			proc->StrId(), proc->StateStr(proc->State()));
+		return PROCESS_NOT_SCHEDULABLE;
+	}
+	auto ret = ChangeState(proc, Schedulable::RUNNING);
 	if (ret != SUCCESS) {
-		logger->Error("SyncAbort: [%s] failed (state=%s)",
+		logger->Error("SyncContinue: [%s] failed (state=%s)",
 			proc->StrId(), proc->StateStr(proc->State()));
 	}
 	return ret;
@@ -289,30 +297,39 @@ ProcessManager::ExitCode_t ProcessManager::SyncContinue(ProcPtr_t proc) {
 
 ProcessManager::ExitCode_t ProcessManager::ChangeState(
 		ProcPtr_t proc,
-		Schedulable::State_t from_state,
-		Schedulable::State_t to_state) {
+		Schedulable::State_t to_state,
+		Schedulable::SyncState_t next_sync) {
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
-	auto & from_map(state_procs[from_state]);
+
+	auto & from_map(state_procs[proc->State()]);
 	auto proc_it = from_map.find(proc->Pid());
 	if (proc_it == from_map.end()) {
 		logger->Warn("ChangeState: process PID=%d not found in state=%s)",
-			proc->Pid(), proc->StateStr(from_state));
+			proc->Pid(), proc->StateStr(proc->State()));
 		return PROCESS_NOT_FOUND;
 	}
 
-	if (from_state == to_state) {
+	if (proc->State() == to_state) {
 		logger->Debug("ChangeState: process PID=%d already in state=%s",
-			proc->Pid(), proc->StateStr(from_state));
+			proc->Pid(), proc->StateStr(proc->State()));
 		return SUCCESS;
 	}
+	else {
+		auto & to_map(state_procs[to_state]);
+		to_map.emplace(proc->Pid(), proc);
+		from_map.erase(proc_it);
+	}
 
-	auto & to_map(state_procs[to_state]);
-	to_map.emplace(proc->Pid(), proc);
-	from_map.erase(proc_it);
+	logger->Debug("ChangeState: [%s] state=%s sync=%s",
+		proc->StrId(),
+		proc->StateStr(proc->State()),
+		proc->SyncStateStr(proc->SyncState()));
 
-	proc->SetState(to_state);
-	logger->Info("ChangeState: [%s] state=%s",
-		proc->StrId(), proc->StateStr(proc->State()));
+	proc->SetState(to_state, next_sync);
+	logger->Debug("ChangeState: [%s] state=%s sync=%s",
+		proc->StrId(),
+		proc->StateStr(proc->State()),
+		proc->SyncStateStr(proc->SyncState()));
 
 	return SUCCESS;
 }
