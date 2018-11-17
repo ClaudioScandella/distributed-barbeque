@@ -118,10 +118,11 @@ Schedulable::SyncState_t Schedulable::SyncState() const {
 
 Schedulable::SyncState_t Schedulable::NextSyncState(AwmPtr_t const & next_awm) const {
 	std::unique_lock<std::recursive_mutex> schedule_ul(schedule.mtx);
-	assert(schedule.state == RUNNING); // Must be called only by running applications
-	assert(schedule.awm);
+	// First scheduling
+	if (!schedule.awm)
+		return STARTING;
 
-	// Check if the assigned operating point implies RECONF|MIGREC|MIGRATE
+	// Changing assigned resources: RECONF|MIGREC|MIGRATE
 	if ((schedule.awm->Id() != next_awm->Id()) &&
 			(schedule.awm->BindingSet(br::ResourceType::CPU) !=
 			           next_awm->BindingSet(br::ResourceType::CPU))) {
