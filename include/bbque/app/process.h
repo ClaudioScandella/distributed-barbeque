@@ -60,7 +60,10 @@ public:
 	 * @param _pid the process id
 	 * @param _prio the priority (optional)
 	 */
-	Process(std::string const & _name, AppPid_t _pid, AppPrio_t _prio=0);
+	Process(std::string const & _name,
+		AppPid_t _pid, AppPrio_t _prio=0,
+		Schedulable::State_t _state=READY,
+		Schedulable::SyncState_t _sync=SYNC_NONE);
 
 	/**
 	 * @brief Destructor
@@ -83,6 +86,7 @@ public:
 	inline ScheduleRequestPtr_t const & GetScheduleRequestInfo() {
 		return this->sched_req;
 	}
+
 
 private:
 
