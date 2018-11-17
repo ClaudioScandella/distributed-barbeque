@@ -46,24 +46,12 @@ char const *Schedulable::syncStateStr[] = {
  ******************************************************************************/
 
 void Schedulable::SetSyncState(SyncState_t sync) {
-/*
-	logger->Debug("Changing sync state [%s, %d:%s => %d:%s]",
-			StrId(),
-			_SyncState(), SyncStateStr(_SyncState()),
-			sync, SyncStateStr(sync));
-*/
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 	schedule.syncState = sync;
 }
 
 
 Schedulable::ExitCode_t Schedulable::SetState(State_t next_state, SyncState_t next_sync) {
-/*
-	logger->Debug("Changing state [%s, %d:%s => %d:%s]",
-			StrId(),
-			_State(), StateStr(_State()),
-			next_state, StateStr(next_state));
-*/
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 	// Switching to a sychronization state
 	if (next_state == SYNC) {
