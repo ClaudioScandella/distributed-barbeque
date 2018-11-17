@@ -649,7 +649,7 @@ SynchronizationManager::Sync_PlatformForProcesses() {
 	SM_RESET_TIMING(sm_tmr);
 
 	if (!prm.HasProcesses(Schedulable::SYNC)) {
-		logger->Debug("STEP M.2: SyncPlatform() NONE: no rocesses");
+		logger->Debug("STEP M.2: SyncPlatform() NONE: no processes");
 		return NOTHING_TO_SYNC;
 	}
 
@@ -771,11 +771,12 @@ SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
 SynchronizationManager::ExitCode_t
 SynchronizationManager::SyncProcesses() {
 	// Perform resource mapping
+	logger->Debug("SyncProcesses: platform mapping...");
 	ExitCode_t result = Sync_PlatformForProcesses();
 	if (result != OK)
 		return result;
-
 	// Commit changes
+	logger->Debug("SyncProcesses: post-change commit...");
 	return Sync_PostChangeForProcesses();
 }
 
