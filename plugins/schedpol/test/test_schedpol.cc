@@ -158,12 +158,12 @@ TestSchedPol::AssignWorkingMode(bbque::app::AppCPtr_t papp) {
 	if (pawm == nullptr) {
 		pawm = std::make_shared<ba::WorkingMode>(
 				papp->WorkingModes().size(),"Run-time", 1, papp);
+		// Resource request addition
+		pawm->AddResourceRequest(
+			"sys.cpu.pe", CPU_QUOTA_TO_ALLOCATE,
+			br::ResourceAssignment::Policy::BALANCED);
 	}
 
-	// Resource request addition
-	pawm->AddResourceRequest(
-		"sys0.cpu.pe", CPU_QUOTA_TO_ALLOCATE,
-		br::ResourceAssignment::Policy::BALANCED);
 
 	BindingManager & bdm(BindingManager::GetInstance());
 	BindingMap_t & bindings(bdm.GetBindingDomains());
