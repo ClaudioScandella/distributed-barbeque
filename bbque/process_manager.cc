@@ -193,19 +193,20 @@ bool ProcessManager::IsToManage(std::string const & name) const {
 
 void ProcessManager::NotifyStart(std::string const & name, app::AppPid_t pid) {
 	if (!IsToManage(name)) {
-		logger->Debug("NotifyStart: %s not managed", name.c_str());
+//		logger->Debug("NotifyStart: %s not managed", name.c_str());
 		return;
 	}
 	logger->Info("NotifyStart: scheduling required for [%s: %d]", name.c_str(), pid);
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
 	managed_procs[name].pid_set->emplace(pid);
-	state_procs[app::Schedulable::READY].emplace(pid, std::make_shared<Process>(name, pid));
+	state_procs[app::Schedulable::READY].emplace(
+		pid, std::make_shared<Process>(name, pid));
 }
 
 
 void ProcessManager::NotifyStop(std::string const & name, app::AppPid_t pid) {
 	if (!IsToManage(name)) {
-		logger->Debug("NotifyStop: %s not managed", name.c_str());
+	//	logger->Debug("NotifyStop: %s not managed", name.c_str());
 		return;
 	}
 	logger->Debug("NotifyStop: process [%s: %d] terminated", name.c_str(), pid);
