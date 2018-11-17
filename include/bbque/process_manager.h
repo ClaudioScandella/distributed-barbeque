@@ -119,6 +119,12 @@ public:
 	 */
 	ProcPtr_t GetNext(app::Schedulable::State_t state, ProcessMapIterator & it);
 
+	/**
+	 * @brief The number of processes in a given state queue
+	 * @param state the process state
+	 * @return An integer value
+	 */
+	uint32_t ProcessesCount(app::Schedulable::State_t state);
 
 /*******************************************************************************
  *     Synchronization functions

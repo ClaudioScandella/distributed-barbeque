@@ -247,6 +247,14 @@ ProcPtr_t ProcessManager::GetNext(app::Schedulable::State_t state, ProcessMapIte
 	return it->second;
 }
 
+
+uint32_t ProcessManager::ProcessesCount(app::Schedulable::State_t state) {
+	if (state >= app::Schedulable::STATE_COUNT)
+		return -1;
+	std::unique_lock<std::mutex> u_lock(proc_mutex);
+	return state_procs[state].size();
+}
+
 /*******************************************************************************
  *     Synchronization functions
  ******************************************************************************/
