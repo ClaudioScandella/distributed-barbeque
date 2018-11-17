@@ -96,6 +96,10 @@ SchedulerPolicyIF::ExitCode_t TestSchedPol::Init() {
 	auto const & r_ids_entry = resource_types.find(br::ResourceType::PROC_ELEMENT);
 	pe_ids = r_ids_entry->second;
 	logger->Debug("Init: %d processing elements available", pe_ids.size());
+	if (pe_ids.empty()) {
+		logger->Crit("Init: not available CPU cores!");
+		return SCHED_R_UNAVAILABLE;
+	}
 
 	// Load all the applications task graphs
 	logger->Debug("Init: loading the applications task graphs");
@@ -113,7 +117,9 @@ TestSchedPol::Schedule(
 
 	// Class providing query functions for applications and resources
 	sys = &system;
-	Init();
+	result = Init();
+	if (result != SCHED_OK)
+		return result;
 
 	/** INSERT YOUR CODE HERE **/
 	bbque::app::AppCPtr_t papp;
