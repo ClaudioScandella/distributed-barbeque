@@ -46,7 +46,7 @@ WorkingMode::WorkingMode(
 		int8_t _id,
 		std::string const & _name,
 		float _value,
-		AppSPtr_t _owner):
+		SchedPtr_t _owner):
 	id(_id), name(_name), hidden(false) {
 	logger = bu::Logger::GetLogger(AWM_NAMESPACE);
 

@@ -61,7 +61,7 @@ public:
 			int8_t id,
 			std::string const & name,
 			float value,
-			AppSPtr_t owner = nullptr);
+			SchedPtr_t owner = nullptr);
 
 	/**
 	 * @brief Default destructor
@@ -93,7 +93,7 @@ public:
 	/**
 	 * @see WorkingModeStatusIF
 	 */
-	inline AppSPtr_t const & Owner() const {
+	inline SchedPtr_t const & Owner() const {
 		return owner;
 	}
 
@@ -101,7 +101,7 @@ public:
 	 * @brief Set the application owning the AWM
 	 * @param papp Application descriptor pointer
 	 */
-	inline void SetOwner(AppSPtr_t const & papp) {
+	inline void SetOwner(SchedPtr_t const & papp) {
 		owner = papp;
 	}
 
@@ -558,7 +558,7 @@ private:
 	 * A pointer to the Application descriptor containing the
 	 * current working mode
 	 */
-	AppSPtr_t owner;
+	SchedPtr_t owner;
 
 	/** A numerical ID  */
 	int8_t id = 0;
