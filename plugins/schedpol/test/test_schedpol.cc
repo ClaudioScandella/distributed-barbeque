@@ -156,46 +156,49 @@ TestSchedPol::AssignWorkingMode(bbque::app::AppCPtr_t papp) {
 
 	// Resource request addition
 	pawm->AddResourceRequest(
-		"sys0.cpu.pe", CPU_QUOTA_TO_ALLOCATE, br::ResourceAssignment::Policy::BALANCED);
+		"sys0.cpu.pe", CPU_QUOTA_TO_ALLOCATE,
+		br::ResourceAssignment::Policy::BALANCED);
 
 	BindingManager & bdm(BindingManager::GetInstance());
 	BindingMap_t & bindings(bdm.GetBindingDomains());
-
-	BBQUE_RID_TYPE cpu_id = R_ID_NONE;
-	auto & cpu_ids = bindings[br::ResourceType::CPU]->r_ids;
-	if (cpu_ids.find(CPU_ASSIGNED_ID) != cpu_ids.end()) {
-		cpu_id = CPU_ASSIGNED_ID;
-		logger->Info("AssingWorkingMode: hard-coded CPU id [%d] available", cpu_id);
-		ExitCode_t ret = DoCPUBinding(papp, pawm, cpu_id);
-		if (ret == SCHED_OK) {
-#ifdef CONFIG_BBQUE_TG_PROG_MODEL
-			MapTaskGraph(papp); // Task level mapping
-#endif // CONFIG_BBQUE_TG_PROG_MODEL
-			return ret;
-		}
+	auto & cpu_ids(bindings[br::ResourceType::CPU]->r_ids);
+	if (cpu_ids.empty()) {
+		logger->Crit("AssingWorkingMode: not available CPUs!");
+		return SCHED_ERROR;
 	}
-	else
-		logger->Warn("AssingWorkingMode: hard-coded CPU id [%d] not found", cpu_id);
 
-	// In case of CPU_ASSIGNED_ID not found or failed binding
-	for (BBQUE_RID_TYPE cpu_id: bindings[br::ResourceType::CPU]->r_ids) {
+	// Look for the first available CPU
+	for (BBQUE_RID_TYPE cpu_id: cpu_ids) {
 		logger->Info("AssingWorkingMode: binding attempt CPU id = %d", cpu_id);
-		ExitCode_t ret = DoCPUBinding(papp, pawm, cpu_id);
-		if (ret == SCHED_OK) {
-#ifdef CONFIG_BBQUE_TG_PROG_MODEL
-			MapTaskGraph(papp); // Task level mapping
-#endif // CONFIG_BBQUE_TG_PROG_MODEL
-			return ret;
+
+		// CPU binding
+		auto ref_num = DoCPUBinding(pawm, cpu_id);
+		if (ref_num < 0) {
+			logger->Error("AssingWorkingMode: CPU binding to [%d] failed", cpu_id);
+			continue;
 		}
+
+		// Schedule request
+		ApplicationManager & am(ApplicationManager::GetInstance());
+		ApplicationManager::ExitCode_t am_ret;
+		am_ret = am.ScheduleRequest(papp, pawm, sched_status_view, ref_num);
+		if (am_ret != ApplicationManager::AM_SUCCESS) {
+			logger->Error("AssignWorkingMode: schedule request failed for [%d]",
+				papp->StrId());
+			continue;
+		}
+
+#ifdef CONFIG_BBQUE_TG_PROG_MODEL
+		MapTaskGraph(papp); // Task level mapping
+#endif // CONFIG_BBQUE_TG_PROG_MODEL
+		return SCHED_OK;
 	}
 
 	return SCHED_ERROR;
 }
 
 
-SchedulerPolicyIF::ExitCode_t
-TestSchedPol::DoCPUBinding(
-		bbque::app::AppCPtr_t papp,
+int32_t TestSchedPol::DoCPUBinding(
 		bbque::app::AwmPtr_t pawm,
 		BBQUE_RID_TYPE cpu_id) {
 	// CPU-level binding: the processing elements are in the scope of the CPU 'cpu_id'
@@ -215,16 +218,7 @@ TestSchedPol::DoCPUBinding(
 		if (pe_count == CPU_QUOTA_TO_ALLOCATE / 100) break;
 	}
 
-	ApplicationManager & am(ApplicationManager::GetInstance());
-	ApplicationManager::ExitCode_t ret =
-		am.ScheduleRequest(papp, pawm, sched_status_view, ref_num);
-	if (ret != ApplicationManager::AM_SUCCESS) {
-		logger->Error("AssignWorkingMode: schedule request failed for [%d]",
-			papp->StrId());
-		return SCHED_ERROR;
-	}
-
-	return SCHED_OK;
+	return ref_num;
 }
 
 #ifdef CONFIG_BBQUE_TG_PROG_MODEL
