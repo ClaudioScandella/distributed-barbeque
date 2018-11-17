@@ -53,7 +53,10 @@ public:
 	enum ExitCode_t {
 		SUCCESS = 0,
 		PROCESS_NOT_SCHEDULED,
-		PROCESS_NOT_FOUND
+		PROCESS_NOT_SCHEDULABLE,
+		PROCESS_NOT_FOUND,
+		PROCESS_MISSING_AWM,
+		PROCESS_SCHED_REQ_REJECTED
 	};
 
 	/**
@@ -125,6 +128,78 @@ public:
 	 * @return An integer value
 	 */
 	uint32_t ProcessesCount(app::Schedulable::State_t state);
+
+/*******************************************************************************
+ *     Scheduling functions
+ ******************************************************************************/
+
+	/**
+	 * @brief Request to re-schedule this application into a new configuration
+	 *
+	 * The Optimizer call this method when an AWM is selected for this
+	 * application to verify if it could be scheduled, i.e. bound resources
+	 * are available, and eventually to update the application status.
+	 *
+	 * First the application verify resources availability. If the quality and
+	 * amount of required resources could be satisfied, the application is
+	 * going to be re-scheduled otherwise, it is un-scheduled.
+	 *
+	 * @param proc The application/EXC to schedule
+	 * @param awm Next working mode scheduled for the application
+	 * @param status_view The token referencing the resources state view
+	 * @param bid An optional identifier for the resource binding
+	 *
+	 * @return The method returns an exit code representing the decision taken:
+	 * AM_SUCCESS if the specified working mode can be scheduled for
+	 * this application, APP_AWM_NOT_SCHEDULABLE if the working mode cannot
+	 * not be scheduled. If the application is currently disabled this call
+	 * returns always AM_APP_DISABLED.
+	 */
+	ExitCode_t ScheduleRequest(
+		ProcPtr_t proc, app::AwmPtr_t  awm,
+		br::RViewToken_t status_view, size_t b_refn);
+
+	/**
+	 * @brief Re-schedule this application according to previous scheduling
+	 * policy run
+	 *
+	 * @param proc The application to re-schedule
+	 * @param status_view The token referencing the resources state view
+	 *
+	 * @return The method returns AM_SUCCESS if the application can be
+	 * rescheduled, AM_EXC_INVALID_STATUS if the application is not in
+	 * "running" stats, APP_AWM_NOT_SCHEDULABLE if required resources are
+	 * no longer
+	 * available.
+	 */
+	ExitCode_t ScheduleRequestAsPrev(
+		ProcPtr_t proc, br::RViewToken_t status_view) {
+		return ScheduleRequest(proc, proc->CurrentAWM(), status_view, 0);
+	}
+
+	/**
+	 * @brief Configure this application to switch to the specified AWM
+	 * @param proc the application
+	 * @param awm the working mode
+	 * @return @see ExitCode_t
+	 */
+	ExitCode_t Reschedule(ProcPtr_t proc, app::AwmPtr_t awm);
+
+	/**
+	 * @brief Configure this application to release resources.
+	 * @param proc the application
+	 * @return @see ExitCode_t
+	 */
+	ExitCode_t Unschedule(ProcPtr_t proc);
+
+	/**
+	 * @brief Do not schedule the application
+	 * @param proc the application
+	 */
+	ExitCode_t NoSchedule(ProcPtr_t proc) {
+		return ChangeState(proc,
+			Schedulable::DISABLED, Schedulable::BLOCKED);
+	}
 
 /*******************************************************************************
  *     Synchronization functions

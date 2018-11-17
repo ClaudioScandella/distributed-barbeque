@@ -15,10 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "bbque/process_manager.h"
-
 #include <cstring>
 #include <ctype.h>
+
+#include "bbque/app/working_mode.h"
+#include "bbque/process_manager.h"
 
 #define MODULE_NAMESPACE "bq.prm"
 #define MODULE_CONFIG    "ProcessManager"
@@ -254,6 +255,140 @@ uint32_t ProcessManager::ProcessesCount(app::Schedulable::State_t state) {
 		return -1;
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
 	return state_procs[state].size();
+}
+
+
+/*******************************************************************************
+ *     Scheduling functions
+ ******************************************************************************/
+
+ProcessManager::ExitCode_t ProcessManager::ScheduleRequest(
+		ProcPtr_t proc,
+		app::AwmPtr_t  awm,
+		res::RViewToken_t status_view,
+		size_t b_refn) {
+	ResourceAccounter &ra(ResourceAccounter::GetInstance());
+	logger->Info("ScheduleRequest: [%s] schedule request for binding @[%d] view=%ld",
+		proc->StrId(), b_refn, status_view);
+
+	// AWM safety check
+	if (!awm) {
+		logger->Crit("ScheduleRequest: [%s] AWM not existing)", proc->StrId());
+		assert(awm);
+		return PROCESS_MISSING_AWM;
+	}
+	logger->Debug("ScheduleRequest: [%s] request for scheduling in AWM [%02d:%s]",
+			proc->StrId(), awm->Id(), awm->Name().c_str());
+
+	// App is SYNC/BLOCKED for a previously failed scheduling.
+	// Reset state and syncState for this new attempt.
+/*
+	if (proc->Blocking()) {
+		logger->Warn("ScheduleRequest: [%s] request for blocking application",
+			proc->StrId());
+		logger->Warn("ScheduleRequest: [%s] forcing state transition to SYNC_NONE",
+			proc->StrId());
+		ChangeState(proc, proc->State(), app::Schedulable::FINISHED);
+	}
+*/
+
+	// Checking for resources availability: unschedule if not
+	auto ra_result = ra.BookResources(
+		proc, awm->GetSchedResourceBinding(b_refn), status_view);
+	if (ra_result != ResourceAccounter::RA_SUCCESS) {
+		logger->Debug("ScheduleRequest: [%s] not enough resources...",
+			proc->StrId());
+		Unschedule(proc);
+		return PROCESS_NOT_SCHEDULABLE;
+	}
+
+	// Bind the resource set to the working mode
+	auto wm_result = awm->SetResourceBinding(status_view, b_refn);
+	if (wm_result != app::WorkingMode::WM_SUCCESS) {
+		logger->Error("ScheduleRequest: [%s] something went wrong in binding map",
+			proc->StrId());
+		return PROCESS_SCHED_REQ_REJECTED;
+	}
+
+	logger->Debug("(ScheduleRequest: [%s] state=%s sync=%s",
+		proc->StrId(),
+		proc->StateStr(proc->State()),
+		proc->SyncStateStr(proc->SyncState()));
+
+	// Reschedule accordingly to "awm"
+	logger->Debug("ScheduleRequest: (re)scheduling [%s] into AWM [%d:%s]...",
+			proc->StrId(), awm->Id(), awm->Name().c_str());
+	auto ret = Reschedule(proc, awm);
+	if (ret != SUCCESS) {
+		ra.ReleaseResources(proc, status_view);
+		awm->ClearResourceBinding();
+		return ret;
+	}
+
+	logger->Debug("ScheduleRequest: [%s, %s] completed",
+			proc->StrId(), proc->SyncStateStr(proc->SyncState()));
+	return SUCCESS;
+}
+
+ProcessManager::ExitCode_t ProcessManager::Reschedule(
+		ProcPtr_t proc,
+		app::AwmPtr_t awm) {
+
+	// Next synchronization state (not exploited)
+	auto next_sync = proc->NextSyncState(awm);
+		logger->Debug("(Re)schedule: [%s] for %s",
+			proc->StrId(),
+			proc->SyncStateStr(next_sync));
+	if (next_sync == app::Schedulable::SYNC_NONE) {
+		logger->Warn("(Re)schedule: [%s] next_sync=SYNC_NONE (state=%s)",
+			proc->StrId(),
+			proc->StateStr(proc->State()));
+		return SUCCESS;
+	}
+	logger->Debug("(Re)schedule: [%s, %s] next synchronization...",
+			proc->StrId(), app::Schedulable::SyncStateStr(next_sync));
+
+	// Change to synchronization state
+	auto ret = ChangeState(proc, app::Schedulable::SYNC, next_sync);
+	if (ret != SUCCESS) {
+		logger->Crit("(Re)schedule: [%s] FAILED: state=%s sync=%s",
+			proc->StrId(),
+			proc->StateStr(proc->State()),
+			proc->SyncStateStr(proc->SyncState()));
+		return PROCESS_SCHED_REQ_REJECTED;
+	}
+
+	// Set the next working mode
+	proc->SetNextAWM(awm);
+	if (!proc->NextAWM()) {
+		logger->Crit("(Re)schedule:[%s] next AWM not set!", proc->StrId());
+		return PROCESS_SCHED_REQ_REJECTED;
+	}
+
+	logger->Debug("(Re)schedule: [%s] next_awm=<%d>",
+			proc->StrId(), proc->NextAWM()->Id());
+	return SUCCESS;
+}
+
+
+ProcessManager::ExitCode_t ProcessManager::Unschedule(ProcPtr_t proc) {
+	// Next synchronization state (not exploited)
+	logger->Debug("Unschedule: [%s, %s]...",
+		proc->StrId(),
+		proc->StateStr(proc->State()),
+		proc->SyncStateStr(proc->SyncState()));
+
+	// Change to synchronization state
+	auto ret = ChangeState(proc, app::Schedulable::READY);
+	if (ret != SUCCESS) {
+		logger->Crit("Unschedule: [%s] FAILED: state=%s sync=%s",
+			proc->StrId(),
+			proc->StateStr(proc->State()),
+			proc->SyncStateStr(proc->SyncState()));
+		return PROCESS_SCHED_REQ_REJECTED;
+	}
+
+	return SUCCESS;
 }
 
 /*******************************************************************************
