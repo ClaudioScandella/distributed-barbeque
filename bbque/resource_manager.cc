@@ -140,6 +140,7 @@ ResourceManager::ResourceManager() :
 	bdm(BindingManager::GetInstance()),
 	mc(MetricsCollector::GetInstance()),
 	plm(PlatformManager::GetInstance()),
+	prm(ProcessManager::GetInstance()),
 	cm(CommandManager::GetInstance()),
 	sm(SchedulerManager::GetInstance()),
 	ym(SynchronizationManager::GetInstance()),
@@ -316,7 +317,12 @@ void ResourceManager::Optimize() {
 	// there are actually active applications
 	if (!plat_event &&
 		!am.HasApplications(Application::READY) &&
-		!am.HasApplications(Application::RUNNING))
+		!am.HasApplications(Application::RUNNING)
+		&&
+		!prm.HasProcesses(Schedulable::READY) &&
+		!prm.HasProcesses(Schedulable::RUNNING)
+	)
+
 		return;
 	plat_event = false;
 

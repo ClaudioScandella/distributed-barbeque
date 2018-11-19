@@ -20,6 +20,7 @@
 
 #include "bbque/app/working_mode.h"
 #include "bbque/process_manager.h"
+#include "bbque/resource_manager.h"
 
 #define MODULE_NAMESPACE "bq.prm"
 #define MODULE_CONFIG    "ProcessManager"
@@ -202,6 +203,9 @@ void ProcessManager::NotifyStart(std::string const & name, app::AppPid_t pid) {
 	managed_procs[name].pid_set->emplace(pid);
 	state_procs[app::Schedulable::READY].emplace(
 		pid, std::make_shared<Process>(name, pid));
+	// Trigger a re-scheduling
+	ResourceManager & rm(ResourceManager::GetInstance());
+	rm.NotifyEvent(ResourceManager::BBQ_OPTS);
 }
 
 
@@ -235,6 +239,9 @@ void ProcessManager::NotifyStop(std::string const & name, app::AppPid_t pid) {
 			ending_proc->SyncStateStr(ending_proc->SyncState()));
 		return;
 	}
+	// Trigger a re-scheduling
+	ResourceManager & rm(ResourceManager::GetInstance());
+	rm.NotifyEvent(ResourceManager::BBQ_OPTS);
 }
 
 
@@ -255,9 +262,10 @@ ProcPtr_t ProcessManager::GetFirst(app::Schedulable::State_t state, ProcessMapIt
 ProcPtr_t ProcessManager::GetNext(app::Schedulable::State_t state, ProcessMapIterator & it) {
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
 	auto & state_map(state_procs[state]);
-	it++;
 	if (it == state_map.end())
 		return nullptr;
+	else
+		it++;
 	return it->second;
 }
 
