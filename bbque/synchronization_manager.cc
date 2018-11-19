@@ -541,12 +541,18 @@ SynchronizationManager::ExitCode_t
 SynchronizationManager::Sync_PostChangeForProcesses() {
 	logger->Debug("STEP 4.2: postChange() START: processes");
 
+	// Commit SYNC -> RUNNING
 	ProcessMapIterator procs_it;
 	ProcPtr_t proc = prm.GetFirst(Schedulable::SYNC, procs_it);
 	for ( ; proc; proc = prm.GetNext(Schedulable::SYNC, procs_it)) {
+		SyncCommit(proc);
 		logger->Info("STEP 4.2: <--------- OK -- [%s]", proc->StrId());
-		if (proc->Disabled())
-			continue;
+	}
+
+	// Commit FINISHED -> <removed>
+	proc = prm.GetFirst(Schedulable::FINISHED, procs_it);
+	for ( ; proc; proc = prm.GetNext(Schedulable::FINISHED, procs_it)) {
+		logger->Info("STEP 4.2: <---- RELEASED -- [%s]", proc->StrId());
 		SyncCommit(proc);
 	}
 
