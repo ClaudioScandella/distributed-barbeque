@@ -201,6 +201,11 @@ SchedulerPolicyIF::ExitCode_t TestSchedPol::ScheduleProcesses() {
 SchedulerPolicyIF::ExitCode_t
 TestSchedPol::AssignWorkingMode(bbque::app::AppCPtr_t papp) {
 
+	if (papp == nullptr) {
+		logger->Error("AssignWorkingMode: null application descriptor!");
+		return SCHED_ERROR;
+	}
+
 	// Build a new working mode featuring assigned resources
 	ba::AwmPtr_t pawm = papp->CurrentAWM();
 	if (pawm == nullptr) {
@@ -273,6 +278,10 @@ int32_t TestSchedPol::DoCPUBinding(
 SchedulerPolicyIF::ExitCode_t
 TestSchedPol::AssignWorkingMode(ProcPtr_t proc) {
 	ProcessManager & prm(ProcessManager::GetInstance());
+	if (proc == nullptr) {
+		logger->Error("AssignWorkingMode: null process descriptor!");
+		return SCHED_ERROR;
+	}
 
 	// Build a new working mode featuring assigned resources
 	ba::AwmPtr_t pawm = proc->CurrentAWM();
@@ -311,7 +320,6 @@ TestSchedPol::AssignWorkingMode(ProcPtr_t proc) {
 
 	return SCHED_ERROR;
 }
-
 
 
 #ifdef CONFIG_BBQUE_TG_PROG_MODEL
