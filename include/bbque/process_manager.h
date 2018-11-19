@@ -56,7 +56,9 @@ public:
 		PROCESS_NOT_SCHEDULABLE,
 		PROCESS_NOT_FOUND,
 		PROCESS_MISSING_AWM,
-		PROCESS_SCHED_REQ_REJECTED
+		PROCESS_WRONG_STATE,
+		PROCESS_SCHED_REQ_REJECTED,
+		ABORT
 	};
 
 	/**
@@ -255,6 +257,7 @@ private:
 
 	/** Command manager instance */
 	CommandManager & cm;
+
 
 	/** Mutex to protect processes maps */
 	mutable std::mutex proc_mutex;

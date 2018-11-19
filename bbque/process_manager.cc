@@ -214,14 +214,26 @@ void ProcessManager::NotifyStop(std::string const & name, app::AppPid_t pid) {
 	std::unique_lock<std::mutex> u_lock(proc_mutex);
 
 	// Remove from the status maps...
+	ProcPtr_t ending_proc;
 	for (auto state_it = state_procs.begin(); state_it != state_procs.end(); ++state_it) {
 		auto & state_map(*state_it);
 		auto proc_it = state_map.find(pid);
 		if (proc_it != state_map.end()) {
+			ending_proc = proc_it->second;
 			state_map.erase(proc_it);
 			logger->Debug("NotifyStop: [%s: %d] removed from map",
 				name.c_str(), pid);
 		}
+	}
+
+	auto ret = ChangeState(ending_proc,
+		app::Schedulable::FINISHED, app::Schedulable::SYNC_NONE);
+	if (ret != SUCCESS) {
+		logger->Crit("(Re)schedule: [%s] FAILED: state=%s sync=%s",
+			ending_proc->StrId(),
+			ending_proc->StateStr(ending_proc->State()),
+			ending_proc->SyncStateStr(ending_proc->SyncState()));
+		return;
 	}
 }
 
@@ -379,7 +391,8 @@ ProcessManager::ExitCode_t ProcessManager::Unschedule(ProcPtr_t proc) {
 		proc->SyncStateStr(proc->SyncState()));
 
 	// Change to synchronization state
-	auto ret = ChangeState(proc, app::Schedulable::READY);
+	auto ret = ChangeState(proc,
+		app::Schedulable::SYNC, app::Schedulable::BLOCKED);
 	if (ret != SUCCESS) {
 		logger->Crit("Unschedule: [%s] FAILED: state=%s sync=%s",
 			proc->StrId(),
@@ -396,8 +409,38 @@ ProcessManager::ExitCode_t ProcessManager::Unschedule(ProcPtr_t proc) {
  ******************************************************************************/
 
 ProcessManager::ExitCode_t ProcessManager::SyncCommit(ProcPtr_t proc) {
-	logger->Debug("SyncCommit: [%s] changing to RUNNING...", proc->StrId());
-	auto ret = ChangeState(proc, Schedulable::RUNNING);
+	ProcessManager::ExitCode_t ret = PROCESS_WRONG_STATE;
+	// SYNC -> RUNNING
+	if (proc->Synching() && !proc->Blocking()) {
+		logger->Debug("SyncCommit: [%s] changing to RUNNING...", proc->StrId());
+		ret = ChangeState(proc, Schedulable::RUNNING, Schedulable::SYNC_NONE);
+	}
+	// SYNC (BLOCKED) -> READY
+	else if (proc->Blocking()) {
+		ret = ChangeState(proc,
+			app::Schedulable::READY, app::Schedulable::SYNC_NONE);
+		if (ret != SUCCESS) {
+			logger->Crit("Unschedule: [%s] FAILED: state=%s sync=%s",
+				proc->StrId(),
+				proc->StateStr(proc->State()),
+				proc->SyncStateStr(proc->SyncState()));
+			return PROCESS_SCHED_REQ_REJECTED;
+		}
+	}
+	// FINISHED -> <remove>
+	else if (proc->State() == Schedulable::FINISHED) {
+		logger->Debug("SyncCommit: [%s] releasing FINISHED...", proc->StrId());
+		for (auto state_it = state_procs.begin(); state_it != state_procs.end(); ++state_it) {
+			auto & state_map(*state_it);
+			auto proc_it = state_map.find(proc->Pid());
+			if (proc_it != state_map.end()) {
+				logger->Debug("SyncCommit: [%s: %d] removing from map...",
+					proc->Name().c_str(), proc->Pid());
+				state_map.erase(proc_it);
+			}
+		}
+	}
+
 	if (ret != SUCCESS) {
 		logger->Error("SyncCommit: [%s] failed (state=%s)",
 			proc->StrId(), proc->StateStr(proc->State()));
@@ -455,13 +498,13 @@ ProcessManager::ExitCode_t ProcessManager::ChangeState(
 		from_map.erase(proc_it);
 	}
 
-	logger->Debug("ChangeState: [%s] state=%s sync=%s",
+	logger->Debug("ChangeState: FROM [%s] state=%s sync=%s",
 		proc->StrId(),
 		proc->StateStr(proc->State()),
 		proc->SyncStateStr(proc->SyncState()));
 
 	proc->SetState(to_state, next_sync);
-	logger->Debug("ChangeState: [%s] state=%s sync=%s",
+	logger->Debug("ChangeState: TO [%s] state=%s sync=%s",
 		proc->StrId(),
 		proc->StateStr(proc->State()),
 		proc->SyncStateStr(proc->SyncState()));
