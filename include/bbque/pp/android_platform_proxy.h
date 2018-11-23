@@ -76,6 +76,7 @@ public:
 
 private:
 
+
 #ifdef CONFIG_BBQUE_LINUX_PROC_LISTENER
 	ProcessListener & proc_listener;
 #endif

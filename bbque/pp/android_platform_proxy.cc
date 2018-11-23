@@ -27,7 +27,6 @@ AndroidPlatformProxy::AndroidPlatformProxy()
 	proc_listener.Start();
 #endif
 
-
 #ifdef CONFIG_TARGET_ARM_BIG_LITTLE
 	InitCoresType();
 #endif
