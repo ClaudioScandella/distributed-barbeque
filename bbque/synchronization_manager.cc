@@ -713,8 +713,8 @@ SynchronizationManager::SyncSchedule() {
 	++sync_count;
 	logger->Notice("SyncSchedule: synchronization [%d] START, policy [%s]",
 			sync_count, policy->Name());
-	am.ReportStatusQ();
-	am.ReportSyncQ();
+	am.PrintStatusQ();
+	am.PrintSyncQ();
 	SM_COUNT_EVENT(metrics, SM_SYNCP_RUNS); // Account for SyncP runs
 	SM_RESET_TIMING(syncp_tmr);             // Reset the SyncP overall timer
 
@@ -787,8 +787,8 @@ SynchronizationManager::SyncSchedule() {
 
 	DisableFailedApps();
 	logger->Notice("SyncSchedule: session=%d DONE", sync_count);
-	am.ReportStatusQ();
-	am.ReportSyncQ();
+	am.PrintStatusQ();
+	am.PrintSyncQ();
 	return OK;
 }
 

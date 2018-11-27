@@ -21,15 +21,14 @@
 #include <map>
 #include <vector>
 
-#include "bbque/config.h"
 #include "bbque/app/application_conf.h"
 #include "bbque/application_manager_conf.h"
+#include "bbque/config.h"
 #include "bbque/command_manager.h"
+#include "bbque/cpp11/mutex.h"
+#include "bbque/plugins/recipe_loader.h"
 #include "bbque/utils/deferrable.h"
 #include "bbque/utils/logging/logger.h"
-#include "bbque/plugins/recipe_loader.h"
-#include "bbque/cpp11/mutex.h"
-#include "bbque/command_manager.h"
 
 using bbque::app::Application;
 using bbque::utils::Deferrable;
@@ -383,7 +382,6 @@ public:
 	 */
 	void SyncAbort(AppPtr_t papp);
 
-
 	/**
 	 * @brief Commit the "continue to run" for the specified application
 	 *
@@ -391,25 +389,6 @@ public:
 	 * @return AM_SUCCESS on success, AM_ABORT on failure
 	 */
 	ExitCode_t SyncContinue(AppPtr_t papp);
-
-/*******************************************************************************
- *     Report status functions
- ******************************************************************************/
-
-	/**
-	 * @brief Dump a logline to report on current Status queue counts
-	 */
-	void ReportStatusQ(bool verbose = false) const;
-
-	/**
-	 * @brief Dump a logline to report on current Status queue counts
-	 */
-	void ReportSyncQ(bool verbose = false) const;
-
-	/**
-	 * @see ApplicationManagerStatusIF
-	 */
-	void PrintStatusReport(bool verbose = false);
 
 
 /*******************************************************************************
@@ -496,6 +475,27 @@ public:
 	void LoadTaskGraphAll();
 
 #endif // CONFIG_BBQUE_TG_PROG_MODEL
+
+/*******************************************************************************
+ *     Status logging
+ ******************************************************************************/
+
+	/**
+	 * @brief Dump a logline to report on current Status queue counts
+	 */
+	void PrintStatusQ(bool verbose = false) const;
+
+	/**
+	 * @brief Dump a logline to report on current Status queue counts
+	 */
+	void PrintSyncQ(bool verbose = false) const;
+
+	/**
+	 * @brief Dump a logline to report all applications status
+	 *
+	 * @param verbose print in INFO logleve is ture, in DEBUG if false
+	 */
+	void PrintStatus(bool verbose = false);
 
 private:
 

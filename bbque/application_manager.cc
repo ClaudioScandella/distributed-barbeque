@@ -649,7 +649,7 @@ ApplicationManager::GetApplication(AppPid_t pid, uint8_t exc_id) {
 	}\
 
 
-void ApplicationManager::ReportStatusQ(bool verbose) const {
+void ApplicationManager::PrintStatusQ(bool verbose) const {
 
 	// Report on current status queue
 	char report[] = "StateQ: [DIS: 000, RDY: 000, SYC: 000, RUN: 000, FIN: 000]";
@@ -676,7 +676,7 @@ void ApplicationManager::ReportStatusQ(bool verbose) const {
 
 }
 
-void ApplicationManager::ReportSyncQ(bool verbose) const {
+void ApplicationManager::PrintSyncQ(bool verbose) const {
 
 	// Report on current status queue
 	char report[] = "SyncQ:  [STA: 000, REC: 000, M/R: 000, MIG: 000, BLK: 000]";
@@ -726,8 +726,8 @@ ApplicationManager::UpdateStatusMaps(AppPtr_t papp,
 	UpdateIterators(status_ret[prev], papp);
 	curr_state_map->erase(papp->Uid());
 
-	ReportStatusQ();
-	ReportSyncQ();
+	PrintStatusQ();
+	PrintSyncQ();
 
 	return AM_SUCCESS;
 }
@@ -786,7 +786,7 @@ inline void BuildStateStr(AppPtr_t papp, char * state_str) {
 	}
 
 
-void ApplicationManager::PrintStatusReport(bool verbose) {
+void ApplicationManager::PrintStatus(bool verbose) {
 	AppsUidMapIt app_it;
 	AppPtr_t papp;
 	char line[80];
@@ -1152,9 +1152,9 @@ ApplicationManager::DestroyEXC(AppPtr_t papp) {
 	}
 
 	logger->Info("DestroyEXC: [%s] FINISHED", papp->StrId());
-	ReportStatusQ();
-	ReportSyncQ();
-	PrintStatusReport();
+	PrintStatusQ();
+	PrintSyncQ();
+	PrintStatus();
 	ra.PrintStatusReport();
 
 	return AM_SUCCESS;

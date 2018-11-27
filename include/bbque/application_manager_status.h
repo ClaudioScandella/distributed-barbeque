@@ -19,6 +19,7 @@
 #define BBQUE_APPLICATION_MANAGER_STATUS_IF_H_
 
 #include "bbque/app/application.h"
+#include "bbque/schedulable_manager.h"
 
 using bbque::app::ApplicationStatusIF;
 using bbque::app::AppPid_t;
@@ -144,7 +145,7 @@ private:
  * managed, and maps of application descriptors, even querying by scheduling
  * status or priority level.
  */
-class ApplicationManagerStatusIF {
+class ApplicationManagerStatusIF: public SchedulableManager {
 
 public:
 
@@ -370,13 +371,6 @@ public:
 	 * @return The maximum integer value for the (lowest) priority level
 	 */
 	virtual app::AppPrio_t LowestPriority() const = 0;
-
-	/**
-	 * @brief Dump a logline to report all applications status
-	 *
-	 * @param verbose print in INFO logleve is ture, in DEBUG if false
-	 */
-	virtual void PrintStatusReport(bool verbose = false) = 0;
 
 #ifdef CONFIG_BBQUE_TG_PROG_MODEL
 
