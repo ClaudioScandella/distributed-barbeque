@@ -264,8 +264,9 @@ ProcPtr_t ProcessManager::GetNext(app::Schedulable::State_t state, ProcessMapIte
 	auto & state_map(state_procs[state]);
 	if (it == state_map.end())
 		return nullptr;
-	else
-		it++;
+	it++;
+	if (it == state_map.end())
+		return nullptr;
 	return it->second;
 }
 
