@@ -107,7 +107,9 @@ SynchronizationManager::SynchronizationManager() :
 	mc(bu::MetricsCollector::GetInstance()),
 	ra(ResourceAccounter::GetInstance()),
 	plm(PlatformManager::GetInstance()),
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	prm(ProcessManager::GetInstance()),
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 	sv(System::GetInstance()),
 	sync_count(0) {
 	std::string sync_policy;
@@ -537,28 +539,6 @@ SynchronizationManager::Sync_PostChange(ApplicationStatusIF::SyncState_t syncSta
 	return OK;
 }
 
-SynchronizationManager::ExitCode_t
-SynchronizationManager::Sync_PostChangeForProcesses() {
-	logger->Debug("STEP 4.2: postChange() START: processes");
-
-	// Commit SYNC -> RUNNING
-	ProcessMapIterator procs_it;
-	ProcPtr_t proc = prm.GetFirst(Schedulable::SYNC, procs_it);
-	for ( ; proc; proc = prm.GetNext(Schedulable::SYNC, procs_it)) {
-		SyncCommit(proc);
-		logger->Info("STEP 4.2: <--------- OK -- [%s]", proc->StrId());
-	}
-
-	// Commit FINISHED -> <removed>
-	proc = prm.GetFirst(Schedulable::FINISHED, procs_it);
-	for ( ; proc; proc = prm.GetNext(Schedulable::FINISHED, procs_it)) {
-		logger->Info("STEP 4.2: <---- RELEASED -- [%s]", proc->StrId());
-		SyncCommit(proc);
-	}
-
-	logger->Debug("STEP 4.2: postChange() DONE: processes");
-	return OK;
-}
 
 
 void SynchronizationManager::SyncCommit(AppPtr_t papp) {
@@ -582,26 +562,6 @@ void SynchronizationManager::SyncCommit(AppPtr_t papp) {
 	// Committing change to the manager (to update queues)
 	logger->Debug("SyncCommit: [%s] (adaptive) commit...", papp->StrId());
 	am.SyncCommit(papp);
-}
-
-void SynchronizationManager::SyncCommit(ProcPtr_t proc) {
-	// Acquiring the resources for RUNNING Applications
-	if (!proc->Blocking()) {
-		logger->Debug("SyncCommit: [%s] is in %s/%s", proc->StrId(),
-				proc->StateStr(proc->State()),
-				proc->SyncStateStr(proc->SyncState()));
-		// Resource acquisition
-		auto ra_result = ra.SyncAcquireResources(proc);
-		if (ra_result != ResourceAccounter::RA_SUCCESS) {
-			logger->Error("SyncCommit: failed for [%s] (ret=%d)",
-					proc->StrId(), ra_result);
-			prm.SyncAbort(proc);
-		}
-	}
-
-	// Committing change to the manager (to update queues)
-	logger->Debug("SyncCommit: [%s] (process) commit...", proc->StrId());
-	prm.SyncCommit(proc);
 }
 
 
@@ -641,41 +601,6 @@ SynchronizationManager::Sync_Platform(ApplicationStatusIF::SyncState_t syncState
 	logger->Debug("STEP M.1: SyncPlatform(%s) DONE: adaptive applications",
 		papp->SyncStateStr(syncState));
 
-	if (at_least_one_success)
-		return OK;
-	return PLATFORM_SYNC_FAILED;
-}
-
-SynchronizationManager::ExitCode_t
-SynchronizationManager::Sync_PlatformForProcesses() {
-	ExitCode_t result;
-	bool at_least_one_success = false;
-
-	logger->Debug("STEP M.2: SyncPlatform() START: processes");
-	SM_RESET_TIMING(sm_tmr);
-
-	if (!prm.HasProcesses(Schedulable::SYNC)) {
-		logger->Debug("STEP M.2: SyncPlatform() NONE: no processes");
-		return NOTHING_TO_SYNC;
-	}
-
-	ProcessMapIterator procs_it;
-	ProcPtr_t proc = prm.GetFirst(Schedulable::SYNC, procs_it);
-	for ( ; proc; proc = prm.GetNext(Schedulable::SYNC, procs_it)) {
-		result = MapResources(proc);
-		if (result != SynchronizationManager::OK) {
-			logger->Error("STEP M.2: cannot synchronize application [%s]", proc->StrId());
-			sync_fails_procs.push_back(proc);
-			continue;
-		}
-		else
-			if (!at_least_one_success)
-				at_least_one_success = true;
-		logger->Info("STEP M.2: <--------- OK -- [%s]", proc->StrId());
-	}
-
-	// Collecting execution metrics
-	logger->Debug("STEP M.2: SyncPlatform() DONE: processes");
 	if (at_least_one_success)
 		return OK;
 	return PLATFORM_SYNC_FAILED;
@@ -774,17 +699,6 @@ SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
 	return OK;
 }
 
-SynchronizationManager::ExitCode_t
-SynchronizationManager::SyncProcesses() {
-	// Perform resource mapping
-	logger->Debug("SyncProcesses: platform mapping...");
-	ExitCode_t result = Sync_PlatformForProcesses();
-	if (result != OK)
-		return result;
-	// Commit changes
-	logger->Debug("SyncProcesses: post-change commit...");
-	return Sync_PostChangeForProcesses();
-}
 
 SynchronizationManager::ExitCode_t
 SynchronizationManager::SyncSchedule() {
@@ -845,6 +759,7 @@ SynchronizationManager::SyncSchedule() {
 		syncState = policy->GetApplicationsQueue(sv);
 	}
 
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	// Synchronization of generic processes
 	result = SyncProcesses();
 	if ((result != NOTHING_TO_SYNC) && (result != OK)) {
@@ -854,6 +769,7 @@ SynchronizationManager::SyncSchedule() {
 		DisableFailedApps();
 		return result;
 	}
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 
 	// FIXME at this point ALL apps must be committed and the sync queues
 	// empty, this should be checked probably here before to commit the
@@ -884,6 +800,99 @@ void SynchronizationManager::DisableFailedApps() {
 	}
 }
 
+
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+
+SynchronizationManager::ExitCode_t
+SynchronizationManager::SyncProcesses() {
+	// Perform resource mapping
+	logger->Debug("SyncProcesses: platform mapping...");
+	ExitCode_t result = Sync_PlatformForProcesses();
+	if (result != OK)
+		return result;
+	// Commit changes
+	logger->Debug("SyncProcesses: post-change commit...");
+	return Sync_PostChangeForProcesses();
+}
+
+SynchronizationManager::ExitCode_t
+SynchronizationManager::Sync_PostChangeForProcesses() {
+	logger->Debug("STEP 4.2: postChange() START: processes");
+
+	// Commit SYNC -> RUNNING
+	ProcessMapIterator procs_it;
+	ProcPtr_t proc = prm.GetFirst(Schedulable::SYNC, procs_it);
+	for ( ; proc; proc = prm.GetNext(Schedulable::SYNC, procs_it)) {
+		SyncCommit(proc);
+		logger->Info("STEP 4.2: <--------- OK -- [%s]", proc->StrId());
+	}
+
+	// Commit FINISHED -> <removed>
+	proc = prm.GetFirst(Schedulable::FINISHED, procs_it);
+	for ( ; proc; proc = prm.GetNext(Schedulable::FINISHED, procs_it)) {
+		logger->Info("STEP 4.2: <---- RELEASED -- [%s]", proc->StrId());
+		SyncCommit(proc);
+	}
+
+	logger->Debug("STEP 4.2: postChange() DONE: processes");
+	return OK;
+}
+
+SynchronizationManager::ExitCode_t
+SynchronizationManager::Sync_PlatformForProcesses() {
+	ExitCode_t result;
+	bool at_least_one_success = false;
+
+	logger->Debug("STEP M.2: SyncPlatform() START: processes");
+	SM_RESET_TIMING(sm_tmr);
+
+	if (!prm.HasProcesses(Schedulable::SYNC)) {
+		logger->Debug("STEP M.2: SyncPlatform() NONE: no processes");
+		return NOTHING_TO_SYNC;
+	}
+
+	ProcessMapIterator procs_it;
+	ProcPtr_t proc = prm.GetFirst(Schedulable::SYNC, procs_it);
+	for ( ; proc; proc = prm.GetNext(Schedulable::SYNC, procs_it)) {
+		result = MapResources(proc);
+		if (result != SynchronizationManager::OK) {
+			logger->Error("STEP M.2: cannot synchronize application [%s]", proc->StrId());
+			sync_fails_procs.push_back(proc);
+			continue;
+		}
+		else
+			if (!at_least_one_success)
+				at_least_one_success = true;
+		logger->Info("STEP M.2: <--------- OK -- [%s]", proc->StrId());
+	}
+
+	// Collecting execution metrics
+	logger->Debug("STEP M.2: SyncPlatform() DONE: processes");
+	if (at_least_one_success)
+		return OK;
+	return PLATFORM_SYNC_FAILED;
+}
+
+void SynchronizationManager::SyncCommit(ProcPtr_t proc) {
+	// Acquiring the resources for RUNNING Applications
+	if (!proc->Blocking()) {
+		logger->Debug("SyncCommit: [%s] is in %s/%s", proc->StrId(),
+				proc->StateStr(proc->State()),
+				proc->SyncStateStr(proc->SyncState()));
+		// Resource acquisition
+		auto ra_result = ra.SyncAcquireResources(proc);
+		if (ra_result != ResourceAccounter::RA_SUCCESS) {
+			logger->Error("SyncCommit: failed for [%s] (ret=%d)",
+					proc->StrId(), ra_result);
+			prm.SyncAbort(proc);
+		}
+	}
+
+	// Committing change to the manager (to update queues)
+	logger->Debug("SyncCommit: [%s] (process) commit...", proc->StrId());
+	prm.SyncCommit(proc);
+}
+
 void SynchronizationManager::DisableFailedProcesses() {
 	for (auto proc: sync_fails_procs) {
 		logger->Warn("DisableFailedProcesses: disabling [%s] due to failure",
@@ -893,6 +902,7 @@ void SynchronizationManager::DisableFailedProcesses() {
 	}
 }
 
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 
 } // namespace bbque
 

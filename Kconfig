@@ -94,16 +94,13 @@ config BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 endmenu # Linux Control Groups
 
 
-config BBQUE_LINUX_PROC_LISTENER
-  bool "Linux Process Listener"
-#  depends on TARGET_LINUX
+config BBQUE_LINUX_PROC_MANAGER
+  bool "Linux Process Management"
+  depends on TARGET_LINUX || TARGET_ANDROID
   default n
   ---help---
   Enables BarbequeRTRM to monitor the status of other processes running
-  on the machine.
-
-  This option is experimental but has no side effect on other running
-  processes.
+  on the machine, and take actions (if the suitable policy has been selected)
 
 
 choice

@@ -126,7 +126,9 @@ private:
 
 	ApplicationManager & am;
 
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	ProcessManager & prm;
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 
 	MetricsCollector & mc;
 	

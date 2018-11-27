@@ -23,6 +23,7 @@
 #include <memory>
 #include <future>
 
+#include "bbque/config.h"
 #include "bbque/configuration_manager.h"
 #include "bbque/plugins/plugin.h"
 #include "bbque/plugins/scheduler_policy.h"
@@ -116,11 +117,15 @@ private:
 
 	ExitCode_t ScheduleApplications();
 
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+
 	ExitCode_t ScheduleProcesses();
 
-	ExitCode_t AssignWorkingMode(bbque::app::AppCPtr_t papp);
-
 	ExitCode_t AssignWorkingMode(ProcPtr_t proc);
+
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
+
+	ExitCode_t AssignWorkingMode(bbque::app::AppCPtr_t papp);
 
 	int32_t DoCPUBinding(bbque::app::AwmPtr_t pawm, BBQUE_RID_TYPE id);
 

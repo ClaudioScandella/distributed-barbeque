@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include "bbque/config.h"
 #include "bbque/modules_factory.h"
 #include "bbque/binding_manager.h"
 #include "bbque/utils/logging/logger.h"
@@ -31,6 +32,8 @@
 #include "tg/task_graph.h"
 
 #define MODULE_CONFIG SCHEDULER_POLICY_CONFIG "." SCHEDULER_POLICY_NAME
+
+#define CPU_QUOTA_TO_ALLOCATE 100
 
 namespace bu = bbque::utils;
 namespace po = boost::program_options;
@@ -109,8 +112,7 @@ SchedulerPolicyIF::ExitCode_t TestSchedPol::Init() {
 }
 
 
-SchedulerPolicyIF::ExitCode_t
-TestSchedPol::Schedule(
+SchedulerPolicyIF::ExitCode_t TestSchedPol::Schedule(
 		System & system,
 		RViewToken_t & status_view) {
 	SchedulerPolicyIF::ExitCode_t result = SCHED_DONE;
@@ -126,8 +128,10 @@ TestSchedPol::Schedule(
 	result = ScheduleApplications();
 	logger->Debug("Schedule: done with applications");
 
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	result = ScheduleProcesses();
 	logger->Debug("Schedule: done with processes");
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 
 	// Return the new resource status view according to the new resource
 	// allocation performed
@@ -166,6 +170,8 @@ SchedulerPolicyIF::ExitCode_t TestSchedPol::ScheduleApplications() {
 }
 
 
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+
 SchedulerPolicyIF::ExitCode_t TestSchedPol::ScheduleProcesses() {
 	SchedulerPolicyIF::ExitCode_t ret;
 	ProcessManager & prm(ProcessManager::GetInstance());
@@ -195,8 +201,54 @@ SchedulerPolicyIF::ExitCode_t TestSchedPol::ScheduleProcesses() {
 }
 
 
-#define CPU_QUOTA_TO_ALLOCATE 100
-#define CPU_ASSIGNED_ID         1
+SchedulerPolicyIF::ExitCode_t
+TestSchedPol::AssignWorkingMode(ProcPtr_t proc) {
+	ProcessManager & prm(ProcessManager::GetInstance());
+	if (proc == nullptr) {
+		logger->Error("AssignWorkingMode: null process descriptor!");
+		return SCHED_ERROR;
+	}
+
+	// Build a new working mode featuring assigned resources
+	ba::AwmPtr_t pawm = proc->CurrentAWM();
+	if (pawm == nullptr) {
+		pawm = std::make_shared<ba::WorkingMode>(99,"Run-time", 1, proc);
+		// Resource request addition
+		pawm->AddResourceRequest(
+			"sys.cpu.pe", CPU_QUOTA_TO_ALLOCATE,
+			br::ResourceAssignment::Policy::BALANCED);
+	}
+
+	// Look for the first available CPU
+	BindingManager & bdm(BindingManager::GetInstance());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
+	auto & cpu_ids(bindings[br::ResourceType::CPU]->r_ids);
+	for (BBQUE_RID_TYPE cpu_id: cpu_ids) {
+		logger->Info("AssingWorkingMode: binding attempt CPU id = %d", cpu_id);
+
+		// CPU binding
+		auto ref_num = DoCPUBinding(pawm, cpu_id);
+		if (ref_num < 0) {
+			logger->Error("AssingWorkingMode: CPU binding to [%d] failed", cpu_id);
+			continue;
+		}
+
+		// Schedule request
+		auto prm_ret = prm.ScheduleRequest(proc, pawm, sched_status_view, ref_num);
+		if (prm_ret != ProcessManager::SUCCESS) {
+			logger->Error("AssignWorkingMode: schedule request failed for [%d]",
+				proc->StrId());
+			continue;
+		}
+
+		return SCHED_OK;
+	}
+
+	return SCHED_ERROR;
+}
+
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
+
 
 SchedulerPolicyIF::ExitCode_t
 TestSchedPol::AssignWorkingMode(bbque::app::AppCPtr_t papp) {
@@ -244,53 +296,6 @@ TestSchedPol::AssignWorkingMode(bbque::app::AppCPtr_t papp) {
 #ifdef CONFIG_BBQUE_TG_PROG_MODEL
 		MapTaskGraph(papp); // Task level mapping
 #endif // CONFIG_BBQUE_TG_PROG_MODEL
-		return SCHED_OK;
-	}
-
-	return SCHED_ERROR;
-}
-
-
-SchedulerPolicyIF::ExitCode_t
-TestSchedPol::AssignWorkingMode(ProcPtr_t proc) {
-	ProcessManager & prm(ProcessManager::GetInstance());
-	if (proc == nullptr) {
-		logger->Error("AssignWorkingMode: null process descriptor!");
-		return SCHED_ERROR;
-	}
-
-	// Build a new working mode featuring assigned resources
-	ba::AwmPtr_t pawm = proc->CurrentAWM();
-	if (pawm == nullptr) {
-		pawm = std::make_shared<ba::WorkingMode>(99,"Run-time", 1, proc);
-		// Resource request addition
-		pawm->AddResourceRequest(
-			"sys.cpu.pe", CPU_QUOTA_TO_ALLOCATE,
-			br::ResourceAssignment::Policy::BALANCED);
-	}
-
-	// Look for the first available CPU
-	BindingManager & bdm(BindingManager::GetInstance());
-	BindingMap_t & bindings(bdm.GetBindingDomains());
-	auto & cpu_ids(bindings[br::ResourceType::CPU]->r_ids);
-	for (BBQUE_RID_TYPE cpu_id: cpu_ids) {
-		logger->Info("AssingWorkingMode: binding attempt CPU id = %d", cpu_id);
-
-		// CPU binding
-		auto ref_num = DoCPUBinding(pawm, cpu_id);
-		if (ref_num < 0) {
-			logger->Error("AssingWorkingMode: CPU binding to [%d] failed", cpu_id);
-			continue;
-		}
-
-		// Schedule request
-		auto prm_ret = prm.ScheduleRequest(proc, pawm, sched_status_view, ref_num);
-		if (prm_ret != ProcessManager::SUCCESS) {
-			logger->Error("AssignWorkingMode: schedule request failed for [%d]",
-				proc->StrId());
-			continue;
-		}
-
 		return SCHED_OK;
 	}
 

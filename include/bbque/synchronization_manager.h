@@ -109,7 +109,9 @@ private:
 	MetricsCollector & mc;
 	ResourceAccounter & ra;
 	PlatformManager & plm;
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	ProcessManager & prm;
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 	System & sv;
 
 	/**
@@ -158,15 +160,14 @@ private:
 	 */
 	ExitCode_t SyncApps(ApplicationStatusIF::SyncState_t syncState);
 
-	ExitCode_t SyncProcesses();
-
 	/**
 	 * @brief Synchronize platform resources for the specified EXCs
 	 */
 	ExitCode_t Sync_Platform(ApplicationStatusIF::SyncState_t syncState);
 
-	ExitCode_t Sync_PlatformForProcesses();
-
+	/**
+	 *@brief Actual invocation of platform proxy resource mapping functions
+	 */
 	ExitCode_t MapResources(SchedPtr_t papp);
 
 	/**
@@ -189,8 +190,6 @@ private:
 	 */
 	ExitCode_t Sync_PostChange(ApplicationStatusIF::SyncState_t syncState);
 
-	ExitCode_t Sync_PostChangeForProcesses();
-
 	/**
 	 * @brief Perform the synchronized resource acquisition
 	 *
@@ -198,7 +197,6 @@ private:
 	 */
 	void SyncCommit(AppPtr_t);
 
-	void SyncCommit(ProcPtr_t);
 
 	/**
 	 * @brief Check fo reshuffling reconfigurations
@@ -231,7 +229,35 @@ private:
 	 */
 	void DisableFailedApps();
 
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+
+	/**
+	 * @brief Synchronization of generic processes
+	 */
+	ExitCode_t SyncProcesses();
+
+	/**
+	 * @brief Resource mapping
+	 */
+	ExitCode_t Sync_PlatformForProcesses();
+
+	/**
+	 * @brief Acquire resources and notify status updates
+	 */
+	ExitCode_t Sync_PostChangeForProcesses();
+
+	/**
+	 * @brief Resource acquisition from resource accounter
+	 * @param proc the process descriptor
+	 */
+	void SyncCommit(ProcPtr_t proc);
+
+	/**
+	 * @brief Action for sytnchronization fails
+	 */
 	void DisableFailedProcesses();
+
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 
 };
 

@@ -88,7 +88,7 @@ LinuxPlatformProxy * LinuxPlatformProxy::GetInstance() {
 LinuxPlatformProxy::LinuxPlatformProxy() :
 	controller("cpuset"),
 	refreshMode(false)
-#ifdef CONFIG_BBQUE_LINUX_PROC_LISTENER
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	,
 	proc_listener(ProcessListener::GetInstance())
 #endif
@@ -117,7 +117,7 @@ LinuxPlatformProxy::LinuxPlatformProxy() :
 	InitNetworkManagement();
 #endif
 
-#ifdef CONFIG_BBQUE_LINUX_PROC_LISTENER
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	proc_listener.Start();
 #endif
 
@@ -451,7 +451,7 @@ LinuxPlatformProxy::ReclaimResources(SchedPtr_t papp) noexcept {
 
 void LinuxPlatformProxy::Exit() {
 	logger->Debug("Exit: LinuxPP termination...");
-#ifdef CONFIG_BBQUE_LINUX_PROC_LISTENER
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	proc_listener.Terminate();
 #endif
 }

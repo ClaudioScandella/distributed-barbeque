@@ -140,7 +140,9 @@ ResourceManager::ResourceManager() :
 	bdm(BindingManager::GetInstance()),
 	mc(MetricsCollector::GetInstance()),
 	plm(PlatformManager::GetInstance()),
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	prm(ProcessManager::GetInstance()),
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 	cm(CommandManager::GetInstance()),
 	sm(SchedulerManager::GetInstance()),
 	ym(SynchronizationManager::GetInstance()),
@@ -318,9 +320,11 @@ void ResourceManager::Optimize() {
 	if (!plat_event &&
 		!am.HasApplications(Application::READY) &&
 		!am.HasApplications(Application::RUNNING)
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 		&&
 		!prm.HasProcesses(Schedulable::READY) &&
 		!prm.HasProcesses(Schedulable::RUNNING)
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 	)
 
 		return;

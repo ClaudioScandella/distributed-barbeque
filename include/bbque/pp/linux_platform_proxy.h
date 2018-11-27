@@ -149,7 +149,7 @@ private:
 
 	std::string memory_ids_all;
 
-#ifdef CONFIG_BBQUE_LINUX_PROC_LISTENER
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	ProcessListener & proc_listener;
 #endif
 
