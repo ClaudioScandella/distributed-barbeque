@@ -1,9 +1,9 @@
 
 ################################################################################
-# Platform Configuration
+# Daemon Configuration
 ################################################################################
 
-menu "Platform Setup"
+menu "Daemon Setup"
 
 menu "Platform Loader"
 
@@ -197,7 +197,7 @@ endmenu # PIL Configuration
 # Policies
 ################################################################################
 
-menu "Resource Allocation Policies"
+menu "Policies"
   source "barbeque/plugins/schedpol/Kconfig"
 endmenu
 
