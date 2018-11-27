@@ -251,30 +251,6 @@ TestSchedPol::AssignWorkingMode(bbque::app::AppCPtr_t papp) {
 }
 
 
-int32_t TestSchedPol::DoCPUBinding(
-		bbque::app::AwmPtr_t pawm,
-		BBQUE_RID_TYPE cpu_id) {
-	// CPU-level binding: the processing elements are in the scope of the CPU 'cpu_id'
-	int32_t ref_num = -1;
-	ref_num = pawm->BindResource(br::ResourceType::CPU, R_ID_ANY, cpu_id, ref_num);
-	auto resource_path = ra.GetPath("sys0.cpu" + std::to_string(cpu_id) + ".pe");
-
-	// The ResourceBitset object is used for the processing elements binding
-	// (CPU core mapping)
-	br::ResourceBitset pes;
-	uint16_t pe_count = 0;
-	for (auto & pe_id: pe_ids) {
-		pes.Set(pe_id);
-		ref_num = pawm->BindResource(resource_path, pes, ref_num);
-		logger->Info("AssignWorkingMode: binding refn: %d", ref_num);
-		++pe_count;
-		if (pe_count == CPU_QUOTA_TO_ALLOCATE / 100) break;
-	}
-
-	return ref_num;
-}
-
-
 SchedulerPolicyIF::ExitCode_t
 TestSchedPol::AssignWorkingMode(ProcPtr_t proc) {
 	ProcessManager & prm(ProcessManager::GetInstance());
@@ -321,6 +297,29 @@ TestSchedPol::AssignWorkingMode(ProcPtr_t proc) {
 	return SCHED_ERROR;
 }
 
+
+int32_t TestSchedPol::DoCPUBinding(
+		bbque::app::AwmPtr_t pawm,
+		BBQUE_RID_TYPE cpu_id) {
+	// CPU-level binding: the processing elements are in the scope of the CPU 'cpu_id'
+	int32_t ref_num = -1;
+	ref_num = pawm->BindResource(br::ResourceType::CPU, R_ID_ANY, cpu_id, ref_num);
+	auto resource_path = ra.GetPath("sys0.cpu" + std::to_string(cpu_id) + ".pe");
+
+	// The ResourceBitset object is used for the processing elements binding
+	// (CPU core mapping)
+	br::ResourceBitset pes;
+	uint16_t pe_count = 0;
+	for (auto & pe_id: pe_ids) {
+		pes.Set(pe_id);
+		ref_num = pawm->BindResource(resource_path, pes, ref_num);
+		logger->Info("AssignWorkingMode: binding refn: %d", ref_num);
+		++pe_count;
+		if (pe_count == CPU_QUOTA_TO_ALLOCATE / 100) break;
+	}
+
+	return ref_num;
+}
 
 #ifdef CONFIG_BBQUE_TG_PROG_MODEL
 
