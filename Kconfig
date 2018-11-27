@@ -96,7 +96,7 @@ endmenu # Linux Control Groups
 
 config BBQUE_LINUX_PROC_LISTENER
   bool "Linux Process Listener"
-  depends on TARGET_LINUX
+#  depends on TARGET_LINUX
   default n
   ---help---
   Enables BarbequeRTRM to monitor the status of other processes running
