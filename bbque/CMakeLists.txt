@@ -88,24 +88,30 @@ configure_file (
 )
 
 
-# Build subdirs
+#  ----------------- Sub-directories ------------------------------------------
+
 add_subdirectory(utils)
 add_subdirectory(app)
 add_subdirectory(res)
+
 if (NOT CONFIG_TARGET_SUPPORT_CPP11)
-add_subdirectory(cpp11)
+  add_subdirectory(cpp11)
 endif (NOT CONFIG_TARGET_SUPPORT_CPP11)
+
 if (CONFIG_TARGET_ANDROID)
   add_subdirectory(android)
 endif (CONFIG_TARGET_ANDROID)
+
 if (CONFIG_BBQUE_PM)
   add_subdirectory(pm)
 endif (CONFIG_BBQUE_PM)
+
 if (CONFIG_BBQUE_EM)
   add_subdirectory(em)
 endif (CONFIG_BBQUE_EM)
 
-# Add "barbeque" target binary
+# --------------------- Source files ------------------------------------------
+
 set (BARBEQUE_SRC barbeque version object configuration_manager)
 set (BARBEQUE_SRC platform_services dynamic_library ${BARBEQUE_SRC})
 set (BARBEQUE_SRC plugin_manager modules_factory ${BARBEQUE_SRC})
@@ -128,14 +134,18 @@ if (CONFIG_BBQUE_LINUX_PROC_MANAGER)
 	set (BARBEQUE_SRC process_manager ${BARBEQUE_SRC})
 	set (BARBEQUE_SRC pp/proc_listener ${BARBEQUE_SRC})
 endif (CONFIG_BBQUE_LINUX_PROC_MANAGER)
+
+# Data management
 if (CONFIG_BBQUE_DM)
 	set (BARBEQUE_SRC data_manager ${BARBEQUE_SRC})
 endif (CONFIG_BBQUE_DM)
 
+# Distributed mode
 if (CONFIG_BBQUE_DIST_MODE)
 	set (BARBEQUE_SRC pp/remote_platform_proxy ${BARBEQUE_SRC})
 endif (CONFIG_BBQUE_DIST_MODE)
 
+# Target platform
 if (CONFIG_BBQUE_TEST_PLATFORM_DATA)
 	set (BARBEQUE_SRC pp/test_platform_proxy ${BARBEQUE_SRC})
 else (CONFIG_BBQUE_TEST_PLATFORM_DATA)
@@ -149,18 +159,22 @@ else (CONFIG_BBQUE_TEST_PLATFORM_DATA)
         set (BARBEQUE_SRC pp/android_platform_proxy ${BARBEQUE_SRC})
   endif (CONFIG_TARGET_ANDROID)
 endif (CONFIG_BBQUE_TEST_PLATFORM_DATA)
-
 if (CONFIG_BBQUE_OPENCL)
 	set (BARBEQUE_SRC pp/opencl_platform_proxy ${BARBEQUE_SRC})
 endif (CONFIG_BBQUE_OPENCL)
 
+# Power monitoring
 if (CONFIG_BBQUE_PM)
 	set (BARBEQUE_SRC power_monitor ${BARBEQUE_SRC})
 endif (CONFIG_BBQUE_PM)
 
+
+# Add "barbeque" target binary
 add_executable (barbeque ${BARBEQUE_SRC})
 
-# Linking dependencies
+
+# --------------- Linking dependencies --------------------------------------
+
 target_link_libraries(barbeque
 	bbque_utils
 	bbque_resources
