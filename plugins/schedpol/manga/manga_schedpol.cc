@@ -171,7 +171,8 @@ MangASchedPol::ServeApplicationsWithPriority(int priority) noexcept {
 				// one thing to do is to ignore it
 				logger->Warn("ServeApplicationsWithPriority: [%s]: unable to find resources",
 					papp->StrId());
-				papp->NoSchedule();
+				ApplicationManager & am(ApplicationManager::GetInstance());
+				am.NoSchedule(papp);
 				continue;
 			}
 			else if (err == SCHED_R_UNAVAILABLE) {
@@ -216,7 +217,7 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::ServeApp(ba::AppCPtr_t papp) noexce
 	// First of all we have to decide which processor type to assign to each task
 	err = CheckHWRequirements(papp);
 	if (err != SCHED_OK) {
-		logger->Error("Allocate architectural failed");
+		logger->Warn("ServeApp: [%s] not schedulable", papp->StrId());
 		return err;
 	}
 
@@ -411,8 +412,9 @@ MangASchedPol::SelectWorkingMode(ba::AppCPtr_t papp, const Partition & selected_
 
 SchedulerPolicyIF::ExitCode_t
 MangASchedPol::ReassignWorkingMode(ba::AppCPtr_t papp) noexcept {
-	auto ret = papp->ScheduleRequestAsPrev(sched_status_view);
-	if (ret != ba::ApplicationStatusIF::APP_SUCCESS) {
+	ApplicationManager & am(ApplicationManager::GetInstance());
+	auto ret = am.ScheduleRequestAsPrev(papp, sched_status_view);
+	if (ret != ApplicationManager::AM_SUCCESS) {
 		logger->Error("ReassignWorkingMode: [%s] rescheduling failed", papp->StrId());
 		return SCHED_ERROR;
 	}
