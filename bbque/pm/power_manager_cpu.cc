@@ -760,13 +760,13 @@ PowerManager::PMResult CPUPowerManager::SetOff(int pe_id){
 	std::string online_path(prefix_sys_cpu + std::to_string(pe_id) +
 			"/online");
 
-	result = bu::IoFs::WriteValueTo<int>(online_path, 1);
+	result = bu::IoFs::WriteValueTo<int>(online_path, 0);
 	if (result != bu::IoFs::ExitCode_t::OK)		
 		return PowerManager::PMResult::ERR_RSRC_INVALID_PATH;
 
 	core_online[pe_id] = false;
 
-	logger->Debug("SetOn: '0' > %s", online_path.c_str());
+	logger->Debug("SetOff: '0' > %s", online_path.c_str());
 
 	return PowerManager::PMResult::OK;
 }
