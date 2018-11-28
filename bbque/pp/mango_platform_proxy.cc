@@ -127,8 +127,10 @@ MangoPlatformProxy::Release(SchedPtr_t papp) noexcept {
 	return PLATFORM_OK;
 }
 
+
 MangoPlatformProxy::ExitCode_t
-MangoPlatformProxy::ReclaimResources(SchedPtr_t papp) noexcept {
+MangoPlatformProxy::ReclaimResources(SchedPtr_t sched) noexcept {
+	ba::AppCPtr_t papp = std::dynamic_pointer_cast<ba::Application>(sched);
 	auto partition = papp->GetPartition();
 	if (partition != nullptr) {
 		ResourcePartitionValidator &rmv(ResourcePartitionValidator::GetInstance());
@@ -141,9 +143,11 @@ MangoPlatformProxy::ReclaimResources(SchedPtr_t papp) noexcept {
 			logger->Info("ReclaimResources: [%s] hw partition released", papp->StrId());
 		}
 	}
-
+	else
+		logger->Warn("ReclaimResources: [%s] no partition to release", papp->StrId());
 	return PLATFORM_OK;
 }
+
 
 MangoPlatformProxy::ExitCode_t
 MangoPlatformProxy::MapResources(SchedPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl) noexcept {
