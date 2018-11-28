@@ -29,8 +29,6 @@
 #include "bbque/command_manager.h"
 #include "bbque/resource_accounter.h"
 #include "bbque/utils/logging/logger.h"
-#include "bbque/utils/map_iterator.h"
-
 
 namespace bbque {
 
