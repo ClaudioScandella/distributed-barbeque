@@ -536,11 +536,10 @@ uint8_t RXMLRecipeLoader::LoadResources(rapidxml::xml_node<> * _xml_elem,
 uint8_t RXMLRecipeLoader::AppendToWorkingMode(AwmPtr_t & wm,
 		std::string const & _res_path,
 		uint64_t _res_usage) {
-	ba::WorkingModeStatusIF::ExitCode_t result;
 	// Add the resource usage to the working mode,
 	// return a "weak load" code if some resources are missing
-	result = wm->AddResourceRequest(_res_path, _res_usage);
-	if (result == ba::WorkingModeStatusIF::WM_RSRC_NOT_FOUND) {
+	auto preq = wm->AddResourceRequest(_res_path, _res_usage);
+	if (preq == nullptr) {
 		logger->Warn("'%s' recipe: resource '%s' not available",
 				recipe_ptr->Path().c_str(), _res_path.c_str());
 		return __RSRC_WEAK_LOAD;

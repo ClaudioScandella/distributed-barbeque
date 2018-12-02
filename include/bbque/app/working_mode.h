@@ -238,27 +238,49 @@ public:
 	ExitCode_t Validate();
 
 	/**
-	 * @brief Set the amount of a resource usage request
+	 * @brief Add a resource usage request
 	 *
-	 * This method should be mainly called by the recipe loader.
+	 * This method should be mainly called by the recipe loader or the
+	 * scheduling policy.
 	 *
-	 * @param rsrc_path Resource path
+	 * @param str_path Resource path
 	 * @param amount The usage amount
 	 * @param split_policy How to split the amount among the bound resources
 	 *
-	 * @return WM_RSRC_NOT_FOUND if the resource cannot be found in the
-	 * system. WM_SUCCESS if the request has been correctly added.
+	 * @return nullptr if the resource cannot be found in the system. A
+	 * shared pointer to the new ResourceAssignment object if the
+	 * request has been correctly added.
 	 */
-	ExitCode_t AddResourceRequest(
-			std::string const & rsrc_path,
+	br::ResourceAssignmentPtr_t AddResourceRequest(
+			std::string const & str_path,
 			uint64_t amount,
 			br::ResourceAssignment::Policy split_policy =
 				br::ResourceAssignment::Policy::SEQUENTIAL);
 
 	/**
+	 * @brief Get a previously added resource request
+	 *
+	 * @param str_path Resource path in string format
+	 *
+	 * @return nullptr if the resource request cannot be found.
+	 * shared pointer to a ResourceAssignment object.
+	 */
+	br::ResourceAssignmentPtr_t GetResourceRequest(std::string const & str_path);
+
+	/**
+	 * @brief Get a previously added resource request
+	 *
+	 * @param str_path Resource path in pointer to object format
+	 *
+	 * @return nullptr if the resource request cannot be found.
+	 * shared pointer to a ResourceAssignment object.
+	 */
+	br::ResourceAssignmentPtr_t GetResourceRequest(br::ResourcePathPtr_t resource_path);
+
+	/**
 	 * @see WorkingModeStatusIF
 	 */
-	uint64_t RequestedAmount(br::ResourcePathPtr_t ppath) const;
+	uint64_t RequestedAmount(br::ResourcePathPtr_t resource_path) const;
 
 	/**
 	 * @see WorkingModeStatusIF
