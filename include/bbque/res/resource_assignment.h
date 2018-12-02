@@ -115,6 +115,27 @@ public:
 	};
 
 	/**
+	 * @class PowerSettings
+	 *
+	 * @brief Power settings as of required via recipe or set by scheduling
+	 * policy.
+	 */
+	class PowerSettings {
+	public:
+		PowerSettings():
+			is_online(true),
+			freq_governor(""),
+			freq_khz(0),
+			perf_state(0) {
+		}
+
+		bool is_online;
+		std::string freq_governor;
+		uint32_t freq_khz;
+		uint32_t perf_state;
+	};
+
+	/**
 	 * @brief Constructor
 
 	 * @param amount The amount of resource usage
@@ -143,6 +164,19 @@ public:
 		amount = value;
 	}
 
+	/**
+	 * @brief Set a new power configuration to apply
+	 */
+	inline void SetPowerSettings(PowerSettings new_settings) {
+		power_config = new_settings;
+	}
+
+	/**
+	 * @brief Get the currently set power configuration
+	 */
+	inline PowerSettings const & GetPowerSettings() {
+		return power_config;
+	}
 
 	/**
 	 * @brief Get the entire list of resources
@@ -239,6 +273,9 @@ private:
 
 	/** List of resource descriptors which to the resource usage is bound */
 	ResourcePtrList_t resources;
+
+	/** Power configuration to apply for the resource assignment */
+	PowerSettings power_config;
 
 	/**
 	 * The resources list filling policy, i.e., how the resource amount
