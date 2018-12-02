@@ -75,25 +75,25 @@ WorkingMode::~WorkingMode() {
 	}
 }
 
-WorkingMode::ExitCode_t WorkingMode::AddResourceRequest(
-		std::string const & path_str,
+br::ResourceAssignmentPtr_t WorkingMode::AddResourceRequest(
+		std::string const & str_path,
 		uint64_t amount,
 		br::ResourceAssignment::Policy split_policy) {
 	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	std::string abs_path_str;
+	std::string abs_str_path;
 
 	// Check if the path already includes the prefix
-	if (path_str.find(ra.GetPrefixPath().ToString()) == std::string::npos)
-		abs_path_str = ra.GetPrefixPath().ToString() + std::string(".") + path_str;
+	if (str_path.find(ra.GetPrefixPath().ToString()) == std::string::npos)
+		abs_str_path = ra.GetPrefixPath().ToString() + std::string(".") + str_path;
 	else
-		abs_path_str = path_str;
+		abs_str_path = str_path;
 
-	logger->Info("AddResourceRequest: %s adding <%s> ", str_id, abs_path_str.c_str());
-	auto resource_path = ra.GetPath(abs_path_str);
+	logger->Info("AddResourceRequest: %s adding <%s> ", str_id, abs_str_path.c_str());
+	auto resource_path = ra.GetPath(abs_str_path);
 	if (resource_path == nullptr) {
 		logger->Error("AddResourceRequest: %s '%s' invalid path string",
-				str_id, abs_path_str.c_str());
-		return WM_RSRC_NOT_FOUND;
+				str_id, abs_str_path.c_str());
+		return nullptr;
 	}
 
 	// Insert a new resource usage object in the map
@@ -103,7 +103,30 @@ WorkingMode::ExitCode_t WorkingMode::AddResourceRequest(
 			str_id, resource_path->ToString().c_str(),amount,
 			resources.requested.size());
 
-	return WM_SUCCESS;
+	return r_assign;
+}
+
+br::ResourceAssignmentPtr_t WorkingMode::GetResourceRequest(
+		std::string const & str_path) {
+	ResourceAccounter &ra(ResourceAccounter::GetInstance());
+	auto resource_path = ra.GetPath(str_path);
+	if (resource_path == nullptr) {
+		logger->Error("GetResourcePath: path <%> does not exist", str_path.c_str());
+		return nullptr;
+	}
+	return GetResourceRequest(resource_path);
+}
+
+br::ResourceAssignmentPtr_t WorkingMode::GetResourceRequest(
+		br::ResourcePathPtr_t resource_path) {
+
+	auto it_req = resources.requested.find(resource_path);
+	if (it_req == resources.requested.end()) {
+		logger->Error("GetResourcePath: path <%> not in requested set",
+			resource_path->ToString().c_str());
+		return nullptr;
+	}
+	return it_req->second;
 }
 
 WorkingMode::ExitCode_t WorkingMode::Validate() {
