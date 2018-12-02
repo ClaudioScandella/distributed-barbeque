@@ -132,14 +132,14 @@ public:
 	 *
 	 * @return The amount of resource
 	 */
-	uint64_t GetAmount() {
+	inline uint64_t GetAmount() {
 		return amount;
 	}
 
 	/**
 	 * @brief Set the amount of resource
 	 */
-	void SetAmount(uint64_t value) {
+	inline void SetAmount(uint64_t value) {
 		amount = value;
 	}
 
@@ -149,7 +149,7 @@ public:
 	 *
 	 * @return A reference to the resources list
 	 */
-	ResourcePtrList_t & GetResourcesList() {
+	inline ResourcePtrList_t & GetResourcesList() {
 		return resources;
 	}
 
