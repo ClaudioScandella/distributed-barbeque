@@ -127,6 +127,16 @@ public:
 			perf_state(0) {
 		}
 
+		PowerSettings(
+			std::string const & gov,
+			uint32_t freq,
+			uint32_t pstate):
+
+			freq_governor(gov),
+			freq_khz(freq),
+			perf_state(pstate) {
+		}
+
 		std::string freq_governor;
 		uint32_t freq_khz;
 		uint32_t perf_state;
