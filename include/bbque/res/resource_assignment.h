@@ -122,13 +122,11 @@ public:
 	class PowerSettings {
 	public:
 		PowerSettings():
-			is_online(true),
 			freq_governor(""),
 			freq_khz(0),
 			perf_state(0) {
 		}
 
-		bool is_online;
 		std::string freq_governor;
 		uint32_t freq_khz;
 		uint32_t perf_state;
