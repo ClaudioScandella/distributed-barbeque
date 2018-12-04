@@ -157,13 +157,21 @@ void Schedulable::SetNextAWM(AwmPtr_t awm) {
 }
 
 bool Schedulable::_Disabled() const {
-	return ((_SyncState() == DISABLED) ||
-			(_State() == FINISHED));
+	return (_SyncState() == DISABLED);
 }
 
 bool Schedulable::Disabled() const {
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 	return _Disabled();
+}
+
+bool Schedulable::_Finished() const {
+	return (_State() == FINISHED);
+}
+
+bool Schedulable::Finished() const {
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
+	return _Finished();
 }
 
 bool Schedulable::_Active() const {

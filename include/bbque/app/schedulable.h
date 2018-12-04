@@ -262,6 +262,11 @@ public:
 	virtual bool Disabled() const;
 
 	/**
+	 * @brief Check if this EXC is currently FINISHED
+	 */
+	virtual bool Finished() const;
+
+	/**
 	 * @brief Check if this EXC is currently READY of RUNNING
 	 */
 	virtual bool Active() const;
@@ -438,6 +443,8 @@ protected:
 
 
 	virtual bool _Disabled() const;
+
+	virtual bool _Finished() const;
 
 	virtual bool _Active() const;
 
