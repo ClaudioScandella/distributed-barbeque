@@ -13,9 +13,9 @@
 
 #include <libhn/hn.h>
 
-#define BBQUE_MANGOPP_PLATFORM_ID		"org.mango"
-#define MANGO_MEMORY_COUNT_START 10
-#define MANGO_PEAKOS_FILE_SIZE 256*1024*1024
+#define BBQUE_MANGOPP_PLATFORM_ID    "org.mango"
+#define MANGO_MEMORY_COUNT_START     10
+#define MANGO_PEAKOS_FILE_SIZE       256*1024*1024
 
 namespace bb = bbque;
 namespace br = bbque::res;
@@ -536,6 +536,12 @@ static hn_st_request_t FillReq(const TaskGraph &tg) __attribute__((unused)) {
 }
 */
 
+
+/****************************************************************************
+ *  MANGO Partition Skimmer                                                 *
+ ****************************************************************************/
+
+
 /**
  * @brief This function gets sets of units for running the tasks in the TG
  */
@@ -710,7 +716,8 @@ MangoPlatformProxy::MangoPartitionSkimmer::ExitCode_t
 MangoPlatformProxy::MangoPartitionSkimmer::SetAddresses(
 		const TaskGraph &tg,
 		const Partition &partition) noexcept {
-  for ( auto buffer : tg.Buffers()) {
+
+	for ( auto buffer : tg.Buffers()) {
 		uint32_t memory_bank = partition.GetMemoryBank(buffer.second);
 		uint32_t phy_addr    = partition.GetBufferAddress(buffer.second);
 		logger->Debug("Buffer %d is located at memory id %d [address=0x%x]",

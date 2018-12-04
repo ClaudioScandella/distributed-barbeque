@@ -107,6 +107,7 @@ private:
 	/// length of the monitoring period (default=2000ms if PowerMonitor not compiled)
 	uint32_t monitor_period_len = 2000;
 
+
 //-------------------- METHODS
 
 	MangoPlatformProxy();
@@ -118,14 +119,16 @@ private:
 
 
 	class MangoPartitionSkimmer : public PartitionSkimmer {
-
 	public:
 		MangoPartitionSkimmer();
-		virtual ExitCode_t Skim(const TaskGraph &tg, std::list<Partition>&) noexcept override final;
-		virtual ExitCode_t SetPartition(TaskGraph &tg,
-						const Partition &partition) noexcept override final;
-		virtual ExitCode_t UnsetPartition(const TaskGraph &tg,
-						  const Partition &partition) noexcept override final;
+		virtual ExitCode_t Skim(
+					const TaskGraph &tg, std::list<Partition>&) noexcept override final;
+		virtual ExitCode_t SetPartition(
+					TaskGraph &tg,
+					const Partition &partition) noexcept override final;
+		virtual ExitCode_t UnsetPartition(
+					const TaskGraph &tg,
+					const Partition &partition) noexcept override final;
 
 		ExitCode_t SetAddresses(const TaskGraph &tg, const Partition &partition) noexcept;
 	private:
