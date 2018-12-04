@@ -192,10 +192,11 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 
 		logger->Info("STEP 1: preChange() ===> [%s]", papp->StrId());
 
-		// Jumping meanwhile disabled applications
+		// Do the minimum for disabled applications
 		if (papp->Disabled()) {
 			logger->Debug("STEP 1: ignoring disabled EXC [%s]",
 					papp->StrId());
+			syncInProgress = OK;
 			continue;
 		}
 
@@ -498,30 +499,14 @@ SynchronizationManager::Sync_PostChange(ApplicationStatusIF::SyncState_t syncSta
 
 	papp = am.GetFirst(syncState, apps_it);
 	for ( ; papp; papp = am.GetNext(syncState, apps_it)) {
+		logger->Info("STEP 4: postChange() ===> [%s]", papp->StrId());
 
 		if (!policy->DoSync(papp))
 			continue;
 
-		if (! (Reshuffling(papp) || papp->IsContainer()) ) {
-
-			logger->Info("STEP 4: postChange() ===> [%s]", papp->StrId());
-
-			// Jumping meanwhile disabled applications
-			if (papp->Disabled()) {
-				logger->Debug("STEP 4: ignoring disabled EXC [%s]",
-						papp->StrId());
-				continue;
-			}
-
-			logger->Info("STEP 4: <--------- OK -- [%s]", papp->StrId());
-		}
-
-		// Disregarding commit for EXC disabled meanwhile
-		if (papp->Disabled())
-			continue;
-
-		// Perform resource acquisition for RUNNING App/ExC
+		// Perform resource acquisition or synchronize termination
 		SyncCommit(papp);
+		logger->Info("STEP 4: <--------- OK -- [%s]", papp->StrId());
 		excs++;
 	}
 
@@ -546,7 +531,7 @@ void SynchronizationManager::SyncCommit(AppPtr_t papp) {
 			papp->SyncStateStr(papp->SyncState()));
 
 	// Acquiring the resources for RUNNING Applications
-	if (!papp->Blocking()) {
+	if (!papp->Blocking() && !papp->Disabled()) {
 		auto ra_result = ra.SyncAcquireResources(papp);
 		if (ra_result != ResourceAccounter::RA_SUCCESS) {
 			logger->Error("SyncCommit: failed for [%s] (ret=%d)",
@@ -606,7 +591,9 @@ SynchronizationManager::Sync_Platform(ApplicationStatusIF::SyncState_t syncState
 SynchronizationManager::ExitCode_t
 SynchronizationManager::MapResources(SchedPtr_t papp) {
 	PlatformManager::ExitCode_t result = PlatformManager::PLATFORM_OK;
-	logger->Info("STEP M: SyncPlatform() ===> [%s]", papp->StrId());
+	logger->Info("STEP M: SyncPlatform(%s) ===> [%s]",
+		papp->SyncStateStr(papp->SyncState()),
+		papp->StrId());
 
 	switch (papp->SyncState()) {
 	case Schedulable::STARTING:
@@ -622,15 +609,21 @@ SynchronizationManager::MapResources(SchedPtr_t papp) {
 				papp->NextAWM()->GetResourceBinding());
 		break;
 	case Schedulable::BLOCKED:
+	case Schedulable::DISABLED:
 		logger->Debug("STEP M: reclaiming resources from [%s]", papp->StrId());
 		result = plm.ReclaimResources(papp);
 		break;
 	default:
+		logger->Warn("Step M: suspect wrong sync status (%s) for [%s]",
+			papp->SyncStateStr(papp->SyncState()),
+			papp->StrId());
 		break;
 	}
 
-	if (result != PlatformManager::PLATFORM_OK)
+	if (result != PlatformManager::PLATFORM_OK) {
+		logger->Error("Step M: failure occurred in resource mapping");
 		return PLATFORM_SYNC_FAILED;
+	}
 	return OK;
 }
 
@@ -875,7 +868,7 @@ void SynchronizationManager::SyncCommit(ProcPtr_t proc) {
 			proc->SyncStateStr(proc->SyncState()));
 
 	// Acquiring the resources for RUNNING Applications
-	if (!proc->Blocking()) {
+	if (!proc->Blocking() && !proc->Disabled()) {
 		auto ra_result = ra.SyncAcquireResources(proc);
 		if (ra_result != ResourceAccounter::RA_SUCCESS) {
 			logger->Error("SyncCommit: failed for [%s] (ret=%d)",
