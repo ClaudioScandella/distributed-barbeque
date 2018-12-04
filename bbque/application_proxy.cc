@@ -1219,7 +1219,7 @@ void ApplicationProxy::RpcExcUnregister(prqsSn_t prqs) {
 			pmsg_hdr->exc_id, pmsg_pyl->exc_name);
 
 	// Unregister the EXC from the ApplicationManager
-	am.DestroyEXC(pcon->app_pid, pmsg_hdr->exc_id);
+//	am.DestroyEXC(pcon->app_pid, pmsg_hdr->exc_id);
 	// FIXME we should deliver the error code to the application
 	// This is tracked by Issues tiket #10
 
