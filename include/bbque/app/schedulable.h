@@ -72,7 +72,7 @@ public:
 	 * This is the set of possible state an application could be.
 	 */
 	typedef enum State {
-		DISABLED = 0, 	/** Registered within Barbeque but currently disabled */
+		NEW = 0, 	/** Registered within Barbeque but currently disabled */
 		READY,      	/** Registered within Barbeque and waiting to start */
 		SYNC,     	/** (Re-)scheduled but not reconfigured yet */
 		RUNNING,  	/** Running */
@@ -98,6 +98,7 @@ public:
 		MIGREC,       	/** Must migrate and change working mode */
 		MIGRATE,    	/** Must migrate into another cluster */
 		BLOCKED,    	/** Must be blocked because of resource are not more available */
+		DISABLED, 	/** Terminated */
 
 		SYNC_STATE_COUNT /** This must alwasy be the last entry */
 	} SyncState_t;

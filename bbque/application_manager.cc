@@ -652,7 +652,7 @@ ApplicationManager::GetApplication(AppPid_t pid, uint8_t exc_id) {
 void ApplicationManager::PrintStatusQ(bool verbose) const {
 
 	// Report on current status queue
-	char report[] = "StateQ: [DIS: 000, RDY: 000, SYC: 000, RUN: 000, FIN: 000]";
+	char report[] = "StateQ: [NEW: 000, RDY: 000, SYC: 000, RUN: 000, FIN: 000]";
 
 	if (verbose) {
 		for (uint8_t i = 0; i < Application::STATE_COUNT; ++i) {
@@ -679,7 +679,7 @@ void ApplicationManager::PrintStatusQ(bool verbose) const {
 void ApplicationManager::PrintSyncQ(bool verbose) const {
 
 	// Report on current status queue
-	char report[] = "SyncQ:  [STA: 000, REC: 000, M/R: 000, MIG: 000, BLK: 000]";
+	char report[] = "SyncQ:  [STA: 000, REC: 000, M/R: 000, MIG: 000, BLK: 000, DIS: 000]";
 
 	if (verbose) {
 		for (uint8_t i = 0; i < Application::SYNC_STATE_COUNT; ++i) {
@@ -743,8 +743,8 @@ inline void BuildStateStr(AppPtr_t papp, char * state_str) {
 
 	// Sched state
 	switch (state) {
-	case ApplicationStatusIF::DISABLED:
-		strncpy(st_str, "DIS", 3); break;
+	case ApplicationStatusIF::NEW:
+		strncpy(st_str, "NEW", 3); break;
 	case ApplicationStatusIF::READY:
 		strncpy(st_str, "RDY", 3); break;
 	case ApplicationStatusIF::RUNNING:
@@ -768,6 +768,8 @@ inline void BuildStateStr(AppPtr_t papp, char * state_str) {
 		strncpy(sy_str, "MGR", 3); break;
 	case ApplicationStatusIF::BLOCKED:
 		strncpy(sy_str, "BLK", 3); break;
+	case ApplicationStatusIF::DISABLED:
+		strncpy(st_str, "DIS", 3); break;
 	default:
 		// SYNC_NONE
 		strncpy(sy_str, "---", 3); break;
@@ -940,7 +942,7 @@ AppPtr_t ApplicationManager::CreateEXC(
 	std::unique_lock<std::mutex> lang_ul(lang_mtx[_lang], std::defer_lock);
 	std::unique_lock<std::mutex> prio_ul(prio_mtx[_prio], std::defer_lock);
 	std::unique_lock<std::recursive_mutex> uids_ul(uids_mtx, std::defer_lock);
-	std::unique_lock<std::mutex> status_ul(status_mtx[Application::DISABLED], std::defer_lock);
+	std::unique_lock<std::mutex> status_ul(status_mtx[Application::NEW], std::defer_lock);
 	std::unique_lock<std::mutex> apps_ul(apps_mtx, std::defer_lock);
 	Application::ExitCode_t app_result;
 	bp::RecipeLoaderIF::ExitCode_t rcp_result;
@@ -980,21 +982,25 @@ AppPtr_t ApplicationManager::CreateEXC(
 	apps_ul.lock();
 	// Save application descriptors
 	apps.insert(AppsMapEntry_t(papp->Pid(), papp));
+	logger->Debug("CreateEXC: [%s] inserted in applications map", papp->StrId());
 
 	uids_ul.lock();
 	uids.insert(UidsMapEntry_t(papp->Uid(), papp));
 	uids_ul.unlock();
+	logger->Debug("CreateEXC: [%s] inserted in UIDs map", papp->StrId());
 
 	// Priority vector
 	prio_ul.lock();
 	prio_vec[papp->Priority()].insert(UidsMapEntry_t(papp->Uid(), papp));
 	prio_ul.unlock();
+	logger->Debug("CreateEXC: [%s] inserted in priority map", papp->StrId());
 
 	// Status vector (all new EXC are initially disabled)
-	assert(papp->State() == Application::DISABLED);
+	assert(papp->State() == Application::NEW);
 	status_ul.lock();
 	status_vec[papp->State()].insert(UidsMapEntry_t(papp->Uid(), papp));
 	status_ul.unlock();
+	logger->Debug("CreateEXC: [%s] inserted in status map", papp->StrId());
 
 	// Language vector
 	lang_ul.lock();
@@ -1487,16 +1493,10 @@ ApplicationManager::DisableEXC(AppPtr_t papp, bool release) {
 	ra.SyncWait();
 
 	// Update the status to DISABLED
-	auto ret = ChangeEXCState(papp, app::Schedulable::DISABLED);
+	auto ret = ChangeEXCState(papp, app::Schedulable::SYNC, app::Schedulable::DISABLED);
 	if (ret != AM_SUCCESS) {
 		logger->Error("DisableEXC: [%s] disabling...", papp->StrId());
 		return ret;
-	}
-
-	// Check if the application is dead, in case unregister it
-	if (CheckEXC(papp, true) != AM_SUCCESS) {
-		logger->Debug("DisableEXC: [%s] termination checked", papp->StrId());
-		return AM_SUCCESS;
 	}
 
 	// If required, return application resources to the system view

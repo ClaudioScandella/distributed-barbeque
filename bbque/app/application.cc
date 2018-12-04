@@ -87,8 +87,8 @@ Application::Application(std::string const & _name,
 #endif // CONFIG_BBQUE_TG_PROG_MODEL
 
 	// Initialized scheduling state
-	schedule.state        = DISABLED;
-	schedule.preSyncState = DISABLED;
+	schedule.state        = NEW;
+	schedule.preSyncState = NEW;
 	schedule.syncState    = SYNC_NONE;
 	logger->Info("Built new EXC [%s]", StrId());
 }
@@ -220,14 +220,6 @@ Application::ExitCode_t Application::SyncCommit() {
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 	Application::ExitCode_t ret;
 
-	// Ignoring applications disabled during a SYNC
-	if (_Disabled()) {
-		logger->Info("SyncCommit: synchronization completed (on disabled EXC)"
-			" [%s, %d:%s]",
-			StrId(), _State(), StateStr(_State()));
-		return APP_SUCCESS;
-	}
-
 	assert(_State() == SYNC);
 	if (_State() != SYNC) {
 		logger->Error("SyncCommit: [%s] wrong state <%s>", StrId(), StateStr(_State()));
@@ -259,6 +251,10 @@ Application::ExitCode_t Application::SyncCommit() {
 
 		case BLOCKED:
 			SetState(READY);
+			break;
+
+		case DISABLED:
+			SetState(FINISHED);
 			schedule.awm.reset();
 			schedule.next_awm.reset();
 			break;

@@ -24,7 +24,7 @@ namespace bbque { namespace app {
 
 
 char const *Schedulable::stateStr[] = {
-	"DISABLED",
+	"NEW",
 	"READY",
 	"SYNC",
 	"RUNNING",
@@ -37,6 +37,7 @@ char const *Schedulable::syncStateStr[] = {
 	"MIGREC",
 	"MIGRATE",
 	"BLOCKED",
+	"DISABLED",
 	"NONE"
 };
 
@@ -74,7 +75,9 @@ Schedulable::ExitCode_t Schedulable::SetState(State_t next_state, SyncState_t ne
 	}
 
 	// Update current and next working mode: SYNC case
-	if ((next_state == DISABLED) || (next_state == READY)) {
+	if ((next_sync == DISABLED)
+			|| (next_sync == BLOCKED)
+			|| (next_state == READY)) {
 		schedule.awm.reset();
 		schedule.next_awm.reset();
 	}
@@ -154,7 +157,7 @@ void Schedulable::SetNextAWM(AwmPtr_t awm) {
 }
 
 bool Schedulable::_Disabled() const {
-	return ((_State() == DISABLED) ||
+	return ((_SyncState() == DISABLED) ||
 			(_State() == FINISHED));
 }
 
