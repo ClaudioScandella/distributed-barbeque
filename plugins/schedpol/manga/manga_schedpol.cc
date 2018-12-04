@@ -217,7 +217,7 @@ SchedulerPolicyIF::ExitCode_t MangASchedPol::ServeApp(ba::AppCPtr_t papp) noexce
 	std::list<Partition> partitions;
 
 	// Try to allocate resourced for the application
-	if (papp->State() == ba::Application::State_t::RUNNING) {
+	if (papp->Running()) {
 		logger->Debug("ServeApp: [%s] is RUNNING -> rescheduling", papp->StrId());
 		return ReassignWorkingMode(papp);
 	}
