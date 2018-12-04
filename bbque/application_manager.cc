@@ -893,10 +893,10 @@ ApplicationManager::ChangeEXCState(
 		return AM_EXC_STATUS_CHANGE_FAILED;
 	}
 
-	logger->Debug("ChangeEXCState: updating [%s] state queue [%d:%s => %d:%s]",
+	logger->Debug("ChangeEXCState: [%s] updating state queue [%d:%s => %d:%s]",
 			papp->StrId(),
-			papp->State(), Application::StateStr(papp->State()),
-			next_state, Application::StateStr(next_state));
+			curr_state, Application::StateStr(curr_state),
+			papp->State(), Application::StateStr(papp->State()));
 
 	// Lock curr and next queue
 	std::lock(currState_ul, nextState_ul);
@@ -1126,7 +1126,8 @@ ApplicationManager::DestroyEXC(AppPtr_t papp) {
 	logger->Debug("DestroyEXC: destroying descriptor for [%s]...", papp->StrId());
 
 	// Change status to FINISHED
-	ChangeEXCState(papp, app::Schedulable::FINISHED);
+	if (papp->State() != app::Schedulable::FINISHED)
+		ChangeEXCState(papp, app::Schedulable::FINISHED);
 
 	// Remove execution context form priority and apps maps
 	result = PriorityRemove(papp);
@@ -1146,16 +1147,16 @@ ApplicationManager::DestroyEXC(AppPtr_t papp) {
 	// When an EXC is destroyed we check for the presence of READY
 	// applications waiting to start, if there are a new optimization run
 	// is scheduled before than the case in which all applications are
-	// runnig.
+	// running.
 	uint32_t timeout = 0;
-	timeout = 100 - (10 * (AppsCount(ApplicationStatusIF::READY) % 5));
+	timeout = 100 - (10 * (AppsCount(Schedulable::FINISHED) % 5));
 	cleanup_dfr.Schedule(milliseconds(timeout));
 
-	// Ensure resources have been returned to the system view
-	if (papp->CurrentAWM()) {
-		logger->Debug("DestroyEXC: resources released?");
-		ra.ReleaseResources(papp);
-	}
+#ifdef CONFIG_BBQUE_TG_PROG_MODEL
+	// Destroy the task-graph object
+	papp->ClearTaskGraph();
+	logger->Debug("DestroyEXC: [%s] task-graph cleared", papp->StrId());
+#endif // CONFIG_BBQUE_TG_PROG_MODEL
 
 	logger->Info("DestroyEXC: [%s] FINISHED", papp->StrId());
 	PrintStatusQ();
@@ -1508,7 +1509,7 @@ ApplicationManager::DisableEXC(AppPtr_t papp, bool release) {
 		result = plm.ReclaimResources(papp);
 	}
 
-#ifdef CONFIG_BBQUE_TG_PROG_MODEL
+#if 0
 	// Destroy the task-graph object
 	if (result == PlatformManager::PLATFORM_OK) {
 		papp->ClearTaskGraph();
@@ -1561,7 +1562,7 @@ ApplicationManager::CheckEXC(AppPtr_t papp, bool release) {
 	// If required, release application resources
 	if (likely(dead && release)) {
 		logger->Debug("CheckEXC: [%s] check => release...", papp->StrId());
-		DestroyEXC(papp);
+		DisableEXC(papp);
 		logger->Info("CheckEXC: [%s] RELEASED", papp->StrId());
 	}
 
@@ -1841,12 +1842,17 @@ ApplicationManager::SyncCommit(AppPtr_t papp) {
 
 	// Notify application
 	papp->SyncCommit();
-
 	logger->Debug("SyncCommit: [%s] prev state [%s]...",
 			papp->StrId(), papp->StateStr(papp->PreSyncState()));
 	// Update status maps
 	UpdateStatusMaps(papp, curr_state, papp->State());
 	RemoveFromSyncMap(papp, curr_sync);
+
+	if (papp->State() == ba::Schedulable::FINISHED) {
+		logger->Debug("SyncCommit: [%s, %s] destroying EXC...",
+			papp->StrId(), papp->SyncStateStr(papp->SyncState()));
+		DestroyEXC(papp);
+	}
 	logger->Debug("SyncCommit: [%s, %s] synchronization COMPLETED",
 			papp->StrId(), papp->SyncStateStr(papp->SyncState()));
 
