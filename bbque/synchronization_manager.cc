@@ -654,16 +654,22 @@ SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
 			std::chrono::milliseconds(syncLatency));
 
 	result = Sync_SyncChange(syncState);
-	if (result != OK)
+	if (result != OK) {
+		logger->Debug("SyncApps: returning after sync-change");
 		return result;
+	}
 
 	result = Sync_Platform(syncState);
-	if (result != OK)
+	if (result != OK) {
+		logger->Debug("SyncApps: returning after sync-platform");
 		return result;
+	}
 
 	result = Sync_DoChange(syncState);
-	if (result != OK)
+	if (result != OK) {
+		logger->Debug("SyncApps: returning after sync-dochange");
 		return result;
+	}
 
 #else
 	// Platform is synched before to:
@@ -672,18 +678,24 @@ SynchronizationManager::SyncApps(ApplicationStatusIF::SyncState_t syncState) {
 	// application reconfigure it-self
 	// e.g. CGroups should be already properly initialized
 	result = Sync_Platform(syncState);
-	if (result != OK)
+	if (result != OK) {
+		logger->Debug("SyncApps: returning after sync-platform");
 		return result;
+	}
 
 	result = Sync_PreChange(syncState);
-	if (result != OK)
+	if (result != OK) {
+		logger->Debug("SyncApps: returning after sync-prechange");
 		return result;
+	}
 
 #endif // CONFIG_BBQUE_YM_SYNC_FORCE
 
 	result = Sync_PostChange(syncState);
-	if (result != OK)
+	if (result != OK) {
+		logger->Debug("SyncApps: returning after sync-postchange");
 		return result;
+	}
 
 	return OK;
 }
