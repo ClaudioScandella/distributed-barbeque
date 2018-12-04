@@ -883,7 +883,6 @@ MangoPlatformProxy::MangoPartitionSkimmer::ExitCode_t
 MangoPlatformProxy::MangoPartitionSkimmer::SetPartition(
 		TaskGraph &tg,
 		const Partition &partition) noexcept {
-	UNUSED(tg);
 
 	// We set the mapping of buffers-addresses based on the selected partition
 	ExitCode_t err = SetAddresses(tg, partition);
@@ -891,6 +890,8 @@ MangoPlatformProxy::MangoPartitionSkimmer::SetPartition(
 	for ( auto task : tg.Tasks()) {
 		auto tile_id = partition.GetUnit(task.second);
 		task.second->SetMappedProcessor(tile_id);
+		logger->Debug("SetPartition: task %d mapped to processor (tile) %d",
+			task.second->Id(), tile_id);
 	}
 
 	// Now, we have to ask for the location in TileReg of events
@@ -902,13 +903,14 @@ MangoPlatformProxy::MangoPartitionSkimmer::SetPartition(
 
 		int err = hn_get_synch_id (&phy_addr, 0, HN_READRESET_INCRWRITE_REG_TYPE);
 		if (err != HN_SUCCEEDED) {
-			logger->Error("Cannot find sync register for event %d", event.second->Id());
+			logger->Error("SetPartition: cannot find sync register for event %d",
+				event.second->Id());
 
 			// TODO we should deallocate the other assigned events?
 			return SK_GENERIC_ERROR;
 	  	}
 
-		logger->Debug("Event %d assigned to ID 0x%x", event.second->Id(), phy_addr);
+		logger->Debug("SetPartition: event %d assigned to ID 0x%x", event.second->Id(), phy_addr);
 		event.second->SetPhysicalAddress(phy_addr);
 	}
 
@@ -919,7 +921,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::SetPartition(
 	for ( auto task : tg.Tasks()) {
 		auto arch = task.second->GetAssignedArch();
 		units[i]  = partition.GetUnit(task.second);
-		logger->Debug("Task %d reserved a unit at tile %u for kernel %s",
+		logger->Debug("SetPartition: task %d reserved a unit at tile %u for kernel %s",
 				task.second->Id(), units[i], GetStringFromArchType(arch));
 		i++;
 	}
@@ -936,21 +938,21 @@ MangoPlatformProxy::MangoPartitionSkimmer::ExitCode_t
 MangoPlatformProxy::MangoPartitionSkimmer::UnsetPartition(
 		const TaskGraph &tg,
 		const Partition &partition) noexcept {
-	UNUSED(tg);
 
 	uint32_t part_id = partition.GetId();
 	ExitCode_t ret = SK_OK;
-	logger->Debug("Deallocating partition [id=%d]...", part_id);
+	logger->Debug("UnsetPartition: deallocating partition [id=%d]...", part_id);
 
 	for ( const auto &event : tg.Events()) {
 		bbque_assert(event.second);
 		uint32_t phy_addr = event.second->PhysicalAddress();
-		logger->Debug("Releasing event %d (ID 0x%x)",
+		logger->Debug("UnsetPartition: releasing event %d (ID 0x%x)",
 			event.second->Id(), phy_addr);
 		int err = hn_release_synch_id (phy_addr);
 
 		if(err != HN_SUCCEEDED) {
-			logger->Warn("Unable to release event %d (ID 0x%x)", event.second->Id(), phy_addr);
+			logger->Warn("UnsetPartition: unable to release event %d (ID 0x%x)",
+				event.second->Id(), phy_addr);
 		}
 	}
 
@@ -959,7 +961,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::UnsetPartition(
 		uint32_t memory_bank = partition.GetMemoryBank(buffer.second);
 		uint32_t phy_addr    = partition.GetBufferAddress(buffer.second);
 		uint32_t size        = buffer.second->Size();;
-		logger->Debug("Buffer %d is released at bank %d [address=0x%x]",
+		logger->Debug("UnsetPartition: buffer %d is released at bank %d [address=0x%x]",
 				buffer.second->Id(), memory_bank, phy_addr);
 		buffer.second->SetMemoryBank(memory_bank);
 		buffer.second->SetPhysicalAddress(phy_addr);
@@ -975,7 +977,8 @@ MangoPlatformProxy::MangoPartitionSkimmer::UnsetPartition(
 		uint32_t mem_tile    = partition.GetKernelBank(task.second);
 		auto     ksize       = task.second->Targets()[arch]->BinarySize();
 		auto     ssize       = task.second->Targets()[arch]->StackSize();
-		logger->Debug("Task %d released space for kernel %s [bank=%d, address=0x%x size=%lu]",
+		logger->Debug("UnsetPartition: task %d released space for kernel %s"
+				" [bank=%d, address=0x%x size=%lu]",
 				task.second->Id(), GetStringFromArchType(arch), mem_tile, phy_addr, ksize + ssize);
 		task.second->Targets()[arch]->SetMemoryBank(mem_tile);
 		task.second->Targets()[arch]->SetAddress(phy_addr);
@@ -992,7 +995,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::UnsetPartition(
 	for ( auto task : tg.Tasks()) {
 		auto arch = task.second->GetAssignedArch();
 		units[i] = partition.GetUnit(task.second);
-		logger->Debug("Task %d released tile %u for kernel %s",
+		logger->Debug("UnsetPartition: task %d released tile %u for kernel %s",
 				task.second->Id(), units[i], GetStringFromArchType(arch));
 		i++;
 	}
