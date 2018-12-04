@@ -1523,10 +1523,7 @@ void ApplicationProxy::RpcAppExit(prqsSn_t prqs) {
 	// Removing the connection context
 	conCtxMap.erase(conCtxIt);
 	conCtxMap_ul.unlock();
-
-	logger->Warn("RpcAppExit: TODO release all application resources");
-	logger->Warn("RpcAppExit: TODO run optimizer");
-
+	logger->Info("RpcAppExit: resources release should have been already performed");
 }
 
 void ApplicationProxy::RequestExecutor(prqsSn_t prqs) {
