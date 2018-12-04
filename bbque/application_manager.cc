@@ -1488,17 +1488,20 @@ ApplicationManager::DisableEXC(AppPtr_t papp, bool release) {
 	SchedulerManager &sm(SchedulerManager::GetInstance());
 	sm.WaitForReady();
 
-	// System resources registration in progress?
-	logger->Debug("DisableEXC: waiting for resource accounter...");
-	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	ra.SyncWait();
-
 	// Update the status to DISABLED
 	auto ret = ChangeEXCState(papp, app::Schedulable::SYNC, app::Schedulable::DISABLED);
 	if (ret != AM_SUCCESS) {
 		logger->Error("DisableEXC: [%s] disabling...", papp->StrId());
 		return ret;
 	}
+
+	if (!release)
+		return ret;
+
+	// System resources registration or synchronization in progress?
+	logger->Debug("DisableEXC: waiting for resource accounter...");
+	ResourceAccounter &ra(ResourceAccounter::GetInstance());
+	ra.SyncWait();
 
 	// If required, return application resources to the system view
 	PlatformManager::ExitCode_t result = PlatformManager::PLATFORM_OK;
