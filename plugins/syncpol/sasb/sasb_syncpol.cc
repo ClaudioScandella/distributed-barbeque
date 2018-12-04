@@ -91,13 +91,15 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::step1(
 
 	logger->Debug("STEP 1.0: Running => Disabled");
 	if (sv.HasApplications(ApplicationStatusIF::DISABLED)) {
-		status = STEP11;
+		status = STEP10;
 		return ApplicationStatusIF::DISABLED;
 	}
 
 	logger->Debug("STEP 1.1: Running => Blocked");
-	if (sv.HasApplications(ApplicationStatusIF::BLOCKED))
+	if (sv.HasApplications(ApplicationStatusIF::BLOCKED)) {
+		status = STEP11;
 		return ApplicationStatusIF::BLOCKED;
+	}
 
 	logger->Debug("STEP 1.0:            "
 			"No EXCs to be BLOCKED");
