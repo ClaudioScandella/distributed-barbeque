@@ -1896,8 +1896,12 @@ void ApplicationManager::SyncAbort(AppPtr_t papp) {
 				papp->StrId(), papp->StateStr(state));
 	}
 
-	// Move to READY map
-	ChangeEXCState(papp, app::Schedulable::READY);
+	// Move to READY map if still alive
+	auto ret = CheckEXC(papp, false);
+	if (ret == AM_SUCCESS)
+		ChangeEXCState(papp, app::Schedulable::READY);
+	else
+		ChangeEXCState(papp, app::Schedulable::FINISHED);
 	logger->Debug("SyncAbort: completed ");
 }
 
