@@ -166,6 +166,12 @@ MangASchedPol::ServeApplicationsWithPriority(int priority) noexcept {
 			logger->Debug("ServeApplicationsWithPriority: [%s]: looking for resources...",
 					papp->StrId());
 
+			if (papp->Disabled()) {
+				logger->Debug("ServeApplicationsWithPriority: [%s] disabled. Skip...",
+					papp->StrId());
+				continue;
+			}
+
 			err = ServeApp(papp);
 			if (err == SCHED_SKIP_APP) {
 				// In this case we have no sufficient memory to start it, the only
