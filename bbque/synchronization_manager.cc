@@ -275,14 +275,14 @@ void SynchronizationManager::Sync_PreChange_Check_EXC_Response(
 		logger->Warn("STEP 1: <---- TIMEOUT -- [%s]",
 				papp->StrId());
 		// Disabling not responding applications
-		am.DisableEXC(papp, true);
+		am.DisableEXC(papp, false);
 		return;
 	}
 
 	if (result == RTLIB_BBQUE_CHANNEL_WRITE_FAILED) {
 		logger->Warn("STEP 1: <------ WERROR -- [%s]",
 				papp->StrId());
-		am.DisableEXC(papp, true);
+		am.DisableEXC(papp, false);
 		return;
 	}
 
@@ -406,7 +406,7 @@ void SynchronizationManager::Sync_SyncChange_Check_EXC_Response(AppPtr_t papp,
 		logger->Warn("STEP 2: <---- TIMEOUT -- [%s]",
 				papp->StrId());
 		// Disabling not responding applications
-		am.DisableEXC(papp, true);
+		am.DisableEXC(papp, false);
 		// Accounting for syncpoints missed
 		SM_COUNT_EVENT(metrics, SM_SYNCP_SYNC_MISS);
 		return;
@@ -416,7 +416,7 @@ void SynchronizationManager::Sync_SyncChange_Check_EXC_Response(AppPtr_t papp,
 		logger->Warn("STEP 1: <------ WERROR -- [%s]",
 				papp->StrId());
 		// Disabling not responding applications
-		am.DisableEXC(papp, true);
+		am.DisableEXC(papp, false);
 		// Accounting for syncpoints missed
 		SM_COUNT_EVENT(metrics, SM_SYNCP_SYNC_MISS);
 		return;
