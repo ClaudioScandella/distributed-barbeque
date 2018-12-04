@@ -1,6 +1,8 @@
 #ifndef BBQUE_MANGO_PLATFORM_PROXY_H
 #define BBQUE_MANGO_PLATFORM_PROXY_H
 
+#include <mutex>
+
 #include "bbque/config.h"
 #include "bbque/platform_proxy.h"
 #include "bbque/utils/logging/logger.h"
@@ -133,7 +135,7 @@ private:
 		ExitCode_t SetAddresses(const TaskGraph &tg, const Partition &partition) noexcept;
 	private:
 		std::unique_ptr<bu::Logger> logger;
-
+		std::recursive_mutex hn_mutex;
 	};
 
 };

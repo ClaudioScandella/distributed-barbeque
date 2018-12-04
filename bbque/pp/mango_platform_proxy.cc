@@ -725,8 +725,9 @@ MangoPlatformProxy::MangoPartitionSkimmer::SetAddresses(
 		buffer.second->SetMemoryBank(memory_bank);
 		buffer.second->SetPhysicalAddress(phy_addr);
 
+		std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
 		if (hn_allocate_memory(memory_bank, phy_addr, buffer.second->Size()) != HN_SUCCEEDED) {
-		  return SK_GENERIC_ERROR;
+			return SK_GENERIC_ERROR;
 		}
 	}
 
@@ -741,6 +742,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::SetAddresses(
 		task.second->Targets()[arch]->SetMemoryBank(mem_tile);
 		task.second->Targets()[arch]->SetAddress(phy_addr);
 
+		std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
 		if (hn_allocate_memory(mem_tile, phy_addr, ksize + ssize) != HN_SUCCEEDED) {
 		  return SK_GENERIC_ERROR;
 		}
@@ -804,6 +806,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::Skim(
 		* Next, find and reserve memory for every set. We cannot call hn_find_memory more than once
 		* without allocate the memory returned, since it would return the same bank.
 		*/
+		std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
 		FindUnitsSets(tg, &tiles, &families_order, &num_sets);
 
 		// TODO: Implement the management of the multiple sets returned
@@ -856,6 +859,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::Skim(
 	}
 
 	// let's deallocate memory created in this method
+	std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
 	if (mem_buffers_tiles != NULL) {
 		for (unsigned int i = 0; i < num_sets; i++)
 			if (mem_buffers_tiles[i] != NULL) {
@@ -907,6 +911,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::SetPartition(
 	for ( auto event : tg.Events()) {
 		uint32_t phy_addr;
 
+		std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
 		int err = hn_get_synch_id (&phy_addr, 0, HN_READRESET_INCRWRITE_REG_TYPE);
 		if (err != HN_SUCCEEDED) {
 			logger->Error("SetPartition: cannot find sync register for event %d",
@@ -932,6 +937,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::SetPartition(
 		i++;
 	}
 
+	std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
 	if (hn_reserve_units_set(num_tiles, units) != HN_SUCCEEDED) {
 		err = SK_GENERIC_ERROR;
 	}
@@ -954,8 +960,9 @@ MangoPlatformProxy::MangoPartitionSkimmer::UnsetPartition(
 		uint32_t phy_addr = event.second->PhysicalAddress();
 		logger->Debug("UnsetPartition: releasing event %d (ID 0x%x)",
 			event.second->Id(), phy_addr);
-		int err = hn_release_synch_id (phy_addr);
 
+		std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
+		int err = hn_release_synch_id (phy_addr);
 		if(err != HN_SUCCEEDED) {
 			logger->Warn("UnsetPartition: unable to release event %d (ID 0x%x)",
 				event.second->Id(), phy_addr);
@@ -972,6 +979,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::UnsetPartition(
 		buffer.second->SetMemoryBank(memory_bank);
 		buffer.second->SetPhysicalAddress(phy_addr);
 
+		std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
 		if (hn_release_memory(memory_bank, phy_addr, size) != HN_SUCCEEDED) {
 			ret = SK_GENERIC_ERROR;
 		}
@@ -989,6 +997,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::UnsetPartition(
 		task.second->Targets()[arch]->SetMemoryBank(mem_tile);
 		task.second->Targets()[arch]->SetAddress(phy_addr);
 
+		std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
 		if (hn_release_memory(mem_tile, phy_addr, ksize + ssize) != HN_SUCCEEDED) {
 			ret = SK_GENERIC_ERROR;
 		}
@@ -1006,6 +1015,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::UnsetPartition(
 		i++;
 	}
 
+	std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
 	if (hn_release_units_set(num_tiles, units) != HN_SUCCEEDED) {
 		ret = SK_GENERIC_ERROR;
 	}
