@@ -340,7 +340,10 @@ MangASchedPol::ScheduleApplication(ba::AppCPtr_t papp, const std::list<Partition
 			logger->Debug("ScheduleApplication: [%s] selected partition %d",
 				papp->StrId(), selected_partition.GetId());
 			papp->SetPartition(std::make_shared<Partition>(selected_partition));
-			rmv.PropagatePartition(*tg, selected_partition);
+			auto pret = rmv.PropagatePartition(*tg, selected_partition);
+			if (pret != ResourcePartitionValidator::ExitCode_t::PMV_OK) {
+				return SCHED_SKIP_APP;
+			}
 			break;
 		}
 	}
