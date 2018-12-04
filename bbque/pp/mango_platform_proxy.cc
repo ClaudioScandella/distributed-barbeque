@@ -123,7 +123,6 @@ MangoPlatformProxy::ExitCode_t MangoPlatformProxy::Setup(SchedPtr_t papp) noexce
 MangoPlatformProxy::ExitCode_t
 MangoPlatformProxy::Release(SchedPtr_t papp) noexcept {
 	logger->Info("Release: application [%s]...", papp->StrId());
-	ReclaimResources(papp);
 	return PLATFORM_OK;
 }
 
