@@ -157,12 +157,56 @@ private:
 			AwmPtr_t & wm,
 			std::string const & res_path);
 
+
 	/**
-	 * @brief Parse the section containing tasks performance requirements.
+	 * @brief Parse the section containing task-graph related
+	 * information
+	 *
+	 * @param xml_elem The XML element from which start loading
+	 */
+	void LoadTaskGraphInfo(rapidxml::xml_node<> *_xml_elem);
+
+	/**
+	 * @brief Parse the section containing tasks performance requirements
 	 *
 	 * @param xml_elem The XML element from which start loading
 	 */
 	void LoadTasksRequirements(rapidxml::xml_node<>  *_xml_elem);
+
+	/**
+	 * @brief Parse the section containing design-time mapping information
+	 * related to the task-graph
+	 *
+	 * @param xml_elem The XML element from which start loading
+	 */
+	void LoadTaskGraphMappings(rapidxml::xml_node<> *_xml_elem);
+
+	/**
+	 * @brief Parse the section containing a single design-time mapping
+	 * option
+	 *
+	 * @param xml_elem The XML element from which start loading
+	 * @param mapping the mapping object to fill
+	 */
+	void LoadTaskGraphMapping(
+			rapidxml::xml_node<> *_xml_elem,
+			ba::Recipe::TaskGraphMapping & mapping);
+
+	/**
+	 * @brief Parse the section containing a design-time resource
+	 * mapping information related to a single object (task or buffer)
+	 *
+	 * @param xml_elem The XML element from which start loading
+	 * @param obj_name A string object to specify the type of object
+	 * ("task" or "buffer")
+	 * @param mapping_map the map containing mapping information for
+	 * all the tasks or the buffers
+	 */
+	void LoadMappingData(
+			rapidxml::xml_node<> * obj_elem,
+			std::string const & obj_name,
+			std::map<uint32_t, ba::Recipe::MappingData> mapping_map);
+
 
 	/**
 	 * @brief Insert the resource in the working mode after checking if

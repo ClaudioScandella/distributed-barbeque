@@ -29,6 +29,7 @@
 #include "bbque/app/application.h"
 #include "bbque/app/working_mode.h"
 #include "bbque/res/resource_constraints.h"
+#include "bbque/res/resource_type.h"
 #include "bbque/utils/logging/logger.h"
 #include "bbque/utils/utility.h"
 #include "bbque/utils/string_utils.h"
@@ -201,7 +202,7 @@ RecipeLoaderIF::ExitCode_t RXMLRecipeLoader::LoadRecipe(
 			}
 
 			// Task requirements (for task-graph based programming models)
-			LoadTasksRequirements(pp_node);
+			LoadTaskGraphInfo(pp_node);
 
 			// "Static" constraints and plugins specific data
 			LoadConstraints(pp_node);
@@ -400,34 +401,51 @@ RecipeLoaderIF::ExitCode_t RXMLRecipeLoader::LoadWorkingModes(rapidxml::xml_node
 	return RL_SUCCESS;
 }
 
+// =======================[ Task-graph ]=======================================
 
-/*
-<tasks>
-	<task name="stage1" id="0" throughput="2" hw_prefs="peak,cpu,nup"/>
-	<task name="stage2" id="1" ctime_ms="500" hw_prefs="cpu"/>
-</tasks>
-*/
 
-void RXMLRecipeLoader::LoadTasksRequirements(rapidxml::xml_node<>  *_xml_elem) {
-	rapidxml::xml_node<> * tasks_elem = nullptr;
+void RXMLRecipeLoader::LoadTaskGraphInfo(rapidxml::xml_node<> *_xml_elem) {
+		rapidxml::xml_node<> * tg_elem = nullptr;
+
+	try {
+		// <tg>
+		tg_elem = _xml_elem->first_node("tg", 0, true);
+		if (tg_elem == nullptr) {
+			logger->Warn("LoadTaskGraphInfo: Missing <tg> section");
+			return;
+		}
+		// <reqs>
+		LoadTasksRequirements(tg_elem);
+		// <mappings>
+		LoadTaskGraphMappings(tg_elem);
+
+	} catch (rapidxml::parse_error &ex) {
+		logger->Error(ex.what());
+		return;
+	}
+}
+
+
+void RXMLRecipeLoader::LoadTasksRequirements(rapidxml::xml_node<> *_xml_elem) {
+	rapidxml::xml_node<> * reqs_elem = nullptr;
 	rapidxml::xml_node<> * task_elem  = nullptr;
 	std::string read_attrib;
 	logger->Debug("LoadTasksRequirements: loading children of <%s>...", _xml_elem->name());
 
 	try {
-		tasks_elem = _xml_elem->first_node("tasks", 0, true);
-		if (tasks_elem == nullptr) {
-			logger->Warn("LoadTaskRequirements: Missing <tasks> section");
+		reqs_elem = _xml_elem->first_node("reqs", 0, true);
+		if (reqs_elem == nullptr) {
+			logger->Warn("LoadTaskRequirements: Missing <reqs> section");
 			return;
 		}
 
-		CheckMandatoryNode(tasks_elem, "tasks", _xml_elem);
-		task_elem  = tasks_elem->first_node("task", 0, true);
+		CheckMandatoryNode(reqs_elem, "reqs", _xml_elem);
+		task_elem  = reqs_elem->first_node("task", 0, true);
 		if (task_elem == nullptr) {
 			logger->Warn("LoadTaskRequirements: No <task> sections included");
 			return;
 		}
-		CheckMandatoryNode(task_elem, "task", tasks_elem);
+		CheckMandatoryNode(task_elem, "task", reqs_elem);
 
 		// <task name="stage2" id="1" ctime_ms="500" hw_prefs="cpu"/>
 		while (task_elem) {
@@ -484,8 +502,160 @@ void RXMLRecipeLoader::LoadTasksRequirements(rapidxml::xml_node<>  *_xml_elem) {
 		logger->Error(ex.what());
 		return;
 	}
+}
 
-	return;
+
+void RXMLRecipeLoader::LoadTaskGraphMappings(rapidxml::xml_node<> *_xml_elem) {
+		rapidxml::xml_node<> * mappings_elem = nullptr;
+		rapidxml::xml_node<> * map_elem = nullptr;
+		std::string read_attrib;
+		ba::Recipe::TaskGraphMapping mapping;
+
+	logger->Debug("LoadTaskGraphMappings: loading children of <%s>...",
+			_xml_elem->name());
+
+	try {
+		// <mappings>
+		mappings_elem = _xml_elem->first_node("mappings", 0, false);
+		if (mappings_elem == nullptr) {
+			logger->Warn("LoadTaskGraphMappings: Missing <mappings> section");
+			return;
+		}
+		CheckMandatoryNode(mappings_elem, "mappings", _xml_elem);
+
+		// <mapping...>
+		map_elem  = mappings_elem->first_node("mapping", 0, true);
+		if (map_elem == nullptr) {
+			logger->Warn("LoadTaskGraphMappings: No <task> sections included");
+			return;
+		}
+		CheckMandatoryNode(map_elem, "mapping", mappings_elem);
+		while (map_elem) {
+			logger->Debug("LoadTaskGraphMappings: loading mapping...");
+			// <mapping id=...>
+			read_attrib  = loadAttribute("id", true, map_elem);
+			logger->Debug("LoadTaskGraphMappings: id=%s", read_attrib.c_str());
+			uint32_t id = atoi(read_attrib.c_str());
+			// <mapping ... exec_time_ms=...>
+			read_attrib  = loadAttribute("exec_time_ms", true, map_elem);
+			logger->Debug("LoadTaskGraphMappings: exec_time_ms=%s",
+					read_attrib.c_str());
+			mapping.exec_time_ms = atoi(read_attrib.c_str());
+			// <mapping ... power_mw=...>
+			read_attrib  = loadAttribute("power_mw", false, map_elem);
+			logger->Debug("LoadTaskGraphMappings: power_mw=%s",
+					read_attrib.c_str());
+			mapping.power_mw = atoi(read_attrib.c_str());
+			// <mapping ... mem_bw=...>
+			read_attrib  = loadAttribute("mem_bw", false, map_elem);
+			logger->Debug("LoadTaskGraphMappings: power_bw=%s",
+					read_attrib.c_str());
+			mapping.mem_bw = atoi(read_attrib.c_str());
+
+			// Load the set of design-time mapping choices
+			LoadTaskGraphMapping(map_elem, mapping);
+			recipe_ptr->AddTaskGraphMapping(id, mapping);
+
+			map_elem = map_elem->next_sibling("mapping", 0, false);
+		}
+
+	} catch (rapidxml::parse_error &ex) {
+		logger->Error(ex.what());
+		return;
+	}
+}
+
+void RXMLRecipeLoader::LoadTaskGraphMapping(
+			rapidxml::xml_node<> *_xml_elem,
+			ba::Recipe::TaskGraphMapping & mapping) {
+		rapidxml::xml_node<> * tasks_elem = nullptr;
+		rapidxml::xml_node<> * task_elem = nullptr;
+		rapidxml::xml_node<> * buffs_elem = nullptr;
+		rapidxml::xml_node<> * buff_elem = nullptr;
+		std::string read_attrib;
+
+	logger->Debug("LoadTaskGraphMapping: loading children of <%s>...",
+			_xml_elem->name());
+
+	try {
+		// <tasks>
+		tasks_elem = _xml_elem->first_node("tasks", 0, true);
+		if (tasks_elem == nullptr) {
+			logger->Warn("LoadTaskGraphMapping: Missing <tasks> section");
+			return;
+		}
+		CheckMandatoryNode(tasks_elem, "tasks", _xml_elem);
+		// <task...>
+		task_elem  = tasks_elem->first_node("task", 0, true);
+		if (task_elem == nullptr) {
+			logger->Warn("LoadTaskGraphMapping: No <task> included");
+			return;
+		}
+		CheckMandatoryNode(task_elem, "task", tasks_elem);
+
+		// Loading the mapping data for all the tasks
+		LoadMappingData(task_elem, "task", mapping.tasks);
+
+		// <buffers> ..
+		buffs_elem  = _xml_elem->first_node("buffers", 0, false);
+		if (buffs_elem == nullptr) {
+			logger->Warn("LoadTaskGraphMapping: Missing <buffers> sections");
+			return;
+		}
+		// <buffer...>
+		buff_elem  = buffs_elem->first_node("buffer", 0, true);
+		if (buff_elem == nullptr) {
+			logger->Warn("LoadTaskGraphMapping: No <buffer> included");
+			return;
+		}
+		CheckMandatoryNode(buff_elem, "buffer", buffs_elem);
+
+		// Loading the mapping data for all the buffers
+		LoadMappingData(buff_elem, "buffer", mapping.buffers);
+
+	} catch (rapidxml::parse_error &ex) {
+		logger->Error(ex.what());
+		return;
+	}
+}
+
+
+void RXMLRecipeLoader::LoadMappingData(
+			rapidxml::xml_node<> * obj_elem,
+			std::string const & obj_name,
+			std::map<uint32_t, ba::Recipe::MappingData> mapping_map) {
+	rapidxml::xml_attribute<> * attribute = nullptr;
+
+	while (obj_elem) {
+		ba::Recipe::MappingData map_data;
+		// <task/buffer id=...>
+		attribute = obj_elem->first_attribute("id", 0, true);
+		uint32_t obj_id = atoi(attribute->value());
+		logger->Debug("LoadMappingData: %s id=%d", obj_name.c_str(), obj_id);
+
+		while((attribute = attribute->next_attribute()) != nullptr) {
+			if (strncmp(attribute->name(), "freq_khz", 9) == 0) {
+				map_data.freq_khz = atoi(attribute->value());
+				logger->Debug("LoadMappingData: freq_khz=%d",
+						map_data.freq_khz);
+			}
+			else {
+				auto r_type = bbque::res::GetResourceTypeFromString(
+					attribute->name());
+				logger->Debug("LoadMappingData: attribute '%s'...",
+						attribute->name());
+				if (r_type != br::ResourceType::UNDEFINED) {
+					map_data.type = r_type;
+					map_data.id   = atoi(attribute->value());
+					logger->Debug("LoadMappingData: mapping to '%s'...",
+						attribute->value());
+				}
+			}
+		}
+
+		mapping_map[obj_id] = map_data;
+		obj_elem = obj_elem->next_sibling(obj_name.c_str(), 0, false);
+	}
 }
 
 
