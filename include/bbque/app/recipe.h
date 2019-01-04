@@ -25,6 +25,7 @@
 #include "bbque/utils/logging/logger.h"
 #include "bbque/utils/extra_data_container.h"
 #include "bbque/res/resource_constraints.h"
+#include "bbque/res/resource_type.h"
 #include "tg/requirements.h"
 
 #define RECIPE_NAMESPACE "rcp"
@@ -43,6 +44,7 @@ typedef std::shared_ptr<ResourcePath> ResourcePathPtr_t;
 }
 
 using bbque::res::ResourcePathPtr_t;
+using bbque::res::ResourceType;
 
 namespace app {
 
@@ -88,6 +90,34 @@ class Recipe: public bu::ExtraDataContainer {
 friend class Application;
 
 public:
+	/**
+	 * @class MappingData
+	 * @brief Resource mapping info associated to a task or a buffer
+	 */
+	class MappingData {
+	public:
+		MappingData(){}
+		MappingData(ResourceType _t, uint32_t _id, uint32_t _f):
+			type(_t), id(_id), freq_khz(_f)
+		{}
+
+		ResourceType type;
+		uint32_t id;
+		uint32_t freq_khz; // or whatever is the corresponding power state
+	};
+
+	/**
+	 * @class TaskGraphMapping
+	 * @brief Design-time profiled task-graph mapping
+	 */
+	class TaskGraphMapping {
+	public:
+		uint32_t exec_time_ms;  /// Profiled execution time
+		uint32_t power_mw;      /// Power consumption
+		uint32_t mem_bw;        /// Memory bandwidth utilization
+		std::map<uint32_t, MappingData> tasks;
+		std::map<uint32_t, MappingData> buffers;
+	};
 
 	/*
 	 * @brief Constructor
@@ -160,16 +190,34 @@ public:
 	 * @param tr Task requirements structure
 	 */
 	inline void AddTaskRequirements(uint32_t id, TaskRequirements tr) {
-		task_reqs[id] = tr;
+		tg_reqs[id] = tr;
 	}
 
 	/**
 	 * @brief Get the set of performance requirements for a task
 	 * @param task_id Task identification number
-	 * @return tr Task requirements structure
+	 * @return Task requirements structure
 	 */
 	inline TaskRequirements & GetTaskRequirements(uint32_t id) {
-		return task_reqs[id];
+		return tg_reqs[id];
+	}
+
+	/**
+	 * @brief Add a the task-graph mapping option
+	 * @param id Mapping choice number
+	 * @param tg_map A TaskGraphMapping structure
+	 */
+	inline void AddTaskGraphMapping(uint32_t id, TaskGraphMapping tg_map) {
+		tg_mappings[id] = tg_map;
+	}
+
+	/**
+	 * @brief Get the task-graph mapping referenced by an id
+	 * @param id Mapping choice number
+	 * @return A TaskGraphMapping structure
+	 */
+	inline TaskGraphMapping & GetTaskGraphMapping(uint32_t id) {
+		return tg_mappings[id];
 	}
 
 	/**
@@ -231,7 +279,10 @@ private:
 	ConstrMap_t constraints;
 
 	/** Per-task performance requirements */
-	std::map<uint32_t, TaskRequirements> task_reqs;
+	std::map<uint32_t, TaskRequirements> tg_reqs;
+
+	/** Design-time task graph mappings */
+	std::map<uint32_t, TaskGraphMapping> tg_mappings;
 
 
 	/** AWM attribute type flag */
