@@ -304,6 +304,12 @@
 #define BBQUE_APP_PRIO_LEVELS ${CONFIG_BBQUE_APP_PRIO_LEVELS}
 
 /**
+ * @brief The resource path prefix under which the resource requests included
+ * in the recipe should be looked for (e.g., "sys").
+ */
+#define BBQUE_RESOURCE_PATH_PREFIX "${CONFIG_BBQUE_RESOURCE_PATH_PREFIX}"
+
+/**
  * @brief The default path prefix for storing/retrieving the serialization
  * files containing the application task-graphs
  */

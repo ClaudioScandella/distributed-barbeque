@@ -31,6 +31,7 @@
 
 #include "bbque/application_manager.h"
 #include "bbque/app/working_mode.h"
+#include "bbque/config.h"
 #include "bbque/process_manager.h"
 #include "bbque/res/resource_path.h"
 #include "bbque/utils/schedlog.h"
@@ -76,7 +77,7 @@ ResourceAccounter::ResourceAccounter() :
 	sync_ssn.count = 0;
 
 	// Init prefix path object
-	r_prefix_path = std::make_shared<br::ResourcePath>(PREFIX_PATH);
+	r_prefix_path = std::make_shared<br::ResourcePath>(BBQUE_RESOURCE_PATH_PREFIX);
 
 	// Register set quota command
 #define CMD_SET_TOTAL "set_total"
