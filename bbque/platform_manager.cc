@@ -130,7 +130,7 @@ void PlatformManager::Task()
 
 const char * PlatformManager::GetPlatformID(int16_t system_id) const
 {
-	logger->Debug("Request a Platform ID for system %i", system_id);
+	logger->Debug("GetPlatformID: requested id for system %d", system_id);
 
 #ifdef CONFIG_BBQUE_DIST_MODE
 	assert(system_id >= -1);
@@ -148,7 +148,8 @@ const char * PlatformManager::GetPlatformID(int16_t system_id) const
 		return rpp->GetPlatformID(system_id);
 
 	}
-	logger->Error("Request a Platform ID from unknown system %i.", system_id);
+
+	logger->Error("GetPlatformID: requested id for unknown system %d", system_id);
 	return "";
 #else
 	assert(system_id <= 0);  // Sys0 is also valid
@@ -159,7 +160,7 @@ const char * PlatformManager::GetPlatformID(int16_t system_id) const
 
 const char * PlatformManager::GetHardwareID(int16_t system_id) const
 {
-	logger->Debug("Request a Hardware ID for system %i", system_id);
+	logger->Debug("GetHardwareID: requested HW id for system %d", system_id);
 
 #ifdef CONFIG_BBQUE_DIST_MODE
 	assert(system_id >= -1);
@@ -175,7 +176,7 @@ const char * PlatformManager::GetHardwareID(int16_t system_id) const
 		return rpp->GetHardwareID(system_id);
 	}
 
-	logger->Error("Request a Hardware ID from unknown system %i.", system_id);
+	logger->Error("GetHardwareID: requested HW id for unknown system %d", system_id);
 	return "";
 #else
 	assert(system_id <= 0);  // Sys0 is also valid
