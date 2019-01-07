@@ -54,8 +54,10 @@ install (TARGETS ${TARGET_NAME} LIBRARY
 		PUBLIC_HEADER DESTINATION ${BBQUE_PATH_HEADERS}/pmsl
 		COMPONENT BarbequeSynclib)
 
-# Default recipe
+# Default recipes
 install (FILES generic.recipe
+		DESTINATION ${BBQUE_PATH_RECIPES})
+install (FILES generic_manga.recipe
 		DESTINATION ${BBQUE_PATH_RECIPES})
 
 # Configuration file
