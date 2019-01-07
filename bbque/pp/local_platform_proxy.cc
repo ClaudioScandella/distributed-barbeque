@@ -48,11 +48,19 @@ LocalPlatformProxy::LocalPlatformProxy() {
 }
 
 const char* LocalPlatformProxy::GetPlatformID(int16_t system_id) const {
+#ifdef CONFIG_TARGET_LINUX_MANGO
+	return this->aux[0]->GetPlatformID(system_id);
+#else
 	return this->host->GetPlatformID(system_id);
+#endif
 }
 
 const char* LocalPlatformProxy::GetHardwareID(int16_t system_id) const {
+#ifdef CONFIG_TARGET_LINUX_MANGO
+	return this->aux[0]->GetHardwareID(system_id);
+#else
 	return this->host->GetHardwareID(system_id);
+#endif
 }
 
 LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Setup(SchedPtr_t papp) {
