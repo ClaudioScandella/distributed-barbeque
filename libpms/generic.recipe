@@ -12,10 +12,14 @@
 					</resources>
 				</awm>
 			</awms>
-			<tasks>
-				<task name="stage1" id="0" throughput_cps="2" inbw_kbps="2000" outbw_kbps="2500" hw_prefs="peak,gn,nup"/>
-				<task name="stage2" id="1" ctime_ms="500" hw_prefs="peak,gn"/>
-			</tasks>
+			<tg>
+				<reqs>
+					<task name="t0" id="0" throughput_cps="2" inbw_kbps="2000" outbw_kbps="2500" hw_prefs="peak,gn,nup"/>
+					<task name="t1" id="1" ctime_ms="2000" hw_prefs="peak,gn,nup"/>
+					<task name="t2" id="1" ctime_ms="2000" hw_prefs="peak,gn,nup"/>
+					<task name="t3" id="1" ctime_ms="1000" hw_prefs="peak,gn,nup"/>
+				</reqs>
+			</tg>
 		</platform>
 	</application>
 </BarbequeRTRM>
