@@ -21,28 +21,28 @@
 		</platform>
 		<platform id="org.mango" hw="arch20">
 			<awms>
-				<awm id="0" name="OK" value="100">
+				<awm id="0" name="test" value="10">
 					<resources>
 						<acc>
 							<pe qty="200"/>
 						</acc>
-						<mem qty="20" units="M"/>
+						<mem qty="1" units="Mb"/>
 					</resources>
 				</awm>
 			</awms>
 			<tg>
 				<reqs>
-					<task name="t0" id="0" hw_prefs="peak,gn,nup" throughput_cps="2" inbw_kbps="2000" outbw_kbps="2500"/>
-					<task name="t1" id="1" hw_prefs="peak,gn,nup" ctime_ms="500"/>
+					<task name="t0" id="0" hw_prefs="peak,gn,nup" throughput_cps="1" inbw_kbps="2000" outbw_kbps="1500"/>
+					<task name="t1" id="1" hw_prefs="peak,gn,nup" ctime_ms="1000"/>
 				</reqs>
 				<mappings>
-					<mapping id="0" exec_time_ms="100" power_w="20" mem_bw=""> 
+					<mapping id="0" exec_time_ms="1000" power_w="20" mem_bw="">
 						<tasks>
 							<task id="0" acc="0" freq_khz="0"/>
 							<task id="1" acc="1" freq_khz="0"/>
 						</tasks>
 						<buffers>
-							<buff id="0" mem="0"/>
+							<buffer id="0" mem="0"/>
 						</buffers>
 					</mapping>
 				</mappings>
