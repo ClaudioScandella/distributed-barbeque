@@ -133,6 +133,7 @@ RecipeLoaderIF::ExitCode_t RXMLRecipeLoader::LoadRecipe(
 	rapidxml::xml_node<> * pp_node = nullptr;
 	rapidxml::xml_attribute<> * bbq_attribute = nullptr;
 	rapidxml::xml_attribute<> * app_attribute = nullptr;
+	rapidxml::xml_attribute<> * plat_attribute = nullptr;
 	uint16_t priority = 0;
 	int maj, min;
 	std::string version_id;
@@ -195,6 +196,9 @@ RecipeLoaderIF::ExitCode_t RXMLRecipeLoader::LoadRecipe(
 				throw std::runtime_error("LoadPlatform failed.");
 			}
 
+			plat_attribute = pp_node->first_attribute("id", 0, true);
+			logger->Debug("Platform: parsing id='%s'", plat_attribute->value());
+
 			// Application Working Modes
 			result = LoadWorkingModes(pp_node);
 			if (result != RL_SUCCESS){
@@ -250,20 +254,20 @@ rapidxml::xml_node<> * RXMLRecipeLoader::LoadPlatform(rapidxml::xml_node<> * _xm
 		// System platform ID
 		sys_platform_id = plm.GetPlatformID();
 		if (!sys_platform_id) {
-			logger->Error("Unable to get the system platform ID");
+			logger->Error("Platform: unable to get the system ID");
 			assert(sys_platform_id != nullptr);
 			return nullptr;
 		}
 		// Plaform hardware (optional)
 		sys_platform_hw.assign(plm.GetHardwareID());
-		logger->Info("Platform: System ID=%s HW=%s",
+		logger->Info("Platform: system ID=%s HW=%s",
 				sys_platform_id, sys_platform_hw.c_str());
 
 		// Look for the platform section matching the system platform id
 		while (pp_elem) {
 			platform_id = loadAttribute("id", true, pp_elem);
 			platform_hw = loadAttribute("hw", false, pp_elem);
-			logger->Info("Platform: Search ID=%s HW=%s",
+			logger->Info("Platform: search ID=%s HW=%s",
 					platform_id.c_str(), platform_hw.c_str());
 
 			// Keep track of the "generic" platform section (if any)
@@ -279,9 +283,13 @@ rapidxml::xml_node<> * RXMLRecipeLoader::LoadPlatform(rapidxml::xml_node<> * _xm
 			if (platform_id.compare(sys_platform_id) == 0) {
 				pp_last = pp_elem;
 				id_matched = true;
+				logger->Debug("Platform: found a ID match: %s",
+					platform_id.c_str());
 				// Hardware (SoC) check required?
 				if ((platform_hw.size() > 1)
-					&& (platform_hw.compare(sys_platform_hw) == 0)) {
+						&& (platform_hw.compare(sys_platform_hw) == 0)) {
+					logger->Debug("Platform: found a HW match: %s",
+						platform_hw.c_str());
 					break;
 				}
 			}
@@ -291,12 +299,12 @@ rapidxml::xml_node<> * RXMLRecipeLoader::LoadPlatform(rapidxml::xml_node<> * _xm
 		// If the platform ID does not match the system platform, check if it
 		// has been found the 'generic' section
 		if (!id_matched && pp_gen_elem) {
-			logger->Warn("Platform: Mismatch. Section '%s' will be parsed",
+			logger->Warn("Platform: mismatch. Section '%s' will be parsed",
 					PLATFORM_ID_GENERIC);
 			return pp_gen_elem;
 		}
 
-	logger->Info("Platform: Best matching = [%s:%s]",
+		logger->Info("Platform: best matching = [%s:%s]",
 			platform_id.c_str(), platform_hw.c_str());
 #else
 		logger->Warn("TPD enabled: no platform ID check performed");
@@ -352,6 +360,8 @@ RecipeLoaderIF::ExitCode_t RXMLRecipeLoader::LoadWorkingModes(rapidxml::xml_node
 						wm_id, wm_name.c_str(), wm_id);
 				return RL_FORMAT_ERROR;
 			}
+			logger->Debug("LoadWorkingMode: adding ID=%d name=%s value=%d ...",
+				wm_id, wm_name.c_str(), wm_value);
 
 			// Add a new working mode (IDs MUST be numbered from 0 to N)
 			AwmPtr_t awm(recipe_ptr->AddWorkingMode(
@@ -518,7 +528,8 @@ void RXMLRecipeLoader::LoadTaskGraphMappings(rapidxml::xml_node<> *_xml_elem) {
 		// <mappings>
 		mappings_elem = _xml_elem->first_node("mappings", 0, false);
 		if (mappings_elem == nullptr) {
-			logger->Warn("LoadTaskGraphMappings: Missing <mappings> section");
+			logger->Warn("LoadTaskGraphMappings: missing <mappings> section "
+				"under <%s>", _xml_elem->name());
 			return;
 		}
 		CheckMandatoryNode(mappings_elem, "mappings", _xml_elem);
