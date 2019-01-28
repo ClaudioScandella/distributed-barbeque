@@ -24,6 +24,7 @@
 #include "bbque/utils/timer.h"
 #include "bbque/data_manager.h"
 #include "bbque/config.h"
+#include "bbque/platform_manager.h"
 
 #define DATA_MANAGER_NAMESPACE "bq.dm"
 #define MODULE_NAMESPACE DATA_MANAGER_NAMESPACE
@@ -698,10 +699,48 @@ void DataManager::UpdateData(){
 		res_stats.push_back(temp_res);
 	}
 
+	PlatformManager & pm(PlatformManager::GetInstance());
 	// Updating application status
 	num_applications = am.AppsCount();
 
 	// TODO per-application information
+	AppsUidMapIt app_it;
+	AppPtr_t app_ptr;
+
+	app_stats.clear();
+
+	app_ptr = am.GetFirst(ApplicationStatusIF::RUNNING, app_it);
+
+	while(app_ptr != nullptr){
+		app_status_t temp_app;
+		temp_app.id = app_ptr->Uid();
+		temp_app.name = app_ptr->Name();
+		
+		auto temp_tg = app_ptr->GetTaskGraph();
+		temp_app.n_task = temp_tg->TaskCount();
+
+		logger->Debug("UpdateData: <%s-%d>: n_task=%d", 
+			temp_app.name.c_str(), temp_app.id, temp_app.n_task);
+
+		auto tasks_map = temp_tg->Tasks();
+		int mapped_sys = strtol(pm.GetPlatformID(), nullptr, 0);
+		int mapped_cluster = temp_tg->GetCluster();
+
+		for(auto task : tasks_map){
+			TaskPtr_t task_ptr = task.second;
+			task_status_t temp_task;
+			temp_task.id = task_ptr->Id();
+			int mapped_proc = task_ptr->GetMappedProcessor();
+			int mapped_cores = task_ptr->GetMappedCores();
+			logger->Debug("UpdateData: Task <%d>: sys<%d> cluster<%d>, proc<%d>, threads<%d>", 
+				temp_task.id, mapped_sys, mapped_cluster, mapped_proc, mapped_cores); 
+			//temp_task.mapping(BuildResourceBitset());
+		}
+
+	//app_stats.
+		app_ptr = am.GetNext(ApplicationStatusIF::RUNNING, app_it);
+	}
+
 }
 
 } // namespace bbque
