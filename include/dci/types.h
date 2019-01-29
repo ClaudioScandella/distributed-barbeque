@@ -105,6 +105,7 @@ struct resource_status_t { // 15 Byte
 	void serialize(Archive &ar, const unsigned int version){
 		(void) version;
 		ar & id;
+		ar & model;
 		ar & occupancy;
 		ar & load;
 		ar & power;
@@ -113,6 +114,7 @@ struct resource_status_t { // 15 Byte
 	}
 	/* Struct fields */
 	res_bitset_t id;
+	std::string model;	 /// The model of the resource
 	uint8_t occupancy;   /// Amount assigned by the resource manager
 	uint8_t load;        /// Utilization observerd at runtime
 	uint32_t power;      /// Power consumption
