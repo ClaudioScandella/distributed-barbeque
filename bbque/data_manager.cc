@@ -688,6 +688,7 @@ void DataManager::UpdateData(){
 
 		resource_status_t temp_res;
 		temp_res.id = BuildResourceBitset(resource_path);
+		temp_res.model = resource_ptr->Model();
 		temp_res.occupancy = static_cast<uint8_t>(
 			(float(resource_ptr->Used()) / resource_ptr->Total()) * 100 );
 #ifdef CONFIG_BBQUE_PM
