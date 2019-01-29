@@ -277,6 +277,20 @@ private:
 	res_bitset_t BuildResourceBitset(br::ResourcePathPtr_t resource_path);
 
 	/**
+	 * @brief Utility method to find the assigned resource path of a 
+	  * specific task.
+	 *
+	 * @param res_map_ptr The pointer to the resource assigned map
+	 * @param task 
+	 *
+	 */
+	std::string FindResourceAssigned(
+		res::ResourceAssignmentMapPtr_t res_map_ptr, 
+		int mapped_sys,
+		int mapped_cluster,
+		int mapped_proc) const;
+
+	/**
 	 * @brief Utility method to find a subscriber into a specific list.
 	 * The search is performed on the ip address.
 	 *
