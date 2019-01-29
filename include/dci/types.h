@@ -65,13 +65,17 @@ struct task_status_t { // 13 Byte
 	void serialize(Archive &ar, const unsigned int version){
 		(void) version;
 		ar & id;
-		ar & perf;
+		ar & throughput;
+		ar & completion_time;
 		ar & mapping;
+		ar & n_threads;
 	}
 	/* Struct fields */
 	uint32_t id;             /// Task identification number
-	uint8_t perf;            /// Runtime performance (%) w.r.t. the goal
+	uint16_t throughput;      /// Runtime throughput performance
+	uint32_t completion_time;	 /// Runtime completion time performance
 	res_bitset_t mapping;    /// Mapping to computing units
+	uint32_t n_threads;		 /// Number of threads
 };
 
 struct app_status_t { // 32 Byte min
@@ -83,6 +87,7 @@ struct app_status_t { // 32 Byte min
 		ar & name;
 		ar & n_task;
 		ar & tasks;
+		ar & n_mapping;
 		ar & mapping;
 	}
 	/* Struct fields */
@@ -90,7 +95,8 @@ struct app_status_t { // 32 Byte min
 	std::string name;       /// Binary name
 	uint32_t n_task;        /// Number of tasks included
 	std::list<task_status_t> tasks; /// Per-task information
-	res_bitset_t mapping;  /// Task mappings
+	uint32_t n_mapping;		/// Number of mapped resources
+	std::list<res_bitset_t> mapping;  /// Task mappings
 };
 
 struct resource_status_t { // 15 Byte
