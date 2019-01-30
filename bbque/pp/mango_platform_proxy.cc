@@ -784,7 +784,7 @@ static Partition GetPartition(
 		it_task++;
 	}
 
-	delete tile_mapped;
+	delete[] tile_mapped;
 	bbque_assert(it_task == tg.Tasks().end());
 	for (int j=0; j < buff_size; j++) {
 		part.MapBuffer(it_buff->second, mem_buffers_tiles[j], mem_buffers_addr[j]);
@@ -854,7 +854,7 @@ MangoPlatformProxy::MangoPartitionSkimmer::Skim(
 	uint32_t **families_order    = NULL;
 	uint32_t **mem_buffers_tiles = NULL;
 	uint32_t **mem_buffers_addr  = NULL;
-	uint32_t *mem_buffers_size   = new uint32_t[buff_size];
+	uint32_t *mem_buffers_size   = new uint32_t[buff_size+tasks_size];
 	uint32_t num_sets            = 0;
 
 	bbque_assert(part_list.empty());
@@ -938,42 +938,48 @@ MangoPlatformProxy::MangoPartitionSkimmer::Skim(
 
 	// let's deallocate memory created in the hn_find_units_sets hnlib function
 	if (tiles != nullptr) {
-		for (unsigned int i = 0; i < num_sets; i++)
+		for (unsigned int i = 0; i < num_sets; i++) {
 			free(tiles[i]);
+		}
 		free(tiles);
 	}
 
 	if (families_order != nullptr) {
-		for (unsigned int i = 0; i < num_sets; i++)
+		for (unsigned int i = 0; i < num_sets; i++) {
 			free(families_order[i]);
+		}
 		free(families_order);
 	}
 
 	// let's deallocate memory created in this method
 	std::unique_lock<std::recursive_mutex> hn_lock(hn_mutex);
 	if (mem_buffers_tiles != nullptr) {
-		for (unsigned int i = 0; i < num_sets; i++)
+		for (unsigned int i = 0; i < num_sets; i++) {
 			if (mem_buffers_tiles[i] != NULL) {
 				// TRICK we allocated memory banks when finding them in
 				// order to get different banks (see try above), so now
 				// it is the right moment to release them.
 				// Next, When setting the partition it will be allocated again
-				for (unsigned int j = 0; j < num_mem_buffers; j++)
+				for (unsigned int j = 0; j < num_mem_buffers; j++) {
 					hn_release_memory(
 							mem_buffers_tiles[i][j],
 							mem_buffers_addr[i][j],
 							mem_buffers_size[j],
                                                         hw_cluster_id);
-				delete mem_buffers_tiles[i];
+				}
+				delete[] mem_buffers_tiles[i];
 			}
-			delete mem_buffers_tiles;
+		}
+		delete[] mem_buffers_tiles;
 	}
 
 	if (mem_buffers_addr != nullptr) {
-		for (unsigned int i = 0; i < num_sets; i++)
-			if (mem_buffers_addr[i] != NULL)
-				delete mem_buffers_addr[i];
-			delete mem_buffers_addr;
+		for (unsigned int i = 0; i < num_sets; i++) {
+			if (mem_buffers_addr[i] != NULL) {
+				delete[] mem_buffers_addr[i];
+			}
+		}
+		delete[] mem_buffers_addr;
 	}
 
 	if (mem_buffers_size != nullptr) {
