@@ -76,6 +76,7 @@ void ResourceBinder::Bind(
 				r_bindings, filter_rtype, *filter_mask);
 		else
 			out_assign->SetResourcesList(r_bindings);
+		out_assign->SetPowerSettings(ru_entry.second->GetPowerSettings());
 
 		// Insert the resource usage object in the output map
 		out_map->emplace(out_path, out_assign);
