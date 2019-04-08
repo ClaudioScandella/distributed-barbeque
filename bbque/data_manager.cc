@@ -828,8 +828,13 @@ std::string DataManager::FindResourceAssigned(
 		res::ResourcePtrList_t res_list = bind.second->GetResourcesList();
 		for(auto res : res_list){
 			auto res_path = ra.GetPath(res->Path());
+			//logger->Error("FindResourceAssigned: sys%d.grp%d.cpu%d - %s",
+			//	mapped_sys_id, mapped_cluster, mapped_proc, res->Path().c_str());
+			//logger->Error("Type: <%s>", br::GetResourceTypeString(res_path->Type(-1)));
+			// Considering only path without memory assignment
 			if (res_path->GetID(res::ResourceType::GROUP) == mapped_cluster &&
-					res_path->GetID(res_path->Type(-1)) == mapped_proc){
+					res_path->GetID(res_path->Type(-1)) == mapped_proc && 
+					!res_path->IncludesType(res::ResourceType::MEMORY)){
 				std::string res_path_str(std::string("sys")
 							+ std::to_string(mapped_sys_id)
 							+".grp"
@@ -837,6 +842,7 @@ std::string DataManager::FindResourceAssigned(
 							+ "."
 							+ br::GetResourceTypeString(res_path->Type(-1))
 							+ std::to_string(mapped_proc));
+				logger->Debug("FindResourceAssigned: %s", res_path_str.c_str());
 				return res_path_str;
 			}
 		}
