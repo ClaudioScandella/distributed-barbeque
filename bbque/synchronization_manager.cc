@@ -219,10 +219,8 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 	}
 
 	// Collecting EXC responses
-	for (resp_it = rsp_map.begin();
-			resp_it != rsp_map.end();
-			++resp_it) {
-
+	resp_it = rsp_map.begin();
+	while (resp_it != rsp_map.end()) {
 		papp  = (*resp_it).first;
 		presp = (*resp_it).second;
 #endif
@@ -238,7 +236,9 @@ SynchronizationManager::Sync_PreChange(ApplicationStatusIF::SyncState_t syncStat
 // Pre-Change completion (just if asynchronous)
 #ifdef CONFIG_BBQUE_YP_SASB_ASYNC
 		// Remove the respose future
-		rsp_map.erase(resp_it);
+		resp_it = rsp_map.erase(resp_it);
+#else
+		++resp_it;
 #endif // CONFIG_BBQUE_YP_SASB_ASYNC
 
 		// This is required just for clean compilation
