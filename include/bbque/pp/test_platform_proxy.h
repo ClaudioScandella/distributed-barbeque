@@ -7,6 +7,7 @@
 
 namespace bbque {
 namespace pp {
+
 /**
  * @class TestPlatformProxy
  *
@@ -30,7 +31,7 @@ public:
 	/**
 	 * @brief Platform specific resource setup interface.
 	 */
-	virtual ExitCode_t Setup(AppPtr_t papp) override;
+	virtual ExitCode_t Setup(SchedPtr_t papp) override;
 
 	/**
 	 * @brief Platform specific resources enumeration
@@ -48,21 +49,26 @@ public:
 	/**
 	 * @brief Platform specific resources release interface.
 	 */
-	virtual ExitCode_t Release(AppPtr_t papp) override;
+	virtual ExitCode_t Release(SchedPtr_t papp) override;
 
 	/**
 	 * @brief Platform specific resource claiming interface.
 	 */
-	virtual ExitCode_t ReclaimResources(AppPtr_t papp) override;
+	virtual ExitCode_t ReclaimResources(SchedPtr_t papp) override;
 
 	/**
 	 * @brief Platform specific resource binding interface.
 	 */
 	virtual ExitCode_t MapResources(
-		AppPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl = true) override;
+		SchedPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl = true) override;
+
+	/**
+	 * @brief Test platform specific termination.
+	 */
+	virtual void Exit();
 
 
-	bool IsHighPerformance(
+	virtual bool IsHighPerformance(
 			bbque::res::ResourcePathPtr_t const & path) const override;
 
 private:

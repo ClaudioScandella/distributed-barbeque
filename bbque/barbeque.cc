@@ -33,6 +33,8 @@
 
 #define MODULE_NAMESPACE "bq"
 
+uint32_t hn_cluster = 0;
+
 namespace bb = bbque;
 namespace bp = bbque::plugins;
 namespace bu = bbque::utils;
@@ -113,6 +115,7 @@ static void DaemonizeBBQ(bb::ConfigurationManager & cm) {
 }
 
 int main(int argc, char *argv[]) {
+
 	int exit_code;
 
 	/* Initialize the logging interface */
@@ -162,7 +165,10 @@ int main(int argc, char *argv[]) {
 
 	// Check if we have tests to run
 	if (cm.RunTests())
+	{
+		logger->Info("Running tests!");
 		return Tests(pm);
+	}
 
 	// Let's start baking applications...
 	bb::ResourceManager::ExitCode_t result =
@@ -171,16 +177,13 @@ int main(int argc, char *argv[]) {
 		exit_code = EXIT_FAILURE;
 	}
 
-	// Cleaning-up the grill
-
 	// Final greetings
 	if (cm.RunAsDaemon())
-		syslog(LOG_INFO, "BBQ daemon termination [%s]",
+		syslog(LOG_NOTICE, "Goodbye! [%s]",
 				(exit_code == EXIT_FAILURE) ? "FAILURE" : "SUCCESS" );
 	else
-		logger->Info("BBQ termination [%s]",
+		logger->Notice("Goodbye! [%s]",
 				(exit_code == EXIT_FAILURE) ? "FAILURE" : "SUCCESS" );
-
 	closelog();
 	return exit_code;
 }

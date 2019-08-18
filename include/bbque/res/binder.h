@@ -89,6 +89,16 @@ public:
 			ResourceAssignmentMapPtr_t out_map);
 
 	/**
+	 * @brief Remove partially bound resource assignments
+	 *
+	 * @param out_map The map of resource assignments to fix
+	 * @param out_path The resource path (mixed or template) to bind
+	 */
+	static void RemoveCompatibleAssignments(
+			br::ResourceAssignmentMapPtr_t out_map,
+			br::ResourcePathPtr_t out_path);
+
+	/**
 	 * @brief Retrieve IDs of a type of resource from a ResourceAssignmentMap_t
 	 *
 	 * @param assign_map A shared pointer to the map of resource assignments
@@ -135,7 +145,7 @@ public:
 			ResourceType r_type,
 			ResourceType r_scope_type,
 			BBQUE_RID_TYPE r_scope_id,
-			AppSPtr_t papp = nullptr,
+			SchedPtr_t papp = nullptr,
 			RViewToken_t status_view = 0);
 
 	/**
@@ -153,7 +163,7 @@ public:
 			ResourceType r_type,
 			ResourceType r_scope_type,
 			BBQUE_RID_TYPE r_scope_id,
-			AppSPtr_t papp = nullptr,
+			SchedPtr_t papp = nullptr,
 			RViewToken_t status_view = 0);
 
 	static ResourceBitset GetMaskInRange(

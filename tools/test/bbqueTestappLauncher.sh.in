@@ -23,6 +23,15 @@ if [ $# -lt 2 ]; then
 	exit 2
 fi
 
+nr_instances=$1
+nr_repetitions=$2
+
+
+exec_time=${exec_time:-10}
+[[ ! -z $3 ]] && exec_time=$3
+
+nr_cycles=${exec_time:-20}
+[[ ! -z $4 ]] && nr_cycles=$4
 
 # Setup the test application binary
 testapp=${testapp:-$BBQUE_SYSROOT/var/bbque/bbque-testapp.sh}
@@ -31,12 +40,6 @@ cat > $testapp <<EOF
 $BBQUE_SYSROOT/usr/bin/bbque-testapp -w \$1 -c \$2
 EOF
 chmod a+x $testapp
-
-nr_instances=$1
-nr_repetitions=$2
-exec_time=${exec_time:-10}
-nr_cycles=${exec_time:-20}
-
 
 for r in `seq 1 $nr_repetitions`; do
 	for i in `seq 1 $nr_instances`; do

@@ -42,22 +42,6 @@ namespace bp = bbque::plugins;
 
 namespace bbque { namespace app {
 
-char const *ApplicationStatusIF::stateStr[] = {
-	"DISABLED",
-	"READY",
-	"SYNC",
-	"RUNNING",
-	"FINISHED"
-};
-
-char const *ApplicationStatusIF::syncStateStr[] = {
-	"STARTING",
-	"RECONF",
-	"MIGREC",
-	"MIGRATE",
-	"BLOCKED",
-	"NONE"
-};
 
 // Compare two working mode values.
 // This is used to sort the list of enabled working modes.
@@ -74,11 +58,12 @@ Application::Application(std::string const & _name,
 		uint8_t _exc_id,
 		RTLIB_ProgrammingLanguage_t lang,
 		bool container):
-	name(_name),
-	pid(_pid),
 	exc_id(_exc_id),
 	language(lang),
 	container(container) {
+	name = _name;
+	pid  = _pid;
+	type = Schedulable::Type::ADAPTIVE;
 
 	// Init the working modes vector
 	awms.recipe_vect.resize(MAX_NUM_AWM);
@@ -87,8 +72,8 @@ Application::Application(std::string const & _name,
 	logger = bu::Logger::GetLogger(APPLICATION_NAMESPACE);
 	assert(logger);
 
-	// Format the EXC string identifier
-	snprintf(str_id, APPLICATION_NAME_LEN, "%05d:%5s:%02d",
+	// Format the application string identifier for logging purpose
+	snprintf(str_id, SCHEDULABLE_ID_MAX_LEN, "%05d:%5s:%02d",
 		Pid(), Name().substr(0,5).c_str(), ExcId());
 
 #ifdef CONFIG_BBQUE_TG_PROG_MODEL
@@ -102,8 +87,8 @@ Application::Application(std::string const & _name,
 #endif // CONFIG_BBQUE_TG_PROG_MODEL
 
 	// Initialized scheduling state
-	schedule.state        = DISABLED;
-	schedule.preSyncState = DISABLED;
+	schedule.state        = NEW;
+	schedule.preSyncState = NEW;
 	schedule.syncState    = SYNC_NONE;
 	logger->Info("Built new EXC [%s]", StrId());
 }
@@ -215,580 +200,84 @@ AwmPtr_t Application::GetWorkingMode(uint8_t wmId) {
 	return nullptr;
 }
 
-/*******************************************************************************
- *  EXC State and SyncState Management
- ******************************************************************************/
-
-bool Application::_Disabled() const {
-	return ((_State() == DISABLED) ||
-			(_State() == FINISHED));
-}
-
-bool Application::Disabled() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Disabled();
-}
-
-bool Application::_Active() const {
-	return ((schedule.state == READY) ||
-			(schedule.state == RUNNING));
-}
-
-bool Application::Active() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Active();
-}
-
-bool Application::_Running() const {
-	return ((schedule.state == RUNNING));
-}
-
-bool Application::Running() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Running();
-}
-
-bool Application::_Synching() const {
-	return (schedule.state == SYNC);
-}
-
-bool Application::Synching() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Synching();
-}
-
-bool Application::_Starting() const {
-	return (_Synching() && (_SyncState() == STARTING));
-}
-
-bool Application::Starting() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Starting();
-}
-
-bool Application::_Blocking() const {
-	return (_Synching() && (_SyncState() == BLOCKED));
-}
-
-bool Application::Blocking() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _Blocking();
-}
-
-Application::State_t Application::_State() const {
-	return schedule.state;
-}
-
-Application::State_t Application::State() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _State();
-}
-
-Application::State_t Application::_PreSyncState() const {
-	return schedule.preSyncState;
-}
-
-Application::State_t Application::PreSyncState() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _PreSyncState();
-}
-
-Application::SyncState_t Application::_SyncState() const {
-	return schedule.syncState;
-}
-
-Application::SyncState_t Application::SyncState() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _SyncState();
-}
-
-AwmPtr_t const & Application::_CurrentAWM() const {
-	return schedule.awm;
-}
-
-AwmPtr_t const & Application::CurrentAWM() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _CurrentAWM();
-}
-
-AwmPtr_t const & Application::_NextAWM() const {
-	return schedule.next_awm;
-}
-
-AwmPtr_t const & Application::NextAWM() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _NextAWM();
-}
-
-bool Application::_SwitchingAWM() const {
-	if (schedule.state != SYNC)
-		return false;
-	if (schedule.awm->Id() == schedule.next_awm->Id())
-		return false;
-	return true;
-}
-
-bool Application::SwitchingAWM() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	return _SwitchingAWM();
-}
-
-// NOTE: this requires a lock on schedule.mtx
-void Application::SetSyncState(SyncState_t sync) {
-	logger->Debug("Changing sync state [%s, %d:%s => %d:%s]",
-			StrId(),
-			_SyncState(), SyncStateStr(_SyncState()),
-			sync, SyncStateStr(sync));
-
-	schedule.syncState = sync;
-}
-
-// NOTE: this requires a lock on schedule.mtx
-void Application::SetState(State_t state, SyncState_t sync) {
-	bbque::ApplicationManager &am(bbque::ApplicationManager::GetInstance());
-	AppPtr_t papp = am.GetApplication(Uid());
-
-	logger->Debug("Changing state [%s, %d:%s => %d:%s]",
-			StrId(),
-			_State(), StateStr(_State()),
-			state, StateStr(state));
-
-	// Entering a Synchronization state
-	if (state == SYNC) {
-		assert(sync != SYNC_NONE);
-		schedule.preSyncState = _State();           // Previous pre-synchronization state
-		SetSyncState(sync);                         // Update synchronization state
-		am.NotifyNewState(papp, Application::SYNC); // Update status queues
-		schedule.state = Application::SYNC;         // Update state
-		return;
-	}
-
-	// Entering a Stable state
-	assert(sync == SYNC_NONE);
-	am.NotifyNewState(papp, state); // Update status queues
-	schedule.preSyncState = state;  // Previous pre-synchronization state
-	schedule.state = state;         // Updating state
-	SetSyncState(sync);             // Update synchronization state
-
-	// Release current selected AWM
-	if ((state == DISABLED) || (state == READY)) {
-		schedule.awm.reset();
-		schedule.next_awm.reset();
-	}
-}
-
-/*******************************************************************************
- *  EXC Destruction
- ******************************************************************************/
-
-Application::ExitCode_t Application::Terminate() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-
-	// This is to enforce a single removal of an EXC, indeed, due to
-	// parallelized execution of commands, it could happen that (e.g. due
-	// to timeout) the same command is issued a second time while it's
-	// being served by BBQ
-	if (_State() == FINISHED) {
-		logger->Warn("Multiple termination of EXC [%s]", StrId());
-		return APP_FINISHED;
-	}
-
-	// Mark the application as finished
-	SetState(FINISHED);
-	state_ul.unlock();
-	logger->Info("EXC [%s] FINISHED", StrId());
-
-	return APP_SUCCESS;
-}
-
-
-/*******************************************************************************
- *  EXC Enabling
- ******************************************************************************/
-
-Application::ExitCode_t Application::Enable() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx, std::defer_lock);
-	logger->Debug("Enabling EXC [%s]...", StrId());
-	// Not disabled applications could not be marked as READY
-	state_ul.lock();
-	if (!_Disabled()) {
-		logger->Crit("Trying to enable already enabled application [%s] "
-				"(Error: possible data structure curruption?)",
-				StrId());
-		assert(_Disabled());
-		return APP_ABORT;
-	}
-
-	// Mark the application has ready to run
-	SetState(READY);
-	state_ul.unlock();
-	logger->Info("EXC [%s] ENABLED", StrId());
-
-	return APP_SUCCESS;
-}
-
-
-/*******************************************************************************
- *  EXC Disabled
- ******************************************************************************/
-
-Application::ExitCode_t Application::Disable() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx, std::defer_lock);
-
-	// Not disabled applications could not be marked as READY
-	state_ul.lock();
-	if (_Disabled()) {
-		logger->Warn("Trying to disable already disabled application [%s]",
-				StrId());
-		return APP_SUCCESS;
-	}
-
-	// Mark the application as ready to run
-	SetState(DISABLED);
-	state_ul.unlock();
-	logger->Info("EXC [%s] DISABLED", StrId());
-
-	return APP_SUCCESS;
-}
-
 
 /*******************************************************************************
  *  EXC Optimization
  ******************************************************************************/
 
-// NOTE: this requires a lock on schedule.mtx
-Application::ExitCode_t Application::RequestSync(SyncState_t sync) {
-	bbque::ApplicationManager &am(bbque::ApplicationManager::GetInstance());
-	AppPtr_t papp = am.GetApplication(Uid());
-	ApplicationManager::ExitCode_t result;
-
-	if (!_Active()) {
-		logger->Crit("Sync request FAILED (Error: wrong application status)");
-		assert(_Active());
-		return APP_ABORT;
-	}
-
-	logger->Debug("Request synchronization [%s, %d:%s]", StrId(), sync, SyncStateStr(sync));
-
-	// Ensuring the AM has an hander for this application
-	if (!papp) {
-		logger->Crit("Request synchronization [%s, %d:%s] FAILED "
-				"(Error: unable to get an application handler",
-				StrId(), sync, SyncStateStr(sync));
-		assert(papp);
-		return APP_ABORT;
-	}
-
-	// Update our state
-	SetState(SYNC, sync);
-
-	// Request the application manager to synchronization this application
-	// accorting to our new state
-	result = am.SyncRequest(papp, sync);
-	if (result != ApplicationManager::AM_SUCCESS) {
-		logger->Error("Synchronization request FAILED (Error: %d)", result);
-		// This is not an error on AWM scheduling but only on the notification
-		// of the SynchronizationManager module. The AWM could still be
-		// accepted.
-	}
-
-	logger->Info("Sync scheduled [%s, %d:%s]", StrId(), sync, SyncStateStr(sync));
-
-	return APP_SUCCESS;
-
-}
-
-bool Application::Reshuffling(AwmPtr_t const & next_awm) {
-	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	auto pumc = _CurrentAWM()->GetResourceBinding();
-	auto puma = next_awm->GetResourceBinding();
-
-	// NOTE: This method is intended to be called if we already know we
-	// are in a RECONF state.
-	assert(_CurrentAWM()->BindingSet(br::ResourceType::CPU) ==
-			    next_awm->BindingSet(br::ResourceType::CPU));
-	assert(_CurrentAWM()->Id() == next_awm->Id());
-
-	if (ra.IsReshuffling(pumc, puma)) {
-		logger->Notice("AWM Shuffling on [%s]", StrId());
-		return true;
-	}
-
-	return false;
-}
-
-Application::SyncState_t Application::SyncRequired(AwmPtr_t const & awm) {
-	// This must be called only by running applications
-	assert(_State() == RUNNING);
-	assert(_CurrentAWM().get());
-
-	// Check if the assigned operating point implies RECONF|MIGREC|MIGRATE
-	if ((_CurrentAWM()->Id() != awm->Id()) &&
-			(_CurrentAWM()->BindingSet(br::ResourceType::CPU) !=
-			           awm->BindingSet(br::ResourceType::CPU))) {
-		logger->Debug("SynchRequired: [%s] to MIGREC", StrId());
-		return MIGREC;
-	}
-
-	if ((_CurrentAWM()->Id() == awm->Id()) &&
-			(_CurrentAWM()->BindingChanged(br::ResourceType::CPU))) {
-		logger->Debug("SynchRequired: [%s] to MIGRATE", StrId());
-		return MIGRATE;
-	}
-
-	if (_CurrentAWM()->Id() != awm->Id()) {
-		logger->Debug("SynchRequired: [%s] to RECONF", StrId());
-		return RECONF;
-	}
-
-	// Check for inter-cluster resources re-assignement
-	if (Reshuffling(awm)) {
-		logger->Debug("SynchRequired: [%s] to AWM-RECONF", StrId());
-		return RECONF;
-	}
-
-	logger->Debug("SynchRequired: [%s] SYNC_NONE", StrId());
-	// NOTE: By default no reconfiguration is assumed to be required, thus we
-	// return the SYNC_STATE_COUNT which must be read as false values
-	return SYNC_NONE;
-}
-
-Application::ExitCode_t Application::Reschedule(AwmPtr_t const & awm) {
-	SyncState_t sync;
-
-	// Ready application could be synchronized to start
-	if (_State() == READY)
-		return RequestSync(STARTING);
-
-	// Otherwise, the application should be running...
-	if (_State() != RUNNING) {
-		logger->Crit("Rescheduling FAILED (Error: wrong application status "
-				"{%s/%s})", StateStr(_State()), SyncStateStr(_SyncState()));
-		assert(_State() == RUNNING);
-		return APP_ABORT;
-	}
-
-	// Checking if a synchronization is required
-	sync = SyncRequired(awm);
-	if (sync == SYNC_NONE)
-		return APP_SUCCESS;
-
-	// Request a synchronization for the identified reconfiguration
-	return RequestSync(sync);
-}
-
-Application::ExitCode_t Application::Unschedule() {
-
-	// Ready application remain into ready state
-	if (_State() == READY)
-		return APP_ABORT;
-
-	// Check if the application has been already blocked by a previous failed
-	// schedule request
-	if (_Blocking())
-		return APP_ABORT;
-
-	// Otherwise, the application should be running...
-	if (_State() != RUNNING) {
-		logger->Crit("Rescheduling FAILED (Error: wrong application status "
-				"{%s/%s})", StateStr(_State()), SyncStateStr(_SyncState()));
-		assert(_State() == RUNNING);
-		return APP_ABORT;
-	}
-
-	// The application should be blocked
-	return RequestSync(BLOCKED);
-}
-
-Application::ExitCode_t Application::ScheduleRequest(AwmPtr_t const & awm,
-		br::RViewToken_t status_view, size_t b_refn) {
-	std::unique_lock<std::recursive_mutex> schedule_ul(schedule.mtx);
-	ResourceAccounter &ra(ResourceAccounter::GetInstance());
-	ResourceAccounter::ExitCode_t booking;
-	AppSPtr_t papp(awm->Owner());
-	logger->Info("ScheduleRequest: %s request for binding @[%d] view=%ld",
-		papp->StrId(), b_refn, status_view);
-
-	// App is SYNC/BLOCKED for a previously failed scheduling.
-	// Reset state and syncState for this new attempt.
-	if (_Blocking()) {
-		logger->Warn("ScheduleRequest: request for blocking application");
-		SetState(schedule.preSyncState, SYNC_NONE);
-	}
-
-	logger->Debug("ScheduleRequest: request for [%s] into AWM [%02d:%s]",
-			papp->StrId(), awm->Id(), awm->Name().c_str());
-
-	// Get the working mode pointer
-	if (!awm) {
-		logger->Crit("ScheduleRequest: request for [%s] FAILED "
-				"(Error: AWM not existing)", papp->StrId());
-		assert(awm);
-		return APP_WM_NOT_FOUND;
-	}
-
-	if (_Disabled()) {
-		logger->Debug("ScheduleRequest: request for [%s] FAILED "
-				"(Error: EXC being disabled)", papp->StrId());
-		return APP_DISABLED;
-	}
-
-	// Checking for resources availability
-	booking = ra.BookResources(papp, awm->GetSchedResourceBinding(b_refn), status_view);
-
-	// If resources are not available, unschedule
-	if (booking != ResourceAccounter::RA_SUCCESS) {
-		logger->Debug("ScheduleRequest: unscheduling [%s]...", papp->StrId());
-		Unschedule();
-		return APP_WM_REJECTED;
-	}
-
-	// Bind the resource set to the working mode
-	awm->SetResourceBinding(status_view, b_refn);
-
-	// Reschedule accordingly to "awm"
-	logger->Debug("ScheduleRequest: rescheduling [%s] into AWM [%d:%s]...",
-			papp->StrId(), awm->Id(), awm->Name().c_str());
-	if (Reschedule(awm) != APP_SUCCESS) {
-		ra.ReleaseResources(papp, status_view);
-		awm->ClearResourceBinding();
-		return APP_WM_REJECTED;
-	}
-
-	// Set next awm
+void Application::SetNextAWM(AwmPtr_t awm) {
+	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
 	schedule.next_awm = awm;
 	awms.curr_inv = false;
-
-	return APP_SUCCESS;
+	logger->Debug("SetNewAWM: next_awm=%d", schedule.next_awm->Id());
 }
 
 /*******************************************************************************
  *  EXC Synchronization
  ******************************************************************************/
 
-Application::ExitCode_t Application::SetRunning() {
+Application::ExitCode_t Application::SyncCommit() {
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	SetState(RUNNING);
-	++schedule.count;
-	logger->Debug("Scheduling count: %" PRIu64 "", schedule.count);
-	schedule.awm->IncSchedulingCount();
-	return APP_SUCCESS;
-}
-
-Application::ExitCode_t Application::SetBlocked() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-	// If the application as been marked FINISHED, than it is released
-	if (_State() == FINISHED)
-		return APP_SUCCESS;
-
-	// Otherwise mark it as READY to be re-scheduled when possible
-	SetState(READY);
-	return APP_SUCCESS;
-}
-
-Application::ExitCode_t Application::ScheduleCommit() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-
-	// Ignoring applications disabled during a SYNC
-	if (_Disabled()) {
-		logger->Info("ScheduleCommit: synchronization completed (on disabled EXC)"
-			" [%s, %d:%s]",
-			StrId(), _State(), StateStr(_State()));
-		return APP_SUCCESS;
-	}
+	Application::ExitCode_t ret;
 
 	assert(_State() == SYNC);
-
-	switch(_SyncState()) {
-	case STARTING:
-	case RECONF:
-	case MIGREC:
-	case MIGRATE:
-		// Reset GoalGap whether the Application has been scheduled into a AWM
-		// having a value higher than the previous one
-		if (schedule.awm &&
-				(schedule.awm->Value() < schedule.next_awm->Value())) {
-
-			logger->Debug("Resetting GoalGap (%d%c) on [%s]",
-					rt_prof.ggap_percent, '%', StrId());
-			rt_prof.ggap_percent = 0;
-		}
-
-		schedule.awm = schedule.next_awm;
-		schedule.next_awm.reset();
-		SetRunning();
-		break;
-
-	case BLOCKED:
-		schedule.awm.reset();
-		schedule.next_awm.reset();
-		SetBlocked();
-		break;
-
-	default:
-		logger->Crit("ScheduleCommit: synchronization failed for EXC [%s]"
-				"(Error: invalid synchronization state)");
-		assert(_SyncState() < Application::SYNC_NONE);
-		return APP_ABORT;
+	if (_State() != SYNC) {
+		logger->Error("SyncCommit: [%s] wrong state <%s>", StrId(), StateStr(_State()));
+		return APP_STATUS_NOT_EXP;
 	}
 
-	logger->Info("ScheduleCommit: synchronization completed [%s, %d:%s]",
+	// Synchronization state
+	switch(_SyncState()) {
+		case STARTING:
+		case RECONF:
+		case MIGREC:
+		case MIGRATE:
+			// Reset GoalGap whether the Application has been scheduled into a AWM
+			// having a value higher than the previous one
+			if (schedule.awm &&
+					(schedule.awm->Value() < schedule.next_awm->Value())) {
+				logger->Debug("Resetting GoalGap (%d%c) on [%s]",
+						rt_prof.ggap_percent, '%', StrId());
+				rt_prof.ggap_percent = 0;
+			}
+
+			ret = SetState(RUNNING);
+			if (ret != APP_SUCCESS) {
+				logger->Error("SyncCommit: status transition failed");
+				return ret;
+			}
+			logger->Debug("Scheduling count: %" PRIu64 "", schedule.count);
+			break;
+
+		case BLOCKED:
+			SetState(READY);
+			break;
+
+		case DISABLED:
+			SetState(FINISHED);
+			schedule.awm.reset();
+			schedule.next_awm.reset();
+			break;
+
+		default:
+			logger->Crit("SyncCommit: synchronization failed for EXC [%s]"
+					"(Error: invalid synchronization state)");
+			assert(_SyncState() < Application::SYNC_NONE);
+			return APP_ABORT;
+	}
+
+	logger->Info("SyncCommit: synchronization completed [%s, %d:%s]",
 			StrId(), _State(), StateStr(_State()));
 
 	return APP_SUCCESS;
 }
 
-void Application::ScheduleAbort() {
+
+
+Application::ExitCode_t Application::SyncContinue() {
 	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-
-	// The abort must be performed only for SYNC App/ExC
-	if (!Synching()) {
-		logger->Fatal("ScheduleAbort: [%s] in state [%s] (expected SYNC)",
-				StrId(), StateStr(State()));
-		assert(Synching());
-	}
-
-	// Set as READY;
-	SetState(READY);
-
-	// Reset working modes settings
-	schedule.awm.reset();
-	schedule.next_awm.reset();
-
-	logger->Info("ScheduleAbort: completed ");
-}
-
-Application::ExitCode_t Application::ScheduleContinue() {
-	std::unique_lock<std::recursive_mutex> state_ul(schedule.mtx);
-
-	// Current AWM must be set
-	assert(schedule.awm);
-
-	// This must be called only for RUNNING App/ExC
-	if (_State() != RUNNING) {
-		logger->Error("ScheduleRunning: [%s] is not running. State {%s/%s}",
-				StrId(), StateStr(_State()), SyncStateStr(_SyncState()));
-		assert(_State() == RUNNING);
-		assert(_SyncState() == SYNC_NONE);
-		return APP_ABORT;
-	}
-
-	// Return if Next AWN is already blank
-	if (!schedule.next_awm)
-		return APP_SUCCESS;
-
-	// AWM current and next must match
-	if (schedule.awm->Id() != schedule.next_awm->Id()) {
-		logger->Error("ScheduleRunning: [%s] AWMs differs. "
-				"{curr=%d / next=%d}", StrId(),
-				schedule.awm->Id(), schedule.next_awm->Id());
-		assert(schedule.awm->Id() != schedule.next_awm->Id());
-		return APP_ABORT;
-	}
-
 	// Reset next AWM (only current must be set)
 	schedule.next_awm.reset();
-
 	schedule.awm->IncSchedulingCount();
 	return APP_SUCCESS;
 }

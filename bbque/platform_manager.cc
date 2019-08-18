@@ -34,8 +34,7 @@ PlatformManager::PlatformManager()
 		this->lpp = std::unique_ptr<pp::LocalPlatformProxy>(
 				new pp::LocalPlatformProxy());
 #ifdef CONFIG_BBQUE_DIST_MODE
-		this->rpp = std::unique_ptr<pp::RemotePlatformProxy>(
-				new pp::RemotePlatformProxy());
+		this->rpp = std::unique_ptr<pp::RemotePlatformProxy>(new pp::RemotePlatformProxy());
 #endif
 	} catch(const std::runtime_error & r) {
 		logger->Fatal("Unable to setup some PlatformProxy: %s", r.what());
@@ -83,7 +82,7 @@ void PlatformManager::Task()
 
 	logger->Info("Platform Manager monitoring thread STARTED");
 
-	while (true) {
+	while (!done) {
 		if (platformEvents.none()) {
 			Wait();
 		}
@@ -183,7 +182,7 @@ const char * PlatformManager::GetHardwareID(int16_t system_id) const
 #endif
 }
 
-PlatformManager::ExitCode_t PlatformManager::Setup(AppPtr_t papp)
+PlatformManager::ExitCode_t PlatformManager::Setup(SchedPtr_t papp)
 {
 	logger->Error("Setup called at top-level");
 	// Not implemented at top-level.
@@ -247,50 +246,19 @@ PlatformManager::ExitCode_t PlatformManager::Refresh()
 	return PLATFORM_OK;
 }
 
-PlatformManager::ExitCode_t PlatformManager::Release(AppPtr_t papp)
+PlatformManager::ExitCode_t PlatformManager::Release(SchedPtr_t papp)
 {
-	assert(papp->HasPlatformData());
-	assert(papp->IsLocal() || papp->IsRemote());
-
 	ExitCode_t ec;
+	if (papp->ScheduleCount() == 0) {
+		logger->Warn("Release: [%s] not scheduled yet: nothing to release",
+			papp->StrId());
+		return PLATFORM_OK;
+	}
 
 	if (papp->IsLocal()) {
 		ec = lpp->Release(papp);
 		if (unlikely(ec != PLATFORM_OK)) {
 			logger->Error("Failed to release LOCAL data of application [%s:%d]"
-			              "(error code: %i)",
-			              papp->Name().c_str(), papp->Pid(), ec);
-			return ec;
-		}
-	}
-
-#ifdef CONFIG_BBQUE_DIST_MODE
-	if (papp->IsRemote()) {
-		ec = rpp->Release(papp);
-		if (unlikely(ec != PLATFORM_OK)) {
-			logger->Error("Failed to release REMOTE data of application [%s:%d]"
-			              "(error code: %i)",
-			              papp->Name().c_str(), papp->Pid(), ec);
-			return ec;
-		}
-	}
-#endif
-
-	return PLATFORM_OK;
-
-}
-
-PlatformManager::ExitCode_t PlatformManager::ReclaimResources(AppPtr_t papp)
-{
-	assert(papp->HasPlatformData());
-	assert(papp->IsLocal() || papp->IsRemote());
-
-	ExitCode_t ec;
-
-	if (papp->IsLocal()) {
-		ec = lpp->ReclaimResources(papp);
-		if (unlikely(ec != PLATFORM_OK)) {
-			logger->Error("Failed to ReclaimResources LOCAL of application [%s:%d]"
 			              "(error code: %i)",
 			              papp->Name().c_str(), papp->Pid(), ec);
 			return ec;
@@ -302,9 +270,9 @@ PlatformManager::ExitCode_t PlatformManager::ReclaimResources(AppPtr_t papp)
 
 #ifdef CONFIG_BBQUE_DIST_MODE
 	if (papp->IsRemote()) {
-		ec = rpp->ReclaimResources(papp);
+		ec = rpp->Release(papp);
 		if (unlikely(ec != PLATFORM_OK)) {
-			logger->Error("Failed to ReclaimResources REMOTE of application [%s:%d]"
+			logger->Error("Failed to release REMOTE data of application [%s:%d]"
 			              "(error code: %i)",
 			              papp->Name().c_str(), papp->Pid(), ec);
 			return ec;
@@ -318,8 +286,41 @@ PlatformManager::ExitCode_t PlatformManager::ReclaimResources(AppPtr_t papp)
 	return PLATFORM_OK;
 }
 
+PlatformManager::ExitCode_t PlatformManager::ReclaimResources(SchedPtr_t papp)
+{
+	ExitCode_t ec;
+	if (papp->ScheduleCount() == 0) {
+		logger->Warn("ReclaimResources: [%s] not scheduled yet: nothing to reclaim",
+			papp->StrId());
+		return PLATFORM_OK;
+	}
+	if (papp->IsLocal()) {
+		ec = lpp->ReclaimResources(papp);
+		if (unlikely(ec != PLATFORM_OK)) {
+			logger->Error("Failed to ReclaimResources LOCAL of application [%s:%d]"
+			              "(error code: %i)",
+			              papp->Name().c_str(), papp->Pid(), ec);
+			return ec;
+		}
+	}
+
+#ifdef CONFIG_BBQUE_DIST_MODE
+	if (papp->IsRemote()) {
+		ec = rpp->ReclaimResources(papp);
+		if (unlikely(ec != PLATFORM_OK)) {
+			logger->Error("Failed to ReclaimResources REMOTE of application [%s:%d]"
+			              "(error code: %i)",
+			              papp->Name().c_str(), papp->Pid(), ec);
+			return ec;
+		}
+	}
+#endif
+
+	return PLATFORM_OK;
+}
+
 PlatformManager::ExitCode_t PlatformManager::MapResources(
-        AppPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl)
+        SchedPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl)
 {
 
 	ExitCode_t ec;
@@ -348,17 +349,21 @@ PlatformManager::ExitCode_t PlatformManager::MapResources(
 
 #ifdef CONFIG_BBQUE_DIST_MODE
 	bool is_remote = false;
+	auto & pd_sys = GetPlatformDescription().GetSystemsAll();
 
 	// Check if application is local or remote.
 	for (int i = 0; i < systems.Count(); i++) {
 		if (systems.Test(i)) {
 			logger->Debug("Mapping: Checking system %d...", i);
-			if (GetPlatformDescription().GetSystemsAll()[i].IsLocal() ) {
+			auto const sys_entry = pd_sys.find(i);
+			if (sys_entry == pd_sys.end()) continue;
+			auto & sys = sys_entry->second;
+			if (sys.IsLocal()) {
 				is_local  = true;
-				logger->Debug("Mapping: System %d is local", i);
+				logger->Debug("Mapping: system id=%d is local", i);
 			} else {
 				is_remote = true;
-				logger->Debug("Mapping: System %d is remote", i);
+				logger->Debug("Mapping: system id=%d is remote", i);
 			}
 		}
 	}
@@ -368,10 +373,6 @@ PlatformManager::ExitCode_t PlatformManager::MapResources(
 #else
 			is_local = true;
 #endif
-
-	// If the application was previously mapped, it means that it must have
-	// platform data loaded
-	assert( !(papp->IsRemote() || papp->IsLocal()) || papp->HasPlatformData() );
 
 	// If first time scheduled locally, we have to setup it
 	if(is_local != papp->IsLocal()) {
@@ -403,12 +404,6 @@ PlatformManager::ExitCode_t PlatformManager::MapResources(
 	}
 #endif
 
-	if(!papp->HasPlatformData()) {
-		// At least local or remote was called, so the application
-		// platform data is initialized, mark it!
-		papp->SetPlatformData();
-	}
-
 	// At this time we can actually map the resources
 	if (papp->IsLocal()) {
 		ec = lpp->MapResources(papp, pres, excl);;
@@ -431,6 +426,16 @@ PlatformManager::ExitCode_t PlatformManager::MapResources(
 #endif
 
 	return PLATFORM_OK;
+}
+
+
+void PlatformManager::Exit()
+{
+	lpp->Exit();
+#ifdef CONFIG_BBQUE_DIST_MODE
+	rpp->Exit();
+#endif
+	logger->Info("Exit: Platform supports terminated");
 }
 
 

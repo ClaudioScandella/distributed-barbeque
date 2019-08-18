@@ -1,0 +1,3 @@
+istruzioni per generare i file agent_com.pb.h agent_com.pb.cc agent_com.grpc.pb.h agent_com.grpc.pb.cc:
+- protoc -I=./ --cpp_out=./ agent_com.proto
+- protoc -I=./ --grpc_out=./ --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` ./agent_com.proto

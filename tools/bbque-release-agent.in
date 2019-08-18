@@ -20,6 +20,6 @@ SILOS=${*#/user.slice/}
 EXCID=${*#/user.slice/res/}
 
 # Release the notified EXC
-echo "bq.am.unregister $EXCID" > $BBQUE_SYSROOT/var/bbque/bbque_cmds
+echo "bq.ap.terminated $EXCID" > $BBQUE_SYSROOT/var/bbque/bbque_cmds
 
 # vim: set tabstop=4:

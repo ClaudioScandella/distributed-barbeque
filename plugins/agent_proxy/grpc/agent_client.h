@@ -33,6 +33,24 @@
 #include "bbque/utils/timer.h"
 #include "agent_com.grpc.pb.h"
 
+using grpc::Channel;
+using grpc::ClientContext;
+using grpc::ClientReader;
+using grpc::ClientReaderWriter;
+using grpc::ClientWriter;
+using grpc::Status;
+using bbque::GenericRequest;
+using bbque::GenericReply;
+using bbque::DiscoverRequest;
+using bbque::DiscoverReply;
+using bbque::ResourceStatusRequest;
+using bbque::ResourceStatusReply;
+using bbque::WorkloadStatusReply;
+using bbque::ChannelStatusReply;
+using bbque::NodeManagementRequest;
+using bbque::ApplicationSchedulingRequest;
+using bbque::RemoteAgent;
+
 namespace bbque
 {
 namespace plugins
@@ -45,11 +63,15 @@ class AgentClient
 
 public:
 
-	AgentClient(int local_sys_id, const std::string & _address_port);
+	AgentClient(int _local_id, int _remote_id, const std::string & _address_port);
 
 	bool IsConnected();
 
 	// ---------- Status
+	
+	static ExitCode_t Discover(std::string ip, bbque::DiscoverRequest& iam);
+	
+	ExitCode_t Ping(int & milliseconds);
 
 	ExitCode_t GetResourceStatus(
 	        const std::string & resource_path,
@@ -74,7 +96,9 @@ private:
 
 	int local_system_id;
 
-	std::string server_address_port;
+	int remote_system_id;
+
+	std::string remote_address_port;
 
 	std::shared_ptr<grpc::Channel> channel;
 

@@ -3,6 +3,8 @@ syntax = "proto3";
 package bbque;
 
 service RemoteAgent {
+	rpc Discover(DiscoverRequest) returns (DiscoverReply);
+	rpc Ping(GenericRequest) returns (GenericReply);
 	rpc GetResourceStatus(ResourceStatusRequest) returns (ResourceStatusReply);
 	rpc GetWorkloadStatus(GenericRequest) returns (WorkloadStatusReply);
 	rpc GetChannelStatus(GenericRequest) returns (ChannelStatusReply);
@@ -13,6 +15,7 @@ service RemoteAgent {
 
 message GenericRequest {
   uint32 sender_id = 1;
+  uint32 dest_id   = 2;
 }
 
 message GenericReply {
@@ -27,11 +30,34 @@ message GenericReply {
   Code value = 1;
 }
 
+message DiscoverRequest {
+
+  enum IAm {
+    INSTANCE  = 0;
+    NEW  = 1;
+    MASTER = 2;
+  }
+
+  IAm iam = 1;
+}
+
+message DiscoverReply {
+
+  enum IAm {
+    INSTANCE  = 0;
+    SLAVE  = 1;
+    MASTER = 2;
+  }
+
+  IAm iam = 1;
+  uint32 id = 2;
+}
 
 message ResourceStatusRequest {
   uint32 sender_id = 1;
-  string path  = 2;
-  bool average = 3;
+  uint32 dest_id   = 2;
+  string path      = 3;
+  bool average     = 4;
 }
 
 message ResourceStatusReply {
@@ -40,6 +66,7 @@ message ResourceStatusReply {
   uint32 degradation  = 3;
   uint32 temperature  = 4;
   uint32 power_mw     = 5;
+  uint32 load         = 6;
 }
 
 

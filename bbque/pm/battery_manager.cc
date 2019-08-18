@@ -68,7 +68,13 @@ BatteryManager::~BatteryManager() {
 }
 
 BatteryPtr_t BatteryManager::GetBattery(uint8_t id) {
-	return batteries[id];
+	try {
+		return batteries.at(id);
+	}
+	catch(const std::out_of_range& ex) {
+		logger->Error("GetBattery: no battery with id=%d", id);
+		return nullptr;
+	}
 }
 
 int BatteryManager::CommandsCb(int argc, char *argv[]) {

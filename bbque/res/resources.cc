@@ -119,7 +119,7 @@ uint64_t Resource::Used(RViewToken_t view_id) {
 	return view->used;
 }
 
-uint64_t Resource::Available(AppSPtr_t papp, RViewToken_t view_id) {
+uint64_t Resource::Available(SchedPtr_t papp, RViewToken_t view_id) {
 	uint64_t total_available = Unreserved();
 	ResourceStatePtr_t view;
 
@@ -147,7 +147,7 @@ uint64_t Resource::Available(AppSPtr_t papp, RViewToken_t view_id) {
 
 }
 
-uint64_t Resource::ApplicationUsage(AppSPtr_t const & papp, RViewToken_t view_id) {
+uint64_t Resource::ApplicationUsage(SchedPtr_t const & papp, RViewToken_t view_id) {
 	ResourceStatePtr_t view(GetStateView(view_id));
 	if (!view) {
 		DB(fprintf(stderr, FW("Resource {%s}: cannot find view %" PRIu64 "\n"),
@@ -190,7 +190,7 @@ Resource::ExitCode_t Resource::UsedBy(AppUid_t & app_uid,
 }
 
 
-uint64_t Resource::Acquire(AppSPtr_t const & papp, uint64_t amount,
+uint64_t Resource::Acquire(SchedPtr_t const & papp, uint64_t amount,
 		RViewToken_t view_id) {
 	ResourceStatePtr_t view(GetStateView(view_id));
 	if (!view) {
@@ -209,7 +209,7 @@ uint64_t Resource::Acquire(AppSPtr_t const & papp, uint64_t amount,
 	return amount;
 }
 
-uint64_t Resource::Release(AppSPtr_t const & papp, RViewToken_t view_id) {
+uint64_t Resource::Release(SchedPtr_t const & papp, RViewToken_t view_id) {
 	ResourceStatePtr_t view(GetStateView(view_id));
 	if (!view) {
 		DB(fprintf(stderr,
@@ -267,7 +267,7 @@ uint16_t Resource::ApplicationsCount(AppUsageQtyMap_t & apps_map, RViewToken_t v
 	return apps_map.size();
 }
 
-uint64_t Resource::ApplicationUsage(AppSPtr_t const & papp, AppUsageQtyMap_t & apps_map) {
+uint64_t Resource::ApplicationUsage(SchedPtr_t const & papp, AppUsageQtyMap_t & apps_map) {
 	if (!papp) {
 		DB(fprintf(stderr, FW("Resource {%s}: App/EXC null pointer\n"),
 					name.c_str()));

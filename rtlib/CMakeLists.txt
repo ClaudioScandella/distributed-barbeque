@@ -16,6 +16,13 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBBQUE_RTLIB")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--gc-sections")
 
+# Options for build version: DEBUG
+set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -Wextra -pedantic -DBBQUE_DEBUG")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set (BBQUE_DEBUG ON)
+endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+
+
 if (CONFIG_BBQUE_OPENCL)
 	include_directories(${OPENCL_INCLUDE_DIR})
 endif (CONFIG_BBQUE_OPENCL)
@@ -82,3 +89,5 @@ install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/bbque/utils"
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/bbque/cpp11"
 		DESTINATION "${BBQUE_PATH_HEADERS}"
 		FILES_MATCHING PATTERN "*.h")
+
+add_subdirectory (bindings)

@@ -50,12 +50,12 @@ typedef std::shared_ptr<ResourceAssignmentMap_t> ResourceAssignmentMapPtr_t;
 
 namespace app {
 
-class ApplicationStatusIF;
+class Schedulable;
 class WorkingModeStatusIF;
 
 /** Shared pointer to the class here defined */
-typedef std::shared_ptr<WorkingModeStatusIF> AwmSPtr_t;
-typedef std::shared_ptr<ApplicationStatusIF> AppSPtr_t;
+using SchedPtr_t = std::shared_ptr<Schedulable>;
+using AwmSPtr_t  = std::shared_ptr<WorkingModeStatusIF>;
 
 /**
  * @class WorkingMode
@@ -102,7 +102,7 @@ public:
 	 * @brief Get the application owning the working mode
 	 * @return A shared pointer to the application descriptor
 	 */
-	virtual AppSPtr_t const & Owner() const = 0;
+	virtual SchedPtr_t const & Owner() const = 0;
 
 	/**
 	 * @brief Get the static QoS value

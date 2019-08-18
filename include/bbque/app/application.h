@@ -44,11 +44,12 @@
 #include "tg/partition.h"
 
 #define APPLICATION_NAMESPACE "bq.app"
-#define APPLICATION_NAME_LEN  16
 
 namespace bu = bbque::utils;
 
 namespace bbque {
+
+class ApplicationManager;
 
 namespace res {
 class Resource;
@@ -117,6 +118,8 @@ struct RuntimeProfiling_t {
  */
 class Application: public ApplicationConfIF {
 
+friend class bbque::ApplicationManager;
+
 public:
 
 	/**
@@ -140,23 +143,6 @@ public:
 	/**
 	 * @see ApplicationStatusIF
 	 */
-	inline std::string const & Name() const noexcept { return name; }
-
-	/**
-	 * @brief Set the application name
-	 * @param app_name The application name
-	 */
-	inline void SetName(std::string const & app_name) noexcept { name = app_name; }
-
-	/**
-	 * @brief Get the process ID of the application
-	 * @return PID value
-	 */
-	inline AppPid_t Pid() const noexcept { return pid; }
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
 	inline uint8_t ExcId() const noexcept { return exc_id; }
 
 	/**
@@ -164,18 +150,6 @@ public:
 	 */
 	inline RTLIB_ProgrammingLanguage_t Language() const noexcept { return language; }
 
-	/**
-	 * @brief Get a string ID for this Execution Context
-	 * This method build a string ID according to this format:
-	 * PID:TASK_NAME:EXC_ID
-	 * @return String ID
-	 */
-	inline const char *StrId() const noexcept { return str_id; }
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	AppPrio_t Priority() const noexcept { return priority; }
 
 	/**
 	 * @brief Set the priority of the application
@@ -190,27 +164,9 @@ public:
 	/**
 	 * @see ApplicationConfIF
 	 */
-	inline void SetValue(float sched_metrics) noexcept { schedule.value = sched_metrics; }
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	inline uint64_t ScheduleCount() noexcept { return schedule.count; }
-
-	/**
-	 * @brief Enable the application for resources assignment
-	 *
-	 * A newly created application is disabled by default, thus it will not be
-	 * considered for resource scheduling until it is enabled.
-	 */
-	ExitCode_t Enable();
-
-	/**
-	 * @brief Disabled the application for resources assignment
-	 *
-	 * A disabled application will not be considered for resources scheduling.
-	 */
-	ExitCode_t Disable();
+	inline void SetValue(float sched_metrics) noexcept {
+		schedule.value = sched_metrics;
+	}
 
 	/**
 	 * @brief This returns all the informations loaded from the recipe and
@@ -249,126 +205,13 @@ public:
 	 */
 	inline void ReloadWorkingModes(AppPtr_t & papp) { return InitWorkingModes(papp); }
 
-	/**
-	 * @brief Set Platform Specific Data initialized
-	 *
-	 * Mark the Platform Specific Data as initialized for this application
-	 */
-	inline void SetPlatformData() noexcept { platform_data = true; }
 
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-	inline void SetCGroupSetupData(
-		unsigned long cpu_ids, unsigned long mem_ids,
-		unsigned long cpu_ids_isolation)
-	{
-		cgroup_data.cpu_ids = cpu_ids;
-		cgroup_data.cpus_ids_isolation = cpu_ids_isolation;
-		cgroup_data.mem_ids = mem_ids;
-	}
-
-	CGroupSetupData_t GetCGroupSetupData()
-	{
-		return cgroup_data;
-	}
-#endif // CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-
-	/**
-	 * @brief Check Platform Specific Data initialization
-	 *
-	 * Return true if this application has already a properly configured
-	 * set of Platform Specific Data.
-	 */
-	inline bool HasPlatformData() const noexcept { return platform_data; }
-
-	/** @brief Set a remote application
-	 *
-	 * Mark the application as remote or local
-	 */
-	inline void SetRemote(bool is_remote) noexcept { remotely_scheduled = is_remote; }
-
-	/**
-	 * @brief Return true if the application is executing or will be
-	 *        executed remotely, false if not.
-	 */
-	inline bool IsRemote() const noexcept { return remotely_scheduled; }
-
-	/**
-	 * @brief Set a remote application
-	 *
-	 * Mark the application as remote or local
-	 */
-	inline void SetLocal(bool is_local) noexcept { locally_scheduled = is_local; }
-
-	/**
-	 * @brief Return true if the application is executing or will be
-	 *        executed locally, false if not.
-	 */
-	inline bool IsLocal() const noexcept { return locally_scheduled; }
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Disabled();
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Active();
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Running();
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Synching();
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Starting();
-
-	/**
-	 * @see ApplicationStatuIF
-	 */
-	bool Blocking();
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	State_t State();
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	State_t PreSyncState();
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	SyncState_t SyncState();
 
 	/**
 	 * @see ApplicationStatusIF
 	 */
 	bool IsContainer() const noexcept { return container; }
 
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	AwmPtr_t const & CurrentAWM();
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	AwmPtr_t const & NextAWM();
-
-	/**
-	 * @see ApplicationStatusIF
-	 */
-	bool SwitchingAWM();
 
 	/**
 	 * @see ApplicationStatusIF
@@ -396,14 +239,12 @@ public:
 
 	// -------------- Scheduling management ----------------------------- //
 
-
 	/**
-	 * @see ApplicationConfIF
+	 * @brief @see Schedulable
 	 */
-	ExitCode_t ScheduleRequest(
-			AwmPtr_t const & awm,
-			br::RViewToken_t status_view,
-			size_t b_refn = 0);
+	void SetNextAWM(AwmPtr_t awm);
+
+	// ------------------- Synchronization functions --------------------- //
 
 	/**
 	 * @brief Commit a previously required re-scheduling request
@@ -411,14 +252,8 @@ public:
 	 * @return APP_SUCCESS on successful update of internal data
 	 * structures, APP_ABORT on errors.
 	 */
-	ExitCode_t ScheduleCommit();
+	ExitCode_t SyncCommit();
 
-	/**
-	 * @brief Abort a scheduling
-	 *
-	 * This must be called only if the application is in a SYNC state.
-	 */
-	void ScheduleAbort();
 
 	/**
 	 * @brief The application can continue to run
@@ -430,18 +265,7 @@ public:
 	 *
 	 * @return APP_SUCCESS for success, APP_ABORT for failed.
 	 */
-	ExitCode_t ScheduleContinue();
-
-	/**
-	 * @brief Terminate this EXC by releasing all resources.
-	 *
-	 * This method requires to mark the EXC as terminated and to prepare the
-	 * ground for releasing all resources as soon as possible. Due to
-	 * asynchronous nature of this event and the activation of Optimized and
-	 * Synchronizer, a valid reference to the object is granted to be keept
-	 * alive until all of its users have terminated.
-	 */
-	ExitCode_t Terminate();
+	ExitCode_t SyncContinue();
 
 
 	// --------------------- Working Modes ----------------------------- //
@@ -610,19 +434,14 @@ public:
 
 #endif // CONFIG_BBQUE_TG_PROG_MODEL
 
+
 private:
 
 	/** The logger used by the application */
 	std::unique_ptr<bu::Logger> logger;
 
-	/** The application name */
-	std::string name;
-
 	/** The user who has launched the application */
 	std::string user;
-
-	/** The PID assigned from the OS */
-	AppPid_t pid;
 
 	/** The ID of this Execution Context */
 	uint8_t exc_id;
@@ -630,20 +449,9 @@ private:
 	/** The programming language */
 	RTLIB_ProgrammingLanguage_t language;
 
-	/** The application string ID */
-	char str_id[APPLICATION_NAME_LEN];
-
 	/** True if this is an application container */
 	bool container;
 
-	/** A numeric priority value */
-	AppPrio_t priority = BBQUE_APP_PRIO_LEVELS - 1;
-
-	/** Current scheduling informations */
-	SchedulingInfo_t schedule;
-#ifdef CONFIG_BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
-	CGroupSetupData_t cgroup_data;
-#endif
 	/**
 	 * @brief Store profiling information collected at runtime
 	 */
@@ -651,6 +459,7 @@ private:
 
 	std::mutex rt_prof_mtx;
 
+#ifdef CONFIG_BBQUE_TG_PROG_MODEL
 	/**
 	 * Task-graph serialization file path
 	 */
@@ -668,25 +477,12 @@ private:
 	 */
 	std::shared_ptr<TaskGraph> task_graph;
 
+#endif // CONFIG_BBQUE_TG_PROG_MODEL
+
 	/**
 	 * Assigned partition
 	 */
 	std::shared_ptr<Partition> assigned_partition = nullptr;
-
-	/**
-	 * Platform Specifica Data properly initialized
-	 */
-	bool platform_data = false;
-
-	/**
-	 * Remotely scheduled
-	 */
-	bool remotely_scheduled = false;
-
-	/**
-	 * Locally scheduled
-	 */
-	bool locally_scheduled = false;
 
 	/**
 	 * Recipe pointer for the current application instance.
@@ -740,30 +536,6 @@ private:
 	 */
 	void InitResourceConstraints();
 
-
-	bool _Disabled() const;
-
-	bool _Active() const;
-
-	bool _Running() const;
-
-	bool _Synching() const;
-
-	bool _Starting() const;
-
-	bool _Blocking() const;
-
-	State_t _State() const;
-
-	State_t _PreSyncState() const;
-
-	SyncState_t _SyncState() const;
-
-	AwmPtr_t const & _CurrentAWM() const;
-
-	AwmPtr_t const & _NextAWM() const;
-
-	bool _SwitchingAWM() const;
 
 	/**
 	 * @brief Assert a specific resource constraint.
@@ -889,100 +661,6 @@ private:
 	 * which is out of the bounds set by a resource constraint assertion.
 	 */
 	void UpdateEnabledWorkingModes();
-
-	/**
-	 * @brief Update the application state and sync state
-	 *
-	 * @param state the new application state
-	 * @param sync the new synchronization state (SYNC_NONE by default)
-	 */
-	void SetState(State_t state, SyncState_t sync = SYNC_NONE);
-
-	/**
-	 * @brief Update the application synchronization state
-	 */
-	void SetSyncState(SyncState_t sync);
-
-	/**
-	 * @brief Request a synchronization of this application into the specied
-	 * state.
-	 *
-	 * @param sync the new synchronization state (SYNC_NONE by default)
-	 * @return @see ExitCode_t
-	 */
-	ExitCode_t RequestSync(SyncState_t sync);
-
-	/**
-	 * @brief Configure this application to switch to the specified AWM
-	 * @return @see ExitCode_t
-	 */
-	ExitCode_t Reschedule(AwmPtr_t const & awm);
-
-	/**
-	 * @brief Configure this application to release resources.
-	 * @return @see ExitCode_t
-	 */
-	ExitCode_t Unschedule();
-
-	/**
-	 * @brief Verify if a synchronization is required to move into the
-	 * specified AWM.
-	 *
-	 * The method is called only if the Application is currently RUNNING.
-	 * Compare the WorkingMode specified with the currently used by the
-	 * Application. Compare the Resources set with the one binding the
-	 * resources of the current WorkingMode, in order to check if the
-	 * Application is going to run using processing elements from the same
-	 * clusters used in the previous execution step.
-	 *
-	 * @param awm the target working mode
- 	 *
-	 * @return One of the following values:
-	 * - RECONF: Application is being scheduled for using PEs from the same
-	 *   clusters, but with a different WorkingMode.
-	 * - MIGRATE: Application is going to run in the same WorkingMode, but
-	 *   it’s going to be moved onto a different clusters set.
-	 * - MIGREC: Application changes completely its execution profile. Both
-	 *   WorkingMode and clusters set are different from the previous run.
-	 * - SYNC_NONE: Nothing changes. Application is going to run in the same
-	 *   operating point.
-	 *
-	 */
-	SyncState_t SyncRequired(AwmPtr_t const & awm);
-
-	/**
-	 * @brief Check if this is a reshuffling
-	 *
-	 * Resources reshuffling happens when two resources bindings are not
-	 * the same, i.e. different kind or amount of resources, while the
-	 * application is not being reconfigured or migrated.
-	 *
-	 * This method check if the specified AWM will produce a reshuffling.
-	 *
-	 * @param next_awm the AWM to compare with current
-	 * @return true if the specified next_awm will produce a resources
-	 * reshuffling
-	 */
-	bool Reshuffling(AwmPtr_t const & next_awm);
-
-	/**
-	 * @brief Notify the EXC being run
-	 *
-	 * This method is called by ScheduleCommit once an EXC has been
-	 * synchronized to the RUNNING state. It update the current EXC state to
-	 * RUNNING
-	 */
-	ExitCode_t SetRunning();
-
-	/**
-	 * @brief Notify the EXC being blocked
-	 *
-	 * This method is called by ScheduleCommit once an EXC has been
-	 * synchronized to the BLOCKED state. It update the current EXC state to
-	 * either READY or FINISHED according to what happened meanwhile. If the
-	 * EXC has been simply disabled, it becomes READY, while insted
-	 */
-	ExitCode_t SetBlocked();
 
 };
 

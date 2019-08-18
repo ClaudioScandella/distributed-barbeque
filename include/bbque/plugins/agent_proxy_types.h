@@ -43,6 +43,38 @@ enum class ExitCode_t {
 };
 
 /**
+ * @struct GenericReply
+ */
+struct GenericReply {
+	ExitCode_t value;
+};
+
+/**
+ * @enum DiscoverRequest_t
+ */
+enum class IAm {
+	INSTANCE,
+	NEW,
+	SLAVE,
+	MASTER
+};
+
+/**
+ * @struct DiscoverRequest
+ */
+struct DiscoverRequest {
+	IAm iam;
+};
+
+/**
+ * @struct DiscoverReply
+ */
+struct DiscoverReply {
+	IAm iam;
+	uint32_t id;
+};
+
+/**
  * @struct ResourceStatus
  */
 struct ResourceStatus {
@@ -51,6 +83,7 @@ struct ResourceStatus {
 	int32_t power_mw;
 	int32_t temperature;
 	int16_t degradation;
+	int32_t load;
 };
 
 /**

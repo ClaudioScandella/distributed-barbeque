@@ -21,8 +21,13 @@
 #include "bbque/pp/platform_description.h"
 #include "bbque/plugins/agent_proxy_types.h"
 
+#include "../plugins/agent_proxy/grpc/proto/agent_com.grpc.pb.h"
+
 #define AGENT_PROXY_NAMESPACE "bq.gx"
 #define AGENT_PROXY_CONFIG    "AgentProxy"
+
+using bbque::DiscoverRequest;
+using bbque::DiscoverReply;
 
 namespace bbque
 {
@@ -58,7 +63,13 @@ public:
 	}
 
 	// ----------------- Query status functions --------------------
-
+	
+	virtual ExitCode_t Discover(
+		std::string ip, bbque::agent::DiscoverRequest& iam) = 0;
+		
+	virtual ExitCode_t Ping(
+		int system_id, int & ping_value) = 0;
+	
 	/**
 	 * @brief GetResourceStatus
 	 * @param path

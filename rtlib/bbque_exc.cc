@@ -40,17 +40,20 @@ namespace bbque
 namespace rtlib
 {
 
-BbqueEXC::BbqueEXC(std::string const & name,
-				   std::string const & recipe,
-				   RTLIB_Services_t * const rtl) :
-	exc_name(name), rpc_name(recipe), rtlib(rtl),
+BbqueEXC::BbqueEXC(
+		std::string const & name,
+		std::string const & recipe,
+		RTLIB_Services_t * const rtl) :
+	exc_name(name),
+	rpc_name(recipe),
+	rtlib(rtl),
 	config(*(rtlib->config)), cycles_count(0)
 {
 	// Note: EXC with the same recipe name are not allowed
 	RTLIB_EXCParameters_t exc_parameters = {
 		{RTLIB_VERSION_MAJOR, RTLIB_VERSION_MINOR},
 		RTLIB_LANG_CPP,
-		recipe.c_str()
+		rpc_name.c_str()
 	};
 
 	// Check RTLIB initialization
@@ -61,13 +64,13 @@ BbqueEXC::BbqueEXC(std::string const & name,
 
 	// Get a Logger module
 	logger = bu::Logger::GetLogger(BBQUE_LOG_MODULE);
-	logger->Info("Initializing a new EXC [%s]...", name.c_str());
+	logger->Info("Initializing a new EXC [%s]...", exc_name.c_str());
 	// Register to the resource manager
 	assert(rtlib->Register);
-	exc_handler = rtlib->Register(name.c_str(), &exc_parameters);
+	exc_handler = rtlib->Register(exc_name.c_str(), &exc_parameters);
 
 	if (! exc_handler) {
-		logger->Error("Registering EXC [%s] FAILED", name.c_str());
+		logger->Error("Registering EXC [%s] FAILED", exc_name.c_str());
 		assert(exc_handler);
 		return;
 	}
@@ -339,6 +342,11 @@ RTLIB_ExitCode_t BbqueEXC::SetMinimumCycleTimeUs(uint32_t min_cycle_time_us)
 	logger->Debug("Set cycles-time to [%" PRIu32 "] [us] for EXC [%s] (@%p)...",
 				  min_cycle_time_us, exc_name.c_str(), (void *) exc_handler);
 	return rtlib->CPS.SetMinCycleTime_us(exc_handler, min_cycle_time_us);
+}
+
+uint32_t BbqueEXC::GetExecutionTimeMs() const
+{
+	return rtlib->CPS.ExecTime_ms(exc_handler);
 }
 
 RTLIB_ExitCode_t BbqueEXC::UpdateJPC(int jpc)

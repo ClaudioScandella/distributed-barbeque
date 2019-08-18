@@ -37,6 +37,7 @@ set (BBQUE_PATH_HEADERS    "include/bbque")
 set (BBQUE_PATH_LIBS       "lib")
 set (BBQUE_PATH_RTLIB      "lib/bbque")
 set (BBQUE_PATH_PLUGINS    "lib/bbque/plugins")
+set (BBQUE_PATH_BINDINGS   "lib/bbque/bindings")
 set (BBQUE_PATH_APPS       "usr/bin")
 set (BBQUE_PATH_DOCS       "usr/share/bbque")
 set (BBQUE_PATH_CMAKE      "usr/share/bbque")
@@ -155,7 +156,7 @@ endif (CONFIG_TARGET_LINUX_ARM)
 # Add "Android-Linux" specific flags
 if (CONFIG_TARGET_ANDROID)
 set (BBQUE_TARGET_OS "Android-Linux")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I../../../out/include -D__STDINT_LIMITS -D_GLIBCXX_USE_C99_STDINT_TR1 -D__BIONIC__ -Wno-psabi -march=armv7-a -mtune=xscale -msoft-float -fexceptions -frtti -mthumb -fomit-frame-pointer -fno-strict-aliasing -finline-limit=64 -DANDROID  -Wa,--noexecstack")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -latomic -I../../../out/include -D__STDINT_LIMITS -D_GLIBCXX_USE_C99_STDINT_TR1 -D__BIONIC__ -Wno-psabi -march=armv7-a -mtune=xscale -msoft-float -fexceptions -frtti -mthumb -fomit-frame-pointer -fno-strict-aliasing -finline-limit=64 -DANDROID  -Wa,--noexecstack")
 endif (CONFIG_TARGET_ANDROID)
 
 # Add "Mango-Linux" specific flags
@@ -286,11 +287,12 @@ link_directories(
 ################################################################################
 
 # Recurse into project subfolders
-add_subdirectory(rtlib)
-add_subdirectory(plugins)
-add_subdirectory(bbque)
-add_subdirectory(tools)
-add_subdirectory(demos)
+add_subdirectory (rtlib)
+add_subdirectory (plugins)
+add_subdirectory (bbque)
+add_subdirectory (tools)
+add_subdirectory (demos)
+
 if (CONFIG_BBQUE_BUILD_TESTS)
 add_subdirectory(test)
 endif (CONFIG_BBQUE_BUILD_TESTS)
@@ -299,6 +301,10 @@ if (CONFIG_BBQUE_TG_PROG_MODEL)
 add_subdirectory(libpms) # Programming model support for task-graph based applications
 add_subdirectory(libtg)  # Support for task-graph representations
 endif (CONFIG_BBQUE_TG_PROG_MODEL)
+
+if (CONFIG_BBQUE_DM)
+add_subdirectory(libdci) # Support for Data Communication Interface
+endif (CONFIG_BBQUE_DM)
 
 ################################################################################
 # Doxygen Documentation
@@ -337,6 +343,9 @@ install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/api-doc/man/man3
 message ( STATUS )
 message ( STATUS "=====[ BarbequeRTRM - Building System Configuration ]"
                  "===========================" )
+if (CONFIG_TARGET_ANDROID)
+message ( STATUS "Target Android" )
+endif (CONFIG_TARGET_ANDROID)
 message ( STATUS "Version............... ${VERSION}" )
 message ( STATUS "Build Flavor.......... ${BBQUE_BUILD_FLAVOR}" )
 message ( STATUS "   Target............. ${CONFIG_TARGET_NAME} ${CONFIG_TARGET_DESCRIPTION}" )

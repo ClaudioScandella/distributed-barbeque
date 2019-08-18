@@ -19,10 +19,12 @@
 
 #include "bbque/application_manager.h"
 #include "bbque/configuration_manager.h"
-#include "bbque/power_monitor.h"
 #include "bbque/signals_manager.h"
 #include "bbque/utils/utility.h"
 
+#ifdef CONFIG_BBQUE_WM
+#include "bbque/power_monitor.h"
+#endif
 
 #define RESOURCE_MANAGER_NAMESPACE "bq.rm"
 #define MODULE_NAMESPACE RESOURCE_MANAGER_NAMESPACE
@@ -59,14 +61,6 @@
 /** Acquire a new time sample */
 #define RM_GET_PERIOD(METRICS, INDEX, PERIOD) \
 	mc.PeriodSample(METRICS[INDEX].mh, PERIOD);
-
-#define LNSCHB "::::::::::::::::::::: SCHEDULE START ::::::::::::::::::::::::"
-#define LNSCHE ":::::::::::::::::::::  SCHEDULE END  ::::::::::::::::::::::::"
-#define LNSYNB "**********************  SYNC START  *************************"
-#define LNSYNF "*********************  SYNC FAILED  *************************"
-#define LNSYNE "***********************  SYNC END  **************************"
-#define LNPROB "~~~~~~~~~~~~~~~~~~~  PROFILING START  ~~~~~~~~~~~~~~~~~~~~~~~"
-#define LNPROE "~~~~~~~~~~~~~~~~~~~~  PROFILING END  ~~~~~~~~~~~~~~~~~~~~~~~~"
 
 namespace br = bbque::res;
 namespace bu = bbque::utils;
@@ -138,14 +132,23 @@ ResourceManager::ResourceManager() :
 	bdm(BindingManager::GetInstance()),
 	mc(MetricsCollector::GetInstance()),
 	plm(PlatformManager::GetInstance()),
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+	prm(ProcessManager::GetInstance()),
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 	cm(CommandManager::GetInstance()),
 	sm(SchedulerManager::GetInstance()),
 	ym(SynchronizationManager::GetInstance()),
+#ifdef CONFIG_BBQUE_DM
+	dm(DataManager::GetInstance()),
+#endif
 #ifdef CONFIG_BBQUE_SCHED_PROFILING
 	om(ProfileManager::GetInstance()),
 #endif
 #ifdef CONFIG_BBQUE_EM
 	em(em::EventManager::GetInstance()),
+#endif
+#ifdef CONFIG_BBQUE_DIST_MODE
+	dism(DistributedManager::GetInstance()),
 #endif
 
 	optimize_dfr("rm.opt", std::bind(&ResourceManager::Optimize, this)) {
@@ -221,37 +224,47 @@ ResourceManager::Setup() {
 	}
 
 	// -------- Binding Manager initialization for the scheduling policy
-	if (bdm.LoadBindingOptions() != BindingManager::OK) {
+	if (bdm.LoadBindingDomains() != BindingManager::OK) {
 		logger->Fatal("Binding Manager initialization FAILED!");
 		return SETUP_FAILED;
 	}
 
 #ifdef CONFIG_BBQUE_WM
 	//----------- Start the Power Monitor
-    PowerMonitor & wm(PowerMonitor::GetInstance());
-    wm.Start();
+	PowerMonitor & wm(PowerMonitor::GetInstance());
+	wm.Start();
 #endif
-
 	//---------- Start bbque services
+	// Start() is the function inherited from Worker.
 	plm.Start();
 	if (opt_interval)
 		optimize_dfr.SetPeriodic(milliseconds(opt_interval));
+
+#ifdef CONFIG_BBQUE_DIST_MODE
+	// Start the distributed manager
+	dism.Start();
+#endif
 
 	return OK;
 }
 
 void ResourceManager::NotifyEvent(controlEvent_t evt) {
-	std::unique_lock<std::mutex> pendingEvts_ul(pendingEvts_mtx, std::defer_lock);
-
 	// Ensure we have a valid event
+	logger->Debug("NotifyEvent: received event = %d", evt);
 	assert(evt<EVENTS_COUNT);
 
 	// Set the corresponding event flag
+	std::unique_lock<std::mutex> pendingEvts_ul(pendingEvts_mtx, std::defer_lock);
 	pendingEvts.set(evt);
 
 	// Notify the control loop (just if it is sleeping)
-	if (pendingEvts_ul.try_lock())
+	if (pendingEvts_ul.try_lock()) {
+		logger->Debug("NotifyEvent: notifying %d", evt);
 		pendingEvts_cv.notify_one();
+	}
+	else {
+		logger->Debug("NotifyEvent: NOT notifying %d", evt);
+	}
 }
 
 std::map<std::string, Worker*> ResourceManager::workers_map;
@@ -269,6 +282,23 @@ void ResourceManager::Unregister(std::string const & name) {
 	fprintf(stderr, FI("Unregistering Worker[%s]...\n"), name.c_str());
 	workers_map.erase(name);
 	workers_cv.notify_one();
+}
+
+void ResourceManager::WaitForReady() {
+	std::unique_lock<std::mutex> status_ul(status_mtx);
+	while (!is_ready) {
+		logger->Debug("WaitForReady: an optimization is in progress...");
+		status_cv.wait(status_ul);
+	}
+}
+
+void ResourceManager::SetReady(bool value) {
+	std::unique_lock<std::mutex> status_ul(status_mtx);
+	is_ready = value;
+	if (value) {
+		status_cv.notify_all();
+		logger->Notice("SetReady: optimization terminated");
+	}
 }
 
 void ResourceManager::TerminateWorkers() {
@@ -296,58 +326,84 @@ void ResourceManager::TerminateWorkers() {
 
 	}
 
-	DB(fprintf(stderr, FD("All workers termianted\n")));
+	DB(fprintf(stderr, FD("All workers terminated\n")));
 }
 
 void ResourceManager::Optimize() {
-	std::unique_lock<std::mutex> pendingEvts_ul(pendingEvts_mtx);
 	SynchronizationManager::ExitCode_t syncResult;
 	SchedulerManager::ExitCode_t schedResult;
 	static bu::Timer optimization_tmr;
 	double period;
+	bool active_apps = true;
+
+	SetReady(false);
 
 	// If the optimization has been triggered by a platform event (BBQ_PLAT) the policy must be
 	// executed anyway. To the contrary, if it is an application event (BBQ_OPTS) check if
 	// there are actually active applications
 	if (!plat_event &&
 		!am.HasApplications(Application::READY) &&
-		!am.HasApplications(Application::RUNNING))
-		return;
+		!am.HasApplications(Application::RUNNING)
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+		&&
+		!prm.HasProcesses(Schedulable::READY) &&
+		!prm.HasProcesses(Schedulable::RUNNING)
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
+	) {
+		logger->Debug("Optimize: nothing to schedule...");
+		active_apps = false;
+	}
+
 	plat_event = false;
 
-	ra.PrintStatusReport();
-	am.PrintStatusReport();
-	logger->Info("Running Optimization...");
+	if (active_apps) {
+		ra.PrintStatusReport();
+		am.PrintStatus();
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+		prm.PrintStatus(true);
+#endif
+		logger->Info("Optimize: lauching scheduler...");
 
-	// Account for a new schedule activation
-	RM_COUNT_EVENT(metrics, RM_SCHED_TOTAL);
-	RM_GET_PERIOD(metrics, RM_SCHED_PERIOD, period);
+		// Account for a new schedule activation
+		RM_COUNT_EVENT(metrics, RM_SCHED_TOTAL);
+		RM_GET_PERIOD(metrics, RM_SCHED_PERIOD, period);
 
-	//--- Scheduling
-	logger->Info(LNSCHB);
-	optimization_tmr.start();
-	schedResult = sm.Schedule();
-	optimization_tmr.stop();
-	switch(schedResult) {
-	case SchedulerManager::MISSING_POLICY:
-	case SchedulerManager::FAILED:
-		logger->Warn("Schedule FAILED (Error: scheduling policy failed)");
-		RM_COUNT_EVENT(metrics, RM_SCHED_FAILED);
-		return;
-	case SchedulerManager::DELAYED:
-		logger->Error("Schedule DELAYED");
-		RM_COUNT_EVENT(metrics, RM_SCHED_DELAYED);
-		return;
-	default:
-		assert(schedResult == SchedulerManager::DONE);
+		//--- Scheduling
+		optimization_tmr.start();
+		schedResult = sm.Schedule();
+		optimization_tmr.stop();
+		switch(schedResult) {
+		case SchedulerManager::MISSING_POLICY:
+		case SchedulerManager::FAILED:
+			logger->Warn("Schedule FAILED (Error: scheduling policy failed)");
+			RM_COUNT_EVENT(metrics, RM_SCHED_FAILED);
+			SetReady(true);
+			return;
+		case SchedulerManager::DELAYED:
+			logger->Error("Schedule DELAYED");
+			RM_COUNT_EVENT(metrics, RM_SCHED_DELAYED);
+			SetReady(true);
+			return;
+		default:
+			assert(schedResult == SchedulerManager::DONE);
+		}
+		logger->Notice("Schedule Time: %11.3f[us]", optimization_tmr.getElapsedTimeUs());
+		am.PrintStatus(true);
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+		prm.PrintStatus(true);
+#endif
+
+
 	}
-	logger->Info(LNSCHE);
-	logger->Notice("Schedule Time: %11.3f[us]", optimization_tmr.getElapsedTimeUs());
-	am.PrintStatusReport(true);
 
 	// Check if there is at least one application to synchronize
-	if (!am.HasApplications(Application::SYNC)) {
-		logger->Debug("NO EXC in SYNC state, synchronization not required");
+	if (!am.HasApplications(Application::SYNC)
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+		&&
+		!prm.HasProcesses(Schedulable::SYNC)
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
+	) {
+		logger->Debug("Optimize: no applications in SYNC state");
 		RM_COUNT_EVENT(metrics, RM_SCHED_EMPTY);
 	} else {
 		// Account for a new synchronizaiton activation
@@ -357,22 +413,20 @@ void ResourceManager::Optimize() {
 			logger->Notice("Schedule Run-time: %9.3f[ms]", period);
 
 		//--- Synchronization
-		logger->Info(LNSYNB);
 		optimization_tmr.start();
 		syncResult = ym.SyncSchedule();
 		optimization_tmr.stop();
 		if (syncResult != SynchronizationManager::OK) {
-			logger->Warn(LNSYNF);
 			RM_COUNT_EVENT(metrics, RM_SYNCH_FAILED);
 			// FIXME here we should implement some counter-meaure to
 			// ensure consistency
-			return;
 		}
-		logger->Info(LNSYNE);
 		ra.PrintStatusReport(0, true);
-		am.PrintStatusReport(true);
+		am.PrintStatus(true);
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+		prm.PrintStatus(true);
+#endif
 		logger->Notice("Sync Time: %11.3f[us]", optimization_tmr.getElapsedTimeUs());
-
 	}
 
 #ifdef CONFIG_BBQUE_SCHED_PROFILING
@@ -389,7 +443,11 @@ void ResourceManager::Optimize() {
 #else
 	logger->Debug("Scheduling profiling disabled");
 #endif
+	SetReady(true);
 
+#ifdef CONFIG_BBQUE_DM
+	dm.NotifyUpdate(stat::EVT_SCHEDULING);
+#endif
 }
 
 void ResourceManager::EvtExcStart() {
@@ -486,14 +544,14 @@ void ResourceManager::EvtBbqUsr1() {
 	logger->Info("==========[ Status Queues ]============"
 			"========================================");
 	logger->Info("");
-	am.ReportStatusQ(true);
+	am.PrintStatusQ(true);
 
 	logger->Info("");
 	logger->Info("");
 	logger->Info("==========[ Synchronization Queues ]==="
 			"========================================");
 	logger->Info("");
-	am.ReportSyncQ(true);
+	am.PrintSyncQ(true);
 
 	logger->Notice("");
 	logger->Notice("");
@@ -507,7 +565,10 @@ void ResourceManager::EvtBbqUsr1() {
 	logger->Notice("==========[ EXCs Status ]=============="
 			"========================================");
 	logger->Notice("");
-	am.PrintStatusReport(true);
+	am.PrintStatus(true);
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+	prm.PrintStatus(true);
+#endif
 
 	// Clear the corresponding event flag
 	logger->Notice("");
@@ -547,16 +608,19 @@ void ResourceManager::EvtBbqExit() {
 	// Stop applications
 	papp = am.GetFirst(apps_it);
 	for ( ; papp; papp = am.GetNext(apps_it)) {
-		// Terminating the application
-		logger->Warn("TODO: Send application STOP command");
-		// Removing internal data structures
+		logger->Notice("Terminating application: %s", papp->StrId());
+		ap.StopExecution(papp);
+		am.DisableEXC(papp, true);
 		am.DestroyEXC(papp);
 	}
+
+	// Terminate platforms
+	logger->Notice("Terminating the platform supports...");
+	plm.Exit();
 
 	// Notify all workers
 	logger->Notice("Stopping all workers...");
 	ResourceManager::TerminateWorkers();
-
 }
 
 int ResourceManager::CommandsCb(int argc, char *argv[]) {
@@ -580,7 +644,10 @@ int ResourceManager::CommandsCb(int argc, char *argv[]) {
 		logger->Notice("==========[ EXCs Status ]=============="
 				"========================================");
 		logger->Notice("");
-		am.PrintStatusReport(true);
+		am.PrintStatus(true);
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+		prm.PrintStatus(true);
+#endif
 		break;
 
 	case 'q':
@@ -593,7 +660,7 @@ int ResourceManager::CommandsCb(int argc, char *argv[]) {
 		logger->Info("==========[ Status Queues ]============"
 				"========================================");
 		logger->Info("");
-		am.ReportStatusQ(true);
+		am.PrintStatusQ(true);
 		break;
 
 	case 'r':
@@ -621,7 +688,7 @@ int ResourceManager::CommandsCb(int argc, char *argv[]) {
 		logger->Info("==========[ Synchronization Queues ]==="
 				"========================================");
 		logger->Info("");
-		am.ReportSyncQ(true);
+		am.PrintSyncQ(true);
 		break;
 	case 'o':
 		logger->Info("");
@@ -647,8 +714,10 @@ void ResourceManager::ControlLoop() {
 	double period;
 
 	// Wait for a new event
-	if (!pendingEvts.any())
+	while (!pendingEvts.any()) {
+		logger->Debug("Control Loop: no events");
 		pendingEvts_cv.wait(pendingEvts_ul);
+	}
 
 	if (done == true) {
 		logger->Warn("Control Loop: returning");
@@ -664,6 +733,9 @@ void ResourceManager::ControlLoop() {
 		// Jump not pending events
 		if (!pendingEvts[evt-1])
 			continue;
+
+		// Resetting event
+		pendingEvts.reset(evt-1);
 
 		// Account for a new event
 		RM_COUNT_EVENT(metrics, RM_EVT_TOTAL);
@@ -720,12 +792,7 @@ void ResourceManager::ControlLoop() {
 		default:
 			logger->Crit("Unhandled event [%d]", evt-1);
 		}
-
-		// Resetting event
-		pendingEvts.reset(evt-1);
-
 	}
-
 }
 
 ResourceManager::ExitCode_t

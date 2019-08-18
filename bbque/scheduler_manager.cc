@@ -90,7 +90,13 @@ SchedulerManager & SchedulerManager::GetInstance() {
 
 SchedulerManager::SchedulerManager() :
 	am(ApplicationManager::GetInstance()),
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+	prm(ProcessManager::GetInstance()),
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 	mc(bu::MetricsCollector::GetInstance()),
+#ifdef CONFIG_BBQUE_DM
+	dm(DataManager::GetInstance()),
+#endif
 	sched_count(0) {
 	std::string opt_namespace((SCHEDULER_POLICY_NAMESPACE"."));
 	std::string opt_policy;
@@ -168,20 +174,22 @@ SchedulerManager::Schedule() {
 	// a DELAYED exit code should be returned
 	DB(logger->Warn("TODO: add scheduling activation policy"));
 
+	// Check if there are some dead applications to remove
+	am.CheckActiveEXCs();
+
 	SetState(State_t::SCHEDULING);  // --> Applications from now in a not consistent state
 	++sched_count;
-	logger->Notice("Scheduling [%d] START, policy [%s]", sched_count, policy->Name());
 
 	// Collecing execution metrics
 	if (sched_count > 1)
 		SM_GET_TIMING(metrics, SM_SCHED_PERIOD, sm_tmr);
-
 	SM_COUNT_EVENT(metrics, SM_SCHED_RUNS);  // Account for actual scheduling runs
 	SM_RESET_TIMING(sm_tmr);                 // Reset timer for policy execution time profiling
 
 	System &sv = System::GetInstance();
-	br::RViewToken_t sched_view_id;
+	br::RViewToken_t sched_view_id;          // Status view to fill with scheduling
 
+	logger->Notice("Scheduling [%d] START, policy [%s]", sched_count, policy->Name());
 	SchedulerPolicyIF::ExitCode result = policy->Schedule(sv, sched_view_id);
 	if (result != SchedulerPolicyIF::SCHED_DONE) {
 		logger->Error("Scheduling [%d] FAILED", sched_count);
@@ -203,18 +211,31 @@ SchedulerManager::Schedule() {
 	SM_COUNT_EVENT(metrics, SM_SCHED_COMP); // Account for scheduling completed
 	CollectStats();                         // Collect statistics on scheduling execution
 
+#ifdef CONFIG_BBQUE_DM
+	dm.NotifyUpdate(stat::EVT_SCHEDULING);
+#endif
+
 	logger->Notice("Scheduling [%d] DONE", sched_count);
 
 	return DONE;
 }
 
 void SchedulerManager::CommitRunningApplications() {
+	// Running (AEM) applications
 	AppsUidMapIt apps_it;
 	AppPtr_t papp = am.GetFirst(ApplicationStatusIF::RUNNING, apps_it);
 	for (; papp; papp = am.GetNext(ApplicationStatusIF::RUNNING, apps_it)) {
-		// Commit a running state (this cleans the next AWM)
-		am.RunningCommit(papp);
+		am.SyncContinue(papp);
 	}
+
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+	// Running processes
+	ProcessMapIterator proc_it;
+	ProcPtr_t proc = prm.GetFirst(Schedulable::RUNNING, proc_it);
+	for (; proc; proc = prm.GetNext(Schedulable::RUNNING, proc_it)) {
+		prm.SyncContinue(proc);
+	}
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
 }
 
 void SchedulerManager::SetState(State_t _s) {

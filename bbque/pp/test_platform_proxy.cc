@@ -27,14 +27,13 @@ const char* TestPlatformProxy::GetHardwareID(int16_t system_id) const {
 	return "test";
 }
 
-TestPlatformProxy::ExitCode_t TestPlatformProxy::Setup(AppPtr_t papp) {
-	logger->Info("PLAT TEST: Setup(%s)", papp->StrId());
+TestPlatformProxy::ExitCode_t TestPlatformProxy::Setup(SchedPtr_t papp) {
+	logger->Info("Setup: %s", papp->StrId());
 	return PLATFORM_OK;
 }
 
 TestPlatformProxy::ExitCode_t TestPlatformProxy::LoadPlatformData() {
-	logger->Info("PLAT TEST: LoadPlatformData()");
-
+	logger->Info("LoadPlatformData...");
 	if (platformLoaded)
 		return PLATFORM_OK;
 
@@ -50,7 +49,8 @@ TestPlatformProxy::ExitCode_t TestPlatformProxy::LoadPlatformData() {
 		return PLATFORM_LOADING_FAILED;
 	}
 
-	for (const auto sys : pd->GetSystemsAll()) {
+	for (const auto & sys_entry: pd->GetSystemsAll()) {
+		auto & sys = sys_entry.second;
 		logger->Debug("[%s@%s] Scanning the CPUs...",
 				sys.GetHostname().c_str(), sys.GetNetAddress().c_str());
 		for (const auto cpu : sys.GetCPUsAll()) {
@@ -121,35 +121,40 @@ TestPlatformProxy::RegisterMEM(const PlatformDescription::Memory &mem) {
 
 
 TestPlatformProxy::ExitCode_t TestPlatformProxy::Refresh() {
-	logger->Info("PLAT TEST: Refresh()");
+	logger->Info("Refresh...");
 	return PLATFORM_OK;
 }
 
-TestPlatformProxy::ExitCode_t TestPlatformProxy::Release(AppPtr_t papp) {
-	logger->Info("PLAT TEST: Release(%s)", papp->StrId());
+TestPlatformProxy::ExitCode_t TestPlatformProxy::Release(SchedPtr_t papp) {
+	logger->Info("Release: %s", papp->StrId());
 	return PLATFORM_OK;
 }
 
-TestPlatformProxy::ExitCode_t TestPlatformProxy::ReclaimResources(AppPtr_t papp)
-																		 {
-	logger->Info("PLAT TEST: ReclaimResources(%s)", papp->StrId());
+TestPlatformProxy::ExitCode_t TestPlatformProxy::ReclaimResources(SchedPtr_t papp) {
+	logger->Info("ReclaimResources: %s", papp->StrId());
 	return PLATFORM_OK;
 }
 
 TestPlatformProxy::ExitCode_t TestPlatformProxy::MapResources(
-		AppPtr_t papp,
+		SchedPtr_t papp,
 		ResourceAssignmentMapPtr_t pres,bool excl) {
 	(void) pres;
 	(void) excl;
-	logger->Info("PLAT TEST: MapResources(%s)", papp->StrId());
+	logger->Info(" MapResources: %s", papp->StrId());
 	return PLATFORM_OK;
 }
+
+void TestPlatformProxy::Exit() {
+	logger->Info("Exit: Termination...");
+}
+
 
 bool TestPlatformProxy::IsHighPerformance(
 			bbque::res::ResourcePathPtr_t const & path) const {
 	UNUSED(path);
 	return true;
 }
+
 
 }	// namespace pp
 }	// namespace bbque

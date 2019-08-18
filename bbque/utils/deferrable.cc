@@ -156,7 +156,7 @@ void Deferrable::Task() {
 		}
 
 		if (unlikely(done)) {
-			logger->Info("DF[%s] exiting executor...", Name());
+			DB(fprintf(stderr, FD("DF[%s] exiting executor..."), Name()));
 			continue;
 		}
 
@@ -178,7 +178,7 @@ void Deferrable::Task() {
 
 	}
 
-	logger->Info("DF[%s] Deferrable thread ENDED", Name());
+	DB(fprintf(stderr, FI("DF[%s] Deferrable thread ENDED"), Name()));
 
 }
 

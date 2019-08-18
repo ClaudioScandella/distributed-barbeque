@@ -33,6 +33,7 @@
 #include "bbque/utils/worker.h"
 #include "bbque/utils/logging/logger.h"
 #include "bbque/trig/trigger.h"
+#include "bbque/data_manager.h"
 
 #define POWER_MONITOR_NAMESPACE "bq.wm"
 
@@ -57,8 +58,7 @@ public:
 
 	/**
 	 * @enum ExitCode_t
-	 *
-	 * Class specific return codes
+	 * @brief Class specific return codes
 	 */
 	enum class ExitCode_t {
 		OK = 0,           /** Successful call */
@@ -86,7 +86,6 @@ public:
 	 *
 	 * @param rp Resource path of the resource(s)
 	 * @param info_mask A bitset with the flags of the information to sample
-	 *
 	 * @return ERR_RSRC_MISSING if the resource path does not
 	 * reference any resource, OK otherwise
 	 */
@@ -97,7 +96,7 @@ public:
 	);
 
 	ExitCode_t Register(
-			const char * rp_str,
+			const std::string & rp_str,
 			PowerManager::SamplesArray_t const & samples_window =
 				{BBQUE_PM_DEFAULT_SAMPLES_WINSIZE}
 	);
@@ -124,17 +123,17 @@ public:
 	}
 
 	/**
-	 * @brief Get the current theshold
+	 * @brief Get the current threshold
 	 *
 	 * @return For TEMP the temperature in Celsius degree.
 	 * For POWER the power consumption upper bound.
 	 * For BATTERY_LEVEL the charge level under which a policy execution could be triggered.
-	 * For BATTERY_RATE the maximum discahrging rate tolerated.
+	 * For BATTERY_RATE the maximum discharging rate tolerated.
 	 */
 	inline uint32_t GetThreshold(PowerManager::InfoType t) const {
 		auto v = triggers.find(t);
 		if (unlikely(v == triggers.end())) return 0;
-		return v->second.threshold;
+		return v->second->threshold_high;
 	}
 
 #ifdef CONFIG_BBQUE_PM_BATTERY
@@ -160,6 +159,13 @@ public:
 	 */
 	int32_t GetSysPowerBudget();
 
+	/**
+	 * @brief Return the length of the sampling period (in milliseconds)
+	 */
+	uint32_t GetPeriodLengthMs() const {
+		return wm_info.period_ms;
+	}
+
 private:
 
 	/**
@@ -178,31 +184,41 @@ private:
 	BatteryPtr_t pbatt;
 
 	/**
+	 * @struct SystemLifetimeInfo_t
 	 * @brief System power budget information
 	 */
 	struct SystemLifetimeInfo_t {
 		/** Mutex to protect concurrent accesses */
 		std::mutex mtx;
-		/** Time point of the reuired system lifetime */
+		/** Time point of the required system lifetime */
 		std::chrono::system_clock::time_point target_time;
 		/** System power budget for guarateeing the required lifetime */
 		int32_t power_budget_mw = 0;
 		/** If true the request is to keep the system always on */
 		bool always_on;
 	} sys_lifetime;
-#endif
+
+#endif // CONFIG_BBQUE_PM_BATTERY
 
 	/**
 	 * @brief Command manager instance
 	 */
 	CommandManager & cm;
 
-	/*** Configuration manager instance */
-	ConfigurationManager & cfm;
-
+#ifdef CONFIG_BBQUE_DM
+	/**
+	 * @brief Data manager instance
+	 */
+	DataManager & dm;
+#endif
 
 	/**
-	 * @brief The logger used by the power manager.
+	 * @brief Configuration manager instance
+	 */
+	ConfigurationManager & cfm;
+
+	/**
+	 * @brief The logger used by the power manager
 	 */
 	std::unique_ptr<bu::Logger> logger;
 
@@ -211,7 +227,9 @@ private:
 	 */
 	std::bitset<WM_EVENT_COUNT> events;
 
-
+	/**
+	 * @struct ResourceHandler
+	 */
 	struct ResourceHandler {
 		br::ResourcePathPtr_t path;
 		br::ResourcePtr_t resource_ptr;
@@ -219,6 +237,7 @@ private:
 
 
 	/**
+	 * @struct PowerMonitorInfo_t
 	 * @brief Structure to collect support information for the power
 	 * monitoring activity
 	 */
@@ -240,7 +259,6 @@ private:
 	 */
 	uint16_t nr_threads = 1;
 
-
 	/**
 	 * @brief Keep track of sending status of an optimization request
 	 */
@@ -255,16 +273,18 @@ private:
 	/**
 	 * @struct Data to manage the triggers execution
 	 */
-	struct TriggerInfo_t {
-		std::shared_ptr<bbque::trig::Trigger> obj;   /** Trigger object to call */
-		uint32_t threshold = 0;                      /** Threshold value */
-		float margin       = 0.1;                    /** Margin [0..1) */
-	};
+	//struct TriggerInfo_t {
+	//	std::shared_ptr<bbque::trig::Trigger> obj;   /** Trigger object to call */
+	//	uint32_t threshold_high = 0;                      /** Threshold high value */
+	//	uint32_t threshold_low = 0;                  /** Threshold low armed value */
+	//	float margin       = 0.1;                    /** Margin [0..1) */
+	//};
 
 	/**
 	 * @brief Threshold values for triggering an optimization request
 	 */
-	std::map<PowerManager::InfoType, TriggerInfo_t> triggers;
+	//std::map<PowerManager::InfoType, TriggerInfo_t> triggers;
+	std::map<PowerManager::InfoType, std::shared_ptr<bbque::trig::Trigger>> triggers;
 
 	/**
 	 * @brief Deferrable for coalescing multiple optimization requests
@@ -303,10 +323,6 @@ private:
 	 */
 	void SampleResourcesStatus(uint16_t first_resource_index, uint16_t last_resource_index);
 
-#ifdef CONFIG_BBQUE_PM_BATTERY
-	void SampleBatteryStatus();
-#endif
-
 	/**
 	 * @brief Periodic task
 	 */
@@ -343,29 +359,34 @@ private:
 	 */
 	int DataLogCmdHandler(const char * arg);
 
-	/**
-	 * @brief System target lifetime setting
-	 *
-	 * @param action The control actions:
-	 *		set   (to set the amount of hours)
-	 *		info  (to get the current information)
-	 *		clear (to clear the target)
-	 *		help  (command help)
-	 *
-	 * @param hours For the action 'set' only
-	 * @return 0 for success, a negative number in case of error
-	 */
-	int SystemLifetimeCmdHandler(
-			const std::string action,
-			const std::string arg);
-
 
 	/**
-	 * @brief System target lifetime information report
+	 * @brief Manage a trigger and conditionally send an optimization request
+	 * @param info_type Type of runtime information
+	 * @param curr_value Current value (e.g. of temperature)
 	 */
-	void PrintSystemLifetimeInfo() const;
+	void ManageRequest(PowerManager::InfoType info_type, double curr_value);
+
+	/**
+	 * @brief Trigger execution: check if the current monitored value worth an
+	 * optimization policy execution request
+	 */
+	inline void ExecuteTrigger(br::ResourcePtr_t rsrc, PowerManager::InfoType info_type) {
+			ManageRequest(info_type, rsrc->GetPowerInfo(info_type, br::Resource::MEAN));
+	}
+
+	/**
+	 * @brief Send an optimization request to execute the resource allocation policy
+	 */
+	void SendOptimizationRequest();
+
 
 #ifdef CONFIG_BBQUE_PM_BATTERY
+	/**
+	 * @brief Sample the battery status
+	 */
+	void SampleBatteryStatus();
+
 	/**
 	 * @brief Compute the system power budget
 	 * @return The power value in milliwatts.
@@ -378,87 +399,35 @@ private:
 					pbatt->GetVoltage() / 1e3;
 		return energy_budget / secs_from_now.count();
 	}
-#endif // CONFIG_BBQUE_PM_BATTERY
-
-
-#ifdef CONFIG_BBQUE_PM
-
-#define UPDATE_REQUEST_STATUS(info_type, curr, trigger) \
-	opt_request_sent = trigger.obj->Check(trigger.threshold, curr, trigger.margin); \
-	CHECK_REQUEST_STATUS(info_type, curr, trigger)
-
-
-#define CHECK_REQUEST_STATUS(info_type, curr, trigger) \
-	if (opt_request_sent) { \
-		logger->Info("Trigger: <InfoType: %d> current = %d, threshold = %d [m=%0.f]", \
-				info_type, curr, trigger.threshold, trigger.margin); \
-		optimize_dfr.Schedule(milliseconds(WM_OPT_REQ_TIME_FACTOR * wm_info.period_ms)); \
-	}
-
-	/**
-	 * @brief Trigger execution: check if the current monitored value worth an
-	 * optimization policy execution request
-	 */
-	inline void ExecuteTrigger(br::ResourcePtr_t rsrc, PowerManager::InfoType info_type) {
-		auto & t = triggers[info_type];
-		if (t.obj != nullptr)
-			UPDATE_REQUEST_STATUS(
-				info_type, rsrc->GetPowerInfo(info_type, br::Resource::MEAN), t);
-	}
-#endif // CONFIG_BBQUE_PM
-
-#ifdef CONFIG_BBQUE_PM_BATTERY
 
 	/**
 	 * @brief Trigger execution for the battery status.
-	 * Theo optimization is required in case of battery level under
+	 * The optimization is required in case of battery level under
+	 * a given threshold
 	 */
-	inline void ExecuteTriggerForBattery() {
-		if (opt_request_sent)
-			return;
-
-		// Battery level check
-		auto & t_energy = triggers[PowerManager::InfoType::ENERGY];
-		if (t_energy.obj == nullptr)
-			return;
-
-		bool to_require = !(t_energy.obj->Check(
-				t_energy.threshold,  static_cast<float>(pbatt->GetChargePerc()),
-				t_energy.margin));
-
-		// Do not require other policy execution (due battery level) until the charge is not
-		// above the threshold value again
-		if (opt_request_for_battery)
-			opt_request_for_battery = to_require;
-		if (t_energy.obj != nullptr && !opt_request_for_battery && pbatt->IsDischarging()) {
-			opt_request_sent = to_require;
-			CHECK_REQUEST_STATUS(
-				PowerManager::InfoType::ENERGY, pbatt->GetChargePerc(), t_energy);
-			opt_request_for_battery = opt_request_sent;
-			return;
-		}
-
-		// Discharging rate check
-		auto & t_current = triggers[PowerManager::InfoType::CURRENT];
-		if (t_current.obj != nullptr) {
-			UPDATE_REQUEST_STATUS(
-				PowerManager::InfoType::CURRENT, pbatt->GetDischargingRate(), t_current);
-			return;
-		}
-	}
-#endif
-
+	void ExecuteTriggerForBattery();
 
 	/**
-	 * @brief Send an optimization request to execute the resource allocation policy
+	 * @brief System target lifetime setting
+	 * @param action The control actions:
+	 *		set   (to set the amount of hours)
+	 *		info  (to get the current information)
+	 *		clear (to clear the target)
+	 *		help  (command help)
+	 * @param hours For the action 'set' only
+	 * @return 0 for success, a negative number in case of error
 	 */
-	inline void OptimizationRequest() {
-		ResourceManager & rm(ResourceManager::GetInstance());
-		rm.NotifyEvent(ResourceManager::BBQ_PLAT);
-		logger->Info("Trigger: optimization request sent [generic: %d, battery: %d]",
-			opt_request_sent.load(), opt_request_for_battery);
-		opt_request_sent = false;
-	}
+	int SystemLifetimeCmdHandler(
+			const std::string action,
+			const std::string arg);
+
+	/**
+	 * @brief System target lifetime information report
+	 */
+	void PrintSystemLifetimeInfo() const;
+
+#endif // CONFIG_BBQUE_PM_BATTERY
+
 };
 
 } // namespace bbque

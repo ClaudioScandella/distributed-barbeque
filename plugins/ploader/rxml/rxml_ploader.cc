@@ -7,6 +7,7 @@
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <string>
+#include <cstdlib>
 
 #define CURRENT_VERSION "1.0"
 
@@ -294,18 +295,16 @@ RXMLPlatformLoader::ExitCode_t RXMLPlatformLoader::ParseSystemDocument(
 
 	node_ptr root     = this->GetFirstChild(&inc_doc, "system", true);
 
-	// For the root tag, we have two parameters: hostname and address.
-	// The last is mandatory only for remote systems, and ignored for
-	// local ones
+	attr_ptr id = this->GetFirstAttribute(root, "id", true);
+	// Address mandatory only for remote systems
 	attr_ptr hostname = this->GetFirstAttribute(root, "hostname", true);
-
 	// The address is mandatory only if the system is remote.
 	attr_ptr address  = this->GetFirstAttribute(root, "address", !is_local);
-	logger->Debug("Parsing system %s at address %s",
+	logger->Debug("Parsing system id=%s hostname=[%s] address=<%s>", id->value(),
 			hostname->value(), address->value() ? address->value() : "`localhost`");
 
 	pp::PlatformDescription::System sys;
-	sys.SetId(sys_count++);
+	sys.SetId(atoi(id->value()));
 	sys.SetLocal(is_local);
 	sys.SetHostname(hostname->value());
 	if (address) {
@@ -314,6 +313,7 @@ RXMLPlatformLoader::ExitCode_t RXMLPlatformLoader::ParseSystemDocument(
 			logger->Warn("Address specified in a local system (I will ignore it)");
 		}
 	}
+	sys_count++;
 
 	///   <memory>
 	RXMLPlatformLoader::ExitCode_t ec = PL_SUCCESS;

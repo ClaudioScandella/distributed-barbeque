@@ -30,7 +30,7 @@
 
 using bbque::res::ResourceAssignmentMapPtr_t;
 using bbque::res::RViewToken_t;
-using bbque::app::AppPtr_t;
+using bbque::app::SchedPtr_t;
 
 namespace bbque {
 
@@ -82,7 +82,7 @@ public:
 	/**
 	 * @brief Platform specific resource setup interface.
 	 */
-	virtual ExitCode_t Setup(AppPtr_t papp) = 0;
+	virtual ExitCode_t Setup(SchedPtr_t papp) = 0;
 
 	/**
 	 * @brief Platform specific resources enumeration
@@ -100,12 +100,12 @@ public:
 	/**
 	 * @brief Platform specific resources release interface.
 	 */
-	virtual ExitCode_t Release(AppPtr_t papp) = 0;
+	virtual ExitCode_t Release(SchedPtr_t papp) = 0;
 
 	/**
 	 * @brief Platform specific resource claiming interface.
 	 */
-	virtual ExitCode_t ReclaimResources(AppPtr_t papp) = 0;
+	virtual ExitCode_t ReclaimResources(SchedPtr_t papp) = 0;
 
 	/**
 	 * @brief Bind the specified resources to the specified application.
@@ -116,7 +116,12 @@ public:
 	 * usage to the application
 	 */
 	virtual ExitCode_t MapResources(
-			AppPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl = true) = 0;
+			SchedPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl = true) = 0;
+
+	/**
+	 * @brief Graceful closure of the platform proxy
+	 */
+	virtual void Exit() = 0;
 
 	/**
 	 * @brief Check if a resource is flagged as "high-performance".

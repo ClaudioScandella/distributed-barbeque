@@ -30,7 +30,7 @@ public:
 	/**
 	 * @brief Platform specific resource setup interface.
 	 */
-	virtual ExitCode_t Setup(AppPtr_t papp);
+	virtual ExitCode_t Setup(SchedPtr_t papp);
 
 	/**
 	 * @brief Platform specific resources enumeration
@@ -48,21 +48,25 @@ public:
 	/**
 	 * @brief Platform specific resources release interface.
 	 */
-	virtual ExitCode_t Release(AppPtr_t papp);
+	virtual ExitCode_t Release(SchedPtr_t papp);
 
 	/**
 	 * @brief Platform specific resource claiming interface.
 	 */
-	virtual ExitCode_t ReclaimResources(AppPtr_t papp);
+	virtual ExitCode_t ReclaimResources(SchedPtr_t papp);
 
 	/**
 	 * @brief Platform specific resource binding interface.
 	 */
 	virtual ExitCode_t MapResources(
-		AppPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl = true) ;
+		SchedPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl = true);
 
 	virtual bool IsHighPerformance(bbque::res::ResourcePathPtr_t const & path) const;
 
+	/**
+	 * @brief Platform specific termination.
+	 */
+	virtual void Exit();
 
 	//--- AgentProxy functions
 
@@ -71,7 +75,13 @@ public:
 	void StopServer();
 
 	void WaitForServerToStop();
-
+	
+	
+	bbque::agent::ExitCode_t Discover(
+		std::string ip, bbque::agent::DiscoverRequest& iam);
+		
+	bbque::agent::ExitCode_t Ping(
+		int system_id, int & ping_value);
 
 	bbque::agent::ExitCode_t GetResourceStatus(
 		std::string const & resource_path, agent::ResourceStatus & status);
@@ -104,6 +114,8 @@ public:
 	bbque::agent::ExitCode_t SendScheduleRequest(
 		std::string const & system_path,
 		agent::ApplicationScheduleRequest const & request) ;
+
+	RemotePlatformProxy operator=(RemotePlatformProxy other);
 
 private:
 	/**

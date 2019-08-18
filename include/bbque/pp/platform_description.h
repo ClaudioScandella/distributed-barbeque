@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -450,7 +451,8 @@ public:
 	inline const System & GetLocalSystem() const {
 		static std::shared_ptr<System> sys(nullptr);
 		if (!sys) {
-			for (auto s : this->GetSystemsAll()) {
+			for (auto & s_entry : this->GetSystemsAll()) {
+				auto s = s_entry.second;
 				if (s.IsLocal()) {
 					sys = std::make_shared<System>(s);
 				}
@@ -464,24 +466,28 @@ public:
 							->GetLocalSystem());
 	}
 
-	inline const std::vector<System> & GetSystemsAll() const {
+	inline const std::map<uint16_t, System> & GetSystemsAll() const {
 		return this->systems;
 	}
 
-	inline std::vector<System> & GetSystemsAll() {
+	inline std::map<uint16_t, System> & GetSystemsAll() {
 		return this->systems;
 	}
 
 	inline void AddSystem(const System & sys) {
-		this->systems.push_back(sys);
+		this->systems.emplace(sys.GetId(), sys);
 	}
 
-	inline const System & GetSystem(int id) const {
-		return this->systems.at(id);
+	inline const System & GetSystem(uint16_t id) const {
+		return systems.at(id);
+	}
+
+	inline bool ExistSystem(uint16_t id) const {
+		return (systems.find(id) != systems.end());
 	}
 
 private:
-	std::vector <System> systems;
+	std::map<uint16_t, System> systems;
 
 }; // class PlatformDescription
 

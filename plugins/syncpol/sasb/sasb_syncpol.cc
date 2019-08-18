@@ -86,108 +86,114 @@ char const *SasbSyncPol::Name() {
 }
 
 
-ApplicationStatusIF::SyncState_t SasbSyncPol::step1(
+ba::Schedulable::SyncState_t SasbSyncPol::step1(
 			bbque::System & sv) {
 
-	logger->Debug("STEP 1.0: Running => Blocked");
-	if (sv.HasApplications(ApplicationStatusIF::BLOCKED))
-		return ApplicationStatusIF::BLOCKED;
+	logger->Debug("STEP 1.0: Running => Disabled");
+	if (sv.HasSchedulables(ba::Schedulable::DISABLED)) {
+		status = STEP11;
+		return ba::Schedulable::DISABLED;
+	}
+
+	logger->Debug("STEP 1.1: Running => Blocked");
+	if (sv.HasSchedulables(ba::Schedulable::BLOCKED))
+		return ba::Schedulable::BLOCKED;
 
 	logger->Debug("STEP 1.0:            "
 			"No EXCs to be BLOCKED");
-	return ApplicationStatusIF::SYNC_NONE;
+	return ba::Schedulable::SYNC_NONE;
 }
 
-ApplicationStatusIF::SyncState_t SasbSyncPol::step2(
+ba::Schedulable::SyncState_t SasbSyncPol::step2(
 			bbque::System & sv) {
-	ApplicationStatusIF::SyncState_t syncState;
+	ba::Schedulable::SyncState_t syncState;
 
 	switch(status) {
 	case STEP21:
 		logger->Debug("STEP 2.1: Running => Migration (lower value)");
-		syncState = ApplicationStatusIF::MIGRATE;
+		syncState = ba::Schedulable::MIGRATE;
 		break;
 
 	case STEP22:
 		logger->Debug("STEP 2.2: Running => Migration/Reconf (lower value)");
-		syncState = ApplicationStatusIF::MIGREC;
+		syncState = ba::Schedulable::MIGREC;
 		break;
 
 	case STEP23:
 		logger->Debug("STEP 2.3: Running => Reconf (lower value)");
-		syncState = ApplicationStatusIF::RECONF;
+		syncState = ba::Schedulable::RECONF;
 		break;
 
 	default:
 		// We should never got here
-		syncState = ApplicationStatusIF::SYNC_NONE;
+		syncState = ba::Schedulable::SYNC_NONE;
 		assert(false);
 	}
 
-	if (sv.HasApplications(syncState))
+	if (sv.HasSchedulables(syncState))
 		return syncState;
 
 	logger->Debug("STEP 2.0:            "
 			"No EXCs to be reschedule (lower value)");
-	return ApplicationStatusIF::SYNC_NONE;
+	return ba::Schedulable::SYNC_NONE;
 }
 
 
-ApplicationStatusIF::SyncState_t SasbSyncPol::step3(
+ba::Schedulable::SyncState_t SasbSyncPol::step3(
 			bbque::System & sv) {
-	ApplicationStatusIF::SyncState_t syncState;
+	ba::Schedulable::SyncState_t syncState;
 
 	switch(status) {
 	case STEP31:
 		logger->Debug("STEP 3.1: Running => Migration (higher value)");
-		syncState = ApplicationStatusIF::MIGRATE;
+		syncState = ba::Schedulable::MIGRATE;
 		break;
 
 	case STEP32:
 		logger->Debug("STEP 3.2: Running => Migration/Reconf (higher value)");
-		syncState = ApplicationStatusIF::MIGREC;
+		syncState = ba::Schedulable::MIGREC;
 		break;
 
 	case STEP33:
 		logger->Debug("STEP 3.3: Running => Reconf (higher value)");
-		syncState = ApplicationStatusIF::RECONF;
+		syncState = ba::Schedulable::RECONF;
 		break;
 
 	default:
 		// We should never got here
-		syncState = ApplicationStatusIF::SYNC_NONE;
+		syncState = ba::Schedulable::SYNC_NONE;
 		assert(false);
 	}
 
-	if (sv.HasApplications(syncState))
+	if (sv.HasSchedulables(syncState))
 		return syncState;
 
 	logger->Debug("STEP 3.0:            "
 			"No EXCs to be reschedule (higher value)");
-	return ApplicationStatusIF::SYNC_NONE;
+	return ba::Schedulable::SYNC_NONE;
 }
 
-ApplicationStatusIF::SyncState_t SasbSyncPol::step4(
+ba::Schedulable::SyncState_t SasbSyncPol::step4(
 			bbque::System & sv) {
 
 	logger->Debug("STEP 4.0: Ready   => Running");
-	if (sv.HasApplications(ApplicationStatusIF::STARTING))
-		return ApplicationStatusIF::STARTING;
+	if (sv.HasSchedulables(ba::Schedulable::STARTING))
+		return ba::Schedulable::STARTING;
 
 	logger->Debug("STEP 4.0:            "
 			"No EXCs to be started");
-	return ApplicationStatusIF::SYNC_NONE;
+	return ba::Schedulable::SYNC_NONE;
 }
 
-ApplicationStatusIF::SyncState_t SasbSyncPol::GetApplicationsQueue(
+ba::Schedulable::SyncState_t SasbSyncPol::GetApplicationsQueue(
 			bbque::System & sv, bool restart) {
-	static ApplicationStatusIF::SyncState_t servedSyncState;
-	ApplicationStatusIF::SyncState_t syncState;
+	static ba::Schedulable::SyncState_t servedSyncState;
+	ba::Schedulable::SyncState_t syncState;
 
 	// Get timings for previously synched queue
-	if (servedSyncState != ApplicationStatusIF::SYNC_NONE) {
+	if (servedSyncState != ba::Schedulable::SYNC_NONE) {
 		SM_GET_TIMING(metrics, SM_SASB_TIME_START + \
-				(servedSyncState - ApplicationStatusIF::STARTING),
+				(servedSyncState - ba::Schedulable::STARTING),
 				sm_tmr);
 	}
 
@@ -197,7 +203,7 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::GetApplicationsQueue(
 	// Eventaully restart if the sync protocol ask to start from scratch
 	if (restart) {
 		logger->Debug("Resetting sync status");
-		servedSyncState = ApplicationStatusIF::SYNC_NONE;
+		servedSyncState = ba::Schedulable::SYNC_NONE;
 		status = STEP10;
 		// Account for Policy runs
 		SM_COUNT_EVENT(metrics, SM_SASB_RUNS);
@@ -209,46 +215,47 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::GetApplicationsQueue(
 
 	bool do_sync = false;
 
-	syncState = ApplicationStatusIF::SYNC_NONE;
+	syncState = ba::Schedulable::SYNC_NONE;
 	for( ; status<=STEP40 && !do_sync; ++status) {
 		switch(status) {
 		case STEP10:
+		case STEP11:
 			syncState = step1(sv);
-			if (syncState != ApplicationStatusIF::SYNC_NONE)
+			if (syncState != ba::Schedulable::SYNC_NONE)
 				do_sync = true;
 			continue;
 		case STEP21:
 		case STEP22:
 		case STEP23:
 			syncState = step2(sv);
-			if (syncState != ApplicationStatusIF::SYNC_NONE)
+			if (syncState != ba::Schedulable::SYNC_NONE)
 				do_sync = true;
 			continue;
 		case STEP31:
 		case STEP32:
 		case STEP33:
 			syncState = step3(sv);
-			if (syncState != ApplicationStatusIF::SYNC_NONE)
+			if (syncState != ba::Schedulable::SYNC_NONE)
 				do_sync = true;
 
 			continue;
 		case STEP40:
 			syncState = step4(sv);
-			if (syncState != ApplicationStatusIF::SYNC_NONE)
+			if (syncState != ba::Schedulable::SYNC_NONE)
 				do_sync = true;
 			continue;
 		};
 	}
 
 	if (! do_sync) {
-		servedSyncState = ApplicationStatusIF::SYNC_NONE;
+		servedSyncState = ba::Schedulable::SYNC_NONE;
 		return servedSyncState;
 	}
 
 	if (status <= STEP40) {
 		// We have to go back to one status,
 		// since we have exited with
-		// syncState != ApplicationStatusIF::SYNC_NONE
+		// syncState != ba::Schedulable::SYNC_NONE
 		// and the status variable was incremented one
 		// time more than correct
 		status--;
@@ -262,6 +269,11 @@ ApplicationStatusIF::SyncState_t SasbSyncPol::GetApplicationsQueue(
 
 bool SasbSyncPol::DoSync(AppPtr_t papp) {
 	bool reconf = true;
+	logger->Debug("Checking [%s] @ step [%d]: sync_state [%s]",
+			papp->StrId(),
+			status,
+			papp->SyncStateStr(papp->SyncState())
+		    );
 
 	// Steps specific synchronization hinibitors
 	switch(status) {
@@ -269,33 +281,34 @@ bool SasbSyncPol::DoSync(AppPtr_t papp) {
 	// STEP 1
 	// Blocked applications are always authorized
 	case STEP10:
+	case STEP11:
 		return true;
 
 	// STEP 2
 	// reconfigure just apps which lower their AWM value since,
 	// in general, the lower the AWM value => the lower the resources
 	case STEP21:
-		reconf &= (papp->SyncState() == ApplicationStatusIF::MIGRATE);
+		reconf &= (papp->SyncState() == ba::Schedulable::MIGRATE);
 		reconf &= (papp->NextAWM()->Value() < papp->CurrentAWM()->Value());
 		break;
 	case STEP22:
-		reconf &= (papp->SyncState() == ApplicationStatusIF::MIGREC);
+		reconf &= (papp->SyncState() == ba::Schedulable::MIGREC);
 		reconf &= (papp->NextAWM()->Value() < papp->CurrentAWM()->Value());
 		break;
 	case STEP23:
-		reconf &= (papp->SyncState() == ApplicationStatusIF::RECONF);
+		reconf &= (papp->SyncState() == ba::Schedulable::RECONF);
 		reconf &= (papp->NextAWM()->Value() < papp->CurrentAWM()->Value());
 		break;
 
 	// STEP 3
 	case STEP31:
-		reconf &= (papp->SyncState() == ApplicationStatusIF::MIGRATE);
+		reconf &= (papp->SyncState() == ba::Schedulable::MIGRATE);
 		break;
 	case STEP32:
-		reconf &= (papp->SyncState() == ApplicationStatusIF::MIGREC);
+		reconf &= (papp->SyncState() == ba::Schedulable::MIGREC);
 		break;
 	case STEP33:
-		reconf &= (papp->SyncState() == ApplicationStatusIF::RECONF);
+		reconf &= (papp->SyncState() == ba::Schedulable::RECONF);
 		break;
 
 	// Just for compilation warnings
@@ -303,7 +316,7 @@ bool SasbSyncPol::DoSync(AppPtr_t papp) {
 		;
 	};
 
-	if (papp->CurrentAWM()) {
+	if (papp->CurrentAWM() && papp->NextAWM()) {
 		logger->Debug("Checking [%s] @ step [%d]: sync_state [%d], curr_awm [%02d], next_awm [%02d] => %s",
 				papp->StrId(),
 				status,
@@ -312,7 +325,8 @@ bool SasbSyncPol::DoSync(AppPtr_t papp) {
 				papp->NextAWM()->Id(),
 				reconf ? "SYNC" : "SKYP"
 			    );
-	} else {
+	}
+	else if (papp->NextAWM()) {
 		logger->Debug("Checking [%s] @ step [%d]: sync_state [%d], curr_awm [--], next_awm [%02d] => %s",
 				papp->StrId(),
 				status,
@@ -320,6 +334,15 @@ bool SasbSyncPol::DoSync(AppPtr_t papp) {
 				papp->NextAWM()->Id(),
 				reconf ? "SYNC" : "SKYP"
 			    );
+	}
+	else {
+		logger->Debug("Checking [%s] @ step [%d]: sync_state [%d] => %s",
+				papp->StrId(),
+				status,
+				papp->SyncState(),
+				reconf ? "SYNC" : "SKYP"
+			    );
+
 	}
 
 	return reconf;

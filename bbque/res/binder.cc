@@ -46,11 +46,20 @@ void ResourceBinder::Bind(
 		br::ResourcePathPtr_t const & source_path(ru_entry.first);
 		br::ResourceAssignmentPtr_t const & source_assign(ru_entry.second);
 
+		if (!source_path->IncludesType(r_type)) {
+			logger->Debug("Bind: <%s> does not contain <%s>",
+				source_path->ToString().c_str(),
+				br::GetResourceTypeString(r_type));
+			continue;
+		}
+
 		// Build a new resource path
 		auto out_path =
 			std::make_shared<ResourcePath>(source_path->ToString());
-		if (out_path->NumLevels() == 0)
+		if (out_path->NumLevels() == 0) {
+			logger->Debug("Bind: empty out path...");
 			return;
+		}
 
 		// Replace ID of the given resource type with the bound ID
 		rp_result = out_path->ReplaceID(r_type, source_id, out_id);
@@ -70,15 +79,39 @@ void ResourceBinder::Bind(
 				source_assign->GetPolicy());
 
 		ResourcePtrList_t r_bindings = ra.GetResources(out_path);
-		if ((filter_rtype != br::ResourceType::UNDEFINED)
-				&& (filter_mask != nullptr))
-			out_assign->SetResourcesList(
-				r_bindings, filter_rtype, *filter_mask);
-		else
-			out_assign->SetResourcesList(r_bindings);
+		logger->Debug("Bind: binding list length=%d", r_bindings.size());
 
-		// Insert the resource usage object in the output map
-		out_map->emplace(out_path, out_assign);
+		if ((filter_rtype != br::ResourceType::UNDEFINED)
+				&& (filter_mask != nullptr)) {
+			// Binding with filter
+			out_assign->SetResourcesList(r_bindings, filter_rtype, *filter_mask);
+			logger->Debug("Bind: applying filter <%s>={%s}",
+				GetResourceTypeString(filter_rtype),
+				filter_mask->ToString().c_str());
+		}
+		else {
+			out_assign->SetResourcesList(r_bindings);
+		}
+		logger->Debug("Bind: amount=%ld, set resource list length=%d",
+			out_assign->GetAmount(),
+			out_assign->GetResourcesList().size());
+
+		// If the out_path is compatible with an already existing bound
+		// path, the latter should be replaced by out_map
+		RemoveCompatibleAssignments(out_map, out_path);
+
+		// Insert the resource usage object in the output map and exit
+		// from the loop
+		(*out_map)[out_path] = out_assign;
+		logger->Debug("Bind: added bound path: <%s> [amount=%ld, length=%d]",
+			out_path->ToString().c_str(),
+			(*out_map)[out_path]->GetAmount(),
+			(*out_map)[out_path]->GetResourcesList().size());
+		break;
+	}
+
+	for (auto & m: *out_map) {
+		logger->Debug("Bind: map containing <%s>", m.first->ToString().c_str());
 	}
 }
 
@@ -104,11 +137,41 @@ void ResourceBinder::Bind(
 	logger->Debug("Bind: <%s> has %d candidates",
 		resource_path->ToString().c_str(), r_list.size());
 
+	// Filter out resource descriptors from the list
 	out_assign->SetResourcesList(r_list, filter_mask);
 	logger->Debug("Bind: <%s> binding list size = %d",
 		resource_path->ToString().c_str(),
 		out_assign->GetResourcesList().size());
-	out_map->emplace(resource_path, out_assign);
+
+	// Remove compatible bindings
+	RemoveCompatibleAssignments(out_map, resource_path);
+
+	// Insert the resource usage object in the output map
+	(*out_map)[resource_path] = out_assign;
+	logger->Debug("Bind: added bound path: <%s> [amount=%ld, length=%d]",
+		resource_path->ToString().c_str(),
+		(*out_map)[resource_path]->GetAmount(),
+		(*out_map)[resource_path]->GetResourcesList().size());
+}
+
+
+void ResourceBinder::RemoveCompatibleAssignments(
+		br::ResourceAssignmentMapPtr_t out_map,
+		br::ResourcePathPtr_t out_path) {
+	std::unique_ptr<bu::Logger> logger = bu::Logger::GetLogger(MODULE_NAMESPACE);
+
+	br::ResourcePathPtr_t replace_path = nullptr;
+	for (auto & m: *out_map) {
+		if (m.first->Compare(*out_path) == br::ResourcePath::EQUAL_TYPES) {
+			replace_path = m.first;
+		}
+	}
+
+	if (replace_path) {
+		logger->Debug("Bind: removing compatible path: %s ",
+			replace_path->ToString().c_str());
+		out_map->erase(replace_path);
+	}
 }
 
 
@@ -152,7 +215,7 @@ ResourceBitset ResourceBinder::GetMask(
 		br::ResourceType r_type,
 		br::ResourceType r_scope_type,
 		BBQUE_RID_TYPE r_scope_id,
-		AppSPtr_t papp,
+		SchedPtr_t papp,
 		RViewToken_t status_view) {
 	ResourceBitset r_mask;
 	br::ResourceType found_rsrc_type, found_scope_type;
@@ -210,7 +273,7 @@ ResourceBitset ResourceBinder::GetMask(
 		br::ResourceType r_type,
 		br::ResourceType r_scope_type,
 		BBQUE_RID_TYPE r_scope_id,
-		AppSPtr_t papp,
+		SchedPtr_t papp,
 		RViewToken_t status_view) {
 	ResourceBitset r_mask;
 	std::unique_ptr<bu::Logger> logger = bu::Logger::GetLogger(MODULE_NAMESPACE);

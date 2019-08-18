@@ -349,6 +349,8 @@ public:
 		return exc_unique_id;
 	};
 
+
+
 	#define GetUid GetUniqueID
 
 	/**
@@ -572,6 +574,13 @@ public:
 	{
 		return cycles_count;
 	}
+
+	/**
+	 * @brief Get the current execution time
+	 *
+	 * @return Time in milliseconds
+	 */
+	uint32_t GetExecutionTimeMs() const;
 
 	/**
 	 * @brief The currently assigned AWM

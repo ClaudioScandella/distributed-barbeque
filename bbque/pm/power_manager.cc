@@ -41,6 +41,9 @@
 #endif // CONFIG_TARGET_FREESCALE_IMX6Q
 #endif
 
+#ifdef CONFIG_BBQUE_PM_MANGO
+# include "bbque/pm/power_manager_mango.h"
+#endif // CONFIG_BBQUE_PM_MANGO
 
 namespace bw = bbque::pm;
 
@@ -129,6 +132,13 @@ PowerManager::PowerManager() {
 	device_managers[br::ResourceType::CPU] =
 		std::shared_ptr<PowerManager>(new CPUPowerManager());
 #endif // CONFIG_BBQUE_PM_CPU
+
+	// MANGO accelerators
+#ifdef CONFIG_BBQUE_PM_MANGO
+	logger->Notice("Using MANGO platform power management module");
+	device_managers[br::ResourceType::ACCELERATOR] =
+		std::shared_ptr<PowerManager>(new MangoPowerManager());
+#endif // CONFIG_BBQUE_PM_MANGO
 
 }
 

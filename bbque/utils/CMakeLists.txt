@@ -6,6 +6,7 @@ add_subdirectory(logging)
 set (BBQUE_UTILS_SRC timer deferrable worker)
 set (BBQUE_UTILS_SRC ${BBQUE_UTILS_SRC} metrics_collector)
 set (BBQUE_UTILS_SRC ${BBQUE_UTILS_SRC} extra_data_container)
+set (BBQUE_UTILS_SRC ${BBQUE_UTILS_SRC} schedlog)
 
 if(CONFIG_BBQUE_BUILD_DEBUG)
 	set (BBQUE_UTILS_SRC ${BBQUE_UTILS_SRC} assert)

@@ -53,23 +53,14 @@ public:
 	 * @brief Scheduling result
 	 */
 	typedef enum ExitCode {
-		/** Scheduling done */
-		SCHED_DONE = 0,
-		/** Successful return */
-		SCHED_OK,
-		/** Resource availability */
-		SCHED_R_UNAVAILABLE,
-		/** No more PEs available in the cluster */
-		SCHED_BIND_DOMAIN_FULL,
-		/** Application must be skipped due to a Disable/Stop event */
-		SCHED_SKIP_APP,
-		/** Error during initialization */
-		SCHED_ERROR_INIT,
-		/** Error in using the resource state view */
-		SCHED_ERROR_VIEW,
-		/** Undefined error */
-		SCHED_ERROR
-
+		SCHED_DONE = 0,        /** Scheduling regular termination */
+		SCHED_OK,              /** Successful return */
+		SCHED_R_NOT_FOUND,     /** Looking for not existing resource */
+		SCHED_R_UNAVAILABLE,   /** Not enough available resources */
+		SCHED_SKIP_APP,        /** Skip the applicaton (disabled or already running) */
+		SCHED_ERROR_INIT,      /** Error during initialization */
+		SCHED_ERROR_VIEW,      /** Error in using the resource state view */
+		SCHED_ERROR            /** Unexpected error */
 	} ExitCode_t;
 
 	/**

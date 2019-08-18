@@ -87,7 +87,6 @@ check_controllers() {
 
 # Setup CGroups if required
 setup() {
-
 	# Check for required ROOT permissions
 	[[ $(whoami) == "root" ]] || bbqued_error "This script must be run as root"
 	eval `env | grep SUDO_USER`
@@ -102,6 +101,8 @@ setup() {
 		chown $SUDO_USER:$SUDO_USER $BRTRW -R
 	fi
 
+	bbqued_info "Application task-graph location: $BRATG"
+
 	# Set the pil file name (hardware ID if selected, hostame otherwise)
 	bbqued_info "Checking platform description file..."
 	bbqued_notice "Platform description directory: $BBQUE_PILSETUPS"
@@ -111,6 +112,23 @@ setup() {
 	mkdir -p $BBQUE_PILSETUPS
 	chmod a+rw $BBQUE_PILSETUPS
 
+	# Generate a platform description file (XML)
+	# If the generator experiences errors, the bpl file is not created.
+	# The error log is shown by the generator itself
+	gen_platform_descr
+	if [ ! -f $BBQUE_PILSETUPS/$PILNAME ]; then exit; fi
+
+	# Setup control groups
+	if [ "$1" == "--nocg" ]; then
+		bbqued_notice "Cgroups: DISABLED"
+		return
+	else
+		setup_cgroups
+	fi
+}
+
+gen_platform_descr() {
+	bbqued_info "PIL generator: " $PIL_GENERATE
 	if [ ! -f $BBQUE_PILSETUPS/$PILNAME ]; then
 		# Generating the bpl file on the fly, exploiting menuconfig info
 		bbqued_info "Generating PIL layout"
@@ -123,12 +141,13 @@ setup() {
 		sudo chmod a+x $PIL_GENERATE
 		# Launch the generator
 		$PIL_GENERATE $HIERARCHY_DEPTH
-		# If the generator experiences errors, the bpl file is not created.
-		# The error log is shown by the generator itself, so we can exit
-		# without warnings
-		[ ! -f $BBQUE_PILSETUPS/$PILNAME ] && exit
+	else
+		bbqued_info "Platform description already available"
 	fi
+}
 
+setup_cgroups() {
+	bbqued_notice "Cgroup initialization..."
 	# Lookup for host specific PIL Layout and
 	# setup the corresponing CGgroup configuration
 	PILSETUP=$BBQUE_PILSETUPS/$PILNAME
@@ -196,6 +215,7 @@ setup() {
 	echo "1" > $BBQUE_CGMOUNT/user.slice/notify_on_release
 }
 
+
 start() {
 	# Start the daemon only if there is not another instance running
 	if [ -f $BBQUE_PIDFILE ]; then
@@ -204,7 +224,7 @@ start() {
 	fi
 
 	# Setup CGroups
-	setup
+	setup $1
 
 	# Ensure the run-time BBQ folder exists and it is world writable
 	mkdir -p $BBQUE_BRTF 2>/dev/null
@@ -220,12 +240,13 @@ start() {
 
 	# Run the daemon
 	bbqued_notice "LOG file: $BBQUE_LOGFILE"
-	bbqued_info "Starting BBQ Daemon..."
+	bbqued_info "Starting the BarbequeRTRM Daemon..."
 	"$BBQUE_BIN" -c $BBQUE_CONF -d
 }
 
 stop() {
 	# Stop the daemon only if there is an instance running
+	bbqued_info "Stopping the BarbequeRTRM Daemon..."
 	if [ -f $BBQUE_PIDFILE ]; then
 		PID=`cat $BBQUE_PIDFILE`
 		sudo kill -SIGINT $PID #>/dev/null 2>&1
@@ -238,30 +259,54 @@ stop() {
 			echo $P > $BBQUE_CGMOUNT/cgroup.procs 2> /dev/null
 		done
 		sleep 1
-		bbqued_info "Removing applications nodes"
+		bbqued_info "Removing applications nodes..."
 		find  $BBQUE_CGMOUNT/user.slice/* -type d -delete
 	fi
 
 	# Clean-up lock and PID files
 	if [ -f $BBQUE_PIDFILE ] || [ -f $BBQUE_LOCKFILE ]; then
-		bbqued_info "Removing runtime data"
+		bbqued_info "Removing runtime data..."
 		rm -f $BBQUE_PIDFILE $BBQUE_LOCKFILE >/dev/null 2>&1
 	fi
 
-	sudo kill -9 $(pidof barbeque) >/dev/null 2>&1
+	sleep 2
+	sudo kill -SIGTERM $(pidof barbeque) >/dev/null 2>&1
+	bbqued_notice "BarbequeRTRM daemon terminated"
 
+	# Remove previously remained application fifo
+	fifocount=`ls -l $BRTRW/bbque/bbque_[0-9]*_* 2> /dev/null | wc -l`
+	if [ $fifocount -gt 0 ]; then
+		bbqued_info "Removing "$fifocount" lost FIFOs..."
+		rm -rf $BRTRW/bbque/bbque_[0-9]*_*
+	fi
+
+	# Remove lost task-graphs
+	tgcount=`ls -l $BRATG/TG_[0-9]*:[aA-zZ]* 2> /dev/null | wc -l`
+	if [ $tgcount -gt 0 ]; then
+		bbqued_info "Removing "$tgcount" lost-taskgraphs..."
+		rm -rf $BRATG/TG_[0-9]*:[aA-zZ]*
+	fi
+
+	#Remove lost task-graph semaphores
+	semcount=`ls -l /dev/shm/sem.[0-9]*.[aA-zZ]* 2> /dev/null | wc -l`
+	if [ $semcount -gt 0 ]; then
+		bbqued_info "Removing $semcount lost semaphores..."
+		rm -rf /dev/shm/sem.[0-9]*.[aA-zZ]*
+	fi
+
+	bbqued_notice "Done."
 	exit 0
 }
 
 case "$1" in
 	start)
-		start
+		start $2
 		;;
 	stop)
 		stop
 		;;
 	setup)
-		setup
+		setup $2
 		;;
 	release)
 		release

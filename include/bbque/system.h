@@ -21,6 +21,10 @@
 #include "bbque/application_manager.h"
 #include "bbque/resource_accounter.h"
 
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+#include "bbque/process_manager.h"
+#endif
+
 namespace ba = bbque::app;
 namespace br = bbque::res;
 
@@ -158,23 +162,55 @@ public:
 #endif // CONFIG_BBQUE_TG_PROG_MODEL
 	}
 
-	/// .............................: RESOURCES :............................
+
+	/**************************************************************************
+	 *  Schedulables management                                               *
+	 **************************************************************************/
+
+	inline uint32_t SchedulablesCount(ba::Schedulable::State_t state) {
+		return (am.AppsCount(state)
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+			+ prm.ProcessesCount(state)
+#endif
+		);
+	}
+
+	inline bool HasSchedulables(ba::Schedulable::State_t state) {
+		return (am.HasApplications(state)
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+			|| prm.HasProcesses(state)
+#endif
+		);
+	}
+
+	inline bool HasSchedulables(ba::Schedulable::SyncState_t sync_state) {
+		return (am.HasApplications(sync_state)
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+			|| prm.HasProcesses(sync_state)
+#endif
+		);
+	}
+
+
+	/**************************************************************************
+	 *  Resource management                                                   *
+	 **************************************************************************/
 
 	/**
 	 * @see ResourceAccounterStatusIF::Available()
 	 */
 	inline uint64_t ResourceAvailable(std::string const & path,
-			br::RViewToken_t status_view = 0, ba::AppCPtr_t papp = ba::AppCPtr_t()) const {
+			br::RViewToken_t status_view = 0, ba::SchedPtr_t papp = ba::SchedPtr_t()) const {
 		return ra.Available(path, status_view, papp);
 	}
 
 	inline uint64_t ResourceAvailable(ResourcePathPtr_t ppath,
-			br::RViewToken_t status_view = 0, AppSPtr_t papp = AppSPtr_t()) const {
+			br::RViewToken_t status_view = 0, ba::SchedPtr_t papp = SchedPtr_t()) const {
 		return ra.Available(ppath, ResourceAccounter::UNDEFINED, status_view, papp);
 	}
 
 	inline uint64_t ResourceAvailable(br::ResourcePtrList_t & rsrc_list,
-			br::RViewToken_t status_view = 0, ba::AppCPtr_t papp = ba::AppCPtr_t()) const {
+			br::RViewToken_t status_view = 0, ba::SchedPtr_t papp = ba::SchedPtr_t()) const {
 		return ra.Available(rsrc_list, status_view, papp);
 	}
 
@@ -304,11 +340,19 @@ private:
 	/** ResourceAccounter instance */
 	ResourceAccounterConfIF & ra;
 
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+	ProcessManager & prm;
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
+
 	/** Constructor */
 	System() :
 		am(ApplicationManager::GetInstance()),
-		ra(ResourceAccounter::GetInstance()) {
-	}
+		ra(ResourceAccounter::GetInstance())
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+		,
+		prm(ProcessManager::GetInstance())
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
+	{ }
 };
 
 

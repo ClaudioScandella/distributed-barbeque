@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package bbque;
+
+service RemoteAgent {
+	rpc Discover(GenericRequest) returns (GenericReply);
+	rpc Ping(GenericRequest) returns (GenericReply);
+	rpc GetResourceStatus(ResourceStatusRequest) returns (ResourceStatusReply);
+	rpc GetWorkloadStatus(GenericRequest) returns (WorkloadStatusReply);
+	rpc GetChannelStatus(GenericRequest) returns (ChannelStatusReply);
+	rpc SetNodeManagementAction(NodeManagementRequest) returns (GenericReply);
+}
+
+// --------------------------
+
+message GenericRequest {
+  uint32 sender_id = 1;
+  uint32 dest_id   = 2;
+}
+
+message GenericReply {
+
+  enum Code {
+    OK  = 0;
+    AGENT_UNREACHABLE  = 1;
+    AGENT_DISCONNECTED = 2;
+    REQUEST_REJECTED   = 3;
+  }
+
+  Code value = 1;
+}
+
+
+message ResourceStatusRequest {
+  uint32 sender_id = 1;
+  uint32 dest_id   = 2;
+  string path      = 3;
+  bool average     = 4;
+}
+
+message ResourceStatusReply {
+  uint64 total     = 1;
+  uint64 used      = 2;
+  uint32 degradation  = 3;
+  uint32 temperature  = 4;
+  uint32 power_mw     = 5;
+  uint32 load         = 6;
+}
+
+
+message WorkloadStatusReply {
+  uint32 nr_ready   = 1;
+  uint32 nr_running = 2;
+}
+
+
+message ChannelStatusReply {
+  bool connected    = 1;
+  uint32 latency_ms = 2;
+}
+
+
+message NodeManagementRequest {
+  uint32 sender_id = 1;
+
+  enum Action {
+    JOIN    = 0;
+    DISJOIN = 1;
+    CHECK   = 2;
+  }
+  Action value = 2;
+  uint32 partition_num = 3;
+}
+
+
+message ApplicationSchedulingRequest {
+  uint32 sender_id = 1;
+  uint32 app_id    = 2;
+  string app_name  = 3;
+  int32  awm_id    = 4;
+}

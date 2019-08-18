@@ -31,6 +31,7 @@
 #define MODULE_NAMESPACE \
 	SYNCHRONIZATION_POLICY_NAMESPACE "." SYNCHRONIZATION_POLICY_NAME
 
+namespace ba = bbque::app;
 namespace bu = bbque::utils;
 
 using bbque::utils::Timer;
@@ -68,7 +69,7 @@ public:
 
 	char const * Name();
 
-	ApplicationStatusIF::SyncState_t GetApplicationsQueue(
+	ba::Schedulable::SyncState_t GetApplicationsQueue(
 			bbque::System & system, bool restart = false);
 
 	bool DoSync(AppPtr_t papp);
@@ -81,6 +82,7 @@ private:
 
 	typedef enum syncState {
 		STEP10 = 0,
+		STEP11,
 		STEP21,
 		STEP22,
 		STEP23,
@@ -134,13 +136,13 @@ private:
 	 */
 	SasbSyncPol();
 
-	ApplicationStatusIF::SyncState_t step1(bbque::System & system);
+	ba::Schedulable::SyncState_t step1(bbque::System & system);
 
-	ApplicationStatusIF::SyncState_t step2(bbque::System & system);
+	ba::Schedulable::SyncState_t step2(bbque::System & system);
 
-	ApplicationStatusIF::SyncState_t step3(bbque::System & system);
+	ba::Schedulable::SyncState_t step3(bbque::System & system);
 
-	ApplicationStatusIF::SyncState_t step4(bbque::System & system);
+	ba::Schedulable::SyncState_t step4(bbque::System & system);
 
 };
 

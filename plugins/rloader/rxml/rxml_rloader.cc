@@ -459,7 +459,7 @@ void RXMLRecipeLoader::LoadTasksRequirements(rapidxml::xml_node<>  *_xml_elem) {
 			logger->Debug("LoadTasksRequirements: hw_prefs=%s", read_attrib.c_str());
 
 			std::list<std::string> archs;
-			SplitString(read_attrib, archs, ",");
+			bu::SplitString(read_attrib, archs, ",");
 			for(auto const & s: archs) {
 				ArchType type = GetArchTypeFromString(s);
 				if (type == ArchType::NONE) {
@@ -536,11 +536,10 @@ uint8_t RXMLRecipeLoader::LoadResources(rapidxml::xml_node<> * _xml_elem,
 uint8_t RXMLRecipeLoader::AppendToWorkingMode(AwmPtr_t & wm,
 		std::string const & _res_path,
 		uint64_t _res_usage) {
-	ba::WorkingModeStatusIF::ExitCode_t result;
 	// Add the resource usage to the working mode,
 	// return a "weak load" code if some resources are missing
-	result = wm->AddResourceRequest(_res_path, _res_usage);
-	if (result == ba::WorkingModeStatusIF::WM_RSRC_NOT_FOUND) {
+	auto preq = wm->AddResourceRequest(_res_path, _res_usage);
+	if (preq == nullptr) {
 		logger->Warn("'%s' recipe: resource '%s' not available",
 				recipe_ptr->Path().c_str(), _res_path.c_str());
 		return __RSRC_WEAK_LOAD;
@@ -728,17 +727,23 @@ void RXMLRecipeLoader::LoadConstraints(rapidxml::xml_node<> * _xml_node) {
 void RXMLRecipeLoader::CheckMandatoryNode (
 	 rapidxml::xml_node<> * _nodeToCheck,
 	 const char * _nodeToCheckName,
-	 rapidxml::xml_node<> * _nodeFather) {
+	 rapidxml::xml_node<> * _nodeParent) {
 
-	std::string father_name(_nodeFather->name());
+	if (_nodeParent == nullptr) {
+		std::string exception_message("Null parent node");
+		throw rapidxml::parse_error(exception_message.c_str(), _nodeParent);
+	}
+
+	std::string parent_name(_nodeParent->name());
 	std::string child_name(_nodeToCheckName);
+
 
 	//Throwing an exception if the mandatory node doesn't exist
 	if (_nodeToCheck == 0) {
 	std::string exception_message("The mandatory node doesn't exist in this"
 			"recipe. The node name is: " + child_name +"."
-			"The father name is: " + father_name);
-	throw rapidxml::parse_error(exception_message.c_str(), _nodeFather);
+			"The parent name is: " + parent_name);
+	throw rapidxml::parse_error(exception_message.c_str(), _nodeParent);
 	}
 }
 

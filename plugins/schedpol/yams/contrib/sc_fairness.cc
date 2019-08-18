@@ -114,7 +114,7 @@ SchedContrib::ExitCode_t SCFairness::Init(void * params) {
 		min_bd_r_avail[r_type_index] = r_avail[r_type_index];
 		max_bd_r_avail[r_type_index] = 0;
 
-		for (BBQUE_RID_TYPE & bd_id: bd_info.ids) {
+		for (BBQUE_RID_TYPE & bd_id: bd_info.r_ids) {
 			snprintf(r_path_str, 20, "%s%d.%s",
 					bd_info.base_path->ToString().c_str(),
 					bd_id,

@@ -84,7 +84,7 @@ public:
 	/**
 	 * @brief Platform specific resource setup interface.
 	 */
-	ExitCode_t Setup(AppPtr_t papp) override final;
+	ExitCode_t Setup(SchedPtr_t papp) override final;
 
 	/**
 	 * @brief Load OpenCL platform data function
@@ -98,18 +98,23 @@ public:
 	/**
 	 * @brief OpenCL specific resources release function
 	 */
-	ExitCode_t Release(AppPtr_t papp) override final;
+	ExitCode_t Release(SchedPtr_t papp) override final;
 
 	/**
 	 * @brief OpenCL specific resource claiming function
 	 */
-	ExitCode_t ReclaimResources(AppPtr_t papp) override final;
+	ExitCode_t ReclaimResources(SchedPtr_t papp) override final;
 
 	/**
 	 * @brief OpenCL resource assignment mapping
 	 */
 	ExitCode_t MapResources(
-	        ba::AppPtr_t papp, br::ResourceAssignmentMapPtr_t assign_map, bool excl) override final;
+	        ba::SchedPtr_t papp, br::ResourceAssignmentMapPtr_t assign_map, bool excl) override final;
+
+	/**
+	 * OpenCL specific termination
+	 */
+	void Exit() override;
 
 
 	bool IsHighPerformance(bbque::res::ResourcePathPtr_t const & path) const;

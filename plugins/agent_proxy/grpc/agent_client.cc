@@ -24,9 +24,10 @@ namespace plugins
 
 using bbque::agent::ExitCode_t;
 
-AgentClient::AgentClient(int local_sys_id, const std::string & _address_port):
-	local_system_id(local_sys_id),
-	server_address_port(_address_port)
+AgentClient::AgentClient(int _local_id, int _remote_id, const std::string & _address_port):
+	local_system_id(_local_id),
+	remote_system_id(_remote_id),
+	remote_address_port(_address_port)
 {
 	logger = bbque::utils::Logger::GetLogger(AGENT_PROXY_NAMESPACE".grpc.cln");
 	Connect();
@@ -34,14 +35,14 @@ AgentClient::AgentClient(int local_sys_id, const std::string & _address_port):
 
 ExitCode_t AgentClient::Connect()
 {
-	logger->Debug("Connecting to %s...", server_address_port.c_str());
+	logger->Debug("Connecting to %s...", remote_address_port.c_str());
 	if (channel != nullptr) {
 		logger->Debug("Channel already open");
 		return agent::ExitCode_t::OK;
 	}
 
 	channel = grpc::CreateChannel(
-			  server_address_port, grpc::InsecureChannelCredentials());
+			  remote_address_port, grpc::InsecureChannelCredentials());
 	logger->Debug("Channel open");
 
 	service_stub = bbque::RemoteAgent::NewStub(channel);
@@ -67,6 +68,83 @@ bool AgentClient::IsConnected()
 
 // ---------- Status
 
+ExitCode_t AgentClient::Discover(std::string ip, bbque::DiscoverRequest& iam) {
+
+	std::shared_ptr<grpc::Channel> c = grpc::CreateChannel(ip, grpc::InsecureChannelCredentials());
+	std::shared_ptr<bbque::RemoteAgent::Stub> stub = bbque::RemoteAgent::NewStub(c);
+
+	std::unique_ptr<bbque::utils::Logger> logger = bbque::utils::Logger::GetLogger(AGENT_PROXY_NAMESPACE".grpc.cln");
+
+
+	// char buffer[100];
+	// sprintf(buffer, "agent_client: Discover ip %s", ip.c_str());
+	// logger->Debug(buffer);
+
+	bbque::DiscoverRequest request = iam;
+
+	grpc::Status status;
+	grpc::ClientContext context;
+	bbque::DiscoverReply reply;
+
+	// sprintf(buffer, "agent_client: peer: %s", context.peer().c_str());
+	// logger->Debug(buffer);
+
+	status = stub->Discover(&context, request, &reply);
+
+	// sprintf(buffer, "agent_client: peer: %s", context.peer().c_str());
+	// logger->Debug(buffer);
+
+	// logger->Debug("agent_client: Discover: 2");
+
+	if (status.ok()) {
+		if (reply.iam() == bbque::DiscoverReply_IAm_INSTANCE){
+			// logger->Debug("agent_client: Discover: 3");
+			return ExitCode_t::OK;
+		}
+		else {
+			// logger->Debug("agent_client: Discover: 4");
+			return ExitCode_t::REQUEST_REJECTED;
+		}
+    } else {
+    	// logger->Debug("agent_client: Discover: 5");
+    	return ExitCode_t::AGENT_UNREACHABLE;
+    }
+}
+	
+ExitCode_t AgentClient::Ping(int & milliseconds) {
+	// Connect...
+	ExitCode_t exit_code = Connect();
+	if (exit_code != ExitCode_t::OK) {
+		logger->Error("ResourceStatus: Connection failed");
+		return exit_code;
+	}
+
+	bbque::GenericRequest request;
+	request.set_sender_id(local_system_id);
+	request.set_dest_id(remote_system_id);
+
+	grpc::Status status;
+	grpc::ClientContext context;
+	bbque::GenericReply reply;
+
+	timer.start();
+
+	status = service_stub->Ping(&context, request, &reply);
+
+	timer.stop();
+
+	if (status.ok()) {
+		if (reply.value() == 1) {
+			milliseconds = (int)timer.getElapsedTime();
+			return ExitCode_t::OK;
+		}
+		else 
+			return ExitCode_t::REQUEST_REJECTED;
+    } else {
+    	return ExitCode_t::AGENT_UNREACHABLE;
+    }
+}
+
 ExitCode_t AgentClient::GetResourceStatus(
 		std::string const & resource_path,
 		agent::ResourceStatus & resource_status) {
@@ -80,6 +158,7 @@ ExitCode_t AgentClient::GetResourceStatus(
 	// Do RPC call
 	bbque::ResourceStatusRequest request;
 	request.set_sender_id(local_system_id);
+	request.set_dest_id(remote_system_id);
 	request.set_path(resource_path);
 	request.set_average(false);
 
@@ -117,6 +196,7 @@ ExitCode_t AgentClient::GetWorkloadStatus(
 
 	bbque::GenericRequest request;
 	request.set_sender_id(local_system_id);
+	request.set_dest_id(remote_system_id);
 	grpc::Status status;
 	grpc::ClientContext context;
 	bbque::WorkloadStatusReply reply;
@@ -136,10 +216,8 @@ ExitCode_t AgentClient::GetWorkloadStatus(
 	return ExitCode_t::OK;
 }
 
-ExitCode_t AgentClient::GetChannelStatus(
-		agent::ChannelStatus & channel_status) {
-
-        timer.start();
+ExitCode_t AgentClient::GetChannelStatus(agent::ChannelStatus & channel_status) {
+	timer.start();
 	ExitCode_t exit_code = Connect();
 	if (exit_code != ExitCode_t::OK) {
 		logger->Error("ChannelStatus: Connection failed");
@@ -149,6 +227,7 @@ ExitCode_t AgentClient::GetChannelStatus(
 
 	bbque::GenericRequest request;
 	request.set_sender_id(local_system_id);
+	request.set_dest_id(remote_system_id);
 	grpc::Status status;
 	grpc::ClientContext context;
 	bbque::ChannelStatusReply reply;

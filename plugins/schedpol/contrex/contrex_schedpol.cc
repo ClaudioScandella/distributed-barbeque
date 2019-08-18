@@ -251,11 +251,11 @@ SchedulerPolicyIF::ExitCode_t ContrexSchedPol::ScheduleApplication(
 	// Resource (CPU) binding
 	logger->Debug("Schedule: [%s] CPU binding...", papp->StrId());
 	BindingManager & bdm(BindingManager::GetInstance());
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	BBQUE_RID_TYPE bind_cpu_id = 0;
 	// Resource binding: getting the first CPU ID option
 	if (bindings.find(br::ResourceType::CPU) != bindings.end())
-		bind_cpu_id = *(bindings[br::ResourceType::CPU]->ids.begin());
+		bind_cpu_id = *(bindings[br::ResourceType::CPU]->r_ids.begin());
 	else
 		logger->Warn("Schedule: missing CPU binding options (setting to 0)");
 
@@ -263,9 +263,9 @@ SchedulerPolicyIF::ExitCode_t ContrexSchedPol::ScheduleApplication(
 	ref_num = pawm->BindResource(br::ResourceType::CPU, R_ID_ANY, bind_cpu_id, ref_num);
 
 	// Schedule request
-	bbque::app::Application::ExitCode_t app_result =
-		papp->ScheduleRequest(pawm, sched_status_view, ref_num);
-	if (app_result != bbque::app::Application::APP_SUCCESS) {
+	ApplicationManager & am(ApplicationManager::GetInstance());
+	auto ret = am.ScheduleRequest(papp, pawm, sched_status_view, ref_num);
+	if (ret != ApplicationManager::AM_SUCCESS) {
 		logger->Error("Schedule: scheduling of [%s] failed", papp->StrId());
 		return SCHED_ERROR;
 	}

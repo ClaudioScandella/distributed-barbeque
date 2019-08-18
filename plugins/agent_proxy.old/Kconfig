@@ -1,0 +1,21 @@
+config BBQUE_AGENT_PROXY_PORT_DEFAULT
+  int "Server port"
+  depends on BBQUE_DIST_MODE
+  default 885
+  ---help---
+  The default port number for the AgentProxy server.
+
+
+choice
+  prompt "Agent Proxy plugin"
+  depends on BBQUE_DIST_MODE
+
+  config BBQUE_AGENT_PROXY_DEFAULT_GRPC
+    depends on BBQUE_AGENT_PROXY_GRPC
+    bool "gRPC"
+
+##NP
+
+endchoice
+
+source barbeque/plugins/agent_proxy/grpc/Kconfig

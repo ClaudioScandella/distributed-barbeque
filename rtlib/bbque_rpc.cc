@@ -3042,6 +3042,23 @@ AppUid_t BbqueRPC::GetUniqueID(RTLIB_EXCHandler_t exc_handler)
 	return ((channel_thread_pid << BBQUE_UID_SHIFT) + exc->id);
 }
 
+
+uint32_t BbqueRPC::GetExecutionTimeMs(RTLIB_EXCHandler_t exc_handler)
+{
+	assert(exc_handler);
+	pRegisteredEXC_t exc;
+	exc = getRegistered(exc_handler);
+	if (!exc) {
+		fprintf(stderr, FE("Get execution time for EXC [%p] FAILED "
+						   "(EXC not registered)\n"), (void *) exc_handler);
+		return RTLIB_EXC_NOT_REGISTERED;
+	}
+
+	assert(isRegistered(exc) == true);
+
+	return exc->processing_time_ms;
+}
+
 /*******************************************************************************
  *    Cycles Per Second (CPS) Control Support
  ******************************************************************************/

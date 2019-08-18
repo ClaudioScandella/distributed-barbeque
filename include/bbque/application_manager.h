@@ -21,14 +21,14 @@
 #include <map>
 #include <vector>
 
-#include "bbque/config.h"
+#include "bbque/app/application_conf.h"
 #include "bbque/application_manager_conf.h"
+#include "bbque/config.h"
 #include "bbque/command_manager.h"
+#include "bbque/cpp11/mutex.h"
+#include "bbque/plugins/recipe_loader.h"
 #include "bbque/utils/deferrable.h"
 #include "bbque/utils/logging/logger.h"
-#include "bbque/plugins/recipe_loader.h"
-#include "bbque/cpp11/mutex.h"
-#include "bbque/command_manager.h"
 
 using bbque::app::Application;
 using bbque::utils::Deferrable;
@@ -149,13 +149,18 @@ public:
 	/**
 	 * @see ApplicationManagerConfIF
 	 */
-	ExitCode_t CheckEXC(AppPtr_t papp, bool release = true);
+	bool CheckEXC(AppPtr_t papp, bool release = true);
 
 	/**
 	 * @see ApplicationManagerConfIF
 	 */
-	ExitCode_t CheckEXC(AppPid_t pid, uint8_t exc_id,
-			bool release = true);
+	bool CheckEXC(AppPid_t pid, uint8_t exc_id, bool release = true);
+
+	/**
+	 * @see ApplicationManagerConfIF
+	 */
+	void CheckActiveEXCs();
+
 
 /*******************************************************************************
  *     Thread-Safe Queue Access Functions
@@ -210,42 +215,47 @@ public:
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
-	bool HasApplications (AppPrio_t prio);
+	bool HasApplications(AppPrio_t prio);
 
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
-	bool HasApplications (ApplicationStatusIF::State_t state);
+	bool HasApplications(ApplicationStatusIF::State_t state);
 
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
-	bool HasApplications (ApplicationStatusIF::SyncState_t state);
+	bool HasApplications(ApplicationStatusIF::SyncState_t state);
 
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
-	bool HasApplications (RTLIB_ProgrammingLanguage_t lang);
+	bool HasApplications(RTLIB_ProgrammingLanguage_t lang);
 
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
-	uint16_t AppsCount (AppPrio_t prio) const;
+	uint16_t AppsCount() const;
 
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
-	uint16_t AppsCount (ApplicationStatusIF::State_t state) const;
+	uint16_t AppsCount(AppPrio_t prio) const;
 
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
-	uint16_t AppsCount (ApplicationStatusIF::SyncState_t state) const;
+	uint16_t AppsCount(ApplicationStatusIF::State_t state) const;
 
 	/**
 	 * @see ApplicationManagerStatusIF
 	 */
-	uint16_t AppsCount (RTLIB_ProgrammingLanguage_t lang) const;
+	uint16_t AppsCount(ApplicationStatusIF::SyncState_t state) const;
+
+	/**
+	 * @see ApplicationManagerStatusIF
+	 */
+	uint16_t AppsCount(RTLIB_ProgrammingLanguage_t lang) const;
 
 	/**
 	 * @see ApplicationManagerStatusIF
@@ -274,16 +284,87 @@ public:
 		return BBQUE_APP_PRIO_LEVELS-1;
 	};
 
+/*******************************************************************************
+ *     Scheduling functions
+ ******************************************************************************/
+
 	/**
-	 * @brief Request the synchronization of an application
+	 * @brief Request to re-schedule this application into a new configuration
+	 *
+	 * The Optimizer call this method when an AWM is selected for this
+	 * application to verify if it could be scheduled, i.e. bound resources
+	 * are available, and eventually to update the application status.
+	 *
+	 * First the application verify resources availability. If the quality and
+	 * amount of required resources could be satisfied, the application is
+	 * going to be re-scheduled otherwise, it is un-scheduled.
+	 *
+	 * @param papp The application/EXC to schedule
+	 * @param awm Next working mode scheduled for the application
+	 * @param status_view The token referencing the resources state view
+	 * @param bid An optional identifier for the resource binding
+	 *
+	 * @return The method returns an exit code representing the decision taken:
+	 * AM_SUCCESS if the specified working mode can be scheduled for
+	 * this application, APP_AWM_NOT_SCHEDULABLE if the working mode cannot
+	 * not be scheduled. If the application is currently disabled this call
+	 * returns always AM_APP_DISABLED.
+	 */
+	ExitCode_t ScheduleRequest(
+		app::AppCPtr_t papp, app::AwmPtr_t  awm,
+		br::RViewToken_t status_view, size_t b_refn);
+
+	/**
+	 * @brief Re-schedule this application according to previous scheduling
+	 * policy run
+	 *
+	 * @param papp The application to re-schedule
+	 * @param status_view The token referencing the resources state view
+	 *
+	 * @return The method returns AM_SUCCESS if the application can be
+	 * rescheduled, AM_EXC_INVALID_STATUS if the application is not in "running"
+	 * stats, APP_AWM_NOT_SCHEDULABLE if required resources are no longer available.
+	 */
+	ExitCode_t ScheduleRequestAsPrev(
+		app::AppCPtr_t papp, br::RViewToken_t status_view);
+
+	/**
+	 * @brief Configure this application to switch to the specified AWM
+	 * @param papp the application
+	 * @param awm the working mode
+	 * @return @see ExitCode_t
+	 */
+	ExitCode_t Reschedule(app::AppCPtr_t papp, app::AwmPtr_t awm);
+
+	/**
+	 * @brief Configure this application to release resources.
+	 * @param papp the application
+	 * @return @see ExitCode_t
+	 */
+	ExitCode_t Unschedule(app::AppCPtr_t papp);
+
+	/**
+	 * @brief Do not schedule the application
+	 * @param papp the application
+	 */
+	ExitCode_t NoSchedule(app::AppCPtr_t papp);
+
+
+	/**
+	 * @brief Flag the application as "to synchronize"
 	 *
 	 * @param papp the application to synchronize
-	 * @param state the synchronization state required
+	 * @param next_state the synchronization state
 	 *
 	 * @return AM_SUCCESS if the synchronization request has been accepted,
 	 * AM_ABORT on synchronization request errors
 	 */
-	ExitCode_t SyncRequest(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
+	ExitCode_t SetForSynchronization(
+		app::AppCPtr_t papp, ApplicationStatusIF::SyncState_t next_sync);
+
+/*******************************************************************************
+ *     Synchronization functions
+ ******************************************************************************/
 
 	/**
 	 * @brief Commit the synchronization for the specified application
@@ -302,54 +383,12 @@ public:
 	void SyncAbort(AppPtr_t papp);
 
 	/**
-	 * @brief Notify an application is changin state
-	 *
-	 * This method should be called by the Application once it is changing its
-	 * scheduling state so that the ApplicationManager could update its
-	 * internal maps.
-	 *
-	 * @param papp a pointer to the interested application
-	 * @param next the new state the application is entering
-	 *
-	 * @note this method must acquire the mutex of both current and next state
-	 * queues.
-	 *
-	 * @return AM_SUCCESS on internal maps update success, AM_ABORT on
-	 * failure.
-	 */
-	ExitCode_t NotifyNewState(AppPtr_t papp, ApplicationStatusIF::State_t next);
-
-	/**
 	 * @brief Commit the "continue to run" for the specified application
 	 *
 	 * @param papp a pointer to the interested application
 	 * @return AM_SUCCESS on success, AM_ABORT on failure
 	 */
-	ExitCode_t RunningCommit(AppPtr_t papp);
-
-	/**
-	 * @brief Update runtime profiling information of each active
-	 * application/EXC
-	 *
-	 * This is set set of information that can be used by the optimization
-	 * policy
-	 */
-	int UpdateRuntimeProfiles();
-
-	/**
-	 * @brief Dump a logline to report on current Status queue counts
-	 */
-	void ReportStatusQ(bool verbose = false) const;
-
-	/**
-	 * @brief Dump a logline to report on current Status queue counts
-	 */
-	void ReportSyncQ(bool verbose = false) const;
-
-	/**
-	 * @see ApplicationManagerStatusIF
-	 */
-	void PrintStatusReport(bool verbose = false);
+	ExitCode_t SyncContinue(AppPtr_t papp);
 
 
 /*******************************************************************************
@@ -372,6 +411,15 @@ public:
 	 */
 	ExitCode_t IsReschedulingRequired(AppPtr_t papp,
 			struct app::RuntimeProfiling_t &profile);
+
+	/**
+	 * @brief Update runtime profiling information of each active
+	 * application/EXC
+	 *
+	 * This is set set of information that can be used by the optimization
+	 * policy
+	 */
+	int UpdateRuntimeProfiles();
 
 	/**
 	 * @see ApplicationManagerConfIF
@@ -427,6 +475,27 @@ public:
 	void LoadTaskGraphAll();
 
 #endif // CONFIG_BBQUE_TG_PROG_MODEL
+
+/*******************************************************************************
+ *     Status logging
+ ******************************************************************************/
+
+	/**
+	 * @brief Dump a logline to report on current Status queue counts
+	 */
+	void PrintStatusQ(bool verbose = false) const;
+
+	/**
+	 * @brief Dump a logline to report on current Status queue counts
+	 */
+	void PrintSyncQ(bool verbose = false) const;
+
+	/**
+	 * @brief Dump a logline to report all applications status
+	 *
+	 * @param verbose print in INFO logleve is ture, in DEBUG if false
+	 */
+	void PrintStatus(bool verbose = false);
 
 private:
 
@@ -614,6 +683,18 @@ private:
 	 */
 	void UpdateIterators(AppsUidMapItRetainer_t & ret, AppPtr_t papp);
 
+
+	/**
+	 * @brief Change the status of an application/EXC
+	 * @param papp the application
+	 * @param next_state next stable state
+	 * @param next_sync next synchronization state
+	 */
+	ExitCode_t ChangeEXCState(
+		AppPtr_t papp,
+		app::Schedulable::State_t next_state,
+		app::Schedulable::SyncState_t next_sync = app::Schedulable::SYNC_NONE);
+
 	/**
 	 * @brief Move the application from state vectors
 	 *
@@ -622,7 +703,8 @@ private:
 	 * @param next next application status
 	 */
 	ExitCode_t UpdateStatusMaps(AppPtr_t papp,
-			ApplicationStatusIF::State_t prev, ApplicationStatusIF::State_t next);
+			ApplicationStatusIF::State_t prev,
+			ApplicationStatusIF::State_t next);
 
 	/**
 	 * @brief Release a synchronization request for the specified application
@@ -630,7 +712,7 @@ private:
 	 * @param papp the application to release
 	 * @param state the synchronization state to remove
 	 */
-	void SyncRemove(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
+	void RemoveFromSyncMap(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
 
 	/**
 	 * @brief Release any synchronization request for the specified
@@ -638,7 +720,7 @@ private:
 	 *
 	 * @param papp the application to release
 	 */
-	void SyncRemove(AppPtr_t papp);
+	void RemoveFromSyncMap(AppPtr_t papp);
 
 	/**
 	 * @brief Add a synchronization request for the specified application
@@ -646,7 +728,7 @@ private:
 	 * @param papp the application to synchronize
 	 * @param state the synchronization state to add
 	 */
-	void SyncAdd(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
+	void AddToSyncMap(AppPtr_t papp, ApplicationStatusIF::SyncState_t state);
 
 	/**
 	 * @brief Add the configured synchronization request for the specified
@@ -654,7 +736,7 @@ private:
 	 *
 	 * @param papp the application to synchronize
 	 */
-	void SyncAdd(AppPtr_t papp);
+	void AddToSyncMap(AppPtr_t papp);
 
 
 	/**

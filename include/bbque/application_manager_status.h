@@ -89,10 +89,13 @@ private:
 
 	/** The map to visit */
 	AppsUidMap_t *map = NULL;
+
 	/** An interator on a UIDs map */
 	AppsUidMap_t::iterator it;
+
 	/** A flag to track iterator validity */
 	bool updated = false;
+
 	/** The retantion list on which this has been inserted */
 	AppsUidMapItRetainer_t *ret = NULL;
 
@@ -151,21 +154,19 @@ public:
 	 * @brief Exit code to return
 	 */
 	enum ExitCode_t {
-		/** Success */
-		AM_SUCCESS = 0,
-		/** Reschedule required */
-		AM_RESCHED_REQUIRED,
-		/** Application Execution Context not found */
-		AM_EXC_NOT_FOUND,
-		/** Error accessing the platform proxy */
-		AM_PLAT_PROXY_ERROR,
-		/** Execution of a method interrupted by an unexpected state in an
-		 * internal data structure state */
-		AM_DATA_CORRUPT,
-		/** Execution of a method interrupted but without critical errors */
-		AM_SKIPPING,
-		/** Method forced to exit */
-		AM_ABORT
+		AM_SUCCESS = 0,           /** Success */
+		AM_RESCHED_REQUIRED,      /** Reschedule required */
+		AM_AWM_NULL,              /** AWM descriptor is null */
+		AM_AWM_NOT_SCHEDULABLE,   /** Not enough resource to assign the AWM */
+		AM_APP_DISABLED,          /** Application in disabled status */
+		AM_EXC_NOT_FOUND,         /** Application Execution Context not found */
+		AM_EXC_INVALID_STATUS,    /** Operation failed due to invalid status */
+		AM_EXC_STATUS_CHANGE_FAILED,  /** Failed change of application status */
+		AM_EXC_STATUS_CHANGE_NONE,    /** Nothing done in change of application status request */
+		AM_PLAT_PROXY_ERROR,      /** Error accessing the platform proxy */
+		AM_DATA_CORRUPT,          /** Inconsistency in internal data structures */
+		AM_SKIPPING,              /** Interrupted operation */
+		AM_ABORT                  /** Forced termination */
 	};
 
 	/**
@@ -173,7 +174,7 @@ public:
 	 *
 	 * Each time a module requires to visit the UID applications map, should
 	 * use a pair of methods which ensure a proper handling of the container
-	 * iterator. Indeed, for efficincy purposes, all the Barbeque containers
+	 * iterator. Indeed, for efficiency purposes, all the Barbeque containers
 	 * are mutable and use fine-grained locking to better exploit the
 	 * framework parallelism.
 	 * Visiting a container requires to get its elements using a pair of
@@ -304,25 +305,31 @@ public:
 	 */
 	virtual bool HasApplications (RTLIB_ProgrammingLanguage_t lang) = 0;
 
+
+	/**
+	 * @brief The total number of applications
+	 */
+	virtual uint16_t AppsCount() const = 0;
+
 	/**
 	 * @brief The number of applications having the given PRIORITY
 	 */
-	virtual uint16_t AppsCount (AppPrio_t prio) const = 0;
+	virtual uint16_t AppsCount(AppPrio_t prio) const = 0;
 
 	/**
 	 * @brief The number of applications in the specified STATE
 	 */
-	virtual uint16_t AppsCount (ApplicationStatusIF::State_t state) const = 0;
+	virtual uint16_t AppsCount(ApplicationStatusIF::State_t state) const = 0;
 
 	/**
 	 * @brief The number of applications in the specified SYNC_STATE
 	 */
-	virtual uint16_t AppsCount (ApplicationStatusIF::SyncState_t state) const = 0;
+	virtual uint16_t AppsCount(ApplicationStatusIF::SyncState_t state) const = 0;
 
 	/**
 	 * @brief The number of applications of the specified language type
 	 */
-	virtual uint16_t AppsCount (RTLIB_ProgrammingLanguage_t lang) const = 0;
+	virtual uint16_t AppsCount(RTLIB_ProgrammingLanguage_t lang) const = 0;
 
 	/**
 	 * @brief One of the highest PRIORITY applications in the the
@@ -364,13 +371,6 @@ public:
 	 * @return The maximum integer value for the (lowest) priority level
 	 */
 	virtual app::AppPrio_t LowestPriority() const = 0;
-
-	/**
-	 * @brief Dump a logline to report all applications status
-	 *
-	 * @param verbose print in INFO logleve is ture, in DEBUG if false
-	 */
-	virtual void PrintStatusReport(bool verbose = false) = 0;
 
 #ifdef CONFIG_BBQUE_TG_PROG_MODEL
 

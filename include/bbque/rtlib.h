@@ -43,23 +43,6 @@ extern "C" {
 #define RTLIB_VERSION_MINOR 4
 
 /**
- * @brief The maximum length for an "application" name
- * @ingroup rtlib_sec03_plain_exc
- *
- * Name of the applications
- */
-#define RTLIB_APP_NAME_LENGTH 32
-
-/**
- * The maximum length for an "execution context" name
- * @ingroup rtlib_sec03_plain_exc
- *
- * Each application spawns 1+ Execution Context; hence, each EXC must have
- * its own name.
- */
-#define RTLIB_EXC_NAME_LENGTH 32
-
-/**
  * @brief The maximum length for a recipe name
  * @ingroup rtlib_sec03_plain_exc
  *
@@ -726,6 +709,16 @@ typedef float (*RTLIB_CPS_Get)(
 	RTLIB_EXCHandler_t exc_handler);
 
 /**
+ * @brief Get the measured execution time
+ * @ingroup rtlib_sec03_plain_cps
+ *
+ * @return the measured execution time
+ */
+typedef uint32_t (*RTLIB_CPS_GetExecTime)(
+	RTLIB_EXCHandler_t exc_handler);
+
+
+/**
  * @brief Get the measured Jobs Per Seconds (JPS)
  * @ingroup rtlib_sec03_plain_cps
  *
@@ -1176,6 +1169,7 @@ struct RTLIB_Services {
 		RTLIB_CPS_Get Get;
 		RTLIB_CPS_Goal_Set SetGoal;
 		RTLIB_CPS_CTimeUs SetMinCycleTime_us;
+		RTLIB_CPS_GetExecTime ExecTime_ms;
 	} CPS;
 
 	/* Cycles Time Control interface */

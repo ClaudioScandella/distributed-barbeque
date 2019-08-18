@@ -61,6 +61,14 @@ public:
 	 */
 	inline uint32_t PhysicalAddress() const { return phy_addr; }
 
+	/**
+	 * \brief Set the physical address
+	 * \param address The memory address
+	 */
+	inline void SetPhysicalAddress(uint32_t address) {
+		phy_addr = address;
+	}
+
 private:
 
 	uint32_t id;

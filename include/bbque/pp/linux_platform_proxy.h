@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017  Politecnico di Milano
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef BBQUE_LINUX_PLATFORM_PROXY_H
 #define BBQUE_LINUX_PLATFORM_PROXY_H
 
@@ -26,7 +43,7 @@ public:
 	virtual ~LinuxPlatformProxy();
 
 	/**
-	 * @brief Return the Platform specific string identifier
+	 * @brief Return the Linux specific string identifier
 	 */
 	const char* GetPlatformID(int16_t system_id=-1) const noexcept override final;
 
@@ -36,12 +53,12 @@ public:
 	const char* GetHardwareID(int16_t system_id=-1) const noexcept override final;
 
 	/**
-	 * @brief Platform specific resource setup interface.
+	 * @brief Linux specific resource setup interface.
 	 */
-	ExitCode_t Setup(AppPtr_t papp) noexcept override final;
+	ExitCode_t Setup(SchedPtr_t papp) noexcept override final;
 
 	/**
-	 * @brief Platform specific resources enumeration
+	 * @brief Linux specific resources enumeration
 	 *
 	 * The default implementation of this method loads the TPD, is such a
 	 * function has been enabled
@@ -49,25 +66,30 @@ public:
 	ExitCode_t LoadPlatformData() noexcept override final;
 
 	/**
-	 * @brief Platform specific resources refresh
+	 * @brief Linux specific resources refresh
 	 */
 	ExitCode_t Refresh() noexcept override final;
 
 	/**
-	 * @brief Platform specific resources release interface.
+	 * @brief Linux specific resources release interface.
 	 */
-	ExitCode_t Release(AppPtr_t papp) noexcept override final;
+	ExitCode_t Release(SchedPtr_t papp) noexcept override final;
 
 	/**
-	 * @brief Platform specific resource claiming interface.
+	 * @brief Linux specific resource claiming interface.
 	 */
-	ExitCode_t ReclaimResources(AppPtr_t papp) noexcept override final;
+	ExitCode_t ReclaimResources(SchedPtr_t papp) noexcept override final;
 
 	/**
-	 * @brief Platform specific resource binding interface.
+	 * @brief Linux specific resource binding interface.
 	 */
 	ExitCode_t MapResources(
-	        AppPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl) noexcept override final;
+	        SchedPtr_t papp, ResourceAssignmentMapPtr_t pres, bool excl) noexcept override final;
+
+	/**
+	 * @brief Linux platform specific termination.
+	 */
+	void Exit() override;
 
 
 	bool IsHighPerformance(bbque::res::ResourcePathPtr_t const & path) const override;
@@ -130,7 +152,7 @@ private:
 
 	ExitCode_t MakeQDisk(int if_index);
 	ExitCode_t MakeCLS(int if_index);
-	ExitCode_t SetCGNetworkBandwidth(AppPtr_t papp, CGroupDataPtr_t pcgd,
+	ExitCode_t SetCGNetworkBandwidth(SchedPtr_t papp, CGroupDataPtr_t pcgd,
 					ResourceAssignmentMapPtr_t pres,
 					RLinuxBindingsPtr_t prlb);
 	ExitCode_t MakeNetClass(AppPid_t handle, unsigned rate, int if_index);
@@ -144,7 +166,7 @@ private:
 
 	std::string memory_ids_all;
 
-#ifdef CONFIG_BBQUE_LINUX_PROC_LISTENER
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
 	ProcessListener & proc_listener;
 #endif
 
@@ -165,25 +187,34 @@ private:
 	 * @brief Resources Mapping and Assigment to Applications
 	 */
 	ExitCode_t GetResourceMapping(
-	        AppPtr_t papp,ResourceAssignmentMapPtr_t assign_map,
+	        SchedPtr_t papp, ResourceAssignmentMapPtr_t assign_map,
 	        RLinuxBindingsPtr_t prlb,
 	        BBQUE_RID_TYPE node_id,
 	        br::RViewToken_t rvt) noexcept;
 
 
 	ExitCode_t ScanPlatformDescription() noexcept;
-	ExitCode_t RegisterCPU(const PlatformDescription::CPU &cpu) noexcept;
-	ExitCode_t RegisterMEM(const PlatformDescription::Memory &mem) noexcept;
-	ExitCode_t RegisterNET(const PlatformDescription::NetworkIF &net) noexcept;
+	ExitCode_t RegisterCPU(const PlatformDescription::CPU &cpu, bool is_local=true) noexcept;
+	ExitCode_t RegisterMEM(const PlatformDescription::Memory &mem, bool is_local=true) noexcept;
+	ExitCode_t RegisterNET(const PlatformDescription::NetworkIF &net, bool is_local=true) noexcept;
 
 	// --- CGroup-releated methods
-	ExitCode_t InitCGroups() noexcept;                          /**< Load the libcgroup and initialize the internal representation */
-	ExitCode_t BuildSilosCG(CGroupDataPtr_t &pcgd) noexcept;    /**< Load the silos */
+
+	/**
+	 * @brief Load the libcgroup and initialize the internal representation
+	 */
+	ExitCode_t InitCGroups() noexcept;
+
+	/**
+	 * @brief Load the silos for minimal resource allocation
+	 */
+	ExitCode_t BuildSilosCG(CGroupDataPtr_t &pcgd) noexcept;
+
 	ExitCode_t BuildCGroup(CGroupDataPtr_t &pcgd) noexcept;
-	ExitCode_t GetCGroupData(ba::AppPtr_t papp, CGroupDataPtr_t &pcgd) noexcept;
+	ExitCode_t GetCGroupData(ba::SchedPtr_t papp, CGroupDataPtr_t &pcgd) noexcept;
 	ExitCode_t SetupCGroup(CGroupDataPtr_t &pcgd, RLinuxBindingsPtr_t prlb,
 	                       bool excl = false, bool move = true) noexcept;
-	ExitCode_t BuildAppCG(AppPtr_t papp, CGroupDataPtr_t &pcgd) noexcept;
+	ExitCode_t BuildAppCG(SchedPtr_t papp, CGroupDataPtr_t &pcgd) noexcept;
 };
 
 }   // namespace pp

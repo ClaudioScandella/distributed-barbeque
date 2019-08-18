@@ -33,8 +33,9 @@ namespace app {
 class ApplicationConfIF;
 class Application;
 class WorkingMode;
-typedef std::shared_ptr<ApplicationConfIF> AppCPtr_t;
 typedef std::shared_ptr<Application> AppPtr_t;
+//typedef std::shared_ptr<ApplicationConfIF> AppCPtr_t;
+typedef AppPtr_t AppCPtr_t;
 
 /**
  * @class ApplicationConfIF
@@ -46,31 +47,6 @@ typedef std::shared_ptr<Application> AppPtr_t;
 class ApplicationConfIF: public ApplicationStatusIF {
 
 public:
-
-	/**
-	 * @brief Request to re-schedule this application into a new configuration
-	 *
-	 * The Optimizer call this method when an AWM is selected for this
-	 * application to verify if it could be scheduled, i.e. bound resources
-	 * are available, and eventually to update the application status.
-	 *
-	 * First the application verify resources availability. If the quality and
-	 * amount of required resources could be satisfied, the application is
-	 * going to be re-scheduled otherwise, it is un-scheduled.
-	 *
-	 * @param awm Next working mode scheduled for the application
-	 * @param tok The token referencing the resources state view
-	 * @param bid An optional identifier for the resource binding
-	 *
-	 * @return The method return an exit code representing the decision taken:
-	 * APP_SUCCESS if the specified working mode can be scheduled for
-	 * this application, APP_WM_REJECTED if the working mode cannot not be
-	 * scheduled. If the application is currently disabled this call returns
-	 * always APP_DISABLED.
-	 */
-	virtual ExitCode_t ScheduleRequest(AwmPtr_t const & awm,
-			bbque::res::RViewToken_t tok,
-			size_t b_refn = 0) = 0;
 
 	/**
 	 * @brief Set the scheduling metrics value

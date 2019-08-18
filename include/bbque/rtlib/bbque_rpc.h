@@ -316,6 +316,12 @@ public:
 		return SetCPS(exc_handler,
 			static_cast<float>(US_IN_A_SECOND) / max_cycle_time_us);
 	}
+	/**
+	 * @brief Get the current execution time
+	 *
+	 * @return the measured execution time in milliseconds
+	 */
+	uint32_t GetExecutionTimeMs(RTLIB_EXCHandler_t exc_handler);
 
 	/*******************************************************************************
 	 *    Performance Monitoring Support

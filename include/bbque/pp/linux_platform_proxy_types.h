@@ -6,8 +6,7 @@
 include linux_platform_proxy.h!
 #endif
 
-#include "bbque/utils/extra_data_container.h"
-#include "bbque/app/application.h"
+#include "bbque/app/schedulable.h"
 
 #ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
 #include <netlink/libnetlink.h>
@@ -51,25 +50,18 @@ namespace bbque {
 namespace pp {
 
 /**
- * @brief Resource assignement bindings on a Linux machine
+ * @brief Resource assignment bindings on a Linux machine
  */
-typedef struct RLinuxBindings {
-	/** Computing node, e.g. processor */
-	unsigned short node_id = 0;
-	/** Processing elements / CPU cores assigned */
-	char *cpus = NULL;
-	/** Memory nodes assigned */
-	char *mems = NULL;
-	/** Memory limits in bytes */
-	char *memb = NULL;
-	/** The percentage of CPUs time assigned */
-	uint_fast16_t amount_cpus = 0;
-	/** The bytes amount of Socket MEMORY assigned */
-	int_fast64_t amount_memb = 0;
-	/** The bytes/s amount of network bandwidth assigned */
-	int_fast64_t amount_net_bw = 0;
+struct RLinuxBindings_t {
+	unsigned short node_id = 0;       /** Computing node, e.g. processor */
+	char *cpus = NULL;                /** Processing elements / CPU cores assigned */
+	char *mems = NULL;                /** Memory nodes assigned */
+	char *memb = NULL;                /** Memory limits in bytes */
+	uint_fast32_t amount_cpus  = 0;   /** Percentage of CPUs time assigned */
+	int_fast64_t amount_memb   = 0;   /** Amount of socket MEMORY assigned (byte) */
+	int_fast64_t amount_net_bw = 0;   /** Amount of network bandwidth assigned (bps) */
 
-	RLinuxBindings(const uint_fast8_t MaxCpusCount, const uint_fast8_t MaxMemsCount) {
+	RLinuxBindings_t(const uint_fast8_t MaxCpusCount, const uint_fast8_t MaxMemsCount) {
 		// 3 chars are required for each CPU/MEM resource if formatted
 		// with syntax: "nn,". This allows for up-to 99 resources per
 		// cluster
@@ -82,18 +74,20 @@ typedef struct RLinuxBindings {
 			mems[0] = 0; 
 		}
 	}
-	~RLinuxBindings() {
+
+	~RLinuxBindings_t() {
 		delete [] cpus;
 		delete [] mems;
 		if (memb != NULL)
 			delete memb;
 	}
-} RLinuxBindings_t;
+};
 
-typedef std::shared_ptr<RLinuxBindings_t> RLinuxBindingsPtr_t;
+using RLinuxBindingsPtr_t = std::shared_ptr<RLinuxBindings_t>;
 
-typedef struct CGroupData : public bbque::utils::PluginData_t {
-	bbque::app::AppPtr_t papp; /** The controlled application */
+
+struct CGroupData_t : public bbque::utils::PluginData_t {
+	bbque::app::SchedPtr_t papp; /** The controlled application */
 #define BBQUE_LINUXPP_CGROUP_PATH_MAX 128 // "user.slice/res/12345:ABCDEF:00";
 	char cgpath[BBQUE_LINUXPP_CGROUP_PATH_MAX];
 	struct cgroup *pcg;
@@ -101,20 +95,18 @@ typedef struct CGroupData : public bbque::utils::PluginData_t {
 	struct cgroup_controller *pc_cpuset;
 	struct cgroup_controller *pc_memory;
 	struct cgroup_controller *pc_net_cls;
+	bool cfs_quota_available = false; /** Target system supports CFS quota management? */
 
-	bool cfs_quota_available = false; /**< True if the target system supports 
-										   CFS quota management */
-
-	CGroupData(bbque::app::AppPtr_t pa) :
+	CGroupData_t(bbque::app::SchedPtr_t sched_app) :
 		bu::PluginData_t(LINUX_PP_NAMESPACE, "cgroup"),
-		papp(pa), pcg(NULL), pc_cpu(NULL),
+		papp(sched_app), pcg(NULL), pc_cpu(NULL),
 		pc_cpuset(NULL), pc_memory(NULL) {
 		snprintf(cgpath, BBQUE_LINUXPP_CGROUP_PATH_MAX,
 		         BBQUE_LINUXPP_RESOURCES"/%s",
 		         papp->StrId());
 	}
 
-	CGroupData(const char *cgp) :
+	CGroupData_t(const char *cgp) :
 		bu::PluginData_t(LINUX_PP_NAMESPACE, "cgroup"),
 		pcg(NULL), pc_cpu(NULL),
 		pc_cpuset(NULL), pc_memory(NULL) {
@@ -122,18 +114,18 @@ typedef struct CGroupData : public bbque::utils::PluginData_t {
 		         "%s", cgp);
 	}
 
-	~CGroupData() {
+	~CGroupData_t() {
 		if (pcg != NULL) {
-			// Removing Kernel Control Group
+			// Removing kernel cgroup
 			cgroup_delete_cgroup(pcg, 1);
 			// Releasing libcgroup resources
 			cgroup_free(&pcg);
 		}
 	}
 
-} CGroupData_t;
+};
 
-typedef std::shared_ptr<CGroupData_t> CGroupDataPtr_t;
+using CGroupDataPtr_t = std::shared_ptr<CGroupData_t>;
 
 
 #ifdef CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
@@ -150,15 +142,17 @@ typedef struct NetworkInfo {
 	struct sockaddr_nl kernel_addr;
 } NetworkInfo_t;
 
-typedef struct Requests{
-	struct nlmsghdr 	n;
-	struct tcmsg 		t;
-	char   			buf[MAX_MSG];
+typedef struct Requests {
+	struct nlmsghdr	n;
+	struct tcmsg 	t;
+	char   		buf[MAX_MSG];
 } NetworkKernelRequest_t;
 
-#endif
+#endif // CONFIG_BBQUE_LINUX_CG_NET_BANDWIDTH
+
 
 }   // namespace pp
+
 }   // namespace bbque
 
 #endif // LINUX_PLATFORM_PROXY_TYPES_H

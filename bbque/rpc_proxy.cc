@@ -77,12 +77,12 @@ RPCProxy::RPCProxy(std::string const &id) : Worker(),
 	Worker::Setup(BBQUE_MODULE_NAME("rpc"), RPC_CHANNEL_NAMESPACE ".prx");
 
 	// Build a object adapter for the Logger
-	logger->Debug("PRXY RPC: RPC channel loading...");
+	logger->Debug("RPC channel loading...");
 	RPCChannel_ObjectAdapter rcoa;
 	void* module = bp::PluginManager::GetInstance().
 						CreateObject(id, NULL, &rcoa);
 	if (!module) {
-		logger->Fatal("PRXY RPC: RPC channel load FAILED");
+		logger->Fatal("RPC channel load FAILED");
 		rpc_channel = std::unique_ptr<RPCChannelIF>();
 		return;
 	}
@@ -140,7 +140,7 @@ int RPCProxy::Poll() {
 	if (size) return 0;
 
 	// Wait for at least one element being pushed into the queue
-	logger->Debug("PRXY RPC: waiting for new message...");
+	logger->Debug("Poll: waiting for new message...");
 	queue_ready_cv.wait(queue_status_ul);
 
 	if (size) return 0;
@@ -151,7 +151,7 @@ int RPCProxy::Poll() {
 
 void RPCProxy::SignalPoll() {
 	std::unique_lock<std::mutex> queue_status_ul(msg_queue_mtx);
-	logger->Debug("PRXY RPC: interrupted POLL");
+	logger->Debug("SignalPoll: interrupted POLL");
 	queue_ready_cv.notify_one();
 }
 
@@ -174,10 +174,10 @@ ssize_t RPCProxy::RecvMessage(rpc_msg_ptr_t & msg) {
 	// Collect stats on queue length
 	RP_ADD_SAMPLE(metrics, RP_RX_QUEUE, size);
 
-	logger->Debug("PRXY RPC: dq [typ: %2d:%-8s, sze: %3d, inq: %3d]",
+	logger->Debug("RecvMessage: dq [typ: %2d:%-8s, sze: %3d, inq: %3d]",
 		msg->typ, bl::RPC_MessageStr(msg->typ), size, msg_queue.size());
 
-	logger->Info("PRXY RPC: <=== %05d::%02d [%2d:%-8s]",
+	logger->Info("RecvMessage: <=== %05d::%02d [%2d:%-8s]",
 		msg->app_pid, msg->exc_id,
 		msg->typ, bl::RPC_MessageStr(msg->typ)
 		);
@@ -197,7 +197,7 @@ void RPCProxy::ReleasePluginData(plugin_data_t & pd) {
 ssize_t RPCProxy::SendMessage(plugin_data_t & pd,
 		rpc_msg_ptr_t msg, size_t count) {
 
-	logger->Info("PRXY RPC: ===> %05d::%02d [%2d:%-8s]",
+	logger->Info("SendMessage: ===> %05d::%02d [%2d:%-8s]",
 		msg->app_pid, msg->exc_id,
 		msg->typ, bl::RPC_MessageStr(msg->typ)
 		);
@@ -227,21 +227,18 @@ void RPCProxy::Task() {
 	rpc_msg_ptr_t msg;
 	ssize_t size;
 
-	logger->Info("PRXY RPC: Fetcher thread STARTED");
+	logger->Info("Task: Fetcher thread STARTED");
 
 	while (!done) {
-
-		logger->Debug("PRXY RPC: waiting message...");
-
 		// Wait for a new message being ready
+		logger->Debug("Task: waiting message...");
 		size = rpc_channel->RecvMessage(msg);
 		if (size == -EINTR) {
 			SignalPoll();
 			continue;
 		}
 		assert(msg);
-
-		logger->Debug("PRXY RPC: RX [typ: %2d, sze: %3d]",
+		logger->Debug("Task: RX [typ: %2d, sze: %3d]",
 				msg->typ, size);
 
 		// Collect stats on RX messages
@@ -254,12 +251,11 @@ void RPCProxy::Task() {
 		queue_status_ul.unlock();
 		queue_ready_cv.notify_one();
 
-		logger->Debug("PRXY RPC: eq [typ: %2d:%-8s, sze: %3d, inq: %3d]",
+		logger->Debug("Task: eq [typ: %2d:%-8s, sze: %3d, inq: %3d]",
 			msg->typ, bl::RPC_MessageStr(msg->typ), size, msg_queue.size());
-
 	}
 
-	logger->Info("PRXY RPC: Messages fetcher ENDED");
+	logger->Info("Task: Messages fetcher ENDED");
 }
 
 void RPCProxy::FreeMessage(rpc_msg_ptr_t & msg) {

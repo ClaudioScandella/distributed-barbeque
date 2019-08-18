@@ -1,0 +1,61 @@
+#include "rtlib_enums.h"
+
+void init_enums(py::module &m) {
+   // RTLIB_ExitCode enum
+   py::enum_<RTLIB_ExitCode>(m, "RTLIB_ExitCode")
+      .value("RTLIB_OK", RTLIB_ExitCode::RTLIB_OK)
+      .value("RTLIB_ERROR", RTLIB_ExitCode::RTLIB_ERROR)
+      .value("RTLIB_VERSION_MISMATCH", RTLIB_ExitCode::RTLIB_VERSION_MISMATCH)
+      .value("RTLIB_NO_WORKING_MODE", RTLIB_ExitCode::RTLIB_NO_WORKING_MODE)
+      .value("RTLIB_BBQUE_CHANNEL_SETUP_FAILED", RTLIB_ExitCode::RTLIB_BBQUE_CHANNEL_SETUP_FAILED)
+      .value("RTLIB_BBQUE_CHANNEL_TEARDOWN_FAILED", RTLIB_ExitCode::RTLIB_BBQUE_CHANNEL_TEARDOWN_FAILED)
+      .value("RTLIB_BBQUE_CHANNEL_WRITE_FAILED", RTLIB_ExitCode::RTLIB_BBQUE_CHANNEL_WRITE_FAILED)
+      .value("RTLIB_BBQUE_CHANNEL_READ_FAILED", RTLIB_ExitCode::RTLIB_BBQUE_CHANNEL_READ_FAILED)
+      .value("RTLIB_BBQUE_CHANNEL_READ_TIMEOUT", RTLIB_ExitCode::RTLIB_BBQUE_CHANNEL_READ_TIMEOUT)
+      .value("RTLIB_BBQUE_CHANNEL_PROTOCOL_MISMATCH", RTLIB_ExitCode::RTLIB_BBQUE_CHANNEL_PROTOCOL_MISMATCH)
+      .value("RTLIB_BBQUE_CHANNEL_UNAVAILABLE", RTLIB_ExitCode::RTLIB_BBQUE_CHANNEL_UNAVAILABLE)
+      .value("RTLIB_BBQUE_CHANNEL_TIMEOUT", RTLIB_ExitCode::RTLIB_BBQUE_CHANNEL_TIMEOUT)
+      .value("RTLIB_BBQUE_UNREACHABLE", RTLIB_ExitCode::RTLIB_BBQUE_UNREACHABLE)
+      .value("RTLIB_EXC_DUPLICATE", RTLIB_ExitCode::RTLIB_EXC_DUPLICATE)
+      .value("RTLIB_EXC_NOT_REGISTERED", RTLIB_ExitCode::RTLIB_EXC_NOT_REGISTERED)
+      .value("RTLIB_EXC_REGISTRATION_FAILED", RTLIB_ExitCode::RTLIB_EXC_REGISTRATION_FAILED)
+      .value("RTLIB_EXC_MISSING_RECIPE", RTLIB_ExitCode::RTLIB_EXC_MISSING_RECIPE)
+      .value("RTLIB_EXC_UNREGISTRATION_FAILED", RTLIB_ExitCode::RTLIB_EXC_UNREGISTRATION_FAILED)
+      .value("RTLIB_EXC_NOT_STARTED", RTLIB_ExitCode::RTLIB_EXC_NOT_STARTED)
+      .value("RTLIB_EXC_ENABLE_FAILED", RTLIB_ExitCode::RTLIB_EXC_ENABLE_FAILED)
+      .value("RTLIB_EXC_NOT_ENABLED", RTLIB_ExitCode::RTLIB_EXC_NOT_ENABLED)
+      .value("RTLIB_EXC_DISABLE_FAILED", RTLIB_ExitCode::RTLIB_EXC_DISABLE_FAILED)
+      .value("RTLIB_EXC_GWM_FAILED", RTLIB_ExitCode::RTLIB_EXC_GWM_FAILED)
+      .value("RTLIB_EXC_GWM_START", RTLIB_ExitCode::RTLIB_EXC_GWM_START)
+      .value("RTLIB_EXC_GWM_RECONF", RTLIB_ExitCode::RTLIB_EXC_GWM_RECONF)
+      .value("RTLIB_EXC_GWM_MIGREC", RTLIB_ExitCode::RTLIB_EXC_GWM_MIGREC)
+      .value("RTLIB_EXC_GWM_MIGRATE", RTLIB_ExitCode::RTLIB_EXC_GWM_MIGRATE)
+      .value("RTLIB_EXC_GWM_BLOCKED", RTLIB_ExitCode::RTLIB_EXC_GWM_BLOCKED)
+      .value("RTLIB_EXC_SYNC_MODE", RTLIB_ExitCode::RTLIB_EXC_SYNC_MODE)
+      .value("RTLIB_EXC_SYNCP_FAILED", RTLIB_ExitCode::RTLIB_EXC_SYNCP_FAILED)
+      .value("RTLIB_EXC_WORKLOAD_NONE", RTLIB_ExitCode::RTLIB_EXC_WORKLOAD_NONE)
+      .value("RTLIB_EXC_CGROUP_NONE", RTLIB_ExitCode::RTLIB_EXC_CGROUP_NONE)
+      .value("RTLIB_EXIT_CODE_COUNT", RTLIB_ExitCode::RTLIB_EXIT_CODE_COUNT)
+      .export_values();
+
+   py::enum_<RTLIB_ResourceType>(m, "RTLIB_ResourceType")
+      .value("SYSTEM", RTLIB_ResourceType::SYSTEM)
+      .value("CPU", RTLIB_ResourceType::CPU)
+      .value("PROC_NR", RTLIB_ResourceType::PROC_NR)
+      .value("PROC_ELEMENT", RTLIB_ResourceType::PROC_ELEMENT)
+      .value("MEMORY", RTLIB_ResourceType::MEMORY)
+      .value("GPU", RTLIB_ResourceType::GPU)
+      .value("ACCELERATOR", RTLIB_ResourceType::ACCELERATOR)
+      .export_values();
+
+   py::enum_<RTLIB_ConstraintOperation>(m, "RTLIB_ConstraintOperation")
+      .value("CONSTRAINT_REMOVE", RTLIB_ConstraintOperation::CONSTRAINT_REMOVE)
+      .value("CONSTRAINT_ADD", RTLIB_ConstraintOperation::CONSTRAINT_ADD)
+      .export_values();
+
+   py::enum_<RTLIB_ConstraintType>(m, "RTLIB_ConstraintType")
+      .value("LOWER_BOUND", RTLIB_ConstraintType::LOWER_BOUND)
+      .value("UPPER_BOUND", RTLIB_ConstraintType::UPPER_BOUND)
+      .value("EXACT_VALUE", RTLIB_ConstraintType::EXACT_VALUE)
+      .export_values();
+}

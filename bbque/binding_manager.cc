@@ -38,28 +38,28 @@ BindingManager::BindingManager():
 }
 
 
-void BindingManager::InitBindingOptions() {
+void BindingManager::InitBindingDomains() {
 
 	// Binding domain resource path
 	ConfigurationManager & config_manager(ConfigurationManager::GetInstance());
-	std::string domains;
-	boost::program_options::options_description opts_desc("BindingManager options");
+	std::string domains_str;
+	boost::program_options::options_description opts_desc("BindingManager options (domains)");
 	opts_desc.add_options()
 		(MODULE_CONFIG ".domains",
-		 boost::program_options::value<std::string>(&domains)->default_value("cpu"),
+		 boost::program_options::value<std::string>(&domains_str)->default_value("cpu"),
 		"Resource binding domain");
 	boost::program_options::variables_map opts_vm;
 	config_manager.ParseConfigurationFile(opts_desc, opts_vm);
-	logger->Info("Binding options: %s", domains.c_str());
+	logger->Info("Binding domains: %s", domains_str.c_str());
 
 	// Parse each binding domain string
 	size_t end_pos = 0;
 	std::string binding_str;
-	br::ResourceType binding_type;
+	br::ResourceType type;
 	while (end_pos != std::string::npos) {
-		end_pos     = domains.find(',');
-		binding_str = domains.substr(0, end_pos);
-		domains.erase(0, end_pos + 1);
+		end_pos     = domains_str.find(',');
+		binding_str = domains_str.substr(0, end_pos);
+		domains_str.erase(0, end_pos + 1);
 
 		// Binding domain resource path
 		br::ResourcePathPtr_t base_path =
@@ -67,43 +67,43 @@ void BindingManager::InitBindingOptions() {
 		base_path->Concat(binding_str);
 
 		// Binding domain resource type check
-		binding_type = base_path->Type();
-		if (binding_type == br::ResourceType::UNDEFINED) {
+		type = base_path->Type();
+		if (type == br::ResourceType::UNDEFINED) {
 			logger->Error("Binding: Invalid domain type <%s>",
 					binding_str.c_str());
 			continue;
 		}
 
 #ifndef CONFIG_BBQUE_OPENCL
-		if (binding_type == br::ResourceType::GPU) {
-			logger->Warn("Binding: OpenCL support disabled."
+		if (type == br::ResourceType::GPU) {
+			logger->Info("Binding: OpenCL support disabled."
 					" Discarding <GPU> binding type");
 			continue;
 		}
 #endif
 		// New binding info structure
-		binding_options.emplace(binding_type, std::make_shared<BindingInfo_t>());
-		binding_options[binding_type]->base_path = base_path;
+		domains.emplace(type, std::make_shared<BindingInfo_t>());
+		domains[type]->base_path = base_path;
 		logger->Info("Resource binding domain: '%s' Type:<%s>",
-				binding_options[binding_type]->base_path->ToString().c_str(),
-				br::GetResourceTypeString(binding_type));
+				domains[type]->base_path->ToString().c_str(),
+				br::GetResourceTypeString(type));
 	}
 }
 
 
-BindingManager::ExitCode_t BindingManager::LoadBindingOptions() {
+BindingManager::ExitCode_t BindingManager::LoadBindingDomains() {
 
-	InitBindingOptions();
-	if (binding_options.empty()) {
+	InitBindingDomains();
+	if (domains.empty()) {
 		logger->Fatal("Missing binding domains");
 		return ERR_MISSING_OPTIONS;
 	}
 
 	// Set information for each binding domain
-	for (auto & bd_entry: binding_options) {
+	for (auto & bd_entry: domains) {
 		BindingInfo & binding(*(bd_entry.second));
 		binding.resources = ra.GetResources(binding.base_path);
-		binding.ids.clear();
+		binding.r_ids.clear();
 
 		// Skip missing resource bindings
 		if (binding.resources.empty()) {
@@ -113,7 +113,7 @@ BindingManager::ExitCode_t BindingManager::LoadBindingOptions() {
 
 		// Get all the possible resource binding IDs
 		for (br::ResourcePtr_t & rsrc: binding.resources) {
-			binding.ids.emplace(rsrc->ID());
+			binding.r_ids.emplace(rsrc->ID());
 			logger->Info("Init: R<%s> ID: %d",
 					binding.base_path->ToString().c_str(), rsrc->ID());
 		}

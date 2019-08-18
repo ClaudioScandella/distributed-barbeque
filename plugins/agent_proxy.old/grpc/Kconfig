@@ -1,0 +1,10 @@
+
+config BBQUE_AGENT_PROXY_GRPC
+  bool "gRPC Agent Proxy"
+  depends on BBQUE_DIST_MODE
+  select EXTERNAL_GRPC
+  default y
+  ---help---
+  The AgentProxy plugin based on the gRPC library by Google Inc.
+
+

@@ -24,7 +24,7 @@ const char* RemotePlatformProxy::GetHardwareID(int16_t system_id) const {
 }
 
 
-RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Setup(AppPtr_t papp) {
+RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Setup(SchedPtr_t papp) {
 	(void) papp;
 	logger->Error("Setup - Not implemented.");
 	return PLATFORM_OK;
@@ -43,6 +43,7 @@ RemotePlatformProxy::ExitCode_t RemotePlatformProxy::LoadPlatformData() {
 
 RemotePlatformProxy::ExitCode_t RemotePlatformProxy::LoadAgentProxy() {
 
+	// Carica il modulo agent denominato bq.gx.grpc che è l'agent proxy.
 	agent_proxy = std::unique_ptr<bbque::plugins::AgentProxyIF>(
 		ModulesFactory::GetModule<bbque::plugins::AgentProxyIF>(
 			std::string(AGENT_PROXY_NAMESPACE) + ".grpc"));
@@ -53,7 +54,9 @@ RemotePlatformProxy::ExitCode_t RemotePlatformProxy::LoadAgentProxy() {
 	}
 
 	logger->Debug("Providing the platform description to Agent Proxy...");
+	// Setta semplicemente una descrizione della piattaforma corrente in agent proxy.
 	agent_proxy->SetPlatformDescription(&GetPlatformDescription());
+
 	logger->Info("Agent Proxy plugin ready");
 
 	return PLATFORM_OK;
@@ -64,20 +67,20 @@ RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Refresh() {
 	return PLATFORM_OK;
 }
 
-RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Release(AppPtr_t papp) {
+RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Release(SchedPtr_t papp) {
 	(void) papp;
 	logger->Error("Release - Not implemented.");
 	return PLATFORM_OK;
 }
 
-RemotePlatformProxy::ExitCode_t RemotePlatformProxy::ReclaimResources(AppPtr_t papp) {
+RemotePlatformProxy::ExitCode_t RemotePlatformProxy::ReclaimResources(SchedPtr_t papp) {
 	(void) papp;
 	logger->Error("ReclaimResources - Not implemented.");
 	return PLATFORM_OK;
 }
 
 RemotePlatformProxy::ExitCode_t RemotePlatformProxy::MapResources(
-		AppPtr_t papp,
+		SchedPtr_t papp,
 		ResourceAssignmentMapPtr_t pres,
                 bool excl) {
 	(void) papp;
@@ -86,6 +89,12 @@ RemotePlatformProxy::ExitCode_t RemotePlatformProxy::MapResources(
 
 	logger->Error("MapResources - Not implemented.");
 	return PLATFORM_OK;
+}
+
+
+void RemotePlatformProxy::Exit() {
+	StopServer();
+	WaitForServerToStop();
 }
 
 
@@ -119,6 +128,24 @@ void RemotePlatformProxy::WaitForServerToStop() {
 	}
 	return agent_proxy->WaitForServerToStop();
 }
+
+bbque::agent::ExitCode_t RemotePlatformProxy::Discover(
+	std::string ip, bbque::agent::DiscoverRequest& iam) {
+		if (agent_proxy == nullptr) {
+			logger->Error("Discover failed. AgentProxy plugin missing");
+			return bbque::agent::ExitCode_t::PROXY_NOT_READY;
+		}
+		return agent_proxy->Discover(ip, iam);
+	}
+		
+bbque::agent::ExitCode_t RemotePlatformProxy::Ping(
+	int system_id, int & ping_value) {
+		if (agent_proxy == nullptr) {
+			logger->Error("Ping failed. AgentProxy plugin missing");
+			return bbque::agent::ExitCode_t::PROXY_NOT_READY;
+		}
+		return agent_proxy->Ping(system_id, ping_value);
+	}
 
 bbque::agent::ExitCode_t
 RemotePlatformProxy::GetResourceStatus(

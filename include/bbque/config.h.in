@@ -155,7 +155,7 @@
 #cmakedefine CONFIG_BBQUE_TEST_PLATFORM_DATA
 
 /** Enable Linux Process Listener module */
-#cmakedefine CONFIG_BBQUE_LINUX_PROC_LISTENER
+#cmakedefine CONFIG_BBQUE_LINUX_PROC_MANAGER
 
 /* Enable Linux Control Groups 'memory' controller */
 #cmakedefine CONFIG_BBQUE_LINUX_CG_MEMORY
@@ -191,6 +191,9 @@
 /** Enable periodic Power monitoring */
 #cmakedefine CONFIG_BBQUE_WM
 
+/** Enable data management */
+#cmakedefine CONFIG_BBQUE_DM
+
 /** Enable Power Management support */
 #cmakedefine CONFIG_BBQUE_PM_BATTERY
 
@@ -203,9 +206,19 @@
 /** Enable GPU Power Management support for ARM Mali */
 #cmakedefine CONFIG_BBQUE_PM_GPU_ARM_MALI
 
+/** Enable GPU Power Management support for ARM Mali */
+#cmakedefine CONFIG_BBQUE_PM_MANGO
+
 
 /** Distributed systems mode */
 #cmakedefine CONFIG_BBQUE_DIST_MODE
+
+/** Fully distributed mode */
+#cmakedefine CONFIG_BBQUE_DIST_FULLY
+
+/** Hierachical distributed mode */
+#cmakedefine CONFIG_BBQUE_DIST_HIERARCHICAL
+
 
 /** Task-graph based programing model */
 #cmakedefine CONFIG_BBQUE_TG_PROG_MODEL
@@ -274,9 +287,12 @@
  ******************************************************************************/
 #define MANGO_DEVICE_NAME "${CONFIG_MANGO_DEVICE}"
 
-#define MANGO_PEAK_OS "${CONFIG_MANGO_PEAK_OS}"
+#define MANGO_PEAK_OS "${CONFIG_MANGO_ROOT_PATH}/usr/share/peakos.img"
+#define MANGO_PEAK_PROTOCOL "${CONFIG_MANGO_ROOT_PATH}/usr/share/peak_protocol.img"
 
 #define MANGO_BASE_NUM_PARTITIONS ${CONFIG_MANGO_BASE_NUM_PARTITIONS}
+
+#cmakedefine ${CONFIG_LIBMANGO_GN}
 
 /*******************************************************************************
  * BarbequeRTRM Global Features
@@ -293,6 +309,12 @@
  * Recipies could define the priority of the corresponding Application.
  */
 #define BBQUE_APP_PRIO_LEVELS ${CONFIG_BBQUE_APP_PRIO_LEVELS}
+
+/**
+ * @brief The resource path prefix under which the resource requests included
+ * in the recipe should be looked for (e.g., "sys").
+ */
+#define BBQUE_RESOURCE_PATH_PREFIX "${CONFIG_BBQUE_RESOURCE_PATH_PREFIX}"
 
 /**
  * @brief The default path prefix for storing/retrieving the serialization
@@ -317,12 +339,28 @@
 /**
  * @brief The type used to represent UIDs
  *
- * The UID is a unique identifier for each BabrequeRTRM managed application.
+ * The UID is a unique identifier for each BarbequeRTRM managed application.
  * This defines the type used to represent this identifiers.
  */
 #define BBQUE_UID_TYPE uint32_t
 
 #define BBQUE_RID_TYPE int16_t
+
+
+/**
+ * @brief The maximum length for an "application" name
+ *
+ * Name of the applications
+ */
+#define RTLIB_APP_NAME_LENGTH ${CONFIG_BBQUE_RTLIB_APP_NAME_LENGTH}
+
+/**
+ * The maximum length for an "execution context" name
+ *
+ * Each application spawns 1+ Execution Context; hence, each EXC must have
+ * its own name.
+ */
+#define RTLIB_EXC_NAME_LENGTH ${CONFIG_BBQUE_RTLIB_APP_NAME_LENGTH}
 
 /**
  * @brief The runtime profile forward rearm time

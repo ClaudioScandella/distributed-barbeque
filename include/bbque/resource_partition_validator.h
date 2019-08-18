@@ -60,13 +60,13 @@ public:
 	 * @brief This abstract method should remove a subset of partitions (eventually all) from
 	 * 	  the list passed. The method can also eventually add partitions.
 	 */
-	virtual ExitCode_t Skim(const TaskGraph &tg, std::list<Partition>& partitions) noexcept = 0;
+	virtual ExitCode_t Skim(const TaskGraph &tg, std::list<Partition>& partitions, uint32_t hw_cluster_id) noexcept = 0;
 
 	/**
 	 * @brief This abstract method is called when the policy finally decides which partition is
 	 *	  the best to be selected.
 	 */
-	virtual ExitCode_t SetPartition(const TaskGraph &tg, const Partition &partition) noexcept = 0;
+	virtual ExitCode_t SetPartition(TaskGraph &tg, const Partition &partition) noexcept = 0;
 
 	/**
 	 * @brief This abstract method is called when a partition is released
@@ -120,7 +120,9 @@ public:
 	 * @brief Load the feasible partitions according to registered callbacks. 
 	 *
 	 */
-	ExitCode_t LoadPartitions(const TaskGraph &tg, std::list<Partition> &partitions);
+	ExitCode_t LoadPartitions(
+			const TaskGraph &tg, std::list<Partition> &partitions,
+			uint32_t hw_cluster_id);
 
 
 	/**
@@ -145,7 +147,7 @@ public:
 	 * The partition is then propagated to all registered PartitionSkimmer with the SetPartition
 	 * method.
 	 */
-	ExitCode_t PropagatePartition(const TaskGraph &tg, const Partition &partition) const noexcept;
+	ExitCode_t PropagatePartition(TaskGraph &tg, const Partition &partition) const noexcept;
 
 	/**
 	 * Propagates the partition removal request to all skimmers

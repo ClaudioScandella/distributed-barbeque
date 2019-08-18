@@ -34,7 +34,7 @@
 # Binding Manager Options
 ################################################################################
 [BindingManager]
-domains = cpu,gpu,acc
+domains = cpu,gpu,acc,grp.acc
 
 ################################################################################
 # PlatformProxy Options
@@ -45,20 +45,22 @@ log.enabled   = 0
 # output directory for the power monitor logs
 log.dir       = /tmp
 # monitoring period
-period_ms     = 1000
+period_ms     = 4000
 # number of monitoring threads to spawn
-nr_threads    = 2
-# trigger types: threshold, ...
-temp.threshold  = 80
-temp.trigger   = threshold
-#temp.margin    = 0.05
-#power.threshold = 16000
-#power.trigger   = threshold
+nr_threads    = 1
+# trigger types: over_threshold, ...
+temp.threshold_high  = 80
+temp.threshold_low = 75
+temp.trigger   = over_threshold
+#temp.margin    = 0.01
+#power.threshold_high = 16000
+#power.threshold_low = 15000
+power.trigger   = over_threshold
 #power.margin    = 0.05
-#batt.threshold_rate  = 16000
+#batt.threshold_rate = 16000
 #batt.margin_rate     = 0.05
 #batt.threshold_level = 15
-#batt.trigger   = threshold
+batt.trigger   = under_threshold
 
 [PowerManager]
 nr_sockets   = 1
@@ -117,10 +119,26 @@ penalty.mem   = 10
 #policy = sasb
 
 ################################################################################
+# Distributed Manager Options
+################################################################################
+[DistributedManager]
+
+# Distributed test (port is taken from agent proxy options)
+start_address = 192.168.43.57
+end_address = 192.168.43.58
+
+# Local test
+#start_address = 127.0.0.1:8850
+#end_address = 127.0.0.1:8852
+
+discover_period_s = 5
+ping_period_s = 5
+
+################################################################################
 # AgentProxy Options
 ################################################################################
 [AgentProxy]
-#port = ${CONFIG_BBQUE_AGENT_PROXY_PORT_DEFAULT}
+port = ${CONFIG_BBQUE_AGENT_PROXY_PORT_DEFAULT}
 
 ################################################################################
 # OpenMPI Options
@@ -133,6 +151,13 @@ updatetime.resources = 500   # In milliseconds
 # test.mig_source_node =
 # test.mig_destination_node =
 # test.mig_time =
+
+################################################################################
+# Data Communication Interface Options
+################################################################################
+[DataManager]
+server_port = 30200
+client_attempts = 3
 
 ################################################################################
 # Logger Options
@@ -148,8 +173,8 @@ updatetime.resources = 500   # In milliseconds
 # Set root category priority and its appender
 # By default all logs are only from level greater than or equal to INFO
 ###
-rootCategory = NOTICE, raFile
-#rootCategory = DEBUG, raConsole
+#rootCategory = DEBUG, raFile
+rootCategory = DEBUG, raConsole
 #rootCategory = ERROR, raSyslog
 #rootCategory = ERROR, raRSyslog
 ###
@@ -158,36 +183,40 @@ rootCategory = NOTICE, raFile
 # the rootCategory
 ###
 #category.bq =  	INFO
-category.bq.am =	NOTICE
-category.bq.mc =	ERROR
-category.bq.om =	NOTICE
-category.bq.cm =	INFO
-#category.bq.tpd = 	INFO
-#category.bq.Test =	INFO
-#category.bq.ra =	NOTICE
-category.bq.ri = 	NOTICE
-#category.bq.rb = 	NOTICE
-category.bq.re = 	NOTICE
-#category.bq.rl = 	INFO
-category.bq.rm = 	NOTICE
-category.bq.rp = 	NOTICE
-category.bq.rt = 	NOTICE
-#category.bq.rbind =	NOTICE
 #category.bq.ap = 	INFO
 #category.bq.app = 	INFO
+#category.bq.am =	NOTICE
 #category.bq.awm =	INFO
-category.bq.df = 	NOTICE
-category.bq.pp = 	DEBUG
-category.bq.pp.mango = 	DEBUG
+#category.bq.cm =	INFO
+#category.bq.df = 	NOTICE
+#category.bq.dm =	NOTICE
+#category.bq.em =	INFO
+#category.bq.mc =	ERROR
+#category.bq.om =	NOTICE
 #category.bq.pm =	INFO
-#category.bq.wm =	INFO
+#category.bq.pp = 	INFO
+#category.bq.pp.linux =    INFO
+#category.bq.pp.linux_ps = INFO
+#category.bq.prm = 	INFO
+#category.bq.pub =	DEBUG
+#category.bq.ra =	NOTICE
+#category.bq.ri = 	NOTICE
+#category.bq.rb = 	NOTICE
+#category.bq.re = 	NOTICE
+#category.bq.rl = 	NOTICE
+#category.bq.rm = 	INFO
+#category.bq.rp = 	NOTICE
+#category.bq.rt = 	NOTICE
+#category.bq.rbind =	NOTICE
 #category.bq.rpc.fif = 	INFO
 #category.bq.rpc.prx = 	INFO
 #category.bq.sm = 	INFO
 #category.bq.sp = 	NOTICE
-category.bq.sp.sc = 	ERROR
-category.bq.sp.scm = 	ERROR
+#category.bq.sp.sc = 	ERROR
+#category.bq.sp.scm = 	ERROR
 #category.bq.ym = 	INFO
+#category.bq.wm =	INFO
+
 
 ###
 # Root Appender

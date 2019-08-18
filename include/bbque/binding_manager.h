@@ -30,27 +30,32 @@
 namespace bbque {
 
 /**
- * @struct BindingInfo
+ * @class BindingInfo
  * @brief  Binding domain information
  *
- * Keep track of the runtime status of the binding domains (e.g., CPU
- * nodes)
+ * Keep track of the runtime status of the binding domains (e.g., CPU, GPU, ACC,... nodes)
  */
-typedef struct BindingInfo {
-	/// Base resource path object
+class BindingInfo {
+
+public:
+
+	/** Base resource path object */
 	br::ResourcePathPtr_t base_path;
-	/// Number of managed resource types
+
+	/** Number of managed resource types */
 	std::list<br::ResourceType> r_types;
-	/// Resource pointer descriptor list
+
+	/** Resource pointer descriptor list */
 	br::ResourcePtrList_t resources;
-	/// The IDs of all the possible bindings
-	std::set<BBQUE_RID_TYPE> ids;
-	/// Keep track the bindings without available processing elements
-	br::ResourceBitset full;
-} BindingInfo_t;
 
+	/** The IDs of all the possible bindings */
+	std::set<BBQUE_RID_TYPE> r_ids;
 
-typedef std::map<br::ResourceType, std::shared_ptr<BindingInfo_t>> BindingMap_t;
+};
+
+using BindingInfo_t = BindingInfo;
+
+using BindingMap_t  = std::map<br::ResourceType, std::shared_ptr<BindingInfo_t>>;
 
 
 /**
@@ -73,7 +78,7 @@ public:
 
 
 	virtual ~BindingManager()  {
-		binding_options.clear();
+		domains.clear();
 	}
 
 	/**
@@ -81,15 +86,15 @@ public:
 	 *
 	 * @note This can be done only when the status is READY
 	 */
-	ExitCode_t LoadBindingOptions();
+	ExitCode_t LoadBindingDomains();
 
 	/**
 	 * @brief The resource binding information support
 	 *
 	 * @return A reference to a @ref BindingMap_t object
 	 */
-	inline BindingMap_t & GetBindingOptions() {
-		return binding_options;
+	inline BindingMap_t & GetBindingDomains() {
+		return domains;
 	}
 
 private:
@@ -102,7 +107,7 @@ private:
 	 * A map object containing all the support information for the
 	 * resource binding performed by the scheduling policy
 	 */
-	BindingMap_t binding_options;
+	BindingMap_t domains;
 
 
 	BindingManager();
@@ -110,7 +115,7 @@ private:
 	/**
 	 * @brief Initialize the resource binding support information
 	 */
-	void InitBindingOptions();
+	void InitBindingDomains();
 
 };
 

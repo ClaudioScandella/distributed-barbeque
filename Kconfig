@@ -1,9 +1,9 @@
 
 ################################################################################
-# Platform Configuration
+# Daemon Configuration
 ################################################################################
 
-menu "Platform Setup"
+menu "Daemon Setup"
 
 menu "Platform Loader"
 
@@ -94,15 +94,13 @@ config BBQUE_CGROUPS_DISTRIBUTED_ACTUATION
 endmenu # Linux Control Groups
 
 
-config BBQUE_LINUX_PROC_LISTENER
-  bool "Linux Process Listener"
+config BBQUE_LINUX_PROC_MANAGER
+  bool "Linux Process Management"
+  depends on TARGET_LINUX || TARGET_ANDROID
   default n
   ---help---
   Enables BarbequeRTRM to monitor the status of other processes running
-  on the machine.
-
-  This option is experimental but has no side effect on other running
-  processes.
+  on the machine, and take actions (if the suitable policy has been selected)
 
 
 choice
@@ -199,7 +197,7 @@ endmenu # PIL Configuration
 # Policies
 ################################################################################
 
-menu "Resource Allocation Policies"
+menu "Policies"
   source "barbeque/plugins/schedpol/Kconfig"
 endmenu
 
@@ -268,6 +266,16 @@ config BBQUE_RESOURCE_MAX_NUM
   For example, the maximum number of processing elements (computing cores)
   available per processor.
 
+config BBQUE_RESOURCE_PATH_PREFIX
+   string "Resource Path Prefix"
+   default "sys"
+   ---help---
+  The prefix (in string format) of the resource paths under which perform the
+  matching w.r.t. the resource requests in the application recipes.
+  For instance, value="sys" means that we will look for requests of CPUs or
+  ACCELERATORs starting from resource registered under "sys." (e.g. "sys.cpu"
+  or "sys.acc").
+
 
 config BBQUE_SCHED_PROFILING
   bool "Scheduling Profiling"
@@ -301,5 +309,20 @@ config BBQUE_EM
 
   If unsure say no, this will disable all the EM related features.
 
+config BBQUE_DM
+  bool "Data Manager"
+  default n
+  ---help---
+  Build the BarbequeRTRM with support for Data Management (DM).
+
+  The Data Manager is a component to provide a publish/subscribe support
+  for client applications that need to retrieve information about the status
+  of the system, application and allocation.
+
+  If your system does not need to provide information to third party clients
+  leave it disable to avoid dangerous information leakage.
+
+  NOTE: this is an experimental and not completed feature, leave un-selected if
+  unsure.
 
 endmenu # Advanced options

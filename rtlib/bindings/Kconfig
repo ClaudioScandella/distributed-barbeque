@@ -1,0 +1,15 @@
+
+config BBQUE_BINDINGS_PYTHON
+  depends on TARGET_LINUX_NATIVE
+  bool "Python wrapper"
+  select EXTERNAL_PYBIND11
+  default n
+  ---help---
+  Build the module to provide the Python wrapper of the RTLib
+
+config BBQUE_BINDINGS_JAVA
+  bool "Java wrapper"
+  default n
+  ---help---
+  Build the module to provide the Java wrapper of the RTLib
+

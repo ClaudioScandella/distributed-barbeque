@@ -1,16 +1,17 @@
+# Sources
+set (TARGET_NAME bbque_tg)
+set (VERSION_STRING 1.0.0)
+set (SOURCE task_graph partition)
+
+# Output: a shared library
+add_library(${TARGET_NAME} SHARED ${SOURCE})
+
 # Include
 include_directories(
 	${PROJECT_BINARY_DIR}/include/tg
 	${PROJECT_SOURCE_DIR}/include/tg
 	${Boost_INCLUDE_DIR}
 )
-
-# Sources
-set (TARGET_NAME bbque_tg)
-set (SOURCE task_graph partition)
-
-# Output: a shared library
-add_library(${TARGET_NAME} SHARED ${SOURCE})
 
 # Link to:
 target_link_libraries(${TARGET_NAME}
@@ -28,6 +29,7 @@ set_property (TARGET ${TARGET_NAME} PROPERTY PUBLIC_HEADER
 	${PROJECT_SOURCE_DIR}/include/tg/task_graph.h
 	${PROJECT_SOURCE_DIR}/include/tg/hw.h
 )
+set_property (TARGET ${TARGET_NAME} PROPERTY VERSION ${VERSION_STRING})
 
 # Install the library
 install (TARGETS ${TARGET_NAME} LIBRARY

@@ -101,6 +101,9 @@ private:
 
 	std::future<void> fut_tg;
 
+	/** Number of cores per accelerator (and group/cluster) */
+	std::map<uint32_t, std::vector<uint32_t>> pe_per_acc;
+
 	/**
 	 * @brief Constructor
 	 *
@@ -120,12 +123,17 @@ private:
 
 	ExitCode_t RelaxRequirements(int priority) noexcept;
 
-	ExitCode_t AllocateArchitectural(ba::AppCPtr_t papp) noexcept;
+	ExitCode_t CheckHWRequirements(ba::AppCPtr_t papp) noexcept;
 
 	ExitCode_t DealWithNoPartitionFound(ba::AppCPtr_t papp) noexcept; 
 
-	ExitCode_t SelectTheBestPartition(ba::AppCPtr_t papp, 
-					  const std::list<Partition> &partitions) noexcept;
+	ExitCode_t ScheduleApplication(ba::AppCPtr_t papp, const std::list<Partition> &partitions) noexcept;
+
+	ExitCode_t SortPartitions(ba::AppCPtr_t papp, const std::list<Partition> &partitions) noexcept;
+
+	ExitCode_t SelectWorkingMode(ba::AppCPtr_t papp, const Partition & selected_partition) noexcept;
+
+	ExitCode_t ReassignWorkingMode(ba::AppCPtr_t papp) noexcept;
 
 };
 

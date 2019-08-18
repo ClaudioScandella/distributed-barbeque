@@ -27,12 +27,16 @@
 #include "bbque/platform_manager.h"
 #include "bbque/platform_services.h"
 #include "bbque/plugin_manager.h"
+#include "bbque/process_manager.h"
 #include "bbque/scheduler_manager.h"
 #include "bbque/synchronization_manager.h"
 #include "bbque/profile_manager.h"
 #include "bbque/resource_accounter.h"
+#include "bbque/distributed_manager.h"
 
 #include "bbque/command_manager.h"
+
+#include "bbque/data_manager.h"
 
 #ifdef CONFIG_BBQUE_EM
 #include "bbque/em/event.h"
@@ -150,6 +154,11 @@ public:
 	static void Unregister(std::string const & name);
 
 
+	/**
+	 * @brief Allows external module to wait for the RM to be ready
+	 */
+	void WaitForReady();
+
 private:
 
 	/**
@@ -187,12 +196,19 @@ private:
 
 	PlatformManager & plm;
 
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+	ProcessManager & prm;
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
+
 	CommandManager & cm;
 
 	SchedulerManager & sm;
 
 	SynchronizationManager & ym;
 
+#ifdef CONFIG_BBQUE_DM
+	DataManager & dm;
+#endif
 
 #ifdef CONFIG_BBQUE_SCHED_PROFILING
 	ProfileManager & om;
@@ -202,11 +218,27 @@ private:
 	em::EventManager & em;
 #endif
 
+#ifdef CONFIG_BBQUE_DIST_MODE
+	DistributedManager & dism;
+#endif
+
+	/**
+	 * @ brief Events to be managed
+	 */
 	std::bitset<EVENTS_COUNT> pendingEvts;
 
 	std::mutex pendingEvts_mtx;
 
 	std::condition_variable pendingEvts_cv;
+
+	/**
+	 * @ brief If not ready, an optimization is in progress
+	 */
+	bool is_ready = true;
+
+	std::mutex status_mtx;
+
+	std::condition_variable status_cv;
 
 	/**
 	 * @brief The map of regitered Worker
@@ -309,8 +341,15 @@ private:
 	 */
 	std::atomic<bool> plat_event;
 
+
 	// By default we use an event based activation of optimizations
 #define BBQUE_DEFAULT_RESOURCE_MANAGER_OPT_INTERVAL 0
+
+	/**
+	 * @brief Set to ready or not ready, depending on having an optimization in
+	 * progress or not
+	 */
+	void SetReady(bool value);
 
 	/**
 	 * @brief   Run on optimization cycle (i.e. Schedule and Synchronization)

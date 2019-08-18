@@ -1,5 +1,7 @@
 
 set (TARGET_NAME bbque_pms)
+set (VERSION_STRING 1.0.0)
+set (SOURCE exec_synchronizer app_controller)
 
 configure_file (
 	"${PROJECT_SOURCE_DIR}/libpms/config/libpms.conf.in"
@@ -11,7 +13,6 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBBQUE_PMSLIB")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--gc-sections")
 
-set (SOURCE exec_synchronizer app_controller)
 
 add_library(${TARGET_NAME} SHARED ${SOURCE})
 
@@ -45,6 +46,7 @@ set_property (TARGET ${TARGET_NAME} PROPERTY FRAMEWORK ON)
 set_property (TARGET ${TARGET_NAME} PROPERTY PUBLIC_HEADER
 		${PROJECT_SOURCE_DIR}/include/pmsl/exec_synchronizer.h
 		${PROJECT_SOURCE_DIR}/include/pmsl/app_controller.h)
+set_property (TARGET ${TARGET_NAME} PROPERTY VERSION ${VERSION_STRING})
 
 # Install the Programming Model Synchronization Library
 install (TARGETS ${TARGET_NAME} LIBRARY

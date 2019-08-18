@@ -154,6 +154,9 @@ GridBalanceSchedPol::AssignWorkingMode(bbque::app::AppCPtr_t papp) {
 	// Amount of processing resources to assign
 	std::string resource_path_str("sys.cpu.pe");
 	uint64_t resource_slot_size = sys->ResourceTotal(resource_path_str) / slots;
+	logger->Debug("Assign: <%s> total = %lu slot_size=%d",
+		resource_path_str.c_str(), sys->ResourceTotal(resource_path_str),
+		resource_slot_size);
 	uint64_t resource_amount =
 			(sys->ApplicationLowestPriority() - papp->Priority() + 1)
 				* resource_slot_size;
@@ -188,7 +191,7 @@ SchedulerPolicyIF::ExitCode_t GridBalanceSchedPol::BindWorkingModesAndSched() {
 		logger->Info("Bind: [%s] binding and scheduling...",
 			sched_entity->papp->StrId());
 		uint64_t req_amount = sched_entity->pawm->RequestedAmount(proc_path);
-		size_t num_procs = req_amount > 100 ? ceil(req_amount / 100) : 1;
+		size_t num_procs = req_amount > 100 ? ceil(float(req_amount) / 100.0) : 1;
 		logger->Debug("Bind: [%s] <sys.cpu.pe>=%d => num_procs=%d",
 			sched_entity->papp->StrId(), req_amount, num_procs);
 
@@ -206,8 +209,10 @@ SchedulerPolicyIF::ExitCode_t GridBalanceSchedPol::BindWorkingModesAndSched() {
 		sched_entity->bind_refn =
 			sched_entity->pawm->BindResource(proc_path, proc_mask);
 
-		sched_entity->papp->ScheduleRequest(
-			sched_entity->pawm, sched_status_view, sched_entity->bind_refn);
+		ApplicationManager & am(ApplicationManager::GetInstance());
+		am.ScheduleRequest(
+			sched_entity->papp, sched_entity->pawm,
+			sched_status_view, sched_entity->bind_refn);
 	}
 
 	return SCHED_OK;

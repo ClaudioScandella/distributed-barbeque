@@ -31,6 +31,8 @@ ExecutionSynchronizer::ExecutionSynchronizer(
 		RTLIB_Services_t * rtlib):
 	BbqueEXC(name, recipe, rtlib),
 	app_name(name) {
+
+	app_name.resize(RTLIB_APP_NAME_LENGTH-1);
 }
 
 
@@ -42,6 +44,8 @@ ExecutionSynchronizer::ExecutionSynchronizer(
 	BbqueEXC(name, recipe, rtlib),
 	app_name(name),
 	task_graph(tg) {
+
+	app_name.resize(RTLIB_APP_NAME_LENGTH-1);
 }
 
 
@@ -91,8 +95,9 @@ ExecutionSynchronizer::ExitCode ExecutionSynchronizer::SetTaskGraph(std::shared_
 
 ExecutionSynchronizer::ExitCode ExecutionSynchronizer::SetTaskGraphPaths() {
 	try {
-		tg_file_path = BBQUE_TG_FILE_PREFIX + std::string(GetUniqueID_String());
-		std::string tg_str(GetUniqueID_String());
+		std::string app_suffix(std::string(GetUniqueID_String()).substr(0, 6) + app_name);
+		tg_file_path = BBQUE_TG_FILE_PREFIX + app_suffix;
+		std::string tg_str(app_suffix);
 		std::replace(tg_str.begin(), tg_str.end(), ':', '.');
 		tg_sem_path  = "/" + tg_str;
 		logger->Info("Task-graph [uid=%d] file:<%s>  sem:<%s> ", GetUniqueID(),
@@ -104,7 +109,6 @@ ExecutionSynchronizer::ExitCode ExecutionSynchronizer::SetTaskGraphPaths() {
 				GetUniqueID(), tg_sem_path.c_str(), errno);
 		}
 		logger->Info("Semaphore open");
-
 	}
 	catch (std::exception & ex) {
 		logger->Error("Error while creating serialization file name");
@@ -313,8 +317,8 @@ void ExecutionSynchronizer::TaskProfiler(uint32_t task_id) noexcept {
 	}
 
 	auto & event(evit->second);
-	auto & prof_data = tasks.runtime[task_id]->profile;
-	prof_data.timer.start();
+	auto & ctime = tasks.runtime[task_id]->ctime;
+	ctime.timer.start();
 	double t_curr, t_start, t_finish;
 
 	// Synchronize the profiling timing according to the events (write)
@@ -322,14 +326,14 @@ void ExecutionSynchronizer::TaskProfiler(uint32_t task_id) noexcept {
 	logger->Info("[Task %2d] profiling started", task_id);
 	while (tasks.runtime[task_id]->is_running) {
 		std::unique_lock<std::mutex> ev_lock(event->mx);
-		t_start  = prof_data.timer.getElapsedTimeUs();
+		t_start  = ctime.timer.getElapsedTimeUs();
 		event->cv.wait(ev_lock);
-		t_finish = prof_data.timer.getElapsedTimeUs();
+		t_finish = ctime.timer.getElapsedTimeUs();
 		t_curr = t_finish - t_start;
-		prof_data.acc(t_curr);
+		ctime.acc(t_curr);
 		logger->Debug("[Task %d] timing current = %.2f us", task_id, t_curr);
 	}
-	prof_data.timer.stop();
+	ctime.timer.stop();
 	logger->Info("[Task %2d] profiling stopped", task_id);
 }
 
@@ -426,21 +430,33 @@ RTLIB_ExitCode_t ExecutionSynchronizer::onRun() {
 RTLIB_ExitCode_t ExecutionSynchronizer::onMonitor() {
 
 	for (auto & rt_entry: tasks.runtime) {
-		auto & prof_data(rt_entry.second->profile);
+		// Task completion time
+		auto & ctime(rt_entry.second->ctime);
+		logger->Info("onMonitor: [Task %2d] execution time  = %.2f us (mean)",
+			rt_entry.first, mean(ctime.acc));
 
-		uint16_t task_tput =
-			static_cast<uint16_t>(1e6 / (mean(prof_data.acc)));
-		logger->Info("onMonitor: [Task %2d] timing mean=%.2fus",
-			rt_entry.first, mean(prof_data.acc));
-		task_graph->GetTask(rt_entry.first)->SetProfiling(task_tput*100, 0);
+		// Task throughput: multiple by 100 for the decimal part (divide when read)
+		auto & throughput(rt_entry.second->throughput);
+		uint16_t task_throughput =
+			static_cast<uint16_t>((1e6 / (mean(ctime.acc))) * 100);
+		logger->Info("onMonitor: [Task %2d] throughput      = %.2f CPS",
+			rt_entry.first, task_throughput);
+
+		throughput.acc(task_throughput);
+		task_graph->GetTask(rt_entry.first)->SetProfiling(
+				task_throughput, mean(ctime.acc));
 	}
 
-	logger->Info("onMonitor: Task-graph throughput: CPS:=%.2f", GetCPS());
-	task_graph->SetProfiling(GetCPS()*100, 0);
+	auto tg_throughput = GetCPS() * 100;
+	auto tg_time = GetExecutionTimeMs();
+	logger->Info("onMonitor: Task-graph throughput     = %.2f CPS", tg_throughput);
+	logger->Info("onMonitor: Task-graph execution time = %d ms", tg_time);
+	task_graph->SetProfiling(tg_throughput, tg_time);
 	SendTaskGraphToRM();
 
 	return RTLIB_OK;
 }
+
 
 RTLIB_ExitCode_t ExecutionSynchronizer::onRelease() {
 
@@ -455,8 +471,66 @@ RTLIB_ExitCode_t ExecutionSynchronizer::onRelease() {
 		logger->Info("onRelease: Monitoring thread joined");
 	}
 
+	PrintProfilingData();
+
 	return RTLIB_OK;
 }
+
+
+#define LIBPMS_PROF_TABLE_DIV \
+	"=======+=========+=======================================+========================================"
+
+#define LIBPMS_PROF_TABLE_DIV2 \
+	"-------+---------+---------------------------------------+----------------------------------------"
+
+#define LIBPMS_PROF_TABLE_HEADER \
+	"| Task |    N    |           Completion time (ms)        |           Throughput (CPS)            |"
+
+#define LIBPMS_APP_TABLE_HEADER \
+	"| Application    |           Completion time (ms)        |        Avg.  Throughput (CPS)         |"
+
+#define LIBPMS_PROF_TABLE_HEADER2 \
+	"|      |         |     min      max      avg     var     |     min      max      avg     var     |"
+
+void ExecutionSynchronizer::PrintProfilingData() const {
+	logger->Info(LIBPMS_PROF_TABLE_DIV);
+	logger->Info(LIBPMS_PROF_TABLE_HEADER);
+	logger->Info(LIBPMS_PROF_TABLE_DIV2);
+	logger->Info(LIBPMS_PROF_TABLE_HEADER2);
+	logger->Info(LIBPMS_PROF_TABLE_DIV);
+
+	// Per task
+	for (auto & rt_entry: tasks.runtime) {
+		auto & task_id = rt_entry.first;
+		auto & ctime   = rt_entry.second->ctime;
+		auto & throughput = rt_entry.second->throughput;
+		logger->Info("| %4d | %7d | %8.2f %8.2f %8.2f %8.2f   | %8.2f %8.2f %8.2f %8.2f   |",
+			task_id, count(ctime.acc),
+			min(ctime.acc)/1e3, max(ctime.acc)/1e3, mean(ctime.acc)/1e3, variance(ctime.acc)/1e6,
+			min(throughput.acc)/100.0, max(throughput.acc)/100.0,
+			mean(throughput.acc)/100.0, variance(throughput.acc)/1e4
+		);
+	}
+
+	// Overall
+	uint32_t total_ctime;
+	uint16_t final_throughput;
+	task_graph->GetProfiling(final_throughput, total_ctime);
+	if (total_ctime == 0)
+		total_ctime = GetExecutionTimeMs();
+
+	std::string trunc_app_name(app_name);
+	if (trunc_app_name.size() > 14)
+		trunc_app_name = app_name.substr(0, 14);
+
+	logger->Info(LIBPMS_PROF_TABLE_DIV);
+	logger->Info(LIBPMS_APP_TABLE_HEADER);
+	logger->Info(LIBPMS_PROF_TABLE_DIV2);
+	logger->Info("| %-14s |  %34d   | %35.2f   |",
+		trunc_app_name.c_str(), total_ctime, final_throughput / 100.0);
+	logger->Info(LIBPMS_PROF_TABLE_DIV);
+}
+
 
 // ---------------------------------------------------------------------------//
 

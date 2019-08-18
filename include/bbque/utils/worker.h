@@ -153,6 +153,18 @@ protected:
 	 */
 	bool Wait();
 
+protected:
+
+	/**
+	 * @brief Preparation to termination procedure
+	 **/
+	virtual void _PreTerminate();
+
+	/**
+	 * @brief Cleanup after termination procedure
+	 **/
+	virtual void _PostTerminate();
+
 private:
 
 	/**

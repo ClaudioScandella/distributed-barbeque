@@ -40,7 +40,8 @@ std::unique_ptr<Logger> Logger::GetLogger(Configuration const & conf) {
 #ifdef CONFIG_EXTERNAL_LOG4CPP
 	logger = Log4CppLogger::GetInstance(conf);
 #elif defined CONFIG_TARGET_ANDROID
-  logger = AndroidLogger::GetInstance(conf);
+	logger = AndroidLogger::GetInstance(conf);
+#else
 #endif
 	// Since this is a critical module, a fall-back dummy (console based) logger
 	// implementation is always available.

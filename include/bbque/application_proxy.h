@@ -19,6 +19,7 @@
 #define BBQUE_APPLICATION_PROXY_H_
 
 #include "bbque/app/application.h"
+#include "bbque/command_manager.h"
 #include "bbque/utils/worker.h"
 #include "bbque/utils/logging/logger.h"
 #include "bbque/plugins/rpc_channel.h"
@@ -47,7 +48,7 @@ namespace bbque {
  * be accessed using methods defined by this proxy. Each call requires to
  * specify the application to witch it is addressed and the actual parameters.
  */
-class ApplicationProxy : public bu::Worker {
+class ApplicationProxy: public bu::Worker, public CommandHandler {
 
 private:
 
@@ -171,7 +172,12 @@ public:
 	 */
 	RTLIB_ExitCode SyncP_PostChange(ba::AppPtr_t papp, pPostChangeRsp_t presp);
 
+// --- Inherited
 
+	/**
+	 * @brief The handler for commands defined by this module
+	 */
+	int CommandsCb(int argc, char *argv[]);
 private:
 
 	typedef std::shared_ptr<snCtx_t> psnCtx_t;

@@ -169,6 +169,11 @@ private:
 	void Task();
 
 	/**
+	 * @brief Preliminary operations before terminating the dispatcher thread
+	 */
+	void _PreTerminate();
+
+	/**
 	 * @brief Parse the specified command line
 	 *
 	 * This function provides the required support to parse a command line

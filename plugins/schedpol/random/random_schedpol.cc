@@ -78,7 +78,6 @@ char const * RandomSchedPol::Name() {
 }
 
 void RandomSchedPol::ScheduleApp(ba::AppCPtr_t papp) {
-	Application::ExitCode_t app_result = Application::APP_SUCCESS;
 	ba::AwmPtr_t selected_awm;
 	int8_t selected_awm_id;
 	uint32_t selected_bd;
@@ -89,7 +88,7 @@ void RandomSchedPol::ScheduleApp(ba::AppCPtr_t papp) {
 	assert(papp);
 
 	// Check for a valid binding domain count
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	bd_count = bindings[br::ResourceType::CPU]->resources.size();
 	logger->Debug("CPU binding domains : %d", bd_count);
 	if (bd_count == 0) {
@@ -122,8 +121,9 @@ void RandomSchedPol::ScheduleApp(ba::AppCPtr_t papp) {
 
 		// Scheduling attempt (if binding successful)
 		if (b_refn < 0) {
-			app_result = papp->ScheduleRequest(selected_awm, ra_view, b_refn);
-			if (app_result == ba::ApplicationStatusIF::APP_SUCCESS) {
+			ApplicationManager & am(ApplicationManager::GetInstance());
+			auto ret = am.ScheduleRequest(papp, selected_awm, ra_view, b_refn);
+			if (ret == ApplicationManager::AM_SUCCESS) {
 				logger->Info("Scheduling EXC [%s] on binding domain <%d> done.",
 						papp->StrId(), selected_bd);
 				binding_done = true;

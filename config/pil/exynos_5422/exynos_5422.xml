@@ -13,5 +13,4 @@
         <pe id="7" core_id="3" share="100" partition="mdev"/>
     </cpu>
     <mem id="0" quantity="2038672" unit="KB"/>
-    <mem id="1" quantity="2038672" unit="KB"/>
 </system>

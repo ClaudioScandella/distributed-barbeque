@@ -61,7 +61,7 @@ public:
 			int8_t id,
 			std::string const & name,
 			float value,
-			AppSPtr_t owner = nullptr);
+			SchedPtr_t owner = nullptr);
 
 	/**
 	 * @brief Default destructor
@@ -93,7 +93,7 @@ public:
 	/**
 	 * @see WorkingModeStatusIF
 	 */
-	inline AppSPtr_t const & Owner() const {
+	inline SchedPtr_t const & Owner() const {
 		return owner;
 	}
 
@@ -101,7 +101,7 @@ public:
 	 * @brief Set the application owning the AWM
 	 * @param papp Application descriptor pointer
 	 */
-	inline void SetOwner(AppSPtr_t const & papp) {
+	inline void SetOwner(SchedPtr_t const & papp) {
 		owner = papp;
 	}
 
@@ -238,27 +238,49 @@ public:
 	ExitCode_t Validate();
 
 	/**
-	 * @brief Set the amount of a resource usage request
+	 * @brief Add a resource usage request
 	 *
-	 * This method should be mainly called by the recipe loader.
+	 * This method should be mainly called by the recipe loader or the
+	 * scheduling policy.
 	 *
-	 * @param rsrc_path Resource path
+	 * @param str_path Resource path
 	 * @param amount The usage amount
 	 * @param split_policy How to split the amount among the bound resources
 	 *
-	 * @return WM_RSRC_NOT_FOUND if the resource cannot be found in the
-	 * system. WM_SUCCESS if the request has been correctly added.
+	 * @return nullptr if the resource cannot be found in the system. A
+	 * shared pointer to the new ResourceAssignment object if the
+	 * request has been correctly added.
 	 */
-	ExitCode_t AddResourceRequest(
-			std::string const & rsrc_path,
+	br::ResourceAssignmentPtr_t AddResourceRequest(
+			std::string const & str_path,
 			uint64_t amount,
 			br::ResourceAssignment::Policy split_policy =
 				br::ResourceAssignment::Policy::SEQUENTIAL);
 
 	/**
+	 * @brief Get a previously added resource request
+	 *
+	 * @param str_path Resource path in string format
+	 *
+	 * @return nullptr if the resource request cannot be found.
+	 * shared pointer to a ResourceAssignment object.
+	 */
+	br::ResourceAssignmentPtr_t GetResourceRequest(std::string const & str_path);
+
+	/**
+	 * @brief Get a previously added resource request
+	 *
+	 * @param str_path Resource path in pointer to object format
+	 *
+	 * @return nullptr if the resource request cannot be found.
+	 * shared pointer to a ResourceAssignment object.
+	 */
+	br::ResourceAssignmentPtr_t GetResourceRequest(br::ResourcePathPtr_t resource_path);
+
+	/**
 	 * @see WorkingModeStatusIF
 	 */
-	uint64_t RequestedAmount(br::ResourcePathPtr_t ppath) const;
+	uint64_t RequestedAmount(br::ResourcePathPtr_t resource_path) const;
 
 	/**
 	 * @see WorkingModeStatusIF
@@ -334,14 +356,40 @@ public:
 			br::ResourceBitset const & filter_mask,
 			int32_t prev_refn = -1);
 
+	/**
+	 * @brief Add missing resource requests to a resource assignment map
+	 *
+	 * @param bound_map The resource assignment map (already bound) with
+	 * missing requests
+	 *
+	 * @return The number of missing resources added
+	 */
+	uint32_t AddMissingResourceRequests(
+			br::ResourceAssignmentMapPtr_t bound_map);
 
-	br::ResourceAssignmentMap_t const * GetSourceAndOutBindingMaps(
+	/**
+	 * @brief Retrieve the source and the destination map of resource
+	 * assignments
+	 *
+	 * @param out_map The map to fill with bound resource assignments
+	 * @param prev_refn The reference number to retrieve later this binding
+	 *
+	 * @return A pointer to a source map for resource requests or
+	 * previously bound resource requests
+	 */
+	br::ResourceAssignmentMap_t * GetSourceAndOutBindingMaps(
 			br::ResourceAssignmentMapPtr_t & out_map,
 			int32_t prev_refn);
 
-
+	/**
+	 * @brief Save a resource assignment map aming the bindings
+	 *
+	 * @param bound_map The resource assignment map
+	 * @param prev_refn The reference number to retrieve later this binding
+	 *
+	 * @return The reference number of the binding
+	 */
 	int32_t StoreBinding(br::ResourceAssignmentMapPtr_t, int32_t prev_refn);
-
 
 	/**
 	 * @see WorkingModeStatusIF
@@ -558,7 +606,7 @@ private:
 	 * A pointer to the Application descriptor containing the
 	 * current working mode
 	 */
-	AppSPtr_t owner;
+	SchedPtr_t owner;
 
 	/** A numerical ID  */
 	int8_t id = 0;

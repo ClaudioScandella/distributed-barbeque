@@ -33,7 +33,9 @@ typedef enum class ArchType {
 	GPU,
 	ARM,
 	PEAK,
-	NUP,
+	NUPLUS,
+	DCT,
+	TETRAPOD,
 
 	STOP
 } ArchType_t;
@@ -44,7 +46,7 @@ typedef struct Bandwidth_t {
 } Bandwidth_t;
 
 inline ArchType GetArchTypeFromString(std::string const & str) {
-	std::string arch_str(UpperString(str));
+	std::string arch_str(utils::UpperString(str));
 	switch(ConstHashString(arch_str.c_str())) {
 		case ConstHashString("GN"):
 			return ArchType::GN;
@@ -53,9 +55,13 @@ inline ArchType GetArchTypeFromString(std::string const & str) {
 		case ConstHashString("PEAK"):
 			return ArchType::PEAK;
 		case ConstHashString("NUP"):
-			return ArchType::NUP;
+			return ArchType::NUPLUS;
 		case ConstHashString("ARM"):
 			return ArchType::ARM;
+		case ConstHashString("DCT"):
+			return ArchType::DCT;
+		case ConstHashString("TETRAPOD"):
+			return ArchType::TETRAPOD;
 		default:
 			return ArchType::NONE;
 	}
@@ -65,12 +71,14 @@ inline ArchType GetArchTypeFromString(std::string const & str) {
 
 inline const char* GetStringFromArchType(ArchType type) {
 	switch(type) {
-		case ArchType::NONE: return "NONE";
-		case ArchType::GN:   return "GN";
-		case ArchType::GPU:  return "GPU";
-		case ArchType::ARM:  return "ARM";
-		case ArchType::PEAK: return "PEAK";
-		case ArchType::NUP:  return "NUP";
+		case ArchType::NONE:  return "NONE";
+		case ArchType::GN:    return "GN";
+		case ArchType::GPU:   return "GPU";
+		case ArchType::ARM:   return "ARM";
+		case ArchType::PEAK:  return "PEAK";
+		case ArchType::NUPLUS:return "NUP";
+		case ArchType::DCT:   return "DCT";
+		case ArchType::TETRAPOD:  return "TETRAPOD";
 
 		default:  return "UNKW";
 	}

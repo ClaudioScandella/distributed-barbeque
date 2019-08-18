@@ -19,6 +19,8 @@
 
 #include "bbque/config.h"
 
+#include <unistd.h>
+
 #ifdef CONFIG_BBQUE_PM
   #include "bbque/pm/power_manager.h"
 #endif
@@ -28,14 +30,52 @@ namespace bbque
 namespace plugins
 {
 
+grpc::Status AgentImpl::Discover(
+		grpc::ServerContext * context,
+		const bbque::DiscoverRequest * request,
+		bbque::DiscoverReply * reply) {
+
+	// logger->Debug("agent_impl: Discover ip %s", context->peer().c_str());
+
+// #ifdef BLOCKING_SERVER
+// 	random++;
+// 	if (random % 3 == 0) {
+// 		logger->Debug("agent_impl: Sleeping 3 seconds");
+// 		std::this_thread::sleep_for(std::chrono::seconds(3));
+// 	}
+// #endif
+
+#ifdef CONFIG_BBQUE_DIST_FULLY
+		reply->set_iam(bbque::DiscoverReply_IAm_INSTANCE);
+		reply->set_id(0);
+#elif CONFIG_BBQUE_DIST_HIERARCHICAL
+#endif
+
+	return grpc::Status::OK;
+}
+
+grpc::Status AgentImpl::Ping(
+	grpc::ServerContext * context,
+	const bbque::GenericRequest * request,
+	bbque::GenericReply * reply) {
+
+	logger->Debug("Ping: request from sys%d for sys%d",
+		request->sender_id(), request->dest_id());
+
+	reply->set_value(GenericReply_Code_OK);
+
+	return grpc::Status::OK;
+}
+
 grpc::Status AgentImpl::GetResourceStatus(
 		grpc::ServerContext * context,
 		const bbque::ResourceStatusRequest * request,
 		bbque::ResourceStatusReply * reply) {
 
-	logger->Debug("ResourceStatus: Request from system &d", request->sender_id());
+	logger->Debug("ResourceStatus: request from sys%d for sys%d",
+		request->sender_id(), request->dest_id());
 	if (request->path().empty()) {
-		logger->Error("ResourceStatus: Invalid resource path specified");
+		logger->Error("ResourceStatus: invalid resource path specified");
 		return grpc::Status::CANCELLED;
 	}
 
@@ -48,27 +88,29 @@ grpc::Status AgentImpl::GetResourceStatus(
 	// Power information...
 	bbque::res::ResourcePtr_t resource(system.GetResource(request->path()));
 	if (resource == nullptr) {
-		logger->Error("ResourceStatus: Invalid resource path specified");
+		logger->Error("ResourceStatus: invalid resource path specified");
 		return grpc::Status::CANCELLED;
 	}
 
 	bbque::res::ResourcePathPtr_t resource_path(
 		system.GetResourcePath(request->path()));
 	if (resource_path == nullptr) {
-		logger->Error("ResourceStatus: Invalid resource path specified");
+		logger->Error("ResourceStatus: invalid resource path specified");
 		return grpc::Status::CANCELLED;
 	}
 
 	uint32_t degr_perc = 100;
-	uint32_t power_mw = 0, temp = 0;
+	uint32_t power_mw = 0, temp = 0, load = 0;
 #ifdef CONFIG_BBQUE_PM
 	bbque::PowerManager & pm(bbque::PowerManager::GetInstance());
 	pm.GetPowerUsage(resource_path, power_mw);
 	pm.GetTemperature(resource_path, temp);
+	pm.GetLoad(resource_path, load);
 #endif
 	reply->set_degradation(degr_perc);
 	reply->set_power_mw(power_mw);
 	reply->set_temperature(temp);
+	reply->set_load(load);
 
 	return grpc::Status::OK;
 }
@@ -78,8 +120,9 @@ grpc::Status AgentImpl::GetWorkloadStatus(
 		grpc::ServerContext * context,
 		const bbque::GenericRequest * request,
 		bbque::WorkloadStatusReply * reply) {
-
-	logger->Debug("WorkloadStatus: Request from system %d", request->sender_id());
+		
+	logger->Debug("WorkloadStatus: request from sys%d for sys%d",
+		request->sender_id(), request->dest_id());
 	reply->set_nr_running(system.ApplicationsCount(
 		bbque::app::ApplicationStatusIF::RUNNING));
 	reply->set_nr_ready(system.ApplicationsCount(
@@ -92,8 +135,9 @@ grpc::Status AgentImpl::GetChannelStatus(
 		grpc::ServerContext * context,
 		const bbque::GenericRequest * request,
 		bbque::ChannelStatusReply * reply) {
-
-	logger->Debug("ChannelStatus: Request from system %d", request->sender_id());
+		
+	logger->Debug("ChannelStatus: request from sys%d for sys%d",
+		request->sender_id(), request->dest_id());
 	reply->set_connected(true);
 
 	return grpc::Status::OK;

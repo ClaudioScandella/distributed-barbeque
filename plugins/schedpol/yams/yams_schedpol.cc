@@ -200,7 +200,7 @@ YamsSchedPol::ExitCode_t YamsSchedPol::InitResourceStateView() {
 YamsSchedPol::ExitCode_t YamsSchedPol::InitSchedContribManagers() {
 	std::map<br::ResourceType, SchedContribManager *>::iterator scm_it;
 	SchedContribPtr_t sc_recf;
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 
 	// Scheduling contribution managers already allocated?
 	if (scms.empty()) {
@@ -221,7 +221,7 @@ YamsSchedPol::ExitCode_t YamsSchedPol::InitSchedContribManagers() {
 }
 
 void YamsSchedPol::AllocSchedContribManagers() {
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	for (auto & bd_entity: bindings) {
 		br::ResourceType  bd_type = bd_entity.first;
 		BindingInfo_t const & bd_info(*(bd_entity.second));
@@ -520,7 +520,7 @@ void YamsSchedPol::EvalWorkingMode(SchedEntityPtr_t pschd) {
 	YAMS_RESET_TIMING(comp_tmr);
 
 	// Aggregate binding-independent scheduling contributions
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	for (auto & bd_entry: bindings) {
 		br::ResourceType  bd_type = bd_entry.first;
 		BindingInfo_t const & bd_info(*(bd_entry.second));
@@ -598,7 +598,7 @@ YamsSchedPol::ExitCode_t YamsSchedPol::EvalBindings(
 	ExitCode_t result;
 
 	// Get the BindingInfo of the given resource binding type
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	auto const bd_it = bindings.find(bd_type);
 	if (bd_it == bindings.end()) {
 		logger->Fatal("EvalBindings: Unexpected binding type (%d)", bd_type);
@@ -627,7 +627,7 @@ YamsSchedPol::ExitCode_t YamsSchedPol::EvalBindings(
 
 	// Binding IDs
 	BindingInfo_t bd_info = *(bd_it->second);
-	for (BBQUE_RID_TYPE & bd_id: bd_info.ids) {
+	for (BBQUE_RID_TYPE & bd_id: bd_info.r_ids) {
 		next_it = dom_it;
 		logger->Debug("EvalBindings: <%s> ID = %d",
 			br::GetResourceTypeString(bd_type), bd_id);
@@ -694,7 +694,7 @@ void YamsSchedPol::GetSchedContribValue(
 	// Compute the single contribution
 	YAMS_RESET_TIMING(comp_tmr);
 
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	scm_ret = scms[bd_type]->GetIndex(sc_type, eval_ent, sc_value, sc_ret);
 	if (scm_ret != SchedContribManager::OK) {
 		logger->Debug("SchedContrib: return code %d", scm_ret);
@@ -733,7 +733,7 @@ YamsSchedPol::ExitCode_t YamsSchedPol::GetBoundContrib(
 	uint8_t mlog_len = 0;
 	char mlog[255];
 
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	br::ResourceType bd_type = pschd_bd->bind_type;
 	logger->Debug("GetBoundContrib: =========== BINDING:<%s%d> ===========",
 			bindings[bd_type]->base_path->ToString().c_str(),
@@ -769,7 +769,7 @@ YamsSchedPol::ExitCode_t YamsSchedPol::BindResources(
 	br::ResourceType & bd_type(pschd->bind_type);
 	size_t r_refn;
 
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	// Binding of the AWM resource into the current binding resource ID.
 	// Since the policy handles more than one binding per AWM the resource
 	// binding is referenced by a number.
@@ -821,7 +821,7 @@ bool YamsSchedPol::CompareEntities(SchedEntityPtr_t & se1,
 #ifdef CONFIG_BBQUE_SP_COWS_BINDING
 
 void YamsSchedPol::CowsSetup() {
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	cpu_bindings = bindings[br::ResourceType::CPU];
 
 	// COWS: Vectors and accumulators resizing depending on the total number

@@ -55,11 +55,7 @@ OpenCLPlatformProxy::OpenCLPlatformProxy():
 }
 
 OpenCLPlatformProxy::~OpenCLPlatformProxy() {
-	logger->Debug("Destroying the OpenCL Platform Proxy...");
-	delete platforms;
-	delete devices;
-	device_ids.clear();
-	device_paths.clear();
+
 }
 
 PlatformProxy::ExitCode_t OpenCLPlatformProxy::LoadPlatformData() {
@@ -112,7 +108,7 @@ PlatformProxy::ExitCode_t OpenCLPlatformProxy::LoadPlatformData() {
 	return PlatformProxy::PLATFORM_OK;
 }
 
-PlatformProxy::ExitCode_t OpenCLPlatformProxy::Setup(AppPtr_t papp) {
+PlatformProxy::ExitCode_t OpenCLPlatformProxy::Setup(SchedPtr_t papp) {
 	(void) papp;
 	logger->Warn("PLAT OCL: No setup action implemented");
 	return PlatformProxy::PLATFORM_OK;
@@ -123,20 +119,20 @@ PlatformProxy::ExitCode_t OpenCLPlatformProxy::Refresh() {
 	return PlatformProxy::PLATFORM_OK;
 }
 
-PlatformProxy::ExitCode_t OpenCLPlatformProxy::Release(AppPtr_t papp) {
+PlatformProxy::ExitCode_t OpenCLPlatformProxy::Release(SchedPtr_t papp) {
 	(void) papp;
 	logger->Warn("PLAT OCL: No release action implemented");
 	return PlatformProxy::PLATFORM_OK;
 }
 
-PlatformProxy::ExitCode_t OpenCLPlatformProxy::ReclaimResources(AppPtr_t papp) {
+PlatformProxy::ExitCode_t OpenCLPlatformProxy::ReclaimResources(SchedPtr_t papp) {
 	(void) papp;
 	logger->Warn("PLAT OCL: No reclaiming action implemented");
 	return PlatformProxy::PLATFORM_OK;
 }
 
 PlatformProxy::ExitCode_t OpenCLPlatformProxy::MapResources(
-		ba::AppPtr_t papp,
+		ba::SchedPtr_t papp,
 		br::ResourceAssignmentMapPtr_t assign_map,
 		bool excl) {
 	(void) papp;
@@ -376,6 +372,14 @@ void OpenCLPlatformProxy::InsertDevicePath(
 
 	pdev_paths = device_paths[r_type];
 	pdev_paths->push_back(rp);
+}
+
+void OpenCLPlatformProxy::Exit() {
+	logger->Debug("Destroying the OpenCL Platform Proxy...");
+	delete platforms;
+	delete devices;
+	device_ids.clear();
+	device_paths.clear();
 }
 
 } // namespace bbque

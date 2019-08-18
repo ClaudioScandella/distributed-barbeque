@@ -7,13 +7,11 @@
 #ifdef CONFIG_TARGET_LINUX
 #include "bbque/pp/linux_platform_proxy.h"
 #elif defined CONFIG_TARGET_ANDROID
-#include "bbque/pp/android_platform_proxy.h"
-#else
-#error LocalPlatformProxy does not know which target to compile.
-#endif
-
-#ifdef CONFIG_TARGET_LINUX_MANGO
+#include "bbque/pp/test_platform_proxy.h"
+#elif defined CONFIG_TARGET_LINUX_MANGO
 #include "bbque/pp/mango_platform_proxy.h"
+#else
+#warning LocalPlatformProxy cannot load any platform proxy
 #endif
 
 #ifdef CONFIG_BBQUE_OPENCL
@@ -26,26 +24,24 @@ namespace pp {
 LocalPlatformProxy::LocalPlatformProxy() {
 
 #ifdef CONFIG_BBQUE_TEST_PLATFORM_DATA
-	this->host = std::unique_ptr<TestPlatformProxy>(
-						 TestPlatformProxy::GetInstance());
+	this->host = std::unique_ptr<TestPlatformProxy>(TestPlatformProxy::GetInstance());
+#elif defined CONFIG_TARGET_LINUX_MANGO
+	this->host = std::unique_ptr<TestPlatformProxy>(TestPlatformProxy::GetInstance());
 #elif defined CONFIG_TARGET_LINUX
-	this->host = std::unique_ptr<LinuxPlatformProxy>(
-	                     LinuxPlatformProxy::GetInstance());
+	this->host = std::unique_ptr<LinuxPlatformProxy>(LinuxPlatformProxy::GetInstance());
 #elif defined CONFIG_TARGET_ANDROID
-	this->host = std::unique_ptr<AndroidPlatformProxy>(
-	                     AndroidPlatformProxy()::GetInstance());
+	//this->host = std::unique_ptr<AndroidPlatformProxy>(AndroidPlatformProxy()::GetInstance());
+	this->host = std::unique_ptr<TestPlatformProxy>(TestPlatformProxy()::GetInstance());
 #else
 #error "No suitable PlatformProxy for host found."
 #endif
 
 #ifdef CONFIG_TARGET_LINUX_MANGO
-	this->aux.push_back(std::unique_ptr<MangoPlatformProxy>(
-	                     MangoPlatformProxy::GetInstance()));
+	this->aux.push_back(std::unique_ptr<MangoPlatformProxy>(MangoPlatformProxy::GetInstance()));
 #endif
 
 #ifdef CONFIG_BBQUE_OPENCL
-	this->aux.push_back(
-	        std::unique_ptr<OpenCLPlatformProxy>(OpenCLPlatformProxy::GetInstance()));
+	this->aux.push_back(std::unique_ptr<OpenCLPlatformProxy>(OpenCLPlatformProxy::GetInstance()));
 #endif
 
 	bbque_assert(this->host);
@@ -59,7 +55,7 @@ const char* LocalPlatformProxy::GetHardwareID(int16_t system_id) const {
 	return this->host->GetHardwareID(system_id);
 }
 
-LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Setup(AppPtr_t papp) {
+LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Setup(SchedPtr_t papp) {
 	ExitCode_t ec;
 
 	// Obviously, at least a PE in the cpu must be provided to application
@@ -118,7 +114,7 @@ LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Refresh() {
 }
 
 
-LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Release(AppPtr_t papp) {
+LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Release(SchedPtr_t papp) {
 	ExitCode_t ec;
 
 	ec = this->host->Release(papp);
@@ -138,7 +134,7 @@ LocalPlatformProxy::ExitCode_t LocalPlatformProxy::Release(AppPtr_t papp) {
 }
 
 
-LocalPlatformProxy::ExitCode_t LocalPlatformProxy::ReclaimResources(AppPtr_t papp) {
+LocalPlatformProxy::ExitCode_t LocalPlatformProxy::ReclaimResources(SchedPtr_t papp) {
 
 	ExitCode_t ec;
 
@@ -159,7 +155,7 @@ LocalPlatformProxy::ExitCode_t LocalPlatformProxy::ReclaimResources(AppPtr_t pap
 
 
 LocalPlatformProxy::ExitCode_t LocalPlatformProxy::MapResources(
-        AppPtr_t papp,
+        SchedPtr_t papp,
         ResourceAssignmentMapPtr_t pres,
         bool excl) {
 	ExitCode_t ec;
@@ -177,6 +173,13 @@ LocalPlatformProxy::ExitCode_t LocalPlatformProxy::MapResources(
 	}
 
 	return PLATFORM_OK;
+}
+
+
+void LocalPlatformProxy::Exit() {
+	this->host->Exit();
+	for (auto it=this->aux.begin() ; it < this->aux.end(); it++)
+		(*it)->Exit();
 }
 
 

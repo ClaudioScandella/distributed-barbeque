@@ -101,10 +101,9 @@ public:
 	inline void SetThreadCount(int nr_threads) { thread_count = nr_threads; }
 
 
-
 	/**
 	 * \brief Set the processor assigned to the task
-	 * \param processor_id Identification number of the processing unit
+	 * \param p_id Identification number of the processing unit
 	 */
 	inline void SetMappedProcessor(int p_id) { processor_id = p_id; }
 
@@ -156,13 +155,13 @@ public:
 	 * \brief Event (if) for synchronization purposes
 	 * \return the event identification number
 	 */
-	inline uint32_t Event() const { return event_id; }
+	inline int32_t Event() const { return event_id; }
 
 	/**
 	 * \brief Set the id of the event used synchronization purposes
 	 * \param id the event identification number
 	 */
-	inline void SetEvent(uint32_t id) { event_id = id; }
+	inline void SetEvent(int32_t id) { event_id = id; }
 
 
 	/**
@@ -248,7 +247,7 @@ private:
 	std::list<uint32_t> out_buffers;
 
 
-	uint32_t event_id;
+	int32_t event_id = -1;
 
 	ArchMap_t hw_targets;
 

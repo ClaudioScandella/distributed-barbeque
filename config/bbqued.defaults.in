@@ -16,6 +16,9 @@ BRTF='${CONFIG_BOSP_RUNTIME_PATH}/${BBQUE_PATH_VAR}'
 # The BBQ run-time R/W folder
 BRTRW='${CONFIG_BOSP_RUNTIME_RWPATH}'
 #
+# The BBQ run-time folder containing applications task-graphs
+BRATG='${CONFIG_BBQUE_APP_TG_PATH}'
+#
 # The BBQ daemon PID file
 PIDFILE='${CONFIG_BOSP_RUNTIME_PATH}/${BBQUE_DAEMON_PIDFILE}'
 #

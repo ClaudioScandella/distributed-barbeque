@@ -20,7 +20,7 @@
 
 #include <poll.h>
 
-static inline int ppoll(struct pollfd *fds, nfds_t nfds,
+extern inline int ppoll(struct pollfd *fds, nfds_t nfds,
 		const struct timespec *timeout, const sigset_t *sigmask) {
 
 	if (timeout == NULL)

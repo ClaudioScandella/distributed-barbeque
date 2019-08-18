@@ -17,6 +17,9 @@ declare PID=""
 # Used to store checklist results
 declare DIALOG_TEMP_FILE=$TMP_FOLDER/dialog
 
+# Used to store the system id number
+declare DIALOG_SYSTEM_ID=$TMP_FOLDER/dialog_sysid
+
 # Cache used to define Barbeque CPUs.
 # A Barbeque CPU is a set of Processing Elements sharing a cache of that level
 declare PARTITION_CACHE_LEVEL="L3Cache"
@@ -72,6 +75,17 @@ DEBUG_MODE=1 on line one and send me the output.
 Enjoy! [contacts: simone.libutti@polimi.it]
 
 Press enter to create your own platform layout!' 20 70; clear
+}
+
+
+function SystemIdInput {
+dialog --clear --title "System" --inputbox "System ID number (sys*)" \
+	10 70 0 2> $DIALOG_SYSTEM_ID
+	if [ `cat $DIALOG_SYSTEM_ID` -eq `cat $DIALOG_SYSTEM_ID` ]; then
+		echo "Fine."
+	else
+		echo 0 > $DIALOG_SYSTEM_ID
+	fi
 }
 
 function CacheSelection {
@@ -159,7 +173,7 @@ function SetManagedPartition {
 
 function XML_WriteHead {
 	echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > $TARGET_SYS
-	echo "<system hostname=\""$HOSTNAME"\" address=\""$MACHINE_IP"\">" >> $TARGET_SYS
+	echo "<system id=\""$SYSTEM_ID"\" hostname=\""$HOSTNAME"\" address=\""$MACHINE_IP"\">" >> $TARGET_SYS
 }
 
 function XML_WriteTail {
@@ -218,6 +232,8 @@ CheckPackage dialog # Checking for needed packages
 Setup # Setting up temp files directory
 
 GreetingBanner # Description and info
+SystemIdInput  # Set the system ID number
+SYSTEM_ID=$(cat $DIALOG_SYSTEM_ID)
 CacheSelection # Cache partition selection
 
 PrintTopology # Show the user the topology, so he chooses a host partition

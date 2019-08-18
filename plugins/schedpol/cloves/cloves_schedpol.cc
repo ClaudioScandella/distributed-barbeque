@@ -129,7 +129,7 @@ ClovesSchedPol::ExitCode_t ClovesSchedPol::InitDeviceQueues() {
 
 	// A device queue must be created for each binding domain
 	// (i.e., OpenCL device type (CPU, GPU,...))
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	for (auto & bd_entry: bindings) {
 		br::ResourceType  bd_type = bd_entry.first;
 		BindingInfo_t const & bd_info(*(bd_entry.second));
@@ -450,12 +450,12 @@ uint32_t ClovesSchedPol::SendScheduleRequests(DeviceQueue_t & dev_queue) {
 		}
 
 		// Send request
-		app_result = psched->papp->ScheduleRequest(
-			psched->pawm, sched_status_view, psched->bind_refn);
+		ApplicationManager & am(ApplicationManager::GetInstance());
+		auto ret = am.ScheduleRequest(
+			psched->papp, psched->pawm, sched_status_view, psched->bind_refn);
 		logger->Debug("Flush: %s schedule requested", psched->StrId());
-		if (app_result != ApplicationStatusIF::APP_SUCCESS) {
-			logger->Error("Flush: %s failed scheduling",
-				psched->StrId());
+		if (ret != ApplicationManager::AM_SUCCESS) {
+			logger->Error("Flush: %s failed scheduling", psched->StrId());
 		}
 		dev_queue.pop();
 		++app_count;

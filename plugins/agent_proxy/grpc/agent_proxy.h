@@ -18,6 +18,12 @@
 #ifndef BBQUE_AGENT_PROXY_GRPC_H_
 #define BBQUE_AGENT_PROXY_GRPC_H_
 
+#define CLAUDIO_DEBUG
+
+#ifdef CLAUDIO_DEBUG
+#include <stdio.h>
+#endif
+
 #include <chrono>
 #include <iostream>
 #include <memory>
@@ -36,7 +42,6 @@
 #include "bbque/plugins/agent_proxy_if.h"
 #include "bbque/plugin_manager.h"
 #include "bbque/plugins/plugin.h"
-#include "bbque/plugins/agent_proxy_types.h"
 
 #include "agent_client.h"
 #include "agent_impl.h"
@@ -44,6 +49,24 @@
 
 #define MODULE_NAMESPACE AGENT_PROXY_NAMESPACE".grpc"
 #define MODULE_CONFIG AGENT_PROXY_CONFIG
+
+using grpc::Channel;
+using grpc::ClientContext;
+using grpc::ClientReader;
+using grpc::ClientReaderWriter;
+using grpc::ClientWriter;
+using grpc::Status;
+using bbque::GenericRequest;
+using bbque::GenericReply;
+using bbque::DiscoverRequest;
+using bbque::DiscoverReply;
+using bbque::ResourceStatusRequest;
+using bbque::ResourceStatusReply;
+using bbque::WorkloadStatusReply;
+using bbque::ChannelStatusReply;
+using bbque::NodeManagementRequest;
+using bbque::ApplicationSchedulingRequest;
+using bbque::RemoteAgent;
 
 namespace bbque
 {
@@ -80,10 +103,15 @@ public:
 
 	// ----------------- Query status functions --------------------
 
+	ExitCode_t Discover(
+		std::string ip, bbque::agent::DiscoverRequest& iam) override;
+		
+	ExitCode_t Ping(
+		int system_id, int & ping_value) override;
+
 	ExitCode_t GetResourceStatus(
 	        std::string const & resource_path,
 	        agent::ResourceStatus & status) override;
-
 
 	ExitCode_t GetWorkloadStatus(
 	        std::string const & system_path, agent::WorkloadStatus & status) override;
@@ -126,17 +154,16 @@ private:
 	std::unique_ptr<bu::Logger> logger;
 
 
-	std::vector<bbque::pp::PlatformDescription::System> systems;
+	bbque::pp::PlatformDescription const * platform;
 
 	uint16_t local_sys_id;
-
 
 
 	AgentImpl service;
 
 	std::unique_ptr<grpc::Server> server;
 
-	std::vector<std::shared_ptr<AgentClient>> clients;
+	std::map<uint16_t, std::shared_ptr<AgentClient>> clients;
 
 	bool server_started = false;
 

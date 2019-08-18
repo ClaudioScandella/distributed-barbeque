@@ -19,6 +19,7 @@
 
 #include "bbque/config.h"
 #include "bbque/application_manager.h"
+#include "bbque/process_manager.h"
 #include "bbque/resource_accounter.h"
 #include "bbque/resource_manager.h"
 #include "bbque/modules_factory.h"
@@ -49,15 +50,20 @@ ApplicationProxy::ApplicationProxy():
 	// Build an RPCChannelIF object
 	rpc = ModulesFactory::GetRPCChannelModule();
 	if (!rpc) {
-		logger->Fatal("RM: RPC Channel module creation FAILED");
+		logger->Fatal("RPC Channel module creation FAILED");
 		abort();
 	}
 	// RPC channel initialization
 	if (rpc->Init()) {
-		logger->Fatal("RM: RPC Channel module setup FAILED");
+		logger->Fatal("RPC Channel module setup FAILED");
 		abort();
 	}
 
+#define CMD_APP_TERMINATED ".terminated"
+	CommandManager & cm(CommandManager::GetInstance());
+	cm.RegisterCommand(MODULE_NAMESPACE CMD_APP_TERMINATED,
+	    static_cast<CommandHandler*>(this),
+	    "Unregister the specified EXC");
 	// Spawn the command dispatching thread
 	Worker::Start();
 }
@@ -72,10 +78,8 @@ ApplicationProxy & ApplicationProxy::GetInstance() {
 }
 
 bl::rpc_msg_type_t ApplicationProxy::GetNextMessage(pchMsg_t & pChMsg) {
-
 	rpc->RecvMessage(pChMsg);
-
-	logger->Debug("APPs PRX: RX [typ: %d, pid: %d]",
+	logger->Debug("GetNextMessage: RX [typ: %d, pid: %d]",
 			pChMsg->typ, pChMsg->app_pid);
 
 	return (bl::rpc_msg_type_t)pChMsg->typ;
@@ -95,8 +99,7 @@ inline ApplicationProxy::pcmdSn_t ApplicationProxy::SetupCmdSession(
 	// This is the condition verified by the reception thread
 	pcs->pmsg = NULL;
 
-	logger->Debug("APPs PRX: setup command session for [%s]",
-			pcs->papp->StrId());
+	logger->Debug("SetupCmdSession: session for [%s]", pcs->papp->StrId());
 	return pcs;
 }
 
@@ -108,7 +111,7 @@ inline void ApplicationProxy::EnqueueHandler(pcmdSn_t pcs) {
 	pcs->pid = gettid();
 
 	if (cmdSnMap.find(pcs->pid) != cmdSnMap.end()) {
-		logger->Crit("APPs PRX: handler enqueuing FAILED "
+		logger->Crit("EnqueueHandler: handler enqueuing FAILED "
 				"(Error: duplicated handler thread)");
 		assert(cmdSnMap.find(pcs->pid) == cmdSnMap.end());
 		return;
@@ -116,7 +119,7 @@ inline void ApplicationProxy::EnqueueHandler(pcmdSn_t pcs) {
 
 	cmdSnMap.insert(std::pair<pid_t, pcmdSn_t>(pcs->pid, pcs));
 
-	logger->Debug("APPs PRX: eq command session [%05d] for [%s], "
+	logger->Debug("EnqueueHandler: enqueue command session [%05d] for [%s], "
 			"[qcount: %d]", pcs->pid, pcs->papp->StrId(), cmdSnMap.size());
 
 }
@@ -126,15 +129,16 @@ RTLIB_ExitCode_t ApplicationProxy::StopExecutionSync(AppPtr_t papp) {
 			std::defer_lock);
 	conCtxMap_t::iterator it;
 	pconCtx_t pcon;
+
+	auto tid = gettid();
 	bl::rpc_msg_BBQ_STOP_t stop_msg = {
-		// FIXME The token should be defined as the thread id
-		{bl::RPC_BBQ_STOP_EXECUTION, 1234,
+		{bl::RPC_BBQ_STOP_EXECUTION, tid,
 			static_cast<int>(papp->Pid()), papp->ExcId()},
 		{0, 100} // FIXME get a timeout parameter
 	};
 
 	// Send the stop command
-	logger->Debug("APPs PRX: Send Command [RPC_BBQ_STOP_EXECUTION] to "
+	logger->Debug("StopExecutionSync: Send command [RPC_BBQ_STOP_EXECUTION] -> "
 			"[app: %s, pid: %d, exc: %d]",
 			papp->Name().c_str(), papp->Pid(), papp->ExcId());
 
@@ -147,9 +151,8 @@ RTLIB_ExitCode_t ApplicationProxy::StopExecutionSync(AppPtr_t papp) {
 
 	// Check we have a connection contexe already configured
 	if (it == conCtxMap.end()) {
-		logger->Error("APPs PRX: Connection context not found "
-				"for application "
-				"[app: %s, pid: %d]",
+		logger->Error("StopExecutionSync: Connection context not found "
+				"for application [app: %s, pid: %d]",
 				papp->Name().c_str(), papp->Pid());
 		return RTLIB_BBQUE_CHANNEL_UNAVAILABLE;
 	}
@@ -164,21 +167,21 @@ RTLIB_ExitCode_t ApplicationProxy::StopExecutionSync(AppPtr_t papp) {
 
 void ApplicationProxy::StopExecutionTrd(pcmdSn_t pcs) {
 	(void)pcs;
-#if 0
+#if 1
 	pcmdRsp_t pcmdRsp(new cmdRsp_t);
 
 	// Enqueuing the Command Session Handler
 	EnqueueHandler(pcs);
 
-	logger->Debug("APPs PRX [%5d]: StopExecutionTrd(%s) START",
+	logger->Debug("StopExecutionTrd: [pid=%5d] (%s) START",
 			pcs->pid, pcs->papp->StrId());
 
 	// Run the Command Synchronously
 	pcmdRsp->result = StopExecutionSync(pcs->papp);
 	// Give back the result to the calling thread
-	(pcs->resp_prm).set_value(pcmdRsp);
+	(pcs->resp_prm).set_value(pcmdRsp->result);
 
-	logger->Debug("APPs PRX [%5d]: StopExecutionTrd(%s) END",
+	logger->Debug("StopExecutionTrd: [pid=%5d] (%s) END",
 			pcs->pid, pcs->papp->StrId());
 #endif
 }
@@ -186,15 +189,15 @@ void ApplicationProxy::StopExecutionTrd(pcmdSn_t pcs) {
 RTLIB_ExitCode_t
 ApplicationProxy::StopExecution(AppPtr_t papp) {
 	(void)papp;
-#if 0
+#if 1
 	ApplicationProxy::pcmdSn_t psn;
 
 	// Ensure the application is still active
 	assert(papp->State() < Application::FINISHED);
 	if (papp->State() >= Application::FINISHED) {
-		logger->Warn("Multiple stopping the same application [%s]",
+		logger->Warn("StopExecution: multiple application [%s] stop",
 				papp->Name().c_str());
-		return resp_ftr_t();
+		return RTLIB_OK;
 	}
 
 	// Setup a new command session
@@ -202,9 +205,10 @@ ApplicationProxy::StopExecution(AppPtr_t papp) {
 
 	// Spawn a new Command Executor (passing the future)
 	psn->exe = std::thread(&ApplicationProxy::StopExecutionTrd, this, psn);
+	psn->exe.detach();
 
 	// Return the promise (thus unlocking the executor)
-	return resp_ftr_t((psn->resp_prm).get_future());
+	psn->resp_prm.get_future();
 #endif
 	return RTLIB_OK;
 }
@@ -241,14 +245,14 @@ ApplicationProxy::Prof_GetRuntimeDataTrd(pcmdSn_t pcs) {
 	// Send get runtime profile request
 	result = Prof_GetRuntimeDataSend(pcs->papp);
 	if (result != RTLIB_OK) {
-		logger->Error("APPs PRX: Runtime profile data request failed");
+		logger->Error("Prof_GetRuntimeDataTrd: profile data request failed");
 		return RTLIB_ERROR;
 	}
 
 	// Receive runtime profiling data
 	result = Prof_GetRuntimeDataRecv(pcs);
 	if (result != RTLIB_OK) {
-		logger->Error("APPs PRX: Runtime profile data receiving failed");
+		logger->Error("Prof_GetRuntimeDataTrd: profile data receiving failed");
 		return RTLIB_ERROR;
 	}
 
@@ -274,22 +278,20 @@ ApplicationProxy::Prof_GetRuntimeDataSend(ba::AppPtr_t papp) {
 		true
 	};
 
-
 	// Recover the communication context for this application
 	conCtxMap_ul.lock();
 	it = conCtxMap.find(papp->Pid());
 	conCtxMap_ul.unlock();
 	if (it == conCtxMap.end()) {
-		logger->Error("APPs PRX: Connection context not found "
-				"for application "
-				"[app: %s, pid: %d]",
+		logger->Error("Prof_GetRuntimeDataSend: Connection context not found "
+				"for application [app: %s, pid: %d]",
 				papp->Name().c_str(), papp->Pid());
 		return RTLIB_BBQUE_CHANNEL_UNAVAILABLE;
 	}
 	pcon = (*it).second;
 
 	// Send the command
-	logger->Debug("APPs PRX: Send Command [RPC_BBQ_GET_PROFILE] to "
+	logger->Debug("Prof_GetRuntimeDataSend: Command [RPC_BBQ_GET_PROFILE] -> "
 			"[app: %s, pid: %d, exc: %d]",
 			papp->Name().c_str(), papp->Pid(), papp->ExcId());
 	assert(rpc);
@@ -309,13 +311,13 @@ ApplicationProxy::Prof_GetRuntimeDataRecv(pcmdSn_t pcs) {
 
 	// Wait for a response (if not yet available)
 	if (!pcs->pmsg) {
-		logger->Debug("APPs PRX: waiting for runtime profile data, "
+		logger->Debug("Prof_GetRuntimeDataRecv: waiting for runtime profile data, "
 				"Timeout: %d[ms]", BBQUE_SYNCP_TIMEOUT);
 		ready = (pcs->resp_cv).wait_for(resp_ul,
 				std::chrono::milliseconds(
 					BBQUE_SYNCP_TIMEOUT));
 		if (ready == std::cv_status::timeout) {
-			logger->Warn("APPs PRX: Runtime profile TIMEOUT");
+			logger->Warn("Prof_GetRuntimeDataRecv: TIMEOUT");
 			pcs->pmsg = NULL;
 			return RTLIB_BBQUE_CHANNEL_TIMEOUT;
 		}
@@ -325,19 +327,19 @@ ApplicationProxy::Prof_GetRuntimeDataRecv(pcmdSn_t pcs) {
 	pchMsg   = pcs->pmsg;
 	pmsg_hdr = pchMsg;
 	pmsg_pyl = (bl::rpc_msg_BBQ_GET_PROFILE_RESP_t*)pmsg_hdr;
-	logger->Debug("APPs PRX: command response [typ: %d, pid: %d]",
+	logger->Debug("Prof_GetRuntimeDataRecv: command response [typ: %d, pid: %d]",
 			pmsg_hdr->typ,
 			pmsg_hdr->app_pid);
 	assert(pmsg_hdr->typ == bl::RPC_BBQ_RESP);
 
 	// Update application/EXC profile data
-	logger->Info("APPs PRX: Profile timings [us]: { exec: %d mem: %d }",
+	logger->Info("Prof_GetRuntimeDataRecv: profile timings [us]: { exec: %d mem: %d }",
 			pmsg_pyl->exec_time, pmsg_pyl->mem_time);
 
 	assert(pcs->papp->CurrentAWM());
 	pcs->papp->CurrentAWM()->SetRuntimeProfExecTime(pmsg_pyl->exec_time);
 	pcs->papp->CurrentAWM()->SetRuntimeProfMemTime(pmsg_pyl->mem_time);
-	logger->Info("APPs PRX: [%s %s] runtime profile set",
+	logger->Info("Prof_GetRuntimeDataRecv: [%s %s] runtime profile set",
 		pcs->papp->StrId(), pcs->papp->CurrentAWM()->StrId());
 
 	return RTLIB_OK;
@@ -416,7 +418,7 @@ ApplicationProxy::SyncP_PreChangeSend(pcmdSn_t pcs) {
 #else
 		logger->Warn("APPs PRX: TPD enabled. No resource assignment enforcing");
 #endif // CONFIG_BBQUE_TEST_PLATFORM_DATA
-		logger->Debug("APPs PRX: Send Command [RPC_BBQ_SYNCP_PRECHANGE] to "
+		logger->Debug("SyncP_PreChangeSend: Command [RPC_BBQ_SYNCP_PRECHANGE] -> "
 			"EXC [%s], CPUs=<%d>, PROCs=<%2d [%d%%]>,MEM=<%d> @sv{%d}",
 			papp->StrId(),
 			local_sys_msg.nr_cpus,
@@ -442,20 +444,20 @@ ApplicationProxy::SyncP_PreChangeSend(pcmdSn_t pcs) {
 		local_sys_msg.dev = r_id;
 		switch(r_id) {
 		case R_ID_NONE:
-			logger->Info("APPs PRX: [%s] NO OpenCL device assigned");
+			logger->Info("SyncP_PreChangeSend: [%s] NO OpenCL device assigned");
 			break;
 		case R_ID_ANY:
-			logger->Info("APPs PRX: [%s] NO OpenCL device forcing");
+			logger->Info("SyncP_PreChangeSend: [%s] NO OpenCL device forcing");
 			break;
 		default:
-			logger->Info("APPs PRX: [%s] OpenCL device assigned: %d",
+			logger->Info("SyncP_PreChangeSend: [%s] OpenCL device assigned: %d",
 					papp->StrId(), r_id);
 		}
 #endif
 	}
 
 	// Send the required synchronization action
-	logger->Debug("APPs PRX: Send Command [RPC_BBQ_SYNCP_PRECHANGE] to "
+	logger->Debug("SyncP_PreChangeSend: Command [RPC_BBQ_SYNCP_PRECHANGE] -> "
 			"EXC [%s], Action [%d:%s]", papp->StrId(), papp->SyncState(),
 			ApplicationStatusIF::SyncStateStr(papp->SyncState()));
 
@@ -466,8 +468,8 @@ ApplicationProxy::SyncP_PreChangeSend(pcmdSn_t pcs) {
 
 	// Check we have a connection context already configured
 	if (it == conCtxMap.end()) {
-		logger->Error("APPs PRX: Send Command [RPC_BBQ_SYNCP_PRECHANGE] "
-				"to EXC [%s] FAILED (Error: connection context not found)",
+		logger->Error("SyncP_PreChangeSend: Command [RPC_BBQ_SYNCP_PRECHANGE] "
+				"-> EXC [%s] FAILED (Error: connection context not found)",
 				papp->StrId());
 		return RTLIB_BBQUE_CHANNEL_UNAVAILABLE;
 	}
@@ -477,8 +479,8 @@ ApplicationProxy::SyncP_PreChangeSend(pcmdSn_t pcs) {
 	result = rpc->SendMessage(pcon->pd, &syncp_prechange_msg.hdr,
 			(size_t)RPC_PKT_SIZE(BBQ_SYNCP_PRECHANGE));
 	if (result == -1) {
-		logger->Error("APPs PRX: Send Command [RPC_BBQ_SYNCP_PRECHANGE] "
-				"to EXC [%s] FAILED (Error: write failed)",
+		logger->Error("SyncP_PreChangeSend: Command [RPC_BBQ_SYNCP_PRECHANGE] "
+				"-> EXC [%s] FAILED (Error: write failed)",
 				papp->StrId());
 		return RTLIB_BBQUE_CHANNEL_WRITE_FAILED;
 	}
@@ -486,8 +488,8 @@ ApplicationProxy::SyncP_PreChangeSend(pcmdSn_t pcs) {
 	result = rpc->SendMessage(pcon->pd, (rpc_msg_header_t*)(&local_sys_msg),
 			(size_t)RPC_PKT_SIZE(BBQ_SYNCP_PRECHANGE_SYSTEM));
 	if (result == -1) {
-		logger->Error("APPs PRX: Send Command [RPC_BBQ_SYNCP_PRECHANGE] "
-				"to EXC [%s] FAILED (Error: write failed)",
+		logger->Error("SyncP_PreChangeSend: Command [RPC_BBQ_SYNCP_PRECHANGE] "
+				"-> EXC [%s] FAILED (Error: write failed)",
 				papp->StrId());
 		return RTLIB_BBQUE_CHANNEL_WRITE_FAILED;
 	}
@@ -507,13 +509,13 @@ ApplicationProxy::SyncP_PreChangeRecv(pcmdSn_t pcs,
 
 	// Wait for a response (if not yet available)
 	if (!pcs->pmsg) {
-		logger->Debug("APPs PRX: waiting for PreChange response, "
+		logger->Debug("SyncP_PreChangeRecv: waiting for response, "
 				"Timeout: %d[ms]", BBQUE_SYNCP_TIMEOUT);
 		ready = (pcs->resp_cv).wait_for(resp_ul,
 				std::chrono::milliseconds(
 					BBQUE_SYNCP_TIMEOUT));
 		if (ready == std::cv_status::timeout) {
-			logger->Warn("APPs PRX: PreChange response TIMEOUT");
+			logger->Warn("SyncP_PreChangeRecv: response TIMEOUT");
 			pcs->pmsg = NULL;
 			return RTLIB_BBQUE_CHANNEL_TIMEOUT;
 		}
@@ -524,15 +526,12 @@ ApplicationProxy::SyncP_PreChangeRecv(pcmdSn_t pcs,
 	pmsg_hdr = pchMsg;
 	pmsg_pyl = (bl::rpc_msg_BBQ_SYNCP_PRECHANGE_RESP_t*)pmsg_hdr;
 
-	logger->Debug("APPs PRX: command response [typ: %d, pid: %d]",
+	logger->Debug("SyncP_PreChangeRecv: command response [typ: %d, pid: %d, latency: %u]",
 			pmsg_hdr->typ,
-			pmsg_hdr->app_pid);
+			pmsg_hdr->app_pid,
+			pmsg_pyl->syncLatency);
 
 	assert(pmsg_hdr->typ == bl::RPC_BBQ_RESP);
-
-	// Build a new communication context
-	logger->Debug("APPs PRX: PreChangeResp [pid: %d, latency: %u]",
-			pmsg_hdr->app_pid, pmsg_pyl->syncLatency);
 
 	// Processing response
 	presp->syncLatency = pmsg_pyl->syncLatency;
@@ -545,7 +544,6 @@ ApplicationProxy::SyncP_PreChangeRecv(pcmdSn_t pcs,
 
 RTLIB_ExitCode_t
 ApplicationProxy::SyncP_PreChange(pcmdSn_t pcs, pPreChangeRsp_t presp) {
-
 	assert(pcs);
 	assert(presp);
 
@@ -572,24 +570,22 @@ ApplicationProxy::SyncP_PreChange(pcmdSn_t pcs, pPreChangeRsp_t presp) {
 
 void
 ApplicationProxy::SyncP_PreChangeTrd(pPreChangeRsp_t presp) {
-
 	// Enqueuing the Command Session Handler
 	EnqueueHandler(presp->pcs);
 
-	logger->Debug("APPs PRX [%05d]: SyncP_PreChangeTrd(%s) START",
+	logger->Debug("SyncP_PreChangeTrd: [pid=%05d] START",
 			presp->pcs->pid, presp->pcs->papp->StrId());
 
 	// Run the Command Executor
 	SyncP_PreChange(presp->pcs, presp);
 
-	logger->Debug("APPs PRX [%05d]: SyncP_PreChangeTrd(%s) END",
+	logger->Debug("SyncP_PreChangeTrd: [pid=%05d]: (%s) END",
 			presp->pcs->pid, presp->pcs->papp->StrId());
 }
 
 RTLIB_ExitCode_t
 ApplicationProxy::SyncP_PreChange(AppPtr_t papp, pPreChangeRsp_t presp) {
 	RTLIB_ExitCode_t result = RTLIB_OK;
-
 	assert(papp);
 	assert(presp);
 
@@ -627,8 +623,7 @@ ApplicationProxy::SyncP_PreChange_GetResult(pPreChangeRsp_t presp) {
 	assert(presp);
 
 	// Wait for the promise being returned
-	ftrStatus = presp->pcs->resp_ftr.wait_for(std::chrono::milliseconds(
-				BBQUE_SYNCP_TIMEOUT));
+	ftrStatus = presp->pcs->resp_ftr.wait_for(std::chrono::milliseconds(BBQUE_SYNCP_TIMEOUT));
 	if (!FutureTimedout(ftrStatus))
 		result = presp->pcs->resp_ftr.get();
 
@@ -656,7 +651,7 @@ ApplicationProxy::SyncP_SyncChangeSend(pcmdSn_t pcs) {
 	};
 
 	// Send the stop command
-	logger->Debug("APPs PRX: Send Command [RPC_BBQ_SYNCP_SYNCCHANGE] to "
+	logger->Debug("SyncP_SyncChangeSend: Command [RPC_BBQ_SYNCP_SYNCCHANGE] -> "
 			"EXC [%s]", papp->StrId());
 
 	// Recover the communication context for this application
@@ -666,8 +661,8 @@ ApplicationProxy::SyncP_SyncChangeSend(pcmdSn_t pcs) {
 
 	// Check we have a connection context already configured
 	if (it == conCtxMap.end()) {
-		logger->Error("APPs PRX: Send Command [RPC_BBQ_SYNCP_SYNCCHANGE] "
-				"to EXC [%s] FAILED (Error: connection context not found)",
+		logger->Error("SyncP_SyncChangeSend: Command [RPC_BBQ_SYNCP_SYNCCHANGE] "
+				"-> EXC [%s] FAILED (Error: connection context not found)",
 				papp->StrId());
 		return RTLIB_BBQUE_CHANNEL_UNAVAILABLE;
 	}
@@ -677,8 +672,8 @@ ApplicationProxy::SyncP_SyncChangeSend(pcmdSn_t pcs) {
 	result = rpc->SendMessage(pcon->pd, &syncp_syncchange_msg.hdr,
 			(size_t)RPC_PKT_SIZE(BBQ_SYNCP_SYNCCHANGE));
 	if (result == -1) {
-		logger->Error("APPs PRX: Send Command [RPC_BBQ_SYNCP_SYNCCHANGE] "
-				"to EXC [%s] FAILED (Error: write failed)",
+		logger->Error("SyncP_SyncChangeSend: Command [RPC_BBQ_SYNCP_SYNCCHANGE] "
+				"-> EXC [%s] FAILED (Error: write failed)",
 				papp->StrId());
 		return RTLIB_BBQUE_CHANNEL_WRITE_FAILED;
 	}
@@ -697,13 +692,12 @@ ApplicationProxy::SyncP_SyncChangeRecv(pcmdSn_t pcs,
 
 	// Wait for a response (if not yet available)
 	if (!pcs->pmsg) {
-		logger->Debug("APPs PRX: waiting for SyncChange response, "
-				"Timeout: %d[ms]", BBQUE_SYNCP_TIMEOUT);
-		ready = (pcs->resp_cv).wait_for(resp_ul,
-				std::chrono::milliseconds(
-					BBQUE_SYNCP_TIMEOUT));
+		logger->Debug("SyncP_SyncChangeRecv: waiting for response, Timeout: %d[ms]",
+			BBQUE_SYNCP_TIMEOUT);
+		ready = (pcs->resp_cv).wait_for(
+				resp_ul, std::chrono::milliseconds(BBQUE_SYNCP_TIMEOUT));
 		if (ready == std::cv_status::timeout) {
-			logger->Warn("APPs PRX: SyncChange response TIMEOUT");
+			logger->Warn("SyncP_SyncChangeRecv: response TIMEOUT");
 			pcs->pmsg = NULL;
 			return RTLIB_BBQUE_CHANNEL_TIMEOUT;
 		}
@@ -714,14 +708,11 @@ ApplicationProxy::SyncP_SyncChangeRecv(pcmdSn_t pcs,
 	pmsg_hdr = pchMsg;
 	//pmsg_pyl = (rpc_msg_BBQ_SYNCP_SYNCCHANGE_RESP_t*)pmsg_hdr;
 
-	logger->Debug("APPs PRX: command response [typ: %d, pid: %d]",
+	logger->Debug("SyncP_SyncChangeRecv: command response [typ: %d, pid: %d]",
 			pmsg_hdr->typ,
 			pmsg_hdr->app_pid);
 
 	assert(pmsg_hdr->typ == bl::RPC_BBQ_RESP);
-
-	// Build a new communication context
-	logger->Debug("APPs PRX: SyncChangeResp [pid: %d]", pmsg_hdr->app_pid);
 
 	// Processing response (nothing to process right now)
 	(void)presp;
@@ -731,7 +722,6 @@ ApplicationProxy::SyncP_SyncChangeRecv(pcmdSn_t pcs,
 
 RTLIB_ExitCode_t
 ApplicationProxy::SyncP_SyncChange(pcmdSn_t pcs, pSyncChangeRsp_t presp) {
-
 	assert(pcs);
 	assert(presp);
 
@@ -764,13 +754,13 @@ ApplicationProxy::SyncP_SyncChangeTrd(pSyncChangeRsp_t presp) {
 	// Enqueuing the Command Session Handler
 	EnqueueHandler(presp->pcs);
 
-	logger->Debug("APPs PRX [%05d]: SyncP_SyncChangeTrd(%s) START",
+	logger->Debug("SyncP_SyncChangeTrd: [pid=%05d]: [%s] START",
 			presp->pcs->pid, presp->pcs->papp->StrId());
 
 	// Run the Command Executor
 	SyncP_SyncChange(presp->pcs, presp);
 
-	logger->Debug("APPs PRX [%05d]: SyncP_SyncChangeTrd(%s) END",
+	logger->Debug("SyncP_SyncChangeTrd: [pid=%05d]: [%s] END",
 			presp->pcs->pid, presp->pcs->papp->StrId());
 }
 
@@ -844,7 +834,7 @@ ApplicationProxy::SyncP_DoChangeSend(pcmdSn_t pcs) {
 	};
 
 	// Send the stop command
-	logger->Debug("APPs PRX: Send Command [RPC_BBQ_SYNCP_DOCHANGE] to "
+	logger->Debug("SyncP_DoChangeSend: Command [RPC_BBQ_SYNCP_DOCHANGE] -> "
 			"EXC [%s]", papp->StrId());
 
 	// Recover the communication context for this application
@@ -854,8 +844,8 @@ ApplicationProxy::SyncP_DoChangeSend(pcmdSn_t pcs) {
 
 	// Check we have a connection context already configured
 	if (it == conCtxMap.end()) {
-		logger->Error("APPs PRX: Send Command [RPC_BBQ_SYNCP_DOCHANGE] "
-				"to EXC [%s] FAILED (Error: connection context not found)",
+		logger->Error("SyncP_DoChangeSend: Command [RPC_BBQ_SYNCP_DOCHANGE] "
+				"-> EXC [%s] FAILED (Error: connection context not found)",
 				papp->StrId());
 		return RTLIB_BBQUE_CHANNEL_UNAVAILABLE;
 	}
@@ -865,8 +855,8 @@ ApplicationProxy::SyncP_DoChangeSend(pcmdSn_t pcs) {
 	result = rpc->SendMessage(pcon->pd, &syncp_syncchange_msg.hdr,
 			(size_t)RPC_PKT_SIZE(BBQ_SYNCP_DOCHANGE));
 	if (result == -1) {
-		logger->Error("APPs PRX: Send Command [RPC_BBQ_SYNCP_DOCHANGE] "
-				"to EXC [%s] FAILED (Error: write failed)",
+		logger->Error("SyncP_DoChangeSend: Command [RPC_BBQ_SYNCP_DOCHANGE] "
+				"-> EXC [%s] FAILED (Error: write failed)",
 				papp->StrId());
 		return RTLIB_BBQUE_CHANNEL_WRITE_FAILED;
 	}
@@ -886,7 +876,6 @@ ApplicationProxy::SyncP_DoChange(pcmdSn_t pcs, pDoChangeRsp_t presp) {
 		return presp->result;
 
 	return RTLIB_OK;
-
 }
 
 RTLIB_ExitCode_t
@@ -921,7 +910,7 @@ ApplicationProxy::SyncP_PostChangeSend(pcmdSn_t pcs) {
 	};
 
 	// Send the stop command
-	logger->Debug("APPs PRX: Send Command [RPC_BBQ_SYNCP_POSTCHANGE] to "
+	logger->Debug("SyncP_PostChangeSend: Send Command [RPC_BBQ_SYNCP_POSTCHANGE] to "
 			"EXC [%s]", papp->StrId());
 
 	// Recover the communication context for this application
@@ -931,7 +920,7 @@ ApplicationProxy::SyncP_PostChangeSend(pcmdSn_t pcs) {
 
 	// Check we have a connection context already configured
 	if (it == conCtxMap.end()) {
-		logger->Error("APPs PRX: Send Command [RPC_BBQ_SYNCP_POSTCHANGE] "
+		logger->Error("SyncP_PostChangeSend: Send Command [RPC_BBQ_SYNCP_POSTCHANGE] "
 				"to EXC [%s] FAILED (Error: connection context not found)",
 				papp->StrId());
 		return RTLIB_BBQUE_CHANNEL_UNAVAILABLE;
@@ -942,7 +931,7 @@ ApplicationProxy::SyncP_PostChangeSend(pcmdSn_t pcs) {
 	result = rpc->SendMessage(pcon->pd, &syncp_syncchange_msg.hdr,
 			(size_t)RPC_PKT_SIZE(BBQ_SYNCP_POSTCHANGE));
 	if (result == -1) {
-		logger->Error("APPs PRX: Send Command [RPC_BBQ_SYNCP_POSTCHANGE] "
+		logger->Error("SyncP_PostChangeSend: Send Command [RPC_BBQ_SYNCP_POSTCHANGE] "
 				"to EXC [%s] FAILED (Error: write failed)",
 				papp->StrId());
 		return RTLIB_BBQUE_CHANNEL_WRITE_FAILED;
@@ -962,13 +951,13 @@ ApplicationProxy::SyncP_PostChangeRecv(pcmdSn_t pcs,
 
 	// Wait for a response (if not yet available)
 	if (!pcs->pmsg) {
-		logger->Debug("APPs PRX: waiting for PostChange response, "
+		logger->Debug("SyncP_PostChangeRecv: waiting for PostChange response, "
 				"Timeout: %d[ms]", BBQUE_SYNCP_TIMEOUT);
 		ready = (pcs->resp_cv).wait_for(resp_ul,
 				std::chrono::milliseconds(
 					BBQUE_SYNCP_TIMEOUT));
 		if (ready == std::cv_status::timeout) {
-			logger->Warn("APPs PRX: PostChange response TIMEOUT");
+			logger->Warn("SyncP_PostChangeRecv: PostChange response TIMEOUT");
 			pcs->pmsg = NULL;
 			return RTLIB_BBQUE_CHANNEL_TIMEOUT;
 		}
@@ -996,7 +985,6 @@ ApplicationProxy::SyncP_PostChangeRecv(pcmdSn_t pcs,
 
 RTLIB_ExitCode_t
 ApplicationProxy::SyncP_PostChange(pcmdSn_t pcs, pPostChangeRsp_t presp) {
-
 	assert(pcs);
 	assert(presp);
 
@@ -1045,19 +1033,17 @@ ApplicationProxy::GetCommandSession(rpc_msg_header_t *pmsg_hdr)  {
 	it = cmdSnMap.find(pmsg_hdr->token);
 	if (it == cmdSnMap.end()) {
 		cmdSnMap_ul.unlock();
-		logger->Warn("APPs PRX [%5d]: Command session get FAILED",
+		logger->Warn("GetCommandSession: get session [%5d] FAILED",
 			"(Error: command session not found)", pmsg_hdr->token);
 		assert(it != cmdSnMap.end());
 		return pcmdSn_t();
 	}
 
 	pcs = (*it).second;
-
 	logger->Debug("APPs PRX: Command session get [%05d] for [%s]",
 			pcs->pid, pcs->papp->StrId());
 
 	return pcs;
-
 }
 
 void
@@ -1069,7 +1055,7 @@ ApplicationProxy::ReleaseCommandSession(pcmdSn_t pcs)  {
 	it = cmdSnMap.find(pcs->pid);
 	if (it == cmdSnMap.end()) {
 		cmdSnMap_ul.unlock();
-		logger->Warn("APPs PRX [%5d]: Releasing session release FAILED",
+		logger->Warn("ReleaseCommandSession: session [%5d] release FAILED",
 			"(Error: command session not found)", pcs->pid);
 		assert(it != cmdSnMap.end());
 		return;
@@ -1079,9 +1065,8 @@ ApplicationProxy::ReleaseCommandSession(pcmdSn_t pcs)  {
 	// thus cleaning-up all of its data
 	cmdSnMap.erase(it);
 
-	logger->Debug("APPs PRX: dq command session [%05d] for [%s], "
+	logger->Debug("ReleaseCommandSession: dequeing command session [%05d] for [%s], "
 			"[qcount: %d]", pcs->pid, pcs->papp->StrId(), cmdSnMap.size());
-
 }
 
 void ApplicationProxy::CompleteTransaction(pchMsg_t & pmsg) {
@@ -1090,7 +1075,7 @@ void ApplicationProxy::CompleteTransaction(pchMsg_t & pmsg) {
 
 	assert(pmsg_hdr);
 
-	logger->Debug("APPs PRX: dispatching command response "
+	logger->Debug("CompleteTransaction: dispatching command response "
 			"[typ: %d, pid: %d] to [%5d]...",
 			pmsg_hdr->typ,
 			pmsg_hdr->app_pid,
@@ -1099,7 +1084,7 @@ void ApplicationProxy::CompleteTransaction(pchMsg_t & pmsg) {
 	// Looking for a valid command session
 	pcs = GetCommandSession(pmsg_hdr);
 	if (!pcs) {
-		logger->Crit("APPs PRX: dispatching command response FAILED "
+		logger->Crit("CompleteTransaction: dispatching command response FAILED "
 				"(Error: cmd session not found for token [%d])",
 				pmsg_hdr->token);
 		assert(pcs);
@@ -1112,7 +1097,6 @@ void ApplicationProxy::CompleteTransaction(pchMsg_t & pmsg) {
 	// Notify command session
 	std::unique_lock<std::mutex> resp_ul(pcs->resp_mtx);
 	(pcs->resp_cv).notify_one();
-
 }
 
 
@@ -1136,7 +1120,7 @@ ApplicationProxy::pconCtx_t ApplicationProxy::GetConnectionContext(
 	it = conCtxMap.find(pmsg_hdr->app_pid);
 	if (it == conCtxMap.end()) {
 		conCtxMap_ul.unlock();
-		logger->Warn("APPs PRX: EXC registration FAILED",
+		logger->Warn("GetConnectionContext: EXC registration FAILED",
 			"[pid: %d, exc: %d] (Error: application not paired)",
 			pmsg_hdr->app_pid, pmsg_hdr->exc_id);
 		return pconCtx_t();
@@ -1149,12 +1133,11 @@ void ApplicationProxy::RpcACK(pconCtx_t pcon, rpc_msg_header_t *pmsg_hdr,
 	bl::rpc_msg_resp_t resp;
 
 	// Sending response to application
-	logger->Debug("APPs PRX: Send RPC channel ACK " APP_STRID, AppStrId(pcon));
+	logger->Debug("RpcACK: Send RPC channel ACK " APP_STRID, AppStrId(pcon));
 	::memcpy(&resp.hdr, pmsg_hdr, RPC_PKT_SIZE(header));
 	resp.hdr.typ = type;
 	resp.result = RTLIB_OK;
 	rpc->SendMessage(pcon->pd, &resp.hdr, (size_t)RPC_PKT_SIZE(resp));
-
 }
 
 void ApplicationProxy::RpcNAK(pconCtx_t pcon, rpc_msg_header_t *pmsg_hdr,
@@ -1162,13 +1145,12 @@ void ApplicationProxy::RpcNAK(pconCtx_t pcon, rpc_msg_header_t *pmsg_hdr,
 	bl::rpc_msg_resp_t resp;
 
 	// Sending response to application
-	logger->Debug("APPs PRX: Send RPC channel NAK " APP_STRID ", error [%d]",
+	logger->Debug("RpcNAK: Send RPC channel NAK " APP_STRID ", error [%d]",
 			AppStrId(pcon), error);
 	::memcpy(&resp.hdr, pmsg_hdr, RPC_PKT_SIZE(header));
 	resp.hdr.typ = type;
 	resp.result = error;
 	rpc->SendMessage(pcon->pd, &resp.hdr, (size_t)RPC_PKT_SIZE(resp));
-
 }
 
 void ApplicationProxy::RpcExcRegister(prqsSn_t prqs) {
@@ -1188,14 +1170,14 @@ void ApplicationProxy::RpcExcRegister(prqsSn_t prqs) {
 		return;
 
 	// Registering a new Execution Context
-	logger->Info("APPs PRX: Registering EXC " EXC_STRID ", name [%s]",
+	logger->Info("RpcExcRegister: Registering EXC " EXC_STRID ", name [%s]",
 			ExcStrId(pcon, pmsg_hdr->exc_id), pmsg_pyl->exc_name);
 
 	// Register the EXC with the ApplicationManager
 	papp  = am.CreateEXC(pmsg_pyl->exc_name, pcon->app_pid,
 			pmsg_hdr->exc_id, pmsg_pyl->recipe, pmsg_pyl->lang);
 	if (!papp) {
-		logger->Error("APPs PRX: EXC " EXC_STRID ", name [%s] "
+		logger->Error("RpcExcRegister: EXC " EXC_STRID ", name [%s] "
 			"registration FAILED "
 			"(Error: missing recipe or recipe load failure)",
 			ExcStrId(pcon, pmsg_hdr->exc_id), pmsg_pyl->exc_name);
@@ -1205,7 +1187,6 @@ void ApplicationProxy::RpcExcRegister(prqsSn_t prqs) {
 
 	// Sending ACK response to application
 	RpcACK(pcon, pmsg_hdr, bl::RPC_EXC_RESP);
-
 }
 
 void ApplicationProxy::RpcExcUnregister(prqsSn_t prqs) {
@@ -1224,19 +1205,18 @@ void ApplicationProxy::RpcExcUnregister(prqsSn_t prqs) {
 		return;
 
 	// Unregister an Execution Context
-	logger->Info("APPs PRX: Unregistering EXC "
+	logger->Info("RpcExcUnregister: Unregistering EXC "
 			"[app: %s, pid: %d, exc: %d, nme: %s]",
 			pcon->app_name, pcon->app_pid,
 			pmsg_hdr->exc_id, pmsg_pyl->exc_name);
 
 	// Unregister the EXC from the ApplicationManager
-	am.DestroyEXC(pcon->app_pid, pmsg_hdr->exc_id);
+//	am.DestroyEXC(pcon->app_pid, pmsg_hdr->exc_id);
 	// FIXME we should deliver the error code to the application
 	// This is tracked by Issues tiket #10
 
 	// Sending ACK response to application
 	RpcACK(pcon, pmsg_hdr, bl::RPC_EXC_RESP);
-
 }
 
 void ApplicationProxy::RpcExcSet(prqsSn_t prqs) {
@@ -1256,7 +1236,7 @@ void ApplicationProxy::RpcExcSet(prqsSn_t prqs) {
 		return;
 
 	// Setting constraints for the requesting Execution Context
-	logger->Info("APPs PRX: Set [%d] constraints on EXC "
+	logger->Info("RpcExcSet: Set [%d] constraints on EXC "
 			"[app: %s, pid: %d, exc: %d]",
 			pmsg_pyl->count, pcon->app_name,
 			pcon->app_pid, pmsg_hdr->exc_id);
@@ -1264,11 +1244,10 @@ void ApplicationProxy::RpcExcSet(prqsSn_t prqs) {
 			&(pmsg_pyl->constraints), pmsg_pyl->count);
 	if (result == ApplicationManager::AM_RESCHED_REQUIRED) {
 		// Notify the ResourceManager for a new reschedule request
-		logger->Debug("APPs PRX: Notifing ResourceManager...");
+		logger->Debug("RpcExcSet: Notifing ResourceManager...");
 		rm.NotifyEvent(ResourceManager::BBQ_OPTS);
 	} else if (result != ApplicationManager::AM_SUCCESS) {
-		logger->Error("APPs PRX: EXC "
-			"[pid: %d, exc: %d] "
+		logger->Error("RpcExcSet: EXC [pid: %d, exc: %d] "
 			"set [%d] constraints FAILED",
 			pcon->app_pid, pmsg_hdr->exc_id, pmsg_pyl->count);
 		RpcNAK(pcon, pmsg_hdr, bl::RPC_EXC_RESP, RTLIB_EXC_ENABLE_FAILED);
@@ -1294,13 +1273,12 @@ void ApplicationProxy::RpcExcClear(prqsSn_t prqs) {
 		return;
 
 	// Clearing constraints for the requesting Execution Context
-	logger->Info("APPs PRX: Clearing constraints on EXC "
+	logger->Info("RpcExcClear: Clearing constraints on EXC "
 			"[app: %s, pid: %d, exc: %d]",
 			pcon->app_name, pcon->app_pid, pmsg_hdr->exc_id);
 	result = am.ClearConstraintsEXC(pcon->app_pid, pmsg_hdr->exc_id);
 	if (result != ApplicationManager::AM_SUCCESS) {
-		logger->Error("APPs PRX: EXC "
-			"[pid: %d, exc: %d] "
+		logger->Error("RpcExcClear: EXC [pid: %d, exc: %d] "
 			"clear constraints FAILED",
 			pcon->app_pid, pmsg_hdr->exc_id);
 		RpcNAK(pcon, pmsg_hdr, bl::RPC_EXC_RESP, RTLIB_EXC_ENABLE_FAILED);
@@ -1309,7 +1287,6 @@ void ApplicationProxy::RpcExcClear(prqsSn_t prqs) {
 
 	// Sending ACK response to application
 	RpcACK(pcon, pmsg_hdr, bl::RPC_EXC_RESP);
-
 }
 
 void ApplicationProxy::RpcExcRuntimeProfileNotify(prqsSn_t prqs) {
@@ -1327,7 +1304,7 @@ void ApplicationProxy::RpcExcRuntimeProfileNotify(prqsSn_t prqs) {
 	if (!pcon)
 		return;
 
-	logger->Info("APPs PRX: Runtime Profile received for EXC "
+	logger->Info("RpcExcRuntimeProfileNotify: Profile received for EXC "
 			"[app: %s, pid: %d, exc: %d]",
 			pcon->app_name, pcon->app_pid, pmsg_hdr->exc_id);
 	result = am.SetRuntimeProfile(pcon->app_pid, pmsg_hdr->exc_id,
@@ -1337,7 +1314,7 @@ void ApplicationProxy::RpcExcRuntimeProfileNotify(prqsSn_t prqs) {
 		case ApplicationManager::AM_SUCCESS:
 			break;
 		case ApplicationManager::AM_RESCHED_REQUIRED:
-			logger->Debug("APPs PRX: Notifying ResourceManager");
+			logger->Debug("RpcExcRuntimeProfileNotify: Notifying ResourceManager");
 			rm.NotifyEvent(ResourceManager::BBQ_OPTS);
 			break;
 		default:
@@ -1364,14 +1341,14 @@ void ApplicationProxy::RpcExcStart(prqsSn_t prqs) {
 		return;
 
 	// Registering a new Execution Context
-	logger->Info("APPs PRX: Starting EXC "
+	logger->Info("RpcExcStart: Starting EXC "
 			"[app: %s, pid: %d, exc: %d]",
 			pcon->app_name, pcon->app_pid, pmsg_hdr->exc_id);
 
 	// Enabling the EXC to the ApplicationManager
 	result = am.EnableEXC(pcon->app_pid, pmsg_hdr->exc_id);
 	if (result != ApplicationManager::AM_SUCCESS) {
-		logger->Error("APPs PRX: EXC "
+		logger->Error("RpcExcStart: EXC "
 			"[pid: %d, exc: %d] "
 			"start FAILED",
 			pcon->app_pid, pmsg_hdr->exc_id);
@@ -1381,7 +1358,6 @@ void ApplicationProxy::RpcExcStart(prqsSn_t prqs) {
 
 	// Sending ACK response to application
 	RpcACK(pcon, pmsg_hdr, bl::RPC_EXC_RESP);
-
 }
 
 void ApplicationProxy::RpcExcStop(prqsSn_t prqs) {
@@ -1400,28 +1376,27 @@ void ApplicationProxy::RpcExcStop(prqsSn_t prqs) {
 		return;
 
 	// Stopping an Execution Context
-	logger->Info("APPs PRX: Stopping EXC "
-			"[app: %s, pid: %d, exc: %d]",
+	logger->Info("RpcExcStop: Stopping EXC [app: %s, pid: %d, exc: %d]",
 			pcon->app_name, pcon->app_pid, pmsg_hdr->exc_id);
+
+	// If there is an optimization in progress, wait...
+	rm.WaitForReady();
 
 	// Disabling the EXC from the ApplicationManager
 	result = am.DisableEXC(pcon->app_pid, pmsg_hdr->exc_id, true);
-	if (result != ApplicationManager::AM_SUCCESS) {
-		logger->Error("APPs PRX: EXC "
-			"[pid: %d, exc: %d] "
-			"stop FAILED",
+	if (result == ApplicationManager::AM_EXC_STATUS_CHANGE_FAILED) {
+		logger->Error("RpcExcStop: EXC [pid: %d, exc: %d] stop FAILED",
 			pcon->app_pid, pmsg_hdr->exc_id);
 		RpcNAK(pcon, pmsg_hdr, bl::RPC_EXC_RESP, RTLIB_EXC_DISABLE_FAILED);
 		return;
 	}
 
 	// Notify the ResourceManager for the application stopped
-	logger->Debug("APPs PRX: Notifing ResourceManager...");
+	logger->Debug("RpcExcStop: Notifying ResourceManager...");
 	rm.NotifyEvent(ResourceManager::EXC_STOP);
 
 	// Sending ACK response to the RTLib
 	RpcACK(pcon, pmsg_hdr, bl::RPC_EXC_RESP);
-
 }
 
 void ApplicationProxy::RpcExcSchedule(prqsSn_t prqs) {
@@ -1437,17 +1412,16 @@ void ApplicationProxy::RpcExcSchedule(prqsSn_t prqs) {
 		return;
 
 	// Registering a new Execution Context
-	logger->Info("APPs PRX: Schedule request for EXC "
+	logger->Info("RpcExcSchedule: Schedule request for EXC "
 			"[app: %s, pid: %d, exc: %d]",
 			pcon->app_name, pcon->app_pid, pmsg_hdr->exc_id);
 
 	// Notify the ResourceManager for a new application willing to start
-	logger->Debug("APPs PRX: Notifing ResourceManager...");
-	rm.NotifyEvent(ResourceManager::EXC_START);
+	logger->Debug("RpcExcSchedule: Notifying ResourceManager...");
+	rm.NotifyEvent(ResourceManager::BBQ_OPTS);
 
 	// Sending ACK response to application
 	RpcACK(pcon, pmsg_hdr, bl::RPC_EXC_RESP);
-
 }
 
 void ApplicationProxy::RpcAppPair(prqsSn_t prqs) {
@@ -1463,13 +1437,13 @@ void ApplicationProxy::RpcAppPair(prqsSn_t prqs) {
 	assert(conCtxMap.find(pmsg_hdr->app_pid) == conCtxMap.end());
 
 	// Build a new communication context
-	logger->Debug("APPs PRX: Setting-up RPC channel [pid: %d, name: %s]...",
+	logger->Debug("RpcAppPair: Setting-up RPC channel [pid: %d, name: %s]...",
 			pmsg_hdr->app_pid, pmsg_pyl->app_name);
 
 	// Checking API versioning
 	if (pmsg_pyl->mjr_version != RTLIB_VERSION_MAJOR ||
 			pmsg_pyl->mnr_version > RTLIB_VERSION_MINOR) {
-		logger->Error("APPs PRX: Setup RPC channel [pid: %d, name: %s] "
+		logger->Error("RpcAppPair: Setup RPC channel [pid: %d, name: %s] "
 				"FAILED (Error: version mismatch, "
 				"app_v%d.%d != rtlib_v%d.%d)",
 			pmsg_hdr->app_pid, pmsg_pyl->app_name,
@@ -1482,7 +1456,7 @@ void ApplicationProxy::RpcAppPair(prqsSn_t prqs) {
 	pcon = pconCtx_t(new conCtx_t);
 	assert(pcon);
 	if (!pcon) {
-		logger->Error("APPs PRX: Setup RPC channel [pid: %d, name: %s] "
+		logger->Error("RpcAppPair: Setup RPC channel [pid: %d, name: %s] "
 				"FAILED (Error: connection context setup)",
 			pcon->app_pid,
 			pcon->app_name);
@@ -1497,7 +1471,7 @@ void ApplicationProxy::RpcAppPair(prqsSn_t prqs) {
 	pcon->pd = rpc->GetPluginData(pchMsg);
 	assert(pcon->pd);
 	if (!pcon->pd) {
-		logger->Error("APPs PRX: Setup RPC channel [pid: %d, name: %s] "
+		logger->Error("RpcAppPair: Setup RPC channel [pid: %d, name: %s] "
 				"FAILED (Error: communication channel setup)",
 			pcon->app_pid,
 			pcon->app_name);
@@ -1528,7 +1502,7 @@ void ApplicationProxy::RpcAppExit(prqsSn_t prqs) {
 	assert(conCtxIt!=conCtxMap.end());
 
 	// Releasing application resources
-	logger->Info("APPs PRX: Application [app_pid: %d] ended, "
+	logger->Info("RpcAppExit: Application [app_pid: %d] ended, "
 			"releasing resources...",
 			pmsg->app_pid);
 
@@ -1539,10 +1513,7 @@ void ApplicationProxy::RpcAppExit(prqsSn_t prqs) {
 	// Removing the connection context
 	conCtxMap.erase(conCtxIt);
 	conCtxMap_ul.unlock();
-
-	logger->Warn("APPs PRX: TODO release all application resources");
-	logger->Warn("APPs PRX: TODO run optimizer");
-
+	logger->Info("RpcAppExit: resources release should have been already performed");
 }
 
 void ApplicationProxy::RequestExecutor(prqsSn_t prqs) {
@@ -1559,7 +1530,7 @@ void ApplicationProxy::RequestExecutor(prqsSn_t prqs) {
 	// tracking data structures.
 	snCtxMap_ul.unlock();
 
-	logger->Debug("APPs PRX [%d:%d]: RequestExecutor START",
+	logger->Debug("RequestExecutor: [%d:%d]: Executor START",
 			prqs->pid, prqs->pmsg->typ);
 
 	assert(prqs->pmsg->typ<bl::RPC_EXC_MSGS_COUNT);
@@ -1634,7 +1605,7 @@ void ApplicationProxy::RequestExecutor(prqsSn_t prqs) {
 	}
 	snCtxMap_ul.unlock();
 
-	logger->Debug("APPs PRX [%d:%d]: RequestExecutor END",
+	logger->Debug("RequestExecutor: [%d:%d] Executor END",
 			prqs->pid, prqs->pmsg->typ);
 
 }
@@ -1654,7 +1625,7 @@ void ApplicationProxy::ProcessRequest(pchMsg_t & pmsg) {
 				this, prqsSn);
 	prqsSn->exe.detach();
 
-	logger->Debug("APPs PRX: Processing NEW REQUEST...");
+	logger->Debug("ProcessRequest: enqueuing new request...");
 
 	// Add a new threaded command executor
 	snCtxMap.insert(std::pair<uint8_t, psnCtx_t>(
@@ -1665,13 +1636,12 @@ void ApplicationProxy::ProcessRequest(pchMsg_t & pmsg) {
 void ApplicationProxy::Task() {
 	bl::rpc_msg_type_t msgType;
 	pchMsg_t pmsg;
-
-	logger->Info("APPs PRX: Messages dispatcher STARTED");
+	logger->Info("Task: Messages dispatcher STARTED");
 
 	while (!done) {
-
 		if (rpc->Poll() < 0)
 			continue;
+		logger->Debug("Task: new incoming message from RTLIB");
 
 		msgType = GetNextMessage(pmsg);
 		if (msgType > bl::RPC_EXC_MSGS_COUNT) {
@@ -1681,8 +1651,54 @@ void ApplicationProxy::Task() {
 		ProcessRequest(pmsg);
 	}
 
-	logger->Info("APPs PRX: Messages dispatcher ENDED");
+	logger->Info("Task: Messages dispatcher ENDED");
 }
+
+
+int ApplicationProxy::CommandsCb(int argc, char *argv[]) {
+
+	// Manage external application termination
+	if (0 == strcmp(argv[0], MODULE_NAMESPACE CMD_APP_TERMINATED)) {
+		if (argc < 2) {
+		    logger->Error("Releasing EXC FAILED: no pid/eid provided in unregister signal.");
+		    return -1;
+		}
+		uint32_t pid = atoi(argv[1]);
+		uint32_t eid = atoi(argv[1]+13);
+		logger->Info("CommandsCb: [%d:%d] checking for release...", pid, eid);
+		ApplicationManager &am(ApplicationManager::GetInstance());
+		auto papp = am.GetApplication(pid, eid);
+		if (papp) {
+			// Do nothing if already terminated (via RTLIB RPC)
+			if (papp->Disabled() || papp->Finished()) {
+				logger->Debug("CommandsCb: [%s] already in status [%s/%s]",
+					papp->StrId(),
+					Application::stateStr[papp->State()],
+					Application::syncStateStr[papp->SyncState()]);
+				return 1;
+			}
+
+			// If dead, notify the resource manager
+			bool is_alive = am.CheckEXC(papp);
+			logger->Debug("CommandsCb: [%d:%d] alive: %d", pid, eid, is_alive);
+			if (!is_alive) {
+				ResourceManager &rm(ResourceManager::GetInstance());
+				rm.NotifyEvent(ResourceManager::EXC_STOP);
+			}
+		}
+#ifdef CONFIG_BBQUE_LINUX_PROC_MANAGER
+		else {
+			logger->Debug("CommandsCb: [%d:%d] should be a process...", pid, eid);
+			ProcessManager &prm(ProcessManager::GetInstance());
+			prm.NotifyExit(pid);
+		}
+#endif // CONFIG_BBQUE_LINUX_PROC_MANAGER
+		return 0;
+	}
+
+	return 0;
+}
+
 
 } // namespace bbque
 

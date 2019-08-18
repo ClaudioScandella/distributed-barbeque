@@ -201,13 +201,16 @@ protected:
 
 	struct TaskProfiling {
 		bbque::utils::Timer timer;
-		accumulator_set<double, features<tag::mean, tag::variance>> acc;
+		accumulator_set<
+			double,
+			features<tag::mean, tag::min, tag::max, tag::variance>> acc;
 	};
 
 	struct RuntimeInfo {
 		std::atomic<bool> is_running;
 		std::thread  monitor_thr;
-		TaskProfiling profile;
+		TaskProfiling ctime;
+		TaskProfiling throughput;
 
 		RuntimeInfo(bool _run): is_running(_run) {}
 	};
@@ -305,8 +308,14 @@ protected:
 	inline void NotifyTaskEvents(TaskPtr_t task) {
 		NotifyBuffersEvents(task->OutputBuffers());
 		NotifyBuffersEvents(task->InputBuffers());
-		NotifyEvent(task->Event());
+		if (task->Event() >= 0)
+			NotifyEvent(task->Event());
 	}
+
+	/**
+	 * \brief Print a report of the profiled application timings
+	 */
+	void PrintProfilingData() const;
 
 	// --------------- BbqueEXC derived functions -------------------- //
 
@@ -340,6 +349,8 @@ protected:
 			tasks.runtime[t->Id()]->is_running = false;
 		}
 	}
+
+	// --------------------------------------------------------------- //
 };
 
 } // namespace bbque

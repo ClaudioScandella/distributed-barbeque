@@ -226,7 +226,7 @@ TempuraSchedPol::InitResourceStateView() {
 SchedulerPolicyIF::ExitCode_t
 TempuraSchedPol::InitBudgets() {
 	// Binding type (CPU, GPU,...))
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	for (auto & bd_entry: bindings) {
 		BindingInfo_t const & bd_info(*(bd_entry.second));
 
@@ -531,7 +531,6 @@ TempuraSchedPol::AssignWorkingMode(ba::AppCPtr_t papp) {
 
 SchedulerPolicyIF::ExitCode_t TempuraSchedPol::DoScheduling() {
 	SchedulerPolicyIF::ExitCode_t result;
-	Application::ExitCode_t app_result = Application::APP_SUCCESS;
 	logger->Debug("DoScheduling: START");
 
 	for (SchedEntityPtr_t & psched: entities) {
@@ -553,9 +552,11 @@ SchedulerPolicyIF::ExitCode_t TempuraSchedPol::DoScheduling() {
 		// Scheduling request
 		logger->Debug("DoScheduling: [%s] scheduling request...",
                         psched->StrId());
-		app_result = psched->papp->ScheduleRequest(
-				psched->pawm, sched_status_view, psched->bind_refn);
-		if (app_result != ApplicationStatusIF::APP_SUCCESS) {
+		ApplicationManager & am(ApplicationManager::GetInstance());
+		auto ret = am.ScheduleRequest(
+				psched->papp, psched->pawm,
+				sched_status_view, psched->bind_refn);
+		if (ret != ApplicationManager::AM_SUCCESS) {
 			logger->Error("DoScheduling: [%s] failed", psched->StrId());
 			continue;
 		}
@@ -573,7 +574,7 @@ SchedulerPolicyIF::ExitCode_t TempuraSchedPol::DoBinding(
 	logger->Debug("DoBinding: START");
 	size_t ref_n = -1;
 
-	BindingMap_t & bindings(bdm.GetBindingOptions());
+	BindingMap_t & bindings(bdm.GetBindingDomains());
 	for (auto & bd_entry: bindings) {
 		BindingInfo_t const & bd_info(*(bd_entry.second));
 		br::ResourceType bd_type = bd_entry.first;

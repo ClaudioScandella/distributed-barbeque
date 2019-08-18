@@ -74,3 +74,11 @@ config  BBQUE_PM_GPU_ARM_MALI
   Enable the support for the management of ARM Mali GPU(s) from the
   power-thermal point of view.
 
+config  BBQUE_PM_MANGO
+  bool "MANGO Platform Power Management"
+  depends on BBQUE_PM
+  depends on TARGET_LINUX_MANGO
+  default n
+  ---help---
+  Enable the support for the management of a MANGO platform from the power
+  management point of view.

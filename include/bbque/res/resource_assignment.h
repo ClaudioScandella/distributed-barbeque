@@ -39,12 +39,11 @@ class ResourceAssignment;
 class ResourcePath;
 
 /** Shared pointer to Usage object */
-typedef std::shared_ptr<ResourceAssignment> ResourceAssignmentPtr_t;
+using ResourceAssignmentPtr_t = std::shared_ptr<ResourceAssignment>;
 /** Map of Usage descriptors. Key: resource path */
-typedef std::map<ResourcePathPtr_t, ResourceAssignmentPtr_t, CompareSP<ResourcePath> > ResourceAssignmentMap_t;
+using ResourceAssignmentMap_t = std::map<ResourcePathPtr_t, ResourceAssignmentPtr_t, CompareSP<ResourcePath>>;
 /** Constant pointer to the map of Usage descriptors */
-typedef std::shared_ptr<ResourceAssignmentMap_t> ResourceAssignmentMapPtr_t;
-
+using ResourceAssignmentMapPtr_t = std::shared_ptr<ResourceAssignmentMap_t>;
 
 /**
  * @class ResourceAssignment
@@ -53,22 +52,22 @@ typedef std::shared_ptr<ResourceAssignmentMap_t> ResourceAssignmentMapPtr_t;
  * An application working modes defines a set of this resource requests
  * (then assignments).
  *
- * This class includes a couple of information:
+ * This class includes the following information:
  *
- * The first is obviously the amount of requested resource
- * The second is a list containing all the descriptors (shared
- * pointer) of the resources which to this request/assignment refers to.
- * We expect that such list is filled by a method of ResourceAccounter,
- * after that Scheduler/Optimizer has solved the resource binding.
+ * 1) the amount of requested resource;
+ * 2) a list containing all the descriptors (shared pointer) of the resources
+ * which to this request/assignment refers to - we expect that such list is
+ * filled by a method of ResourceAccounter, after that Scheduler/Optimizer has
+ * solved the resource binding;
+ * 3) the power configuration (if set) to apply in phase of resource mapping
  *
  * The "resource binding" can be explained as follows: if a Working Mode
- * includes resource requests like "sys.cpu2.pe = 4", the
- * scheduler/optimizer must assign 4 processing element under the same CPU (2),
- * that therefore must be bound to one of the real CPUs available on the
- * platform.
- * Thus, after that, the list "resources", will contain the
- * descriptors of the resources "pe (processing elements)" in the CPU
- * assigned by the scheduler/optimizer module.
+ * includes resource requests like "sys.cpu2.pe = 4", the scheduler/optimizer
+ * must assign 4 processing element under the same CPU (2), that therefore must
+ * be bound to one of the real CPUs available on the platform.
+ * Thus, after that, the list "resources", will contain the descriptors of the
+ * resources "pe (processing elements)" in the CPU assigned by the
+ * scheduler/optimizer module.
  */
 class ResourceAssignment {
 
@@ -93,18 +92,18 @@ public:
 	/**
 	 * @enum class Policy
 	 *
-	 * The usage must be bind to a set of physical resources. This can be done
-	 * by the resource allocation policy through a per-resource fine-grained
-	 * binding, or can be left to the Resource Accounter, specifying a
-	 * predefined "filling" policy. The policy defines how the amount of
-	 * resource required must be spread over the set of physical resources
-	 * that the Usage object is referencing.
+	 * The usage must be bind to a set of physical resources. This can be
+	 * done by the resource allocation policy through a per-resource
+	 * fine-grained binding, or can be left to the Resource Accounter,
+	 * specifying a predefined "filling" policy. The policy defines how the
+	 * amount of resource required must be spread over the set of physical
+	 * resources that the Usage object is referencing.
 	 */
 	enum class Policy
 	{
 	        /**
-	         * Usage should be distributed over the resource list in a sequential
-	         * manner
+		 * Usage should be distributed over the resource list in a
+		 * sequential manner
 	         */
 	        SEQUENTIAL,
 	        /**
@@ -112,6 +111,35 @@ public:
 	         * list
 	         */
 	        BALANCED
+	};
+
+	/**
+	 * @class PowerSettings
+	 *
+	 * @brief Power settings as of required via recipe or set by scheduling
+	 * policy.
+	 */
+	class PowerSettings {
+	public:
+		PowerSettings():
+			freq_governor(""),
+			freq_khz(0),
+			perf_state(0) {
+		}
+
+		PowerSettings(
+			std::string const & gov,
+			uint32_t freq,
+			uint32_t pstate):
+
+			freq_governor(gov),
+			freq_khz(freq),
+			perf_state(pstate) {
+		}
+
+		std::string freq_governor;
+		uint32_t freq_khz;
+		uint32_t perf_state;
 	};
 
 	/**
@@ -128,41 +156,54 @@ public:
 	~ResourceAssignment();
 
 	/**
-	 * @brief The amount of resource required/assigned to the Application/EXC
+	 * @brief The amount of resource required/assigned to the
+	 * Application/EXC
 	 *
 	 * @return The amount of resource
 	 */
-	uint64_t GetAmount() {
+	inline uint64_t GetAmount() {
 		return amount;
 	}
 
 	/**
 	 * @brief Set the amount of resource
 	 */
-	void SetAmount(uint64_t value) {
+	inline void SetAmount(uint64_t value) {
 		amount = value;
 	}
 
+	/**
+	 * @brief Set a new power configuration to apply
+	 */
+	inline void SetPowerSettings(PowerSettings new_settings) {
+		power_config = new_settings;
+	}
+
+	/**
+	 * @brief Get the currently set power configuration
+	 */
+	inline PowerSettings const & GetPowerSettings() {
+		return power_config;
+	}
 
 	/**
 	 * @brief Get the entire list of resources
 	 *
 	 * @return A reference to the resources list
 	 */
-	ResourcePtrList_t & GetResourcesList() {
+	inline ResourcePtrList_t & GetResourcesList() {
 		return resources;
 	}
 
 	/**
 	 * @brief Set the list of resources
 	 *
-	 * Commonly a Usage object specifies the request of a specific
-	 * type of resource, which can be bound on a set of platform resources
-	 * (i.e. "sys0,cpu2.pe" -> "...cpu2.pe{0|1|2|...}".
-	 * The resources list includes the pointers to all the resource descriptors
-	 * that can satisfy the request. The method initialises the iterators
-	 * pointing to the set of resources effectively granted to the
-	 * Application/EXC.
+	 * Commonly a Usage object specifies the request of a specific type of
+	 * resource, which can be bound on a set of platform resources (i.e.
+	 * "sys0,cpu2.pe" -> "...cpu2.pe{0|1|2|...}".  The resources list
+	 * includes the pointers to all the resource descriptors that can
+	 * satisfy the request. The method initialises the iterators pointing
+	 * to the set of resources effectively granted to the Application/EXC.
 	 *
 	 * @param r_list The list of resource descriptor for binding
 	 */
@@ -171,18 +212,18 @@ public:
 	/**
 	 * @brief Set the a filtered list of resources
 	 *
-	 * Commonly a Usage object specifies the request of a specific
-	 * type of resource, which can be bound on a set of platform resources
-	 * (i.e. "sys0,cpu2.pe" -> "...cpu2.pe{0|1|2|...}".
+	 * Commonly a Usage object specifies the request of a specific type of
+	 * resource, which can be bound on a set of platform resources (i.e.
+	 * "sys0,cpu2.pe" -> "...cpu2.pe{0|1|2|...}".
 	 *
-	 * The resources list, in this case, includes the pointers to a subset of
-	 * the resource descriptors that can satisfy the request. This subset
-	 * is built on the bases of two parameters that allow the definition of a
-	 * filter criteria.
+	 * The resources list, in this case, includes the pointers to a subset
+	 * of the resource descriptors that can satisfy the request. This
+	 * subset is built on the bases of two parameters that allow the
+	 * definition of a filter criteria.
 	 *
 	 * Considering the example above, for the path "sys0,.cpu2.pe" i can
-	 * specify a filtered list of processing elements, such that it includes
-	 * only PE2 and PE3: "sys0.cpu2.pe" -> "sys0cpu2.pe{2|3}"
+	 * specify a filtered list of processing elements, such that it
+	 * includes only PE2 and PE3: "sys0.cpu2.pe" -> "sys0cpu2.pe{2|3}"
 	 *
 	 * @param r_list The list of resource descriptor for binding
 	 * @param filter_rtype The type of resource on which apply the
@@ -209,7 +250,6 @@ public:
 		return resources.empty();
 	}
 
-
 	/**
 	 * @brief Set the resources list filling policy
 	 */
@@ -226,11 +266,16 @@ public:
 		return fill_policy;
 	}
 
-
+	/**
+	 * @brief The mask representing the resources actually included in the
+	 * assignment
+	 *
+	 * @return The bitset mask with set-to-1 bits representing IDs of the
+	 * resources set included in the current assignment
+	 */
 	inline ResourceBitset & GetMask() {
 		return mask;
 	}
-
 
 private:
 
@@ -239,6 +284,9 @@ private:
 
 	/** List of resource descriptors which to the resource usage is bound */
 	ResourcePtrList_t resources;
+
+	/** Power configuration to apply for the resource assignment */
+	PowerSettings power_config;
 
 	/**
 	 * The resources list filling policy, i.e., how the resource amount
@@ -252,9 +300,8 @@ private:
 	 */
 	ResourceBitset mask;
 
-
 	/** The application/EXC owning this resource usage */
-	AppSPtr_t owner_app;
+	SchedPtr_t owner_app;
 
 	/** The token referencing the state view of the resource usage */
 	RViewToken_t status_view = 0;
