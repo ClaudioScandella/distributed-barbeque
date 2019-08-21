@@ -59,9 +59,6 @@ grpc::Status AgentImpl::Ping(
 	const bbque::GenericRequest * request,
 	bbque::GenericReply * reply) {
 
-	logger->Debug("Ping: request from sys%d for sys%d",
-		request->sender_id(), request->dest_id());
-
 	reply->set_value(GenericReply_Code_OK);
 
 	return grpc::Status::OK;

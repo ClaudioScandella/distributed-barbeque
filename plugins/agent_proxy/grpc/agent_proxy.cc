@@ -213,33 +213,23 @@ ExitCode_t AgentProxyGRPC::Discover(
 				return agent::ExitCode_t::REQUEST_REJECTED;
 		}
 
-		// logger->Debug("agent_proxy: Discover: 2");
-
 		result = AgentClient::Discover(ip, request);
-
-		// logger->Debug("agent_proxy: Discover: 3");
 
 		return result;
 	}
 	
 ExitCode_t AgentProxyGRPC::Ping(
-	int system_id, int & ping_value) {
-		ExitCode_t ret;
-		std::shared_ptr<AgentClient> client(GetAgentClient(system_id));
-		if (client)
-			ret = client->Ping(ping_value);
-		else
-			ret = agent::ExitCode_t::AGENT_UNREACHABLE;
+		std::string ip, int & ping_value) {
+		ExitCode_t result;
 
-		return ret;
+		result = AgentClient::Ping(ip, ping_value);
+
+		return result;
 	}
 
 ExitCode_t AgentProxyGRPC::GetResourceStatus(
 		std::string const & resource_path,
 		agent::ResourceStatus & status) {
-#ifdef CLAUDIO_DEBUG
-		printf("\n\n\n\n\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nGetResourceStatus\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n\n\n\n");
-#endif
 	std::shared_ptr<AgentClient> client(GetAgentClient(GetSystemId(resource_path)));
 	if (client)
 		return client->GetResourceStatus(resource_path, status);

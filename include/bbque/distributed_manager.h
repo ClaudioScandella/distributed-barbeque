@@ -11,6 +11,7 @@
 #include <condition_variable>
 #include <iostream>
 #include <functional>
+#include <limits>
 
 #include <ifaddrs.h>
 #include <sys/types.h>
@@ -31,10 +32,9 @@
 
 #define DISTRIBUTED_MANAGER_NAMESPACE "bq.dism"
 
-// #define LOCAL_TEST
+#define LOCAL_TEST
 
-// CONFIG_BBQUE_DIST_FULLY
-// CONFIG_BBQUE_DIST_HIERARCHICAL
+#define PING_NUMBER 3
 
 namespace bbque {
 
@@ -44,7 +44,7 @@ public:
 
 	struct Instance_Stats_t {
 		double RTT;
-		int availability;
+		double availability;
 	};
 
 	/**
@@ -59,11 +59,11 @@ public:
 	 */
 	void PrintStatusReport();
 
-	inline std::vector<int> const & GetInstances() {
-		return instance_set;
+	inline std::set<std::string> const & GetInstances() {
+		return discovered_instances;
 	}
 
-	inline std::map<int, Instance_Stats_t> const & GetInstancesStats() {
+	inline std::map<std::string, Instance_Stats_t> const & GetInstancesStats() {
 		return instance_stats_map;
 	}
 
@@ -86,7 +86,7 @@ private:
 
 	void Discover(std::string ip);
 
-	int Ping(int system_id);
+	void Ping(std::string ip);
 
 	/**
 	 * @brief Read configuration variables and store them in the configuration variables
@@ -112,25 +112,6 @@ private:
 
 	std::unique_ptr<bu::Logger> logger;
 
-	/** The discovered instances */
-	std::vector<int> instance_set;
-
-	/** All the known possibly running instances */
-	std::vector<int> known_instance_set;
-
-	/** Contains statistics for each discovered instance */
-	std::map<int, Instance_Stats_t> instance_stats_map;
-
-	/**
-	 * @brief Pointer to agent proxy
-	 */
-	// std::unique_ptr<bbque::plugins::AgentProxyIF> agent_proxy;
-
-	/**
-	 * @brief Pointer to remote platform proxy
-	 */
-	// pp::RemotePlatformProxy const rpp;
-
 	/**
 	 * @brief Says if configure has been done or not
 	 */
@@ -150,7 +131,9 @@ private:
 	 */
 	std::string local_IP;
 
-	// Contains all the possible IP addresses that an instance can have.
+	/**
+	 * @brief Contains all the possible IP addresses that an instance can have
+	 */
 	std::vector<std::string> ipAddresses;
 
 	/**
@@ -165,9 +148,14 @@ private:
 
 	/**
 	 * @brief Contains the IP address of the discovered instances. If an instance is no more discovered
-	 * on successive discovering then it is removed from the set.
+	 * on successive discovering then it is removed from the set
 	 */
 	std::set<std::string> discovered_instances;
+
+	/**
+	 * @brief Contains statistics for each discovered instance
+	 */
+	std::map<std::string, Instance_Stats_t> instance_stats_map;
 
 	std::vector<std::thread> threads;
 

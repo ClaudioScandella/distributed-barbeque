@@ -68,7 +68,7 @@ public:
 		std::string ip, bbque::agent::DiscoverRequest& iam) = 0;
 		
 	virtual ExitCode_t Ping(
-		int system_id, int & ping_value) = 0;
+		std::string ip, int & ping_value) = 0;
 	
 	/**
 	 * @brief GetResourceStatus

@@ -97,11 +97,7 @@ private:
 	bbque::System & system;
 
 	std::unique_ptr<bbque::utils::Logger> logger;
-
-	// std::atomic<int> random;
-
 	
-
 };
 
 } // namespace plugins

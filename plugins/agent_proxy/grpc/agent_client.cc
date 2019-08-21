@@ -73,7 +73,7 @@ ExitCode_t AgentClient::Discover(std::string ip, bbque::DiscoverRequest& iam) {
 	std::shared_ptr<grpc::Channel> c = grpc::CreateChannel(ip, grpc::InsecureChannelCredentials());
 	std::shared_ptr<bbque::RemoteAgent::Stub> stub = bbque::RemoteAgent::NewStub(c);
 
-	std::unique_ptr<bbque::utils::Logger> logger = bbque::utils::Logger::GetLogger(AGENT_PROXY_NAMESPACE".grpc.cln");
+	// std::unique_ptr<bbque::utils::Logger> logger = bbque::utils::Logger::GetLogger(AGENT_PROXY_NAMESPACE".grpc.cln");
 
 
 	// char buffer[100];
@@ -111,35 +111,43 @@ ExitCode_t AgentClient::Discover(std::string ip, bbque::DiscoverRequest& iam) {
     }
 }
 	
-ExitCode_t AgentClient::Ping(int & milliseconds) {
-	// Connect...
-	ExitCode_t exit_code = Connect();
-	if (exit_code != ExitCode_t::OK) {
-		logger->Error("ResourceStatus: Connection failed");
-		return exit_code;
-	}
+ExitCode_t AgentClient::Ping(std::string ip, int & milliseconds) {
+	std::shared_ptr<grpc::Channel> c = grpc::CreateChannel(ip, grpc::InsecureChannelCredentials());
+	std::shared_ptr<bbque::RemoteAgent::Stub> stub = bbque::RemoteAgent::NewStub(c);
 
 	bbque::GenericRequest request;
-	request.set_sender_id(local_system_id);
-	request.set_dest_id(remote_system_id);
+	request.set_sender_id(0);
+	request.set_dest_id(0);
 
 	grpc::Status status;
 	grpc::ClientContext context;
 	bbque::GenericReply reply;
 
-	timer.start();
+	bbque::utils::Timer t;
 
-	status = service_stub->Ping(&context, request, &reply);
+	auto start_timer = Clock::now();
 
-	timer.stop();
+	status = stub->Ping(&context, request, &reply);
+
+	auto end_timer = Clock::now();
+
+	// Just for debug
+	bool culo = (std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count() % 10) % 2;
+	if(!culo)
+		std::this_thread::sleep_for(std::chrono::seconds(3));
+	culo = (std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count() % 10) % 3;
+	if(!culo)
+		std::this_thread::sleep_for(std::chrono::seconds(3));
 
 	if (status.ok()) {
-		if (reply.value() == 1) {
-			milliseconds = (int)timer.getElapsedTime();
+		if (reply.value() == GenericReply_Code_OK) {
+			milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count();
+std::cout << "milliseconds: " << milliseconds << std::endl;
 			return ExitCode_t::OK;
 		}
-		else 
+		else {
 			return ExitCode_t::REQUEST_REJECTED;
+		}
     } else {
     	return ExitCode_t::AGENT_UNREACHABLE;
     }
