@@ -139,12 +139,12 @@ bbque::agent::ExitCode_t RemotePlatformProxy::Discover(
 	}
 		
 bbque::agent::ExitCode_t RemotePlatformProxy::Ping(
-	int system_id, int & ping_value) {
+		std::string ip, int & ping_value) {
 		if (agent_proxy == nullptr) {
 			logger->Error("Ping failed. AgentProxy plugin missing");
 			return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 		}
-		return agent_proxy->Ping(system_id, ping_value);
+		return agent_proxy->Ping(ip, ping_value);
 	}
 
 bbque::agent::ExitCode_t

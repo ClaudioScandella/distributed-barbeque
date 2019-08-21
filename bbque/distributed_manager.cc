@@ -2,7 +2,7 @@
 #include "bbque/configuration_manager.h"
 #include "bbque/modules_factory.h"
 
-// #define LOCAL_TEST
+#define LOCAL_TEST
 
 #define DISM_DIV1 "================================================================="
 #define DISM_DIV2 "|-----------------------+---------+--------------+--------------|"
@@ -15,24 +15,11 @@ DistributedManager::DistributedManager() {
 
 	this->configured = false;
 
-	// PlatformManager & plm(PlatformManager::GetInstance());
-	// plm = PlatformManager::GetInstance();
-
-	// rpp(plm.GetRemotePlatformProxy());
-
 	// Get a logger
 	logger = bu::Logger::GetLogger(DISTRIBUTED_MANAGER_NAMESPACE);
 	assert(logger);
 
 	Configure();
-
-	// Insert the IP address (local in this case) of the known instances. There are three different ports beacuse I will test on 3 different instances runing on my PC.
-	// known_instance_set.push_back(0.0.0.0:8850);
-	// known_instance_set.push_back(0.0.0.0:8851);
-	// known_instance_set.push_back(0.0.0.0:8852);
-
-	// this->rpp = std::unique_ptr<bbque::pp::RemotePlatformProxy>(plm.GetRemotePlatformProxy());
-	//this->rpp = std::unique_ptr<pp::RemotePlatformProxy>(new pp::RemotePlatformProxy());
 }
 
 DistributedManager & DistributedManager::GetInstance() {
@@ -176,65 +163,104 @@ void DistributedManager::DiscoverInstances() {
 	logger->Debug("DiscoverInstances: joined all threads");
 }
 
-int DistributedManager::Ping(int system_id) {
+void DistributedManager::Ping(std::string ip) {
 	std::mutex m;
 	std::condition_variable cv;
-
+logger->Debug("Ping: 001");
 	int ping_value = 0;
-	bbque::agent::ExitCode_t result;
+	bbque::agent::ExitCode_t result = bbque::agent::ExitCode_t::AGENT_UNREACHABLE;
+logger->Debug("Ping: 002");
 
-	std::thread t([&cv, &result, this, system_id, &ping_value]()
+	PlatformManager & plm = PlatformManager::GetInstance();
+	pp::RemotePlatformProxy* rpp = plm.GetRemotePlatformProxy();
+logger->Debug("Ping: 003");
+	int ping_sum = 0;
+	int successful_pings_counter = 0;
+	double mean_ping_value;
+	Instance_Stats_t stats;
+logger->Debug("Ping: 004");
+	// Ping PING_NUMBER times
+	int i;
+	for(i = 0; i < PING_NUMBER; i++)
 	{
-		// result = this->rpp->Ping(system_id, ping_value);
-		cv.notify_one();
-	});
+logger->Debug("Ping: 005");
+		std::thread t([&cv, &result, this, ip, &ping_value, rpp]()
+		{
+logger->Debug("Ping: 006");
+			result = rpp->Ping(ip, ping_value);
 
-	t.detach();
+			cv.notify_one();
+logger->Debug("Ping: 007");
+		});
 
-	{
-		std::unique_lock<std::mutex> l(m);
-		if(cv.wait_for(l, std::chrono::seconds(5)) == std::cv_status::timeout)
-			return 0;
+		t.detach();
+
+		{
+			std::unique_lock<std::mutex> l(m);
+			if(cv.wait_for(l, std::chrono::seconds(2)) == std::cv_status::timeout)
+			{}
+			else
+			{
+logger->Debug("Ping: 008");
+				// If ping has not failed.
+				if (ping_value != 0)
+				{
+logger->Debug("Ping: 009");
+					ping_sum += ping_value;
+					successful_pings_counter++;
+				}
+			}
+		}
 	}
 
-	if (result != bbque::agent::ExitCode_t::OK) return 0;
+	if(successful_pings_counter == 0)
+	{
+		stats.RTT = std::numeric_limits<double>::infinity();
+		stats.availability = 0.0;
 
-	return ping_value;
+		return;
+	}
+logger->Debug("Ping: 010");
+char buffer[50];
+sprintf(buffer, "successful_pings_counter: %d", successful_pings_counter);
+logger->Debug(buffer);
+	mean_ping_value = (double)((double)ping_sum / (double)successful_pings_counter);
+logger->Debug("Ping: 011");
+	stats.RTT = mean_ping_value;
+logger->Debug("Ping: 012");
+	stats.availability = (double)((double)successful_pings_counter / (double)PING_NUMBER) * 100; // % value
+logger->Debug("Ping: 013");
+	instance_stats_map[ip] = stats;
+logger->Debug("Ping: 014");
+
+	return;
 }
 
 void DistributedManager::PingInstances() {
+logger->Debug("PingInstances: 001");
 	instance_stats_map.clear();
-
-	for (std::vector<int>::const_iterator it = instance_set.begin(); it != instance_set.end(); ++it)
-	{
-		int i;
-		int ping_value;
-		int ping_sum = 0;
-		int successful_pings_counter = 0;
-		double mean_ping_value;
-		Instance_Stats_t stats;
-
-		// Ping the instance 10 times to get a truthful mean ping value.
-		for (i = 0; i < 10; i++)
+logger->Debug("PingInstances: 002");
+	for (std::set<std::string>::iterator it = discovered_instances.begin(); it != discovered_instances.end(); ++it) {
+logger->Debug("PingInstances: 003");
+		if(*it == (local_IP))
 		{
-			ping_value = Ping(*it);
+logger->Debug("PingInstances: 004");
+			// char buffer[20];
+			// sprintf(buffer, "local_IP: %s", local_IP.c_str());
+			// logger->Debug(buffer);
 
-			// If ping has not failed.
-			if (ping_value != 0)
-			{
-				ping_sum += ping_value;
-				successful_pings_counter++;
-			}
+			continue;
 		}
-
-		// Compute mean ping.
-		mean_ping_value = ping_sum / successful_pings_counter;
-
-		// Save stats in map data structure.
-		stats.RTT = mean_ping_value;
-		stats.availability = successful_pings_counter * 10; // % value
-		instance_stats_map[*it] = stats;
+logger->Debug("PingInstances: 005");
+		threads.push_back(std::thread(&DistributedManager::Ping, this, *it));
+logger->Debug("PingInstances: 006");
 	}
+
+	for (auto & th: threads)
+		if (th.joinable())
+			th.join();
+
+	logger->Debug("PingInstances: joined all threads");
 }
 
 void DistributedManager::PrintStatusReport() {
@@ -244,10 +270,10 @@ void DistributedManager::PrintStatusReport() {
 	logger->Debug(DISM_DIV2);
 
 	for (std::vector<std::string>::const_iterator it = ipAddresses.begin(); it != ipAddresses.end(); ++it) {
-		std::string sys;
-		std::string RTT;
-		std::string availability;
-		std::string status;
+		// std::string sys;
+		// std::string RTT;
+		// std::string availability;
+		// std::string status;
 		char buffer[70];
 
 		// If the iterator is considering the ip address of this machine
@@ -258,10 +284,9 @@ void DistributedManager::PrintStatusReport() {
 
 			continue;
 		}
-
 		// If the instance at the current IP is available.
 		if (std::find(discovered_instances.begin(), discovered_instances.end(), *it) != discovered_instances.end()) {
-			sprintf(buffer, "| %21s |    -    |       -      |      OK      |", (*it).c_str());
+			sprintf(buffer, "| %21s | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), instance_stats_map[*it].RTT, instance_stats_map[*it].availability);
 			logger->Debug(buffer);
 		}
 		else {
@@ -290,10 +315,6 @@ bool DistributedManager::Configure() {
 		return true;
 
 	ConfigurationManager & cm = ConfigurationManager::GetInstance();
-
-	// agent_proxy = std::unique_ptr<bbque::plugins::AgentProxyIF>(
-	// 	ModulesFactory::GetModule<bbque::plugins::AgentProxyIF>(
-	// 		std::string(AGENT_PROXY_NAMESPACE) + ".grpc"));
 
 		//---------- Loading configuration
 	boost::program_options::options_description
@@ -336,9 +357,7 @@ bool DistributedManager::Configure() {
 }
 
 void DistributedManager::BuildIPAddresses() {
-	logger->Debug("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 #ifdef LOCAL_TEST
-	logger->Debug("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
 
 	// Get the ports in string
 	std::string colon = ":";
@@ -370,7 +389,6 @@ void DistributedManager::BuildIPAddresses() {
 	// 	logger->Debug("%s", (*it).c_str());
 	// }		
 #else
-	logger->Debug("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
 	std::string ipAddress;
 	std::string::size_type size;
 	size_t pos;
@@ -427,9 +445,7 @@ void DistributedManager::BuildIPAddresses() {
 	{
 		sprintf(buffer, "ipAddresses: %s", (*it).c_str());
 		logger->Debug(buffer);
-	}	
-
-	return;
+	}
 #endif
 
 	return;
@@ -557,32 +573,42 @@ void DistributedManager::Task() {
 
 	while (!done) {
 
+		logger->Error("AAAAAAAAAAAAAAAAAAAA");
+
 		if(discover % times_discover_period == 0)
 		{
+			logger->Error("BBBBBBBBBBBBBBBBBB");
 			discover = 0;
 
-			logger->Debug("------------------------");
-			logger->Debug("Discover instances START");
+			// logger->Debug("------------------------");
+			// logger->Debug("Discover instances START");
 			DiscoverInstances();
-			logger->Debug("Discover instances END");
-			logger->Debug("----------------------");
+			// logger->Debug("Discover instances END");
+			// logger->Debug("----------------------");
 		}
 
 		if(ping % times_ping_period == 0)
 		{
+			logger->Error("CCCCCCCCCCCCCCCCCCC");
 			ping = 0;
-			// PingInstances();
+			PingInstances();
 			// logger->Info("Distributed Manager: PING");
 		}
+
+		logger->Error("DDDDDDDDDDDDDDDDD");
 
 		discover++;
 		ping++;
 
 		PrintStatusReport();
 
+		logger->Error("EEEEEEEEEEEEEEEEEEE");
+
 		std::this_thread::sleep_for(std::chrono::seconds(gcd));
 		// logger->Debug("gcd: %d", gcd);
 	}
+
+	logger->Error("FFFFFFFFFFFFFFFFFF");
 
 	logger->Info("Distributed Manager monitoring thread END");
 }

@@ -20,6 +20,8 @@
 
 #include <memory>
 #include <string>
+#include <chrono>
+#include <thread>
 
 #include <grpc/grpc.h>
 #include <grpc++/channel.h>
@@ -58,6 +60,8 @@ namespace plugins
 
 using bbque::agent::ExitCode_t;
 
+typedef std::chrono::high_resolution_clock Clock;
+
 class AgentClient
 {
 
@@ -71,7 +75,7 @@ public:
 	
 	static ExitCode_t Discover(std::string ip, bbque::DiscoverRequest& iam);
 	
-	ExitCode_t Ping(int & milliseconds);
+	static ExitCode_t Ping(std::string ip, int & milliseconds);
 
 	ExitCode_t GetResourceStatus(
 	        const std::string & resource_path,
@@ -91,6 +95,8 @@ public:
 
 	ExitCode_t SendScheduleRequest(
 	        agent::ApplicationScheduleRequest const & request);
+
+
 
 private:
 

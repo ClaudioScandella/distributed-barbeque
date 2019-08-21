@@ -107,7 +107,7 @@ public:
 		std::string ip, bbque::agent::DiscoverRequest& iam) override;
 		
 	ExitCode_t Ping(
-		int system_id, int & ping_value) override;
+		std::string ip, int & ping_value) override;
 
 	ExitCode_t GetResourceStatus(
 	        std::string const & resource_path,
