@@ -129,6 +129,7 @@ set (BARBEQUE_SRC platform_manager ${BARBEQUE_SRC})
 set (BARBEQUE_SRC platform_proxy ${BARBEQUE_SRC})
 set (BARBEQUE_SRC pp/local_platform_proxy ${BARBEQUE_SRC})
 set (BARBEQUE_SRC distributed_manager ${BARBEQUE_SRC})
+set (BARBEQUE_SRC test ${BARBEQUE_SRC})
 
 # Process management
 if (CONFIG_BBQUE_LINUX_PROC_MANAGER)
