@@ -18,17 +18,12 @@
 #ifndef BBQUE_AGENT_PROXY_GRPC_H_
 #define BBQUE_AGENT_PROXY_GRPC_H_
 
-#define CLAUDIO_DEBUG
-
-#ifdef CLAUDIO_DEBUG
-#include <stdio.h>
-#endif
-
 #include <chrono>
 #include <iostream>
 #include <memory>
 #include <thread>
 #include <vector>
+#include <map>
 
 #include <grpc/grpc.h>
 #include <grpc++/channel.h>
@@ -37,6 +32,9 @@
 #include <grpc++/security/credentials.h>
 #include <grpc++/support/time.h>
 
+#include "bbque/distributed_manager.h"
+#include "bbque/res/resource_path.h"
+#include "bbque/res/resource_type.h"
 #include "bbque/utils/logging/logger.h"
 #include "bbque/utils/worker.h"
 #include "bbque/plugins/agent_proxy_if.h"
@@ -110,6 +108,7 @@ public:
 		std::string ip, int & ping_value) override;
 
 	ExitCode_t GetResourceStatus(
+			int16_t instance_id,
 	        std::string const & resource_path,
 	        agent::ResourceStatus & status) override;
 
@@ -117,35 +116,37 @@ public:
 	        std::string const & system_path, agent::WorkloadStatus & status) override;
 
 	ExitCode_t GetWorkloadStatus(
-	        int system_id, agent::WorkloadStatus & status) override;
+	        int16_t instance_id, agent::WorkloadStatus & status) override;
 
 
 	ExitCode_t GetChannelStatus(
 	        std::string const & system_path, agent::ChannelStatus & status) override;
 
 	ExitCode_t GetChannelStatus(
-	        int system_id, agent::ChannelStatus & status) override;
+	        int16_t instance_id, agent::ChannelStatus & status) override;
 
 
 	// ------------- Multi-agent management functions ------------------
 
 	ExitCode_t SendJoinRequest(std::string const & system_path) override;
 
-	ExitCode_t SendJoinRequest(int system_id) override;
+	ExitCode_t SendJoinRequest(int16_t instance_id) override;
 
 
 	ExitCode_t SendDisjoinRequest(std::string const & system_path) override;
 
-	ExitCode_t SendDisjoinRequest(int system_id) override;
+	ExitCode_t SendDisjoinRequest(int16_t instance_id) override;
 
 
 	// ----------- Scheduling / Resource allocation functions ----------
 
 	ExitCode_t SendScheduleRequest(
-	        std::string const & system_path,
+	        int16_t instance_id,
 	        agent::ApplicationScheduleRequest const & request) override;
 
 private:
+
+	DistributedManager & dism = DistributedManager::GetInstance();
 
 	std::string server_address_port = "0.0.0.0:";
 
@@ -163,7 +164,7 @@ private:
 
 	std::unique_ptr<grpc::Server> server;
 
-	std::map<uint16_t, std::shared_ptr<AgentClient>> clients;
+	std::map<std::string, std::shared_ptr<AgentClient>> clients;
 
 	bool server_started = false;
 
@@ -180,8 +181,13 @@ private:
 
 	uint16_t GetSystemId(std::string const & path) const;
 
+	/**
+	 * @brief Return the path substituting the system id with sys*
+	 */
+	virtual ExitCode_t GeneralizeSystemID(std::string path, std::string & generalized_path);
 
-	std::shared_ptr<AgentClient> GetAgentClient(uint16_t system_id);
+
+	std::shared_ptr<AgentClient> GetAgentClient(std::string ip);
 
 };
 
