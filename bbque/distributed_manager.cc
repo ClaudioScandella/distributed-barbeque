@@ -4,10 +4,10 @@
 
 #define LOCAL_TEST
 
-#define DISM_DIV1 "================================================================="
-#define DISM_DIV2 "|-----------------------+---------+--------------+--------------|"
-#define DISM_HEAD "|          IP           |   RTT   | AVAILABILITY |    STATUS    |"
-#define DISM_DIV3 "|                       |         |              |              |"
+#define DISM_DIV1 "======================================================================="
+#define DISM_DIV2 "|-----------------------+-----+---------+--------------+--------------|"
+#define DISM_HEAD "|          IP           | Sys |   RTT   | AVAILABILITY |    STATUS    |"
+#define DISM_DIV3 "|                       |     |         |              |              |"
 
 namespace bbque {
 
@@ -101,10 +101,11 @@ void DistributedManager::Discover(std::string ip) {
 				while (!stop) {
 					// logger->Debug("dism: Discover: 9");
 
-					if (instances_map.count(id) == 0) {
+					if (sys_to_ip_map.count(id) == 0) {
 						// logger->Debug("dism: Discover: 10");
 
-						instances_map[id] = ip;
+						sys_to_ip_map[id] = ip;
+						ip_to_sys_map[ip] = id;
 						stop = true;
 					}
 					id++;
@@ -119,21 +120,8 @@ void DistributedManager::Discover(std::string ip) {
 				// logger->Debug("dism: Discover: 12");
 
 				discovered_instances.erase(ip);
-	
-				int id = 1;
-				bool stop = false;
-				while (!stop) {
-					// logger->Debug("dism: Discover: 13");
-
-					if(instances_map[id] == ip) {
-						// logger->Debug("dism: Discover: 14");
-
-						instances_map.erase(id);
-						stop = true;
-					}
-
-					id++;
-				}
+				sys_to_ip_map.erase(ip_to_sys_map[ip]);
+				ip_to_sys_map.erase(ip);
 			}
 		}
 
@@ -166,31 +154,31 @@ void DistributedManager::DiscoverInstances() {
 void DistributedManager::Ping(std::string ip) {
 	std::mutex m;
 	std::condition_variable cv;
-logger->Debug("Ping: 001");
+// logger->Debug("Ping: 001");
 	int ping_value = 0;
 	bbque::agent::ExitCode_t result = bbque::agent::ExitCode_t::AGENT_UNREACHABLE;
-logger->Debug("Ping: 002");
+// logger->Debug("Ping: 002");
 
 	PlatformManager & plm = PlatformManager::GetInstance();
 	pp::RemotePlatformProxy* rpp = plm.GetRemotePlatformProxy();
-logger->Debug("Ping: 003");
+// logger->Debug("Ping: 003");
 	int ping_sum = 0;
 	int successful_pings_counter = 0;
 	double mean_ping_value;
 	Instance_Stats_t stats;
-logger->Debug("Ping: 004");
+// logger->Debug("Ping: 004");
 	// Ping PING_NUMBER times
 	int i;
 	for(i = 0; i < PING_NUMBER; i++)
 	{
-logger->Debug("Ping: 005");
+// logger->Debug("Ping: 005");
 		std::thread t([&cv, &result, this, ip, &ping_value, rpp]()
 		{
-logger->Debug("Ping: 006");
+// logger->Debug("Ping: 006");
 			result = rpp->Ping(ip, ping_value);
 
 			cv.notify_one();
-logger->Debug("Ping: 007");
+// logger->Debug("Ping: 007");
 		});
 
 		t.detach();
@@ -201,11 +189,11 @@ logger->Debug("Ping: 007");
 			{}
 			else
 			{
-logger->Debug("Ping: 008");
+// logger->Debug("Ping: 008");
 				// If ping has not failed.
 				if (ping_value != 0)
 				{
-logger->Debug("Ping: 009");
+// logger->Debug("Ping: 009");
 					ping_sum += ping_value;
 					successful_pings_counter++;
 				}
@@ -220,40 +208,42 @@ logger->Debug("Ping: 009");
 
 		return;
 	}
-logger->Debug("Ping: 010");
-char buffer[50];
-sprintf(buffer, "successful_pings_counter: %d", successful_pings_counter);
-logger->Debug(buffer);
+// logger->Debug("Ping: 010");
+// char buffer[50];
+// sprintf(buffer, "successful_pings_counter: %d", successful_pings_counter);
+// logger->Debug(buffer);
 	mean_ping_value = (double)((double)ping_sum / (double)successful_pings_counter);
-logger->Debug("Ping: 011");
+// logger->Debug("Ping: 011");
 	stats.RTT = mean_ping_value;
-logger->Debug("Ping: 012");
+// logger->Debug("Ping: 012");
 	stats.availability = (double)((double)successful_pings_counter / (double)PING_NUMBER) * 100; // % value
-logger->Debug("Ping: 013");
-	instance_stats_map[ip] = stats;
-logger->Debug("Ping: 014");
+// logger->Debug("Ping: 013");
+	general_mutex.lock();
+	instance_stats_map[ip_to_sys_map[ip]] = stats;
+	general_mutex.unlock();
+// logger->Debug("Ping: 014");
 
 	return;
 }
 
 void DistributedManager::PingInstances() {
-logger->Debug("PingInstances: 001");
+// logger->Debug("PingInstances: 001");
 	instance_stats_map.clear();
-logger->Debug("PingInstances: 002");
+// logger->Debug("PingInstances: 002");
 	for (std::set<std::string>::iterator it = discovered_instances.begin(); it != discovered_instances.end(); ++it) {
-logger->Debug("PingInstances: 003");
+// logger->Debug("PingInstances: 003");
 		if(*it == (local_IP))
 		{
-logger->Debug("PingInstances: 004");
+// logger->Debug("PingInstances: 004");
 			// char buffer[20];
 			// sprintf(buffer, "local_IP: %s", local_IP.c_str());
 			// logger->Debug(buffer);
 
 			continue;
 		}
-logger->Debug("PingInstances: 005");
+// logger->Debug("PingInstances: 005");
 		threads.push_back(std::thread(&DistributedManager::Ping, this, *it));
-logger->Debug("PingInstances: 006");
+// logger->Debug("PingInstances: 006");
 	}
 
 	for (auto & th: threads)
@@ -279,19 +269,19 @@ void DistributedManager::PrintStatusReport() {
 		// If the iterator is considering the ip address of this machine
 		if(*it == local_IP)
 		{
-			sprintf(buffer, "| %21s |    -    |       -      |    MYSELF    |", (*it).c_str());
+			sprintf(buffer, "| %21s |   0 |    -    |       -      |    MYSELF    |", (*it).c_str());
 			logger->Debug(buffer);
 
 			continue;
 		}
 		// If the instance at the current IP is available.
 		if (std::find(discovered_instances.begin(), discovered_instances.end(), *it) != discovered_instances.end()) {
-			sprintf(buffer, "| %21s | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), instance_stats_map[*it].RTT, instance_stats_map[*it].availability);
+			sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), ip_to_sys_map[*it], instance_stats_map[ip_to_sys_map[*it]].RTT, instance_stats_map[ip_to_sys_map[*it]].availability);
 			logger->Debug(buffer);
 		}
 		else {
 			// sprintf(buffer, "| %21s | %5.1f |      %2i      |      OK      |", *it, instance_stats_map[*it].RTT, instance_stats_map[*it].availability);
-			sprintf(buffer, "| %21s |    -    |       -      | DISCONNECTED |", (*it).c_str());
+			sprintf(buffer, "| %21s |  -  |    -    |       -      | DISCONNECTED |", (*it).c_str());
 			logger->Debug(buffer);
 		}
 	}
@@ -302,8 +292,8 @@ void DistributedManager::PrintStatusReport() {
 	logger->Debug("instances:\n");
 	int index;
 	general_mutex.lock();
-	for (index = 0; index < instances_map.size(); index++) {
-		logger->Debug("%d: %s\n", index, instances_map[index].c_str());
+	for (index = 0; index < sys_to_ip_map.size() - 1; index++) {
+		logger->Debug("%d: %s\n", index, sys_to_ip_map[index].c_str());
 	}
 	general_mutex.unlock();
 	logger->Debug("-----------------");
@@ -550,7 +540,9 @@ void DistributedManager::Task() {
 		return;
 	}
 
-	instances_map[0] = local_IP;
+	sys_to_ip_map[0] = local_IP;
+	ip_to_sys_map[local_IP] = 0;
+
 
 	// just for debug print the local IP address
 	// char buffer[20];
