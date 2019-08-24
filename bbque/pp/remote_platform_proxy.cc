@@ -23,7 +23,6 @@ const char* RemotePlatformProxy::GetHardwareID(int16_t system_id) const {
 	return "";
 }
 
-
 RemotePlatformProxy::ExitCode_t RemotePlatformProxy::Setup(SchedPtr_t papp) {
 	(void) papp;
 	logger->Error("Setup - Not implemented.");
@@ -129,7 +128,8 @@ void RemotePlatformProxy::WaitForServerToStop() {
 	return agent_proxy->WaitForServerToStop();
 }
 
-bbque::agent::ExitCode_t RemotePlatformProxy::Discover(
+bbque::agent::ExitCode_t
+RemotePlatformProxy::Discover(
 	std::string ip, bbque::agent::DiscoverRequest& iam) {
 		if (agent_proxy == nullptr) {
 			logger->Error("Discover failed. AgentProxy plugin missing");
@@ -138,7 +138,8 @@ bbque::agent::ExitCode_t RemotePlatformProxy::Discover(
 		return agent_proxy->Discover(ip, iam);
 	}
 		
-bbque::agent::ExitCode_t RemotePlatformProxy::Ping(
+bbque::agent::ExitCode_t
+RemotePlatformProxy::Ping(
 		std::string ip, int & ping_value) {
 		if (agent_proxy == nullptr) {
 			logger->Error("Ping failed. AgentProxy plugin missing");
@@ -149,12 +150,16 @@ bbque::agent::ExitCode_t RemotePlatformProxy::Ping(
 
 bbque::agent::ExitCode_t
 RemotePlatformProxy::GetResourceStatus(
+		int16_t instance_id,
 		std::string const & resource_path, agent::ResourceStatus & status) {
 	if (agent_proxy == nullptr) {
 		logger->Error("GetResourceStatus failed. AgentProxy plugin missing");
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
-	return agent_proxy->GetResourceStatus(resource_path, status);
+
+	logger->Debug("Calling agent_proxy->GetResourceStatus(resource_path, status)");
+	logger->Debug("resource_path: %s", resource_path.c_str());
+	return agent_proxy->GetResourceStatus(instance_id, resource_path, status);
 }
 
 bbque::agent::ExitCode_t
@@ -164,17 +169,23 @@ RemotePlatformProxy::GetWorkloadStatus(
 		logger->Error("GetWorkloadStatus failed. AgentProxy plugin missing");
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
+
+	// std::string path;
+
+	// if(GeneralizeSystemID(system_path, path) != agent::ExitCode_t::OK)
+	// 	return agent::ExitCode_t::REQUEST_REJECTED;
+
 	return agent_proxy->GetWorkloadStatus(system_path, status);
 }
 
 bbque::agent::ExitCode_t
 RemotePlatformProxy::GetWorkloadStatus(
-		int system_id, agent::WorkloadStatus & status) {
+		int16_t instance_id, agent::WorkloadStatus & status) {
 	if (agent_proxy == nullptr) {
 		logger->Error("GetWorkloadStatus failed. AgentProxy plugin missing");
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
-	return agent_proxy->GetWorkloadStatus(system_id, status);
+	return agent_proxy->GetWorkloadStatus(instance_id, status);
 }
 
 bbque::agent::ExitCode_t
@@ -184,16 +195,22 @@ RemotePlatformProxy::GetChannelStatus(
 		logger->Error("GetChannelStatus failed. AgentProxy plugin missing");
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
+
+	// std::string path;
+
+	// if(GeneralizeSystemID(system_path, path) != agent::ExitCode_t::OK)
+	// 	return agent::ExitCode_t::REQUEST_REJECTED;
+
 	return agent_proxy->GetChannelStatus(system_path, status);
 }
 
 bbque::agent::ExitCode_t
-RemotePlatformProxy::GetChannelStatus(int system_id, agent::ChannelStatus & status) {
+RemotePlatformProxy::GetChannelStatus(int16_t instance_id, agent::ChannelStatus & status) {
 	if (agent_proxy == nullptr) {
 		logger->Error("GetChannelStatus failed. AgentProxy plugin missing");
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
-	return agent_proxy->GetChannelStatus(system_id, status);
+	return agent_proxy->GetChannelStatus(instance_id, status);
 }
 
 bbque::agent::ExitCode_t
@@ -206,12 +223,12 @@ RemotePlatformProxy::SendJoinRequest(std::string const & system_path) {
 }
 
 bbque::agent::ExitCode_t
-RemotePlatformProxy::SendJoinRequest(int system_id) {
+RemotePlatformProxy::SendJoinRequest(int16_t instance_id) {
 	if (agent_proxy == nullptr) {
 		logger->Error("SendJoinRequest failed. AgentProxy plugin missing");
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
-	return agent_proxy->SendJoinRequest(system_id);
+	return agent_proxy->SendJoinRequest(instance_id);
 }
 
 bbque::agent::ExitCode_t
@@ -224,23 +241,23 @@ RemotePlatformProxy::SendDisjoinRequest(std::string const & system_path) {
 }
 
 bbque::agent::ExitCode_t
-RemotePlatformProxy::SendDisjoinRequest(int system_id) {
+RemotePlatformProxy::SendDisjoinRequest(int16_t instance_id) {
 	if (agent_proxy == nullptr) {
 		logger->Error("SendDisjoinRequest failed. AgentProxy plugin missing");
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
-	return agent_proxy->SendDisjoinRequest(system_id);
+	return agent_proxy->SendDisjoinRequest(instance_id);
 }
 
 bbque::agent::ExitCode_t
 RemotePlatformProxy::SendScheduleRequest(
-		std::string const & system_path,
+		int16_t instance_id,
 		agent::ApplicationScheduleRequest const & request) {
 	if (agent_proxy == nullptr) {
 		logger->Error("SendDisjoinRequest failed. AgentProxy plugin missing");
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
-	return agent_proxy->SendScheduleRequest(system_path, request);
+	return agent_proxy->SendScheduleRequest(instance_id, request);
 }
 
 } // namespace pp

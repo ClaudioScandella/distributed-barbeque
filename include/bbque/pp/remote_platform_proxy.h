@@ -27,6 +27,7 @@ public:
 	 * @brief Return the Hardware identifier string
 	 */
 	virtual const char* GetHardwareID(int16_t system_id=-1) const;
+
 	/**
 	 * @brief Platform specific resource setup interface.
 	 */
@@ -84,6 +85,7 @@ public:
 		std::string ip, int & ping_value);
 
 	bbque::agent::ExitCode_t GetResourceStatus(
+		int16_t instance_id,
 		std::string const & resource_path, agent::ResourceStatus & status);
 
 
@@ -91,28 +93,28 @@ public:
 		std::string const & system_path, agent::WorkloadStatus & status);
 
 	bbque::agent::ExitCode_t GetWorkloadStatus(
-		int system_id, agent::WorkloadStatus & status);
+		int16_t instance_id, agent::WorkloadStatus & status);
 
 
 	bbque::agent::ExitCode_t GetChannelStatus(
 		std::string const & system_path, agent::ChannelStatus & status);
 
 	bbque::agent::ExitCode_t GetChannelStatus(
-		int system_id, agent::ChannelStatus & status);
+		int16_t instance_id, agent::ChannelStatus & status);
 
 
 	bbque::agent::ExitCode_t SendJoinRequest(std::string const & system_path);
 
-	bbque::agent::ExitCode_t SendJoinRequest(int system_id);
+	bbque::agent::ExitCode_t SendJoinRequest(int16_t instance_id);
 
 
 	bbque::agent::ExitCode_t SendDisjoinRequest(std::string const & system_path);
 
-	bbque::agent::ExitCode_t SendDisjoinRequest(int system_id);
+	bbque::agent::ExitCode_t SendDisjoinRequest(int16_t instance_id);
 
 
 	bbque::agent::ExitCode_t SendScheduleRequest(
-		std::string const & system_path,
+		int16_t instance_id,
 		agent::ApplicationScheduleRequest const & request) ;
 
 	RemotePlatformProxy operator=(RemotePlatformProxy other);
