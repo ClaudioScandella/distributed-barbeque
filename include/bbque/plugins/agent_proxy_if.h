@@ -77,6 +77,7 @@ public:
 	 * @return
 	 */
 	virtual ExitCode_t GetResourceStatus(
+		int16_t instance_id,
 		std::string const & resource_path,
 		agent::ResourceStatus & status) = 0;
 
@@ -92,7 +93,7 @@ public:
 	 * @param system_id
 	 */
 	virtual ExitCode_t GetWorkloadStatus(
-		int system_id, agent::WorkloadStatus & status) = 0;
+		int16_t instance_id, agent::WorkloadStatus & status) = 0;
 
 	/**
 	 * @brief GetChannelStatus
@@ -106,7 +107,7 @@ public:
 	 * @param system_id
 	 */
 	virtual ExitCode_t GetChannelStatus(
-		int system_id, agent::ChannelStatus & status) = 0;
+		int16_t instance_id, agent::ChannelStatus & status) = 0;
 
 
 	// ------------- Multi-remote management functions ------------------
@@ -120,7 +121,7 @@ public:
 	/**
 	 * @param system_id
 	 */
-	virtual ExitCode_t SendJoinRequest(int system_id) = 0;
+	virtual ExitCode_t SendJoinRequest(int16_t instance_id) = 0;
 
 	/**
 	 * @brief SendDisjoinRequest
@@ -131,7 +132,7 @@ public:
 	/**
 	 * @param system_id
 	 */
-	virtual ExitCode_t SendDisjoinRequest(int system_id) = 0;
+	virtual ExitCode_t SendDisjoinRequest(int16_t instance_id) = 0;
 
 
 	// ----------- Scheduling / Resource allocation functions ----------
@@ -143,7 +144,7 @@ public:
 	* @return
 	*/
 	virtual ExitCode_t SendScheduleRequest(
-		std::string const & path,
+		int16_t instance_id,
 		agent::ApplicationScheduleRequest const & request) = 0;
 
 };
