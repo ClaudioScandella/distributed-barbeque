@@ -24,10 +24,9 @@ namespace plugins
 
 using bbque::agent::ExitCode_t;
 
-AgentClient::AgentClient(int _local_id, int _remote_id, const std::string & _address_port):
-	local_system_id(_local_id),
-	remote_system_id(_remote_id),
-	remote_address_port(_address_port)
+// remote_id può restare un numero che è quello deciso dal distributed manager. Quando lo si invia va eliminato il numero per renderlo generico.
+AgentClient::AgentClient(const std::string & ip):
+	ip_address(ip)
 {
 	logger = bbque::utils::Logger::GetLogger(AGENT_PROXY_NAMESPACE".grpc.cln");
 	Connect();
@@ -35,14 +34,14 @@ AgentClient::AgentClient(int _local_id, int _remote_id, const std::string & _add
 
 ExitCode_t AgentClient::Connect()
 {
-	logger->Debug("Connecting to %s...", remote_address_port.c_str());
+	logger->Debug("Connecting to %s...", ip_address.c_str());
 	if (channel != nullptr) {
 		logger->Debug("Channel already open");
 		return agent::ExitCode_t::OK;
 	}
 
 	channel = grpc::CreateChannel(
-			  remote_address_port, grpc::InsecureChannelCredentials());
+			  ip_address, grpc::InsecureChannelCredentials());
 	logger->Debug("Channel open");
 
 	service_stub = bbque::RemoteAgent::NewStub(channel);
@@ -117,7 +116,7 @@ ExitCode_t AgentClient::Ping(std::string ip, int & milliseconds) {
 
 	bbque::GenericRequest request;
 	request.set_sender_id(0);
-	request.set_dest_id(0);
+	// request.set_dest_id(0);
 
 	grpc::Status status;
 	grpc::ClientContext context;
@@ -142,7 +141,7 @@ ExitCode_t AgentClient::Ping(std::string ip, int & milliseconds) {
 	if (status.ok()) {
 		if (reply.value() == GenericReply_Code_OK) {
 			milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count();
-std::cout << "milliseconds: " << milliseconds << std::endl;
+// std::cout << "milliseconds: " << milliseconds << std::endl;
 			return ExitCode_t::OK;
 		}
 		else {
@@ -165,8 +164,15 @@ ExitCode_t AgentClient::GetResourceStatus(
 
 	// Do RPC call
 	bbque::ResourceStatusRequest request;
+
+#ifdef CONFIG_BBQUE_DIST_FULLY
+	request.set_sender_id(0);
+	// request.set_dest_id(0);
+#elif CONFIG_BBQUE_DIST_HIERARCHICAL
 	request.set_sender_id(local_system_id);
-	request.set_dest_id(remote_system_id);
+	// request.set_dest_id(remote_system_id);
+#endif
+
 	request.set_path(resource_path);
 	request.set_average(false);
 
@@ -203,8 +209,15 @@ ExitCode_t AgentClient::GetWorkloadStatus(
 	}
 
 	bbque::GenericRequest request;
+
+#ifdef CONFIG_BBQUE_DIST_FULLY
+	request.set_sender_id(0);
+	// request.set_dest_id(0);
+#elif CONFIG_BBQUE_DIST_HIERARCHICAL
 	request.set_sender_id(local_system_id);
-	request.set_dest_id(remote_system_id);
+	// request.set_dest_id(remote_system_id);
+#endif
+
 	grpc::Status status;
 	grpc::ClientContext context;
 	bbque::WorkloadStatusReply reply;
@@ -234,8 +247,15 @@ ExitCode_t AgentClient::GetChannelStatus(agent::ChannelStatus & channel_status) 
 	}
 
 	bbque::GenericRequest request;
+
+#ifdef CONFIG_BBQUE_DIST_FULLY
+	request.set_sender_id(0);
+	// request.set_dest_id(0);
+#elif CONFIG_BBQUE_DIST_HIERARCHICAL
 	request.set_sender_id(local_system_id);
-	request.set_dest_id(remote_system_id);
+	// request.set_dest_id(remote_system_id);
+#endif
+
 	grpc::Status status;
 	grpc::ClientContext context;
 	bbque::ChannelStatusReply reply;

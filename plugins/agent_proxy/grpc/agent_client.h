@@ -67,7 +67,7 @@ class AgentClient
 
 public:
 
-	AgentClient(int _local_id, int _remote_id, const std::string & _address_port);
+	AgentClient(const std::string & _address_port);
 
 	bool IsConnected();
 
@@ -102,9 +102,9 @@ private:
 
 	int local_system_id;
 
-	int remote_system_id;
+	// int remote_system_id;
 
-	std::string remote_address_port;
+	std::string ip_address;
 
 	std::shared_ptr<grpc::Channel> channel;
 
