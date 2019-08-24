@@ -54,16 +54,11 @@ public:
 	
 	virtual ~DistributedManager() {};
 
-	/**
-	 * @brief Show the system resources status
-	 */
-	void PrintStatusReport();
-
-	inline std::set<std::string> const & GetInstances() {
-		return discovered_instances;
+	inline std::map<int, std::string> const & GetInstancesID() {
+		return sys_to_ip_map;
 	}
 
-	inline std::map<std::string, Instance_Stats_t> const & GetInstancesStats() {
+	inline std::map<int, Instance_Stats_t> const & GetInstancesStats() {
 		return instance_stats_map;
 	}
 
@@ -106,6 +101,11 @@ private:
 	bool getInterfacesIPs();
 
 	/**
+	 * @brief Show the system resources status
+	 */
+	void PrintStatusReport();
+
+	/**
 	 * @brief The thread main code
 	 */
 	virtual void Task() override final;
@@ -144,7 +144,8 @@ private:
 	/**
 	 * @brief Mapping between system id and IP address of the instances of Barbeque
 	 */
-	std::map<int, std::string> instances_map;
+	std::map<int, std::string> sys_to_ip_map;
+	std::map<std::string, int> ip_to_sys_map;
 
 	/**
 	 * @brief Contains the IP address of the discovered instances. If an instance is no more discovered
@@ -155,7 +156,7 @@ private:
 	/**
 	 * @brief Contains statistics for each discovered instance
 	 */
-	std::map<std::string, Instance_Stats_t> instance_stats_map;
+	std::map<int, Instance_Stats_t> instance_stats_map;
 
 	std::vector<std::thread> threads;
 
