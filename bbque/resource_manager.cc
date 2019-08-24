@@ -22,6 +22,12 @@
 #include "bbque/signals_manager.h"
 #include "bbque/utils/utility.h"
 
+#define TEST
+
+#ifdef TEST
+#include "bbque/test.h"
+#endif
+
 #ifdef CONFIG_BBQUE_WM
 #include "bbque/power_monitor.h"
 #endif
@@ -150,6 +156,9 @@ ResourceManager::ResourceManager() :
 #ifdef CONFIG_BBQUE_DIST_MODE
 	dism(DistributedManager::GetInstance()),
 #endif
+#ifdef TEST
+	test(DistTest::GetInstance()),
+#endif
 
 	optimize_dfr("rm.opt", std::bind(&ResourceManager::Optimize, this)) {
 
@@ -243,6 +252,10 @@ ResourceManager::Setup() {
 #ifdef CONFIG_BBQUE_DIST_MODE
 	// Start the distributed manager
 	dism.Start();
+#endif
+#ifdef TEST
+	// Start the test
+	test.Start();
 #endif
 
 	return OK;

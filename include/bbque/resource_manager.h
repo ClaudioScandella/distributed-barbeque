@@ -33,6 +33,7 @@
 #include "bbque/profile_manager.h"
 #include "bbque/resource_accounter.h"
 #include "bbque/distributed_manager.h"
+#include "bbque/test.h"
 
 #include "bbque/command_manager.h"
 
@@ -60,6 +61,8 @@ using bbque::utils::Worker;
 using bbque::CommandHandler;
 
 namespace bu = bbque::utils;
+
+#define TEST
 
 namespace bbque {
 
@@ -220,6 +223,9 @@ private:
 
 #ifdef CONFIG_BBQUE_DIST_MODE
 	DistributedManager & dism;
+#endif
+#ifdef TEST
+	DistTest & test;
 #endif
 
 	/**
