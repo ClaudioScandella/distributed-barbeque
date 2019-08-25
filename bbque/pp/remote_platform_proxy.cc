@@ -137,7 +137,7 @@ RemotePlatformProxy::Discover(
 		}
 		return agent_proxy->Discover(ip, iam);
 	}
-		
+
 bbque::agent::ExitCode_t
 RemotePlatformProxy::Ping(
 		std::string ip, int & ping_value) {

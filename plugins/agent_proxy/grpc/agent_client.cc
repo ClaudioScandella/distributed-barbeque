@@ -141,7 +141,11 @@ ExitCode_t AgentClient::Ping(std::string ip, int & milliseconds) {
 	if (status.ok()) {
 		if (reply.value() == GenericReply_Code_OK) {
 			milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count();
+<<<<<<< HEAD
 // std::cout << "milliseconds: " << milliseconds << std::endl;
+=======
+std::cout << "milliseconds: " << milliseconds << std::endl;
+>>>>>>> 8ebc97520887cc15902a6b524bbea77369dd4898
 			return ExitCode_t::OK;
 		}
 		else {

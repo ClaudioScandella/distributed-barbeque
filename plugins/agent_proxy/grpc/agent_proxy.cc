@@ -238,7 +238,6 @@ ExitCode_t AgentProxyGRPC::GetResourceStatus(
 		int16_t instance_id,
 		std::string const & resource_path,
 		agent::ResourceStatus & status) {
-
 	std::string general_path;
 
 	if(GeneralizeSystemID(resource_path, general_path) != agent::ExitCode_t::OK)
@@ -249,6 +248,7 @@ ExitCode_t AgentProxyGRPC::GetResourceStatus(
 	logger->Debug("ip: %s", ip.c_str());
 
 	std::shared_ptr<AgentClient> client(GetAgentClient(ip));
+	
 	if (client)
 	{
 		logger->Debug("client found");
