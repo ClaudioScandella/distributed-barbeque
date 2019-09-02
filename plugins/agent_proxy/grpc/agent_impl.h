@@ -23,6 +23,7 @@
 #include "bbque/plugins/agent_proxy_if.h"
 #include "bbque/system.h"
 #include "bbque/utils/logging/logger.h"
+#include "bbque/distributed_manager.h"
 
 #include <grpc/grpc.h>
 #include "agent_com.grpc.pb.h"
@@ -93,7 +94,8 @@ public:
 		const bbque::NodeManagementRequest * action,
 		bbque::GenericReply * error) override;
 private:
-
+	DistributedManager & dism = DistributedManager::GetInstance();
+	
 	bbque::System & system;
 
 	std::unique_ptr<bbque::utils::Logger> logger;

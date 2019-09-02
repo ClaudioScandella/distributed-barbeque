@@ -35,20 +35,90 @@ grpc::Status AgentImpl::Discover(
 		const bbque::DiscoverRequest * request,
 		bbque::DiscoverReply * reply) {
 
-	// logger->Debug("agent_impl: Discover ip %s", context->peer().c_str());
-
-// #ifdef BLOCKING_SERVER
-// 	random++;
-// 	if (random % 3 == 0) {
-// 		logger->Debug("agent_impl: Sleeping 3 seconds");
-// 		std::this_thread::sleep_for(std::chrono::seconds(3));
-// 	}
-// #endif
-
 #ifdef CONFIG_BBQUE_DIST_FULLY
-		reply->set_iam(bbque::DiscoverReply_IAm_INSTANCE);
-		reply->set_id(0);
-#elif CONFIG_BBQUE_DIST_HIERARCHICAL
+	reply->set_iam(bbque::DiscoverReply_IAm_INSTANCE);
+	reply->set_id(0);
+#else
+#ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
+	int id, localID;
+
+	switch(request->iam()){
+	case bbque::DiscoverRequest_IAm_INSTANCE:
+		logger->Debug("Request from INSTANCE. Discover cancelled");
+		return grpc::Status::CANCELLED;
+	case bbque::DiscoverRequest_IAm_NEW:
+		logger->Debug("Request from NEW");
+		localID = dism.GetLocalID();
+		switch(localID) {
+		case -1:
+			logger->Debug("I am NEW. Discover cancelled");
+			// NEW
+			return grpc::Status::CANCELLED;
+		case 0:
+			// Master
+			reply->set_iam(DiscoverReply_IAm_MASTER);
+			id = dism.GetNewID();
+			reply->set_id(id);
+			logger->Debug("I am MASTER. I reply with a new ID: %d", id);
+			break;
+		default:
+			// Slave
+			reply->set_iam(DiscoverReply_IAm_SLAVE);
+			id = dism.GetLocalID();
+			reply->set_id(id);
+			logger->Debug("I am SLAVE. I reply with my ID: %d", id);
+			break;
+		}
+		break;
+	case bbque::DiscoverRequest_IAm_MASTER:
+		logger->Debug("Request from MASTER");
+		localID = dism.GetLocalID();
+		switch(localID) {
+		case -1:
+			logger->Debug("I am NEW. Discover cancelled");
+			// NEW
+			return grpc::Status::CANCELLED;
+		case 0:
+			// Master. This should never happen. If this case happens then there are 2 masters, that is an unwanted behaviour.
+			logger->Error("Duplicate MASTER found.");
+			exit(-1);
+		default:
+			// Slave
+			reply->set_iam(DiscoverReply_IAm_SLAVE);
+			id = dism.GetLocalID();
+			reply->set_id(id);
+			logger->Debug("I am SLAVE. I reply with my ID: %d", id);
+			break;
+		}
+		break;
+	case bbque::DiscoverRequest_IAm_SLAVE:
+		logger->Debug("Request from SLAVE");
+		localID = dism.GetLocalID();
+		switch(localID) {
+		case -1:
+			logger->Debug("I am NEW. Discover cancelled");
+			// NEW
+			return grpc::Status::CANCELLED;
+		case 0:
+			logger->Debug("I am MASTER. I reply with ID: 0");
+			// Master
+			reply->set_iam(DiscoverReply_IAm_MASTER);
+			reply->set_id(0);
+			break;
+		default:
+			// Slave
+			reply->set_iam(DiscoverReply_IAm_SLAVE);
+			int id = dism.GetLocalID();
+			reply->set_id(id);
+			logger->Debug("I am SLAVE. I reply with my ID: %d", id);
+			break;
+		}
+		break;
+	default:
+		logger->Error("Request from unexepected instance.");
+		exit(-1);
+	}
+#endif
 #endif
 
 	return grpc::Status::OK;
