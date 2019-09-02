@@ -36,6 +36,7 @@ message DiscoverRequest {
     INSTANCE  = 0;
     NEW  = 1;
     MASTER = 2;
+    SLAVE = 3;
   }
 
   IAm iam = 1;
