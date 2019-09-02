@@ -33,6 +33,7 @@
 #define DISTRIBUTED_MANAGER_NAMESPACE "bq.dism"
 
 #define LOCAL_TEST
+#define DEBUG2
 
 #define PING_NUMBER 3
 
@@ -54,12 +55,23 @@ public:
 	
 	virtual ~DistributedManager() {};
 
+#ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
+	/**
+	 * @brief Get the first available id and set it to the new instance
+	 */
+	int GetNewID();
+#endif
+
 	inline std::map<int, std::string> const & GetInstancesID() {
 		return sys_to_ip_map;
 	}
 
 	inline std::map<int, Instance_Stats_t> const & GetInstancesStats() {
 		return instance_stats_map;
+	}
+
+	inline int const & GetLocalID() {
+		return local_ID;
 	}
 
 private:
@@ -94,10 +106,13 @@ private:
 	void BuildIPAddresses();
 
 	/**
-	 * @brief Get the local IP addresses. If not found then return false
+	 * @brief Get the local IP address that fit into the range of ip in configuration file
 	 */
 	bool FindMyOwnIPAddresses();
 
+	/**
+	 * @brief Get the local IP addresses. If not found then return false
+	 */
 	bool getInterfacesIPs();
 
 	/**
@@ -113,11 +128,11 @@ private:
 	std::unique_ptr<bu::Logger> logger;
 
 	/**
-	 * @brief Says if configure has been done or not
+	 * @brief Mark that configure has been done or not
 	 */
 	bool configured;
 
-	// Configuration variables
+	// Configuration variables from configuration file
 	std::string start_address;
 	std::string end_address;
 	uint16_t discover_period_s;
@@ -127,12 +142,21 @@ private:
 #endif
 
 	/**
-	 * @brief Contains the only IP address that is in the range  of addresses specified in configuration file
+	 * @brief Contains the only local IP address that is in the range of addresses specified in configuration file
 	 */
 	std::string local_IP;
 
 	/**
-	 * @brief Contains all the possible IP addresses that an instance can have
+	 * @brief Contains the ID assigned to this instance. When this variable is 0 then this instance is the master in a hierarchical system.
+	 	Possible values:
+	 		-1 - when the instance is new so it does not know if it will be a master or a slave;
+	 		 0 - when the instance is the master;
+	 		>0 - when the instance is a slave.
+	 */
+	int local_ID;
+
+	/**
+	 * @brief Contains all the possible IP addresses in the range of IP as specified in configuration file
 	 */
 	std::vector<std::string> ipAddresses;
 
@@ -142,16 +166,22 @@ private:
 	std::set<std::string> local_IP_addresses;
 
 	/**
-	 * @brief Mapping between system id and IP address of the instances of Barbeque
+	 * @brief Mapping between system id and IP address of Barbeque instances
 	 */
 	std::map<int, std::string> sys_to_ip_map;
 	std::map<std::string, int> ip_to_sys_map;
 
+#ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 	/**
-	 * @brief Contains the IP address of the discovered instances. If an instance is no more discovered
-	 * on successive discovering then it is removed from the set
+	 * @brief It is used at every discover session to check if at least one instance replied to discover request.
 	 */
-	std::set<std::string> discovered_instances;
+	bool amIAlone;
+
+	/**
+	 * @brief It is used at every discover session to check if the MASTER replied to discover request.
+	 */
+	bool masterFound;
+#endif
 
 	/**
 	 * @brief Contains statistics for each discovered instance
@@ -161,6 +191,12 @@ private:
 	std::vector<std::thread> threads;
 
 	std::mutex general_mutex;
+
+#ifdef DEBUG
+	std::mutex thread_debug_mutex;
+
+	void PrintSysToIp();
+#endif
 };
 
 }
