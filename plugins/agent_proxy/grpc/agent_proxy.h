@@ -102,7 +102,7 @@ public:
 	// ----------------- Query status functions --------------------
 
 	ExitCode_t Discover(
-		std::string ip, bbque::agent::DiscoverRequest& iam) override;
+		std::string ip, bbque::agent::DiscoverRequest iam, bbque::agent::DiscoverReply& reply) override;
 		
 	ExitCode_t Ping(
 		std::string ip, int & ping_value) override;

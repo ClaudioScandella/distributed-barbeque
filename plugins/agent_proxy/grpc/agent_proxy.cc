@@ -199,12 +199,11 @@ std::shared_ptr<AgentClient> AgentProxyGRPC::GetAgentClient(std::string ip) {
 }
 
 ExitCode_t AgentProxyGRPC::Discover(
-	std::string ip, bbque::agent::DiscoverRequest& iam) {
+	std::string ip, bbque::agent::DiscoverRequest iam, bbque::agent::DiscoverReply& ret_reply) {
 
-		ExitCode_t result;
+		logger->Debug("AgentProxy discover");
 
 		bbque::DiscoverRequest request;
-
 		switch (iam.iam)
 		{
 			case bbque::agent::IAm::INSTANCE:
@@ -217,10 +216,38 @@ ExitCode_t AgentProxyGRPC::Discover(
 				request.set_iam(bbque::DiscoverRequest_IAm_MASTER);
 				break;
 			case bbque::agent::IAm::SLAVE:
-				return agent::ExitCode_t::REQUEST_REJECTED;
+				request.set_iam(bbque::DiscoverRequest_IAm_SLAVE);
+				break;
 		}
 
-		result = AgentClient::Discover(ip, request);
+		bbque::DiscoverReply reply;
+
+		ExitCode_t result;
+		result = AgentClient::Discover(ip, request, reply);
+
+		// Just for debug
+		// std::string s;
+
+		switch (reply.iam())
+		{
+			case bbque::DiscoverReply_IAm_INSTANCE:
+				ret_reply.iam = bbque::agent::IAm::INSTANCE;
+				// s = "INSTANCE";
+				break;
+			case bbque::DiscoverReply_IAm_MASTER:
+				ret_reply.iam = bbque::agent::IAm::MASTER;
+				// s = "MASTER";
+				break;
+			case bbque::DiscoverReply_IAm_SLAVE:
+				ret_reply.iam = bbque::agent::IAm::SLAVE;
+				// s = "SLAVE";
+				break;
+			default:
+				return agent::ExitCode_t::REQUEST_REJECTED;
+		}
+		ret_reply.id = (uint32_t)reply.id();
+
+		// logger->Debug("AgentProxy discover: returning ret_reply id = %d, iam = %s", ret_reply.id, s.c_str());
 
 		return result;
 	}
@@ -248,7 +275,7 @@ ExitCode_t AgentProxyGRPC::GetResourceStatus(
 	logger->Debug("ip: %s", ip.c_str());
 
 	std::shared_ptr<AgentClient> client(GetAgentClient(ip));
-	
+
 	if (client)
 	{
 		logger->Debug("client found");
