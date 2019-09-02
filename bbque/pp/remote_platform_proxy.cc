@@ -130,12 +130,13 @@ void RemotePlatformProxy::WaitForServerToStop() {
 
 bbque::agent::ExitCode_t
 RemotePlatformProxy::Discover(
-	std::string ip, bbque::agent::DiscoverRequest& iam) {
+	std::string ip, bbque::agent::DiscoverRequest iam, bbque::agent::DiscoverReply& reply) {
 		if (agent_proxy == nullptr) {
 			logger->Error("Discover failed. AgentProxy plugin missing");
 			return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 		}
-		return agent_proxy->Discover(ip, iam);
+		logger->Debug("RPP discover");
+		return agent_proxy->Discover(ip, iam, reply);
 	}
 
 bbque::agent::ExitCode_t

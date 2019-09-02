@@ -79,7 +79,7 @@ public:
 	
 	
 	bbque::agent::ExitCode_t Discover(
-		std::string ip, bbque::agent::DiscoverRequest& iam);
+		std::string ip, bbque::agent::DiscoverRequest iam, bbque::agent::DiscoverReply& reply);
 		
 	bbque::agent::ExitCode_t Ping(
 		std::string ip, int & ping_value);
