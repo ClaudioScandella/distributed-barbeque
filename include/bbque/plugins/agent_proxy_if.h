@@ -65,7 +65,7 @@ public:
 	// ----------------- Query status functions --------------------
 	
 	virtual ExitCode_t Discover(
-		std::string ip, bbque::agent::DiscoverRequest& iam) = 0;
+		std::string ip, bbque::agent::DiscoverRequest iam, bbque::agent::DiscoverReply& reply) = 0;
 		
 	virtual ExitCode_t Ping(
 		std::string ip, int & ping_value) = 0;
