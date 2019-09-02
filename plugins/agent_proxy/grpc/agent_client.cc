@@ -67,45 +67,43 @@ bool AgentClient::IsConnected()
 
 // ---------- Status
 
-ExitCode_t AgentClient::Discover(std::string ip, bbque::DiscoverRequest& iam) {
-
+ExitCode_t AgentClient::Discover(std::string ip, bbque::DiscoverRequest& iam, bbque::DiscoverReply& reply) {
 	std::shared_ptr<grpc::Channel> c = grpc::CreateChannel(ip, grpc::InsecureChannelCredentials());
 	std::shared_ptr<bbque::RemoteAgent::Stub> stub = bbque::RemoteAgent::NewStub(c);
-
-	// std::unique_ptr<bbque::utils::Logger> logger = bbque::utils::Logger::GetLogger(AGENT_PROXY_NAMESPACE".grpc.cln");
-
-
-	// char buffer[100];
-	// sprintf(buffer, "agent_client: Discover ip %s", ip.c_str());
-	// logger->Debug(buffer);
 
 	bbque::DiscoverRequest request = iam;
 
 	grpc::Status status;
 	grpc::ClientContext context;
-	bbque::DiscoverReply reply;
-
-	// sprintf(buffer, "agent_client: peer: %s", context.peer().c_str());
-	// logger->Debug(buffer);
 
 	status = stub->Discover(&context, request, &reply);
 
-	// sprintf(buffer, "agent_client: peer: %s", context.peer().c_str());
-	// logger->Debug(buffer);
-
-	// logger->Debug("agent_client: Discover: 2");
-
 	if (status.ok()) {
-		if (reply.iam() == bbque::DiscoverReply_IAm_INSTANCE){
-			// logger->Debug("agent_client: Discover: 3");
-			return ExitCode_t::OK;
-		}
-		else {
-			// logger->Debug("agent_client: Discover: 4");
+#ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
+		switch(reply.iam()) {
+		case bbque::DiscoverReply_IAm_MASTER:
+			break;
+		case bbque::DiscoverReply_IAm_SLAVE:
+			break;
+		default:
+			c.reset();
 			return ExitCode_t::REQUEST_REJECTED;
 		}
+#else
+#ifdef CONFIG_BBQUE_DIST_FULLY
+		switch(reply.iam()) {
+		case bbque::DiscoverReply_IAm_INSTANCE:
+			break;
+		default:
+			c.reset();
+			return ExitCode_t::REQUEST_REJECTED;
+		}
+#endif
+#endif
+		c.reset();
+		return ExitCode_t::OK;
     } else {
-    	// logger->Debug("agent_client: Discover: 5");
+    	c.reset();
     	return ExitCode_t::AGENT_UNREACHABLE;
     }
 }
@@ -116,7 +114,6 @@ ExitCode_t AgentClient::Ping(std::string ip, int & milliseconds) {
 
 	bbque::GenericRequest request;
 	request.set_sender_id(0);
-	// request.set_dest_id(0);
 
 	grpc::Status status;
 	grpc::ClientContext context;
@@ -130,28 +127,28 @@ ExitCode_t AgentClient::Ping(std::string ip, int & milliseconds) {
 
 	auto end_timer = Clock::now();
 
-	// Just for debug
-	bool culo = (std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count() % 10) % 2;
-	if(!culo)
-		std::this_thread::sleep_for(std::chrono::seconds(3));
-	culo = (std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count() % 10) % 3;
-	if(!culo)
-		std::this_thread::sleep_for(std::chrono::seconds(3));
+	// Just for debug. It is a pseudo-pseudo-random delay
+	// bool variable = (std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count() % 10) % 2;
+	// if(!variable)
+	// 	std::this_thread::sleep_for(std::chrono::seconds(3));
+	// variable = (std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count() % 10) % 3;
+	// if(!variable)
+	// 	std::this_thread::sleep_for(std::chrono::seconds(3));
 
 	if (status.ok()) {
 		if (reply.value() == GenericReply_Code_OK) {
+			// TODO: change microseconds to milliseconds. Microseconds is used in local test.
 			milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count();
-<<<<<<< HEAD
 // std::cout << "milliseconds: " << milliseconds << std::endl;
-=======
-std::cout << "milliseconds: " << milliseconds << std::endl;
->>>>>>> 8ebc97520887cc15902a6b524bbea77369dd4898
+			c.reset();
 			return ExitCode_t::OK;
 		}
 		else {
+			c.reset();
 			return ExitCode_t::REQUEST_REJECTED;
 		}
     } else {
+    	c.reset();
     	return ExitCode_t::AGENT_UNREACHABLE;
     }
 }
@@ -172,9 +169,11 @@ ExitCode_t AgentClient::GetResourceStatus(
 #ifdef CONFIG_BBQUE_DIST_FULLY
 	request.set_sender_id(0);
 	// request.set_dest_id(0);
-#elif CONFIG_BBQUE_DIST_HIERARCHICAL
+#else
+#ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 	request.set_sender_id(local_system_id);
 	// request.set_dest_id(remote_system_id);
+#endif
 #endif
 
 	request.set_path(resource_path);
@@ -217,9 +216,11 @@ ExitCode_t AgentClient::GetWorkloadStatus(
 #ifdef CONFIG_BBQUE_DIST_FULLY
 	request.set_sender_id(0);
 	// request.set_dest_id(0);
-#elif CONFIG_BBQUE_DIST_HIERARCHICAL
+#else
+#ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 	request.set_sender_id(local_system_id);
 	// request.set_dest_id(remote_system_id);
+#endif
 #endif
 
 	grpc::Status status;
@@ -255,9 +256,11 @@ ExitCode_t AgentClient::GetChannelStatus(agent::ChannelStatus & channel_status) 
 #ifdef CONFIG_BBQUE_DIST_FULLY
 	request.set_sender_id(0);
 	// request.set_dest_id(0);
-#elif CONFIG_BBQUE_DIST_HIERARCHICAL
+#else
+#ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 	request.set_sender_id(local_system_id);
 	// request.set_dest_id(remote_system_id);
+#endif
 #endif
 
 	grpc::Status status;

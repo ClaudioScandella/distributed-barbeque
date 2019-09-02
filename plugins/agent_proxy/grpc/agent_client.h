@@ -73,7 +73,7 @@ public:
 
 	// ---------- Status
 	
-	static ExitCode_t Discover(std::string ip, bbque::DiscoverRequest& iam);
+	static ExitCode_t Discover(std::string ip, bbque::DiscoverRequest& iam, bbque::DiscoverReply& reply);
 	
 	static ExitCode_t Ping(std::string ip, int & milliseconds);
 
