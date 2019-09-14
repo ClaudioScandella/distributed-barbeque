@@ -410,71 +410,139 @@ void DistributedManager::PrintSysToIp() {
 	general_mutex.unlock();
 }
 
+const double DistributedManager::calculateRTT(std::string const ip) {
+	double ping_sum = 0;
+	double pings = (PING_NUMBER * 3);
+	double RTT;
+
+	std::cout << "100" << std::endl;
+
+	for(int index = 0; index < PING_NUMBER * 3; index++) {
+		std::cout << "101" << std::endl;
+		if(instance_private_stats_map[ip].last_pings[index] == 0 || instance_private_stats_map[ip].last_pings[index] == -1) {
+			std::cout << "102" << std::endl;
+			pings--;
+			continue;
+		}
+		std::cout << "103" << std::endl;
+		ping_sum += instance_private_stats_map[ip].last_pings[index];
+		std::cout << "104" << std::endl;
+	}
+
+	std::cout << "ping_sum: " << ping_sum << std::endl;
+	std::cout << "pings: " << pings << std::endl;
+	std::cout << "105" << std::endl;
+	RTT = ping_sum / pings;
+	std::cout << "106" << std::endl;
+
+	return RTT;
+}
+
+const double DistributedManager::calculateAvailability(std::string const ip) {
+	double dividend = 0;
+	double divisor = 0;
+	double availability;
+
+	for(int index = 0; index < PING_NUMBER * 3; index++) {
+		if(instance_private_stats_map[ip].last_pings[index] != 0) {
+			divisor++;
+		}
+		if(instance_private_stats_map[ip].last_pings[index] > 0) {
+			dividend++;
+		}
+	}
+
+	availability = dividend / divisor;
+
+	return availability;
+}
+
 void DistributedManager::Ping(std::string ip) {
 	std::mutex m;
-	std::condition_variable cv;
+	std::condition_variable cv[PING_NUMBER];
+	std::vector<std::thread> t;
 
-	int ping_value = 0;
-	bbque::agent::ExitCode_t result = bbque::agent::ExitCode_t::AGENT_UNREACHABLE;
+	int ping_value[PING_NUMBER] = { 0 };
+	bbque::agent::ExitCode_t result[PING_NUMBER] = { bbque::agent::ExitCode_t::AGENT_UNREACHABLE };
 
 	PlatformManager & plm = PlatformManager::GetInstance();
 	pp::RemotePlatformProxy* rpp = plm.GetRemotePlatformProxy();
 
-	int ping_sum = 0;
-	int successful_pings_counter = 0;
-	double mean_ping_value;
-	Instance_Stats_t stats;
+	// Check if there is an entry for the ip in statistics. If not, then initialize one entry
+	if(instance_private_stats_map.count(ip) == 0)
+	{
+		Instance_Private_Stats_t s;
+		instance_private_stats_map[ip] = s;
+	}
+
+	// int temp_ping_sum = 0;
+	bool at_least_one_ping_successfull = false;
+	double mean_ping_value; // boh
+	Instance_Public_Stats_t stats;
 
 	// Ping PING_NUMBER times
 	for(int i = 0; i < PING_NUMBER; i++)
 	{
-		std::thread t([&cv, &result, this, ip, &ping_value, rpp]()
+		t.push_back(std::thread([&cv, &result, this, ip, &ping_value, rpp, i]()
 		{
-			result = rpp->Ping(ip, ping_value);
+			std::cout << "900" << std::endl;
+			result[i] = rpp->Ping(ip, ping_value[i]);
 
-			cv.notify_one();
-		});
+			cv[i].notify_one();
+		}));
 
-		t.detach();
+		t[i].detach();
 
 		{
 			std::unique_lock<std::mutex> l(m);
-			if(cv.wait_for(l, std::chrono::seconds(2)) == std::cv_status::timeout) ;
-			else if (ping_value != 0)
+			if(cv[i].wait_for(l, std::chrono::seconds(2)) == std::cv_status::timeout) {
+				std::cout << "200" << std::endl;
+				general_mutex.lock();
+				instance_private_stats_map[ip].last_pings[instance_private_stats_map[ip].ping_pointer] = -1;
+				instance_private_stats_map[ip].ping_pointer = (instance_private_stats_map[ip].ping_pointer + 1) % (PING_NUMBER * 3);
+				general_mutex.unlock();
+				std::cout << "201" << std::endl;
+			}
+			else if (ping_value[i] != 0)
 			{
+				std::cout << "202" << std::endl;
 				// If ping has not failed.
-				ping_sum += ping_value;
-				successful_pings_counter++;
+
+				at_least_one_ping_successfull = true;
+				general_mutex.lock();
+				instance_private_stats_map[ip].last_pings[instance_private_stats_map[ip].ping_pointer] = ping_value[i];
+				instance_private_stats_map[ip].ping_pointer = (instance_private_stats_map[ip].ping_pointer + 1) % (PING_NUMBER * 3);
+				general_mutex.unlock();
+				std::cout << "203" << std::endl;
+			}
+			else {
+				std::cout << "204" << std::endl;
+				general_mutex.lock();
+				instance_private_stats_map[ip].last_pings[instance_private_stats_map[ip].ping_pointer] = -1;
+				instance_private_stats_map[ip].ping_pointer = (instance_private_stats_map[ip].ping_pointer + 1) % (PING_NUMBER * 3);
+				general_mutex.unlock();
+				std::cout << "205" << std::endl;
 			}
 		}
 	}
 
-	if(successful_pings_counter == 0)
-	{
-		stats.RTT = std::numeric_limits<double>::infinity();
-		stats.availability = 0.0;
-
-		return;
-	}
-
-	mean_ping_value = (double)((double)ping_sum / (double)successful_pings_counter);
-	stats.RTT = mean_ping_value;
-	stats.availability = (double)((double)successful_pings_counter / (double)PING_NUMBER) * 100; // % value
-
 	general_mutex.lock();
-	instance_stats_map[ip_to_sys_map[ip]] = stats;
+	stats.RTT = calculateRTT(ip);
+	stats.availability = calculateAvailability(ip);
+	instance_public_stats_map[ip] = stats;
 	general_mutex.unlock();
 
 	return;
 }
 
 void DistributedManager::PingInstances() {
-	instance_stats_map.clear();
+	instance_public_stats_map.clear();
 	for (auto it = ip_to_sys_map.begin(); it != ip_to_sys_map.end(); ++it) {
 		// Skip ping of myself
 		if(it->first == (local_IP))
 			continue;
 
+		std::cout << "901" << std::endl;
 		threads.push_back(std::thread(&DistributedManager::Ping, this, it->first));
 	}
 
@@ -505,7 +573,7 @@ void DistributedManager::PrintStatusReport() {
 #ifdef CONFIG_BBQUE_DIST_FULLY
 		// If the instance at the current IP is available.
 		if (ip_to_sys_map.find(*it) != ip_to_sys_map.end()) {
-			sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), ip_to_sys_map[*it], instance_stats_map[ip_to_sys_map[*it]].RTT, instance_stats_map[ip_to_sys_map[*it]].availability);
+			sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), ip_to_sys_map[*it], instance_public_stats_map[*it].RTT, instance_public_stats_map[*it].availability);
 			logger->Notice(buffer);
 		}
 		else {
@@ -517,7 +585,7 @@ void DistributedManager::PrintStatusReport() {
 		// If the instance at the current IP is available.
 		if (ip_to_sys_map.find(*it) != ip_to_sys_map.end()) {
 			if(local_ID == 0)
-				sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), ip_to_sys_map[*it], instance_stats_map[ip_to_sys_map[*it]].RTT, instance_stats_map[ip_to_sys_map[*it]].availability);
+				sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), ip_to_sys_map[*it], instance_public_stats_map[*it].RTT, instance_public_stats_map[*it].availability);
 			else
 				sprintf(buffer, "| %21s | %3d |    -    |       -      |      OK      |", (*it).c_str(), ip_to_sys_map[*it]);
 			logger->Notice(buffer);
@@ -617,7 +685,37 @@ void DistributedManager::Task() {
 
 		PrintStatusReport();
 
-		std::this_thread::sleep_for(std::chrono::seconds(gcd));
+		std::cout << "000" << std::endl;
+
+		char buffer[100];
+		std::cout << "001" << std::endl;
+		// Just for debug print all the content of instance_private_stats_map
+		sprintf(buffer, "instance_private_stats_map: \n");
+		std::cout << "002" << std::endl;
+		logger->Debug(buffer);
+		std::cout << "003" << std::endl;
+		sprintf(buffer, "instance_private_stats_map length: %d\n", instance_private_stats_map.size());
+		std::cout << "004" << std::endl;
+		logger->Debug(buffer);
+		std::cout << "005" << std::endl;
+		for(auto it = instance_private_stats_map.begin(); it != instance_private_stats_map.end(); ++it)
+		{
+			std::cout << "006" << std::endl;
+			sprintf(buffer, "instance: %s\n", (it->first).c_str());
+			std::cout << "007" << std::endl;
+			logger->Debug(buffer);
+			std::cout << "008" << std::endl;
+			for(int i = 0; i < PING_NUMBER * 3; i++) {
+				std::cout << "009" << std::endl;
+				sprintf(buffer, "last_pings[%d]: %d\n", i, it->second.last_pings[i]);
+				std::cout << "010" << std::endl;
+				logger->Debug(buffer);
+				std::cout << "011" << std::endl;
+			}
+		}
+
+		// std::this_thread::sleep_for(std::chrono::seconds(gcd));
+		std::this_thread::sleep_for(std::chrono::seconds(0));
 
 #ifdef DEBUG2
 		std::cout << "Invio per altro ciclo di Task()" << std::endl;
@@ -670,6 +768,8 @@ bool DistributedManager::Configure() {
 	cm.ParseConfigurationFile(distributed_manager_opts_desc, opts_vm);
 
 	BuildIPAddresses();
+
+
 
 	this->configured = true;
 

@@ -35,6 +35,7 @@
 #define LOCAL_TEST
 #define DEBUG2
 
+// Number of ping per time for each discovered instance
 #define PING_NUMBER 3
 
 namespace bbque {
@@ -43,7 +44,7 @@ class DistributedManager : public utils::Worker
 {
 public:
 
-	struct Instance_Stats_t {
+	struct Instance_Public_Stats_t {
 		double RTT;
 		double availability;
 	};
@@ -66,8 +67,8 @@ public:
 		return sys_to_ip_map;
 	}
 
-	inline std::map<int, Instance_Stats_t> const & GetInstancesStats() {
-		return instance_stats_map;
+	inline std::map<std::string, Instance_Public_Stats_t> const & GetInstancesStats() {
+		return instance_public_stats_map;
 	}
 
 	inline int const & GetLocalID() {
@@ -75,6 +76,11 @@ public:
 	}
 
 private:
+
+	struct Instance_Private_Stats_t {
+		int last_pings[PING_NUMBER * 3] = { 0 };
+		int ping_pointer = 0;
+	};
 
 	/**
 	 * @brief   Build a new instance of the distributed manager
@@ -114,6 +120,16 @@ private:
 	 * @brief Get the local IP addresses. If not found then return false
 	 */
 	bool getInterfacesIPs();
+
+	/**
+	 * @brief Calculate the mean RTT (mean ping value) from the ping values in instance_private_stats_map
+	 */
+	const double calculateRTT(std::string const ip);
+
+	/**
+	 * @brief Calculate the availability from the ping values in instance_private_stats_map
+	 */
+	const double calculateAvailability(std::string const ip);
 
 	/**
 	 * @brief Show the system resources status
@@ -184,9 +200,14 @@ private:
 #endif
 
 	/**
-	 * @brief Contains statistics for each discovered instance
+	 * @brief Contains mean RTT and availability statistics for each discovered instance
 	 */
-	std::map<int, Instance_Stats_t> instance_stats_map;
+	std::map<std::string, Instance_Public_Stats_t> instance_public_stats_map;
+
+	/**
+	 * @brief Contains last pings values (along with its pointer) for each discovered instance
+	 */
+	std::map<std::string, Instance_Private_Stats_t> instance_private_stats_map;
 
 	std::vector<std::thread> threads;
 
