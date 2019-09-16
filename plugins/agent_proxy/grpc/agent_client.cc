@@ -76,10 +76,15 @@ ExitCode_t AgentClient::Discover(std::string ip, bbque::DiscoverRequest& iam, bb
 	grpc::Status status;
 	grpc::ClientContext context;
 
+	std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(2000);
+	context.set_deadline(deadline);
+
 	status = stub->Discover(&context, request, &reply);
 
 	if (status.ok()) {
+		
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
+
 		switch(reply.iam()) {
 		case bbque::DiscoverReply_IAm_MASTER:
 			break;
@@ -89,8 +94,10 @@ ExitCode_t AgentClient::Discover(std::string ip, bbque::DiscoverRequest& iam, bb
 			c.reset();
 			return ExitCode_t::REQUEST_REJECTED;
 		}
+
 #else
 #ifdef CONFIG_BBQUE_DIST_FULLY
+
 		switch(reply.iam()) {
 		case bbque::DiscoverReply_IAm_INSTANCE:
 			break;
@@ -98,8 +105,10 @@ ExitCode_t AgentClient::Discover(std::string ip, bbque::DiscoverRequest& iam, bb
 			c.reset();
 			return ExitCode_t::REQUEST_REJECTED;
 		}
+
 #endif
 #endif
+
 		c.reset();
 		return ExitCode_t::OK;
     } else {
@@ -119,7 +128,8 @@ ExitCode_t AgentClient::Ping(std::string ip, int & milliseconds) {
 	grpc::ClientContext context;
 	bbque::GenericReply reply;
 
-	bbque::utils::Timer t;
+	std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(2000);
+	context.set_deadline(deadline);
 
 	auto start_timer = Clock::now();
 
@@ -127,28 +137,22 @@ ExitCode_t AgentClient::Ping(std::string ip, int & milliseconds) {
 
 	auto end_timer = Clock::now();
 
-	// Just for debug. It is a pseudo-pseudo-random delay
-	// bool variable = (std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count() % 10) % 2;
-	// if(!variable)
-	// 	std::this_thread::sleep_for(std::chrono::seconds(3));
-	// variable = (std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count() % 10) % 3;
-	// if(!variable)
-	// 	std::this_thread::sleep_for(std::chrono::seconds(3));
-
 	if (status.ok()) {
 		if (reply.value() == GenericReply_Code_OK) {
 			// TODO: change microseconds to milliseconds. Microseconds is used in local test.
 			milliseconds = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer).count();
-// std::cout << "milliseconds: " << milliseconds << std::endl;
 			c.reset();
+
 			return ExitCode_t::OK;
 		}
 		else {
 			c.reset();
+
 			return ExitCode_t::REQUEST_REJECTED;
 		}
     } else {
     	c.reset();
+
     	return ExitCode_t::AGENT_UNREACHABLE;
     }
 }
@@ -167,12 +171,14 @@ ExitCode_t AgentClient::GetResourceStatus(
 	bbque::ResourceStatusRequest request;
 
 #ifdef CONFIG_BBQUE_DIST_FULLY
+
 	request.set_sender_id(0);
-	// request.set_dest_id(0);
+
 #else
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
+
 	request.set_sender_id(local_system_id);
-	// request.set_dest_id(remote_system_id);
+
 #endif
 #endif
 
@@ -214,12 +220,14 @@ ExitCode_t AgentClient::GetWorkloadStatus(
 	bbque::GenericRequest request;
 
 #ifdef CONFIG_BBQUE_DIST_FULLY
+
 	request.set_sender_id(0);
-	// request.set_dest_id(0);
+
 #else
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
+
 	request.set_sender_id(local_system_id);
-	// request.set_dest_id(remote_system_id);
+
 #endif
 #endif
 
@@ -254,12 +262,14 @@ ExitCode_t AgentClient::GetChannelStatus(agent::ChannelStatus & channel_status) 
 	bbque::GenericRequest request;
 
 #ifdef CONFIG_BBQUE_DIST_FULLY
+
 	request.set_sender_id(0);
-	// request.set_dest_id(0);
+
 #else
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
+
 	request.set_sender_id(local_system_id);
-	// request.set_dest_id(remote_system_id);
+
 #endif
 #endif
 
