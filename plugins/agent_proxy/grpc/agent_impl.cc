@@ -21,6 +21,11 @@
 
 #include <unistd.h>
 
+// Just for debug
+#include <chrono>
+#include <thread>
+#include <time.h>
+
 #ifdef CONFIG_BBQUE_PM
   #include "bbque/pm/power_manager.h"
 #endif
@@ -35,11 +40,16 @@ grpc::Status AgentImpl::Discover(
 		const bbque::DiscoverRequest * request,
 		bbque::DiscoverReply * reply) {
 
+	logger->Debug("Discover function called");
+
 #ifdef CONFIG_BBQUE_DIST_FULLY
+
 	reply->set_iam(bbque::DiscoverReply_IAm_INSTANCE);
 	reply->set_id(0);
+
 #else
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
+
 	int id, localID;
 
 	switch(request->iam()){
@@ -118,6 +128,7 @@ grpc::Status AgentImpl::Discover(
 		logger->Error("Request from unexepected instance.");
 		exit(-1);
 	}
+
 #endif
 #endif
 
@@ -128,6 +139,8 @@ grpc::Status AgentImpl::Ping(
 	grpc::ServerContext * context,
 	const bbque::GenericRequest * request,
 	bbque::GenericReply * reply) {
+
+	logger->Debug("Ping function called");
 
 	reply->set_value(GenericReply_Code_OK);
 
