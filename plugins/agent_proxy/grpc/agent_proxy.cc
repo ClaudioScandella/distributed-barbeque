@@ -180,10 +180,6 @@ ExitCode_t AgentProxyGRPC::GeneralizeSystemID(std::string path, std::string & ge
 
 std::shared_ptr<AgentClient> AgentProxyGRPC::GetAgentClient(std::string ip) {
 	logger->Debug("GetAgentClient: retrieving a client for ip %s", ip.c_str());
-	// if (!platform->ExistSystem(remote_system_id)) {
-	// 	logger->Error("GetAgentClient: sys%d not registered", remote_system_id);
-	// 	return nullptr;
-	// }
 
 	auto sys_client = clients.find(ip);
 	if(sys_client == clients.end()) {
@@ -200,8 +196,6 @@ std::shared_ptr<AgentClient> AgentProxyGRPC::GetAgentClient(std::string ip) {
 
 ExitCode_t AgentProxyGRPC::Discover(
 	std::string ip, bbque::agent::DiscoverRequest iam, bbque::agent::DiscoverReply& ret_reply) {
-
-		logger->Debug("AgentProxy discover");
 
 		bbque::DiscoverRequest request;
 		switch (iam.iam)
@@ -225,40 +219,28 @@ ExitCode_t AgentProxyGRPC::Discover(
 		ExitCode_t result;
 		result = AgentClient::Discover(ip, request, reply);
 
-		// Just for debug
-		// std::string s;
-
 		switch (reply.iam())
 		{
 			case bbque::DiscoverReply_IAm_INSTANCE:
 				ret_reply.iam = bbque::agent::IAm::INSTANCE;
-				// s = "INSTANCE";
 				break;
 			case bbque::DiscoverReply_IAm_MASTER:
 				ret_reply.iam = bbque::agent::IAm::MASTER;
-				// s = "MASTER";
 				break;
 			case bbque::DiscoverReply_IAm_SLAVE:
 				ret_reply.iam = bbque::agent::IAm::SLAVE;
-				// s = "SLAVE";
 				break;
 			default:
 				return agent::ExitCode_t::REQUEST_REJECTED;
 		}
 		ret_reply.id = (uint32_t)reply.id();
 
-		// logger->Debug("AgentProxy discover: returning ret_reply id = %d, iam = %s", ret_reply.id, s.c_str());
-
 		return result;
 	}
 	
 ExitCode_t AgentProxyGRPC::Ping(
 		std::string ip, int & ping_value) {
-		ExitCode_t result;
-
-		result = AgentClient::Ping(ip, ping_value);
-
-		return result;
+		return AgentClient::Ping(ip, ping_value);
 	}
 
 ExitCode_t AgentProxyGRPC::GetResourceStatus(
@@ -270,20 +252,21 @@ ExitCode_t AgentProxyGRPC::GetResourceStatus(
 	if(GeneralizeSystemID(resource_path, general_path) != agent::ExitCode_t::OK)
 		return agent::ExitCode_t::REQUEST_REJECTED;
 
-	std::map<int, std::string> inst_map = dism.GetInstancesID();
-	std::string ip = inst_map[instance_id];
-	logger->Debug("ip: %s", ip.c_str());
+	// Get the ip associated to instance_id from distributed manager.
+	std::string ip;
+	if(!dism.GetIPFromID(instance_id, ip))
+		return agent::ExitCode_t::REQUEST_REJECTED;
 
 	std::shared_ptr<AgentClient> client(GetAgentClient(ip));
 
 	if (client)
 	{
-		logger->Debug("client found");
 		logger->Debug("Calling client->GetResourceStatus(path, status)");
-		logger->Debug("path: %s", general_path.c_str());
+
 		return client->GetResourceStatus(general_path, status);
 	}
-	logger->Debug("client NOT found");
+
+	logger->Debug("Client NOT found");
 
 	return agent::ExitCode_t::AGENT_UNREACHABLE;
 }
@@ -297,12 +280,15 @@ ExitCode_t AgentProxyGRPC::GetWorkloadStatus(
 ExitCode_t AgentProxyGRPC::GetWorkloadStatus(
 		int16_t instance_id,
 		agent::WorkloadStatus & status) {
-	std::map<int, std::string> inst_map = dism.GetInstancesID();
-	std::string ip = inst_map[instance_id];
+	// Get the ip associated to instance_id from distributed manager.
+	std::string ip;
+	if(!dism.GetIPFromID(instance_id, ip))
+		return agent::ExitCode_t::REQUEST_REJECTED;
 
 	std::shared_ptr<AgentClient> client(GetAgentClient(ip));
 	if (client)
 		return client->GetWorkloadStatus(status);
+
 	return agent::ExitCode_t::AGENT_UNREACHABLE;
 }
 
@@ -315,12 +301,15 @@ ExitCode_t AgentProxyGRPC::GetChannelStatus(
 ExitCode_t AgentProxyGRPC::GetChannelStatus(
 		int16_t instance_id,
 		agent::ChannelStatus & status) {
-	std::map<int, std::string> inst_map = dism.GetInstancesID();
-	std::string ip = inst_map[instance_id];
+	// Get the ip associated to instance_id from distributed manager.
+	std::string ip;
+	if(!dism.GetIPFromID(instance_id, ip))
+		return agent::ExitCode_t::REQUEST_REJECTED;
 
 	std::shared_ptr<AgentClient> client(GetAgentClient(ip));
 	if (client)
 		return client->GetChannelStatus(status);
+
 	return agent::ExitCode_t::AGENT_UNREACHABLE;
 }
 
