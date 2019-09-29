@@ -28,10 +28,6 @@ DistributedManager & DistributedManager::GetInstance() {
 }
 
 void DistributedManager::Discover(std::string ip) {
-	// thread_debug_mutex.lock();
-
-	// logger->Debug("Discover: 0");
-
 	std::mutex m;
 	std::condition_variable cv;
 
@@ -52,21 +48,13 @@ void DistributedManager::Discover(std::string ip) {
 #else
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 
-		// logger->Debug("Discover: 1");
-
 		if(local_ID == -1){
-			// logger->Debug("Discover: 2");
-
 			iam.iam = bbque::agent::IAm::NEW;
 		}
 		else if (local_ID == 0) {
-			// logger->Debug("Discover: 3");
-
 			iam.iam = bbque::agent::IAm::MASTER;
 		}
 		else{
-			// logger->Debug("Discover: 4");
-
 			iam.iam = bbque::agent::IAm::SLAVE;
 		}
 
@@ -75,11 +63,8 @@ void DistributedManager::Discover(std::string ip) {
 
 	std::thread t([&cv, &result, this, ip, rpp, iam, &reply]()
 	{
-		// logger->Debug("Discover: 5");
 		logger->Debug("Sending Discover to %s", ip.c_str());
 		result = rpp->Discover(ip, iam, reply);
-		// logger->Debug("Discover: 6");
-
 		cv.notify_one();
 	});
 
@@ -89,19 +74,14 @@ void DistributedManager::Discover(std::string ip) {
 		std::unique_lock<std::mutex> l(m);
 		if(cv.wait_for(l, std::chrono::seconds(2)) == std::cv_status::timeout) {
 			logger->Debug("Discover timeout");
-			// logger->Debug("Discover: 7");
-
 			discovered = false;
 		}
 	}
 
 	if (result != bbque::agent::ExitCode_t::OK) {
-		// logger->Debug("Discover: 8");
-
 		discovered = false;
 	}
 	else {
-		// logger->Debug("Discover: 9");
 
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 
@@ -114,167 +94,143 @@ void DistributedManager::Discover(std::string ip) {
 
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 
-	// logger->Debug("Discover: 10");
-
 	if(discovered) {
-		// logger->Debug("Discover: 11");
-
 		switch(local_ID) {
 		case -1:
-			// logger->Debug("Discover: 12");
-
 			// NEW
 			if(reply.iam == bbque::agent::IAm::MASTER) {
-				// logger->Debug("Discover: 13");
-
 				masterFound = true;
 				local_ID = reply.id;
 				sys_to_ip_map[0] = ip;
 				ip_to_sys_map[ip] = 0;
+				general_mutex.lock();
 				sys_to_ip_map[local_ID] = local_IP;
 				ip_to_sys_map[local_IP] = local_ID;
+				general_mutex.unlock();
 
 				logger->Info("MASTER assigned me number: %d", local_ID);
 			}
 			if(reply.iam == bbque::agent::IAm::SLAVE) {
-				// logger->Debug("Discover: 14");
-
+				general_mutex.lock();
 				sys_to_ip_map[reply.id] = ip;
 				ip_to_sys_map[ip] = reply.id;
+				general_mutex.unlock();
 
 				logger->Debug("SLAVE replied");
 			}
 			break;
 		case 0:
-			// logger->Debug("Discover: 15");
-
 			// MASTER
 			if(reply.iam == bbque::agent::IAm::MASTER) {
-				// logger->Debug("Discover: 16");
-
 				logger->Error("Duplicate MASTER found.");
+
 				exit(-1);
 			}
 			else if (reply.iam == bbque::agent::IAm::SLAVE) {
-				// logger->Debug("Discover: 17");
-
 				// If the discovered instance is a SLAVE then nothing has to be done here.
 				;
 			}
 			else {
-				// logger->Debug("Discover: 18");
-
-				// thread_debug_mutex.unlock();
-
 				return;
 			}
 			break;
 		default:
-			// logger->Debug("Discover: 19");
 			// SLAVE
 
 			// Checking if the instance changed id. If it changed the id remove its reference in sys_to_ip_map
 			if(ip_to_sys_map.count(ip) != 0 && ip_to_sys_map[ip] != reply.id && sys_to_ip_map[ip_to_sys_map[ip]] == ip) {
-				// logger->Debug("Discover: 19.5");
+				general_mutex.lock();
 				sys_to_ip_map.erase(ip_to_sys_map[ip]);
+				general_mutex.unlock();
 			}
 
 			if(reply.iam == bbque::agent::IAm::MASTER) {
-				// logger->Debug("Discover: 20");
 				masterFound = true;
 				sys_to_ip_map[0] = ip;
 				ip_to_sys_map[ip] = 0;
+
 				logger->Debug("MASTER replied");
 			}
 			else if(reply.iam == bbque::agent::IAm::SLAVE) {
-				// logger->Debug("Discover: 21");
+				general_mutex.lock();
 				sys_to_ip_map[reply.id] = ip;
 				ip_to_sys_map[ip] = reply.id;
+				general_mutex.unlock();
+
 				logger->Debug("SLAVE replied");
 			}
 			break;
 		}
 	}
 	else if(local_ID > 0) {
-		// logger->Debug("Discover: 22");
 		/* This block is executed only if the instance to which has been send a discover request did not replied
 		* to it and this instance is a SLAVE.
 		* If this instance knows the MASTER and it does not replies to the request then it remove it from sys_to_ip_map and ip_to_sys_map.
 		* If this instance knows some SLAVE and it does not replies to the request then it remove it from sys_to_ip_map and ip_to_sys_map.
 		*/
 
-		if(ip_to_sys_map.count(ip) != 0 && ip_to_sys_map[ip] == 0 && sys_to_ip_map[0] == ip) {
-			// logger->Debug("Discover: 22.5");
+		general_mutex.lock();
 
+		if(ip_to_sys_map.count(ip) != 0 && ip_to_sys_map[ip] == 0 && sys_to_ip_map[0] == ip) {
 			// If the MASTER did not replied
 			sys_to_ip_map.erase(0);
 		}
 
 		if(ip_to_sys_map.count(ip) != 0 && ip_to_sys_map[ip] > 0 && sys_to_ip_map[ip_to_sys_map[ip]] == ip) {
-			// logger->Debug("Discover: 23");
-
 			// If the SLAVE did not replied
 			sys_to_ip_map.erase(ip_to_sys_map[ip]);
 		}
 
 		ip_to_sys_map.erase(ip);
+
+		general_mutex.unlock();
 	}
 
 	// If I am MASTER then the actions are (almost) the same as in FULLY distributed.
 	if(local_ID == 0) {
-		// logger->Debug("Discover: 24");
-
 #endif
-
-		general_mutex.lock();
 
 		// If the instance has been discovered then map to a system with the lowest available sys_id.
 		if (discovered) {
-			// logger->Debug("Discover: 25");
-
 			// If the instance was already discovered in a previous discovery session.
 			if (ip_to_sys_map.count(ip)){
-				// logger->Debug("Discover: 26");
 
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 
 				// Update system id
 				int old_id = ip_to_sys_map[ip];
+				general_mutex.lock();
 				sys_to_ip_map.erase(old_id);
 				sys_to_ip_map[reply.id] = ip;
 				ip_to_sys_map[ip] = reply.id;
-
-#endif
-
 				general_mutex.unlock();
 
-				// thread_debug_mutex.unlock();
+#endif
 
 				return;
 			}
 			else {
-				// logger->Debug("Discover: 27");
 
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 
-				// logger->Debug("Discover: 28");
-
+				general_mutex.lock();
 				sys_to_ip_map[reply.id] = ip;
 				ip_to_sys_map[ip] = reply.id;
+				general_mutex.unlock();
 
 				logger->Debug("SLAVE tracked with id: %d", reply.id);
 #else
 #ifdef CONFIG_BBQUE_DIST_FULLY
-
-				// logger->Debug("Discover: 29");
 
 				// Get the first available id and set it to the new instance.
 				int id = 1;
 				bool stop = false;
 				while (!stop) {
 					if (sys_to_ip_map.count(id) == 0) {
+						general_mutex.lock();
 						sys_to_ip_map[id] = ip;
 						ip_to_sys_map[ip] = id;
+						general_mutex.unlock();
 						stop = true;
 					}
 					id++;
@@ -284,28 +240,20 @@ void DistributedManager::Discover(std::string ip) {
 			}
 		}
 		else {
-			// logger->Debug("Discover: 30");
-
-			// If the instance is in the map and set variables then remove it from them.
+			// If the instance is in the map variables then remove it from them.
 			if (ip_to_sys_map.count(ip)) {
-				// logger->Debug("Discover: 31");
-
+				general_mutex.lock();
 				sys_to_ip_map.erase(ip_to_sys_map[ip]);
 				ip_to_sys_map.erase(ip);
-
-				// logger->Debug("Discover: 32");
+				general_mutex.unlock();
 			}
 		}
-
-		general_mutex.unlock();
 
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 
 	}
 
 #endif
-
-	// thread_debug_mutex.unlock();
 
 	return;
 }
@@ -324,12 +272,8 @@ void DistributedManager::DiscoverInstances() {
 #endif
 
 	for (std::vector<std::string>::iterator it = ipAddresses.begin(); it != ipAddresses.end(); ++it) {
-		if(*it == (local_IP))
-		{
-			// Skip discover of myself
-
-			continue;
-		}
+		// Skip discover of myself
+		if(*it == (local_IP)) continue;
 
 		threads.push_back(std::thread(&DistributedManager::Discover, this, *it));
 	}
@@ -411,39 +355,32 @@ void DistributedManager::PrintSysToIp() {
 }
 
 const double DistributedManager::calculateRTT(std::string const ip) {
+	logger->Debug("Calculating instances RTT...");
 	double ping_sum = 0;
-	double pings = (PING_NUMBER * 3);
+	double pings = (PING_NUMBER * PING_CYCLES);
 	double RTT;
 
-	std::cout << "100" << std::endl;
-
-	for(int index = 0; index < PING_NUMBER * 3; index++) {
-		std::cout << "101" << std::endl;
+	for(int index = 0; index < PING_NUMBER * PING_CYCLES; index++) {
 		if(instance_private_stats_map[ip].last_pings[index] == 0 || instance_private_stats_map[ip].last_pings[index] == -1) {
-			std::cout << "102" << std::endl;
 			pings--;
 			continue;
 		}
-		std::cout << "103" << std::endl;
 		ping_sum += instance_private_stats_map[ip].last_pings[index];
-		std::cout << "104" << std::endl;
 	}
 
-	std::cout << "ping_sum: " << ping_sum << std::endl;
-	std::cout << "pings: " << pings << std::endl;
-	std::cout << "105" << std::endl;
 	RTT = ping_sum / pings;
-	std::cout << "106" << std::endl;
 
 	return RTT;
 }
 
 const double DistributedManager::calculateAvailability(std::string const ip) {
+	logger->Debug("Calculating instances availability...");
+
 	double dividend = 0;
 	double divisor = 0;
 	double availability;
 
-	for(int index = 0; index < PING_NUMBER * 3; index++) {
+	for(int index = 0; index < PING_NUMBER * PING_CYCLES; index++) {
 		if(instance_private_stats_map[ip].last_pings[index] != 0) {
 			divisor++;
 		}
@@ -477,17 +414,15 @@ void DistributedManager::Ping(std::string ip) {
 
 	// int temp_ping_sum = 0;
 	bool at_least_one_ping_successfull = false;
-	double mean_ping_value; // boh
 	Instance_Public_Stats_t stats;
 
 	// Ping PING_NUMBER times
 	for(int i = 0; i < PING_NUMBER; i++)
 	{
+		logger->Debug("Sending Ping no %d to %s", i, ip.c_str());
 		t.push_back(std::thread([&cv, &result, this, ip, &ping_value, rpp, i]()
 		{
-			std::cout << "900" << std::endl;
 			result[i] = rpp->Ping(ip, ping_value[i]);
-
 			cv[i].notify_one();
 		}));
 
@@ -496,32 +431,29 @@ void DistributedManager::Ping(std::string ip) {
 		{
 			std::unique_lock<std::mutex> l(m);
 			if(cv[i].wait_for(l, std::chrono::seconds(2)) == std::cv_status::timeout) {
-				std::cout << "200" << std::endl;
+				logger->Debug("Ping no %d timeout", i);
 				general_mutex.lock();
 				instance_private_stats_map[ip].last_pings[instance_private_stats_map[ip].ping_pointer] = -1;
-				instance_private_stats_map[ip].ping_pointer = (instance_private_stats_map[ip].ping_pointer + 1) % (PING_NUMBER * 3);
+				instance_private_stats_map[ip].ping_pointer = (instance_private_stats_map[ip].ping_pointer + 1) % (PING_NUMBER * PING_CYCLES);
 				general_mutex.unlock();
-				std::cout << "201" << std::endl;
 			}
 			else if (ping_value[i] != 0)
 			{
-				std::cout << "202" << std::endl;
+				logger->Debug("Pong no %d received", i);
+
 				// If ping has not failed.
 
 				at_least_one_ping_successfull = true;
 				general_mutex.lock();
 				instance_private_stats_map[ip].last_pings[instance_private_stats_map[ip].ping_pointer] = ping_value[i];
-				instance_private_stats_map[ip].ping_pointer = (instance_private_stats_map[ip].ping_pointer + 1) % (PING_NUMBER * 3);
+				instance_private_stats_map[ip].ping_pointer = (instance_private_stats_map[ip].ping_pointer + 1) % (PING_NUMBER * PING_CYCLES);
 				general_mutex.unlock();
-				std::cout << "203" << std::endl;
 			}
 			else {
-				std::cout << "204" << std::endl;
 				general_mutex.lock();
 				instance_private_stats_map[ip].last_pings[instance_private_stats_map[ip].ping_pointer] = -1;
-				instance_private_stats_map[ip].ping_pointer = (instance_private_stats_map[ip].ping_pointer + 1) % (PING_NUMBER * 3);
+				instance_private_stats_map[ip].ping_pointer = (instance_private_stats_map[ip].ping_pointer + 1) % (PING_NUMBER * PING_CYCLES);
 				general_mutex.unlock();
-				std::cout << "205" << std::endl;
 			}
 		}
 	}
@@ -532,17 +464,25 @@ void DistributedManager::Ping(std::string ip) {
 	instance_public_stats_map[ip] = stats;
 	general_mutex.unlock();
 
+	if(at_least_one_ping_successfull == false) {
+		logger->Debug("Removing from discovered instances the instance that did not reply any ping");
+
+		// Remove from discovered instances the instance that did not returned to any PING_NUMBER pings
+		general_mutex.lock();
+		slow_instances.insert(ip);
+		general_mutex.unlock();
+	}
+
 	return;
 }
 
 void DistributedManager::PingInstances() {
 	instance_public_stats_map.clear();
+	slow_instances.clear();
 	for (auto it = ip_to_sys_map.begin(); it != ip_to_sys_map.end(); ++it) {
 		// Skip ping of myself
-		if(it->first == (local_IP))
-			continue;
+		if(it->first == (local_IP)) continue;
 
-		std::cout << "901" << std::endl;
 		threads.push_back(std::thread(&DistributedManager::Ping, this, it->first));
 	}
 
@@ -573,8 +513,16 @@ void DistributedManager::PrintStatusReport() {
 #ifdef CONFIG_BBQUE_DIST_FULLY
 		// If the instance at the current IP is available.
 		if (ip_to_sys_map.find(*it) != ip_to_sys_map.end()) {
-			sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), ip_to_sys_map[*it], instance_public_stats_map[*it].RTT, instance_public_stats_map[*it].availability);
-			logger->Notice(buffer);
+			if (slow_instances.find(*it) != slow_instances.end()) {
+				// If the instance is marked as slow (it missed all the pings in the last ping cycle)
+
+				sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |     SLOW     |", (*it).c_str(), ip_to_sys_map[*it], instance_public_stats_map[*it].RTT, instance_public_stats_map[*it].availability);
+				logger->Notice(buffer);
+			}
+			else {
+				sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), ip_to_sys_map[*it], instance_public_stats_map[*it].RTT, instance_public_stats_map[*it].availability);
+				logger->Notice(buffer);
+			}
 		}
 		else {
 			sprintf(buffer, "| %21s |  -  |    -    |       -      | DISCONNECTED |", (*it).c_str());
@@ -582,13 +530,28 @@ void DistributedManager::PrintStatusReport() {
 		}
 #else
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
-		// If the instance at the current IP is available.
+		
 		if (ip_to_sys_map.find(*it) != ip_to_sys_map.end()) {
-			if(local_ID == 0)
-				sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), ip_to_sys_map[*it], instance_public_stats_map[*it].RTT, instance_public_stats_map[*it].availability);
-			else
+			// If the instance at the current IP is available.
+
+			if(local_ID == 0) {
+				// If I am MASTER
+
+				if (slow_instances.find(*it) != slow_instances.end()) {
+					// If the instance is marked as slow (it missed all the pings in the last ping cycle)
+
+					sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |     SLOW     |", (*it).c_str(), ip_to_sys_map[*it], instance_public_stats_map[*it].RTT, instance_public_stats_map[*it].availability);
+					logger->Notice(buffer);
+				}
+				else {
+					sprintf(buffer, "| %21s | %3d | %7.2f |    %6.2f    |      OK      |", (*it).c_str(), ip_to_sys_map[*it], instance_public_stats_map[*it].RTT, instance_public_stats_map[*it].availability);
+					logger->Notice(buffer);
+				}
+			}
+			else {
 				sprintf(buffer, "| %21s | %3d |    -    |       -      |      OK      |", (*it).c_str(), ip_to_sys_map[*it]);
-			logger->Notice(buffer);
+				logger->Notice(buffer);
+			}
 		}
 		else {
 			sprintf(buffer, "| %21s |  -  |    -    |       -      | DISCONNECTED |", (*it).c_str());
@@ -600,14 +563,10 @@ void DistributedManager::PrintStatusReport() {
 
 	logger->Notice(DISM_DIV3);
 	logger->Notice(DISM_DIV1);
-
-#ifdef DEBUG2
-	logger->Debug("instances:\n");
-	PrintSysToIp();
-#endif
 }
 
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
+
 int DistributedManager::GetNewID() {
 	int id = 0;
 	bool stop = false;
@@ -623,7 +582,20 @@ int DistributedManager::GetNewID() {
 
 	return id;
 }
+
 #endif
+
+bool DistributedManager::GetIPFromID(int16_t id, std::string & ip) {
+	ip = sys_to_ip_map[id];
+
+	return ip != "";
+}
+
+bool DistributedManager::GetIDFromIP(std::string ip, int16_t & id) {
+	id = ip_to_sys_map[ip];
+
+	return id != 0;
+}
 
 void DistributedManager::Task() {
 	logger->Info("Distributed Manager monitoring thread STARTED");
@@ -649,7 +621,7 @@ void DistributedManager::Task() {
 #endif
 #endif
 
-	// Calculate the greates common divider. The result will be used as seconds in the sleep function.
+	// Calculate the greatest common divider. The result will be used as seconds in the sleep function.
 	boost::math::gcd_evaluator<int> gcd_eval;
 	int gcd = gcd_eval(discover_period_s, ping_period_s);
 
@@ -666,15 +638,19 @@ void DistributedManager::Task() {
 	while (!done) {
 		if(discover % times_discover_period == 0)
 		{
+			logger->Debug("Discovering instances...");
+
 			discover = 0;
 			DiscoverInstances();
 		}
 
 		if(ping % times_ping_period == 0)
 		{
+			logger->Debug("Ping instances...");
+
 			ping = 0;
 
-			// Only the MASTER ping instances
+			// In hierarchical only the MASTER ping instances. In fully distributed every instance has id equal to 0, internally.
 			if (local_ID == 0){
 				PingInstances();
 			}
@@ -685,43 +661,15 @@ void DistributedManager::Task() {
 
 		PrintStatusReport();
 
-		std::cout << "000" << std::endl;
-
-		char buffer[100];
-		std::cout << "001" << std::endl;
-		// Just for debug print all the content of instance_private_stats_map
-		sprintf(buffer, "instance_private_stats_map: \n");
-		std::cout << "002" << std::endl;
-		logger->Debug(buffer);
-		std::cout << "003" << std::endl;
-		sprintf(buffer, "instance_private_stats_map length: %d\n", instance_private_stats_map.size());
-		std::cout << "004" << std::endl;
-		logger->Debug(buffer);
-		std::cout << "005" << std::endl;
-		for(auto it = instance_private_stats_map.begin(); it != instance_private_stats_map.end(); ++it)
-		{
-			std::cout << "006" << std::endl;
-			sprintf(buffer, "instance: %s\n", (it->first).c_str());
-			std::cout << "007" << std::endl;
-			logger->Debug(buffer);
-			std::cout << "008" << std::endl;
-			for(int i = 0; i < PING_NUMBER * 3; i++) {
-				std::cout << "009" << std::endl;
-				sprintf(buffer, "last_pings[%d]: %d\n", i, it->second.last_pings[i]);
-				std::cout << "010" << std::endl;
-				logger->Debug(buffer);
-				std::cout << "011" << std::endl;
-			}
-		}
-
 		// std::this_thread::sleep_for(std::chrono::seconds(gcd));
-		std::this_thread::sleep_for(std::chrono::seconds(0));
 
-#ifdef DEBUG2
-		std::cout << "Invio per altro ciclo di Task()" << std::endl;
+		std::this_thread::sleep_for(std::chrono::seconds(0));
 		int a;
+		logger->Debug("------------------------------------");
+		logger->Debug("------------------------------------");
+		logger->Debug("------------------------------------");
 		std::cin >> a;
-#endif
+
 	}
 
 	logger->Info("Distributed Manager monitoring thread END");
@@ -768,8 +716,6 @@ bool DistributedManager::Configure() {
 	cm.ParseConfigurationFile(distributed_manager_opts_desc, opts_vm);
 
 	BuildIPAddresses();
-
-
 
 	this->configured = true;
 
@@ -876,6 +822,7 @@ bool DistributedManager::FindMyOwnIPAddresses() {
 	for(auto it = local_IP_addresses.begin(); it != local_IP_addresses.end(); ++it)
 	{
 #ifdef LOCAL_TEST
+
 		for(auto ip_it = ipAddresses.begin(); ip_it != ipAddresses.end(); ++ip_it)
 		{
 			std::string ip = ip_it->substr(0, ip_it->find(":"));
@@ -888,7 +835,9 @@ bool DistributedManager::FindMyOwnIPAddresses() {
 				return true;
 			}			
 		}
+
 #else
+
 		for(auto ip_it = ipAddresses.begin(); ip_it != ipAddresses.end(); ++ip_it)
 		{
 			if(*ip_it == *it)
@@ -898,6 +847,7 @@ bool DistributedManager::FindMyOwnIPAddresses() {
 				return true;
 			}			
 		}
+
 #endif
 	}
 
@@ -941,4 +891,4 @@ bool DistributedManager::getInterfacesIPs() {
 
 	return true;
 }
-}
+} // namespace

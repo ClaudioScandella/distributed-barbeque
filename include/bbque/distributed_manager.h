@@ -35,8 +35,21 @@
 #define LOCAL_TEST
 #define DEBUG2
 
-// Number of ping per time for each discovered instance
+// Number of ping per time for each discovered instance (see example)
 #define PING_NUMBER 3
+
+// Number of ping cycles to which calculate mean RTT and avaialability (see example)
+#define PING_CYCLES 3
+
+/*
+
+Example:
+
+	If PING_NUMBER = 3 and PING_CYCLES = 5 then the instance ping 3 times in a row an instance (this is 1 cycle). For the successive
+	4 cycles the old pings are kept and used along with the 3 new ones to calculate the RTT. At the 6th cycle the 3 values of the first cycle
+	are overwritten with the 3 new ones. And so on...
+
+*/
 
 namespace bbque {
 
@@ -57,18 +70,34 @@ public:
 	virtual ~DistributedManager() {};
 
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
+
 	/**
 	 * @brief Get the first available id and set it to the new instance
 	 */
 	int GetNewID();
+
 #endif
 
+	bool GetIPFromID(int16_t id, std::string & ip);
+
+	bool GetIDFromIP(std::string ip, int16_t & id);
+
 	inline std::map<int, std::string> const & GetInstancesID() {
+		general_mutex.lock();
 		return sys_to_ip_map;
+		general_mutex.unlock();
 	}
 
 	inline std::map<std::string, Instance_Public_Stats_t> const & GetInstancesStats() {
+		general_mutex.lock();
 		return instance_public_stats_map;
+		general_mutex.unlock();
+	}
+
+	inline std::set<std::string> const & GetSlowInstances() {
+		general_mutex.lock();
+		return slow_instances;
+		general_mutex.unlock();
 	}
 
 	inline int const & GetLocalID() {
@@ -78,7 +107,7 @@ public:
 private:
 
 	struct Instance_Private_Stats_t {
-		int last_pings[PING_NUMBER * 3] = { 0 };
+		int last_pings[PING_NUMBER * PING_CYCLES] = { 0 };
 		int ping_pointer = 0;
 	};
 
@@ -186,6 +215,12 @@ private:
 	 */
 	std::map<int, std::string> sys_to_ip_map;
 	std::map<std::string, int> ip_to_sys_map;
+
+	// Contains all the intances that during a ping cycle did not respond to any ping.
+	// The instances in this set are not removed from sys_to_ip_map and ip_to_sys_map as it happens when they are not discovered
+	// but they are just tagged as slow.
+	// In the report in the console they are not shown. This set can be inspected from outside distributed manager.
+	std::set<std::string> slow_instances;
 
 #ifdef CONFIG_BBQUE_DIST_HIERARCHICAL
 	/**
