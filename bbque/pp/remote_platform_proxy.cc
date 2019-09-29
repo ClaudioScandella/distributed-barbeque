@@ -135,7 +135,7 @@ RemotePlatformProxy::Discover(
 			logger->Error("Discover failed. AgentProxy plugin missing");
 			return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 		}
-		logger->Debug("RPP discover");
+
 		return agent_proxy->Discover(ip, iam, reply);
 	}
 
@@ -146,6 +146,7 @@ RemotePlatformProxy::Ping(
 			logger->Error("Ping failed. AgentProxy plugin missing");
 			return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 		}
+
 		return agent_proxy->Ping(ip, ping_value);
 	}
 
@@ -158,8 +159,6 @@ RemotePlatformProxy::GetResourceStatus(
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
 
-	logger->Debug("Calling agent_proxy->GetResourceStatus(resource_path, status)");
-	logger->Debug("resource_path: %s", resource_path.c_str());
 	return agent_proxy->GetResourceStatus(instance_id, resource_path, status);
 }
 
@@ -170,11 +169,6 @@ RemotePlatformProxy::GetWorkloadStatus(
 		logger->Error("GetWorkloadStatus failed. AgentProxy plugin missing");
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
-
-	// std::string path;
-
-	// if(GeneralizeSystemID(system_path, path) != agent::ExitCode_t::OK)
-	// 	return agent::ExitCode_t::REQUEST_REJECTED;
 
 	return agent_proxy->GetWorkloadStatus(system_path, status);
 }
@@ -196,12 +190,7 @@ RemotePlatformProxy::GetChannelStatus(
 		logger->Error("GetChannelStatus failed. AgentProxy plugin missing");
 		return bbque::agent::ExitCode_t::PROXY_NOT_READY;
 	}
-
-	// std::string path;
-
-	// if(GeneralizeSystemID(system_path, path) != agent::ExitCode_t::OK)
-	// 	return agent::ExitCode_t::REQUEST_REJECTED;
-
+	
 	return agent_proxy->GetChannelStatus(system_path, status);
 }
 
